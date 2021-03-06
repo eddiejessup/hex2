@@ -1,0 +1,163 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.34.2.
+--
+-- see: https://github.com/sol/hpack
+
+name:           hex
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/eddiejessup/hex#readme>
+homepage:       https://github.com/eddiejessup/hex#readme
+bug-reports:    https://github.com/eddiejessup/hex/issues
+author:         Elliot Marsden
+maintainer:     elliot.marsden@gmail.com
+copyright:      Copyright (c) 2017 Elliot Marsden
+license:        BSD3
+build-type:     Simple
+extra-source-files:
+    README.md
+
+source-repository head
+  type: git
+  location: https://github.com/eddiejessup/hex
+
+library
+  exposed-modules:
+      Hex.App
+      Hex.Categorise.Impl
+      Hex.Categorise.Types
+      Hex.Codes
+      Hex.HexState.Instances.MonadHexState
+      Hex.HexState.Parameters
+      Hex.HexState.Scope
+      Hex.HexState.Type
+      Hex.Interpret.Build.Box.Elem
+      Hex.Interpret.Build.List.Elem
+      Hex.Interpret.Build.List.Layout.Paragraph
+      Hex.Interpret.CommandHandler.AllMode
+      Hex.Interpret.CommandHandler.MainVMode
+      Hex.Interpret.CommandHandler.ParaMode
+      Hex.Interpret.Evaluate.Evaluated
+      Hex.Interpret.Evaluate.Impl
+      Hex.Lex.Impl
+      Hex.Lex.Types
+      Hex.MonadHexState.Interface
+      Hex.Parse.AST
+      Hex.Parse.CharSource
+      Hex.Parse.MonadParse.Impls.MonadTokenSource
+      Hex.Parse.MonadParse.Interface
+      Hex.Parse.MonadTokenSource.Impls.CharSource
+      Hex.Parse.MonadTokenSource.Interface
+      Hex.Quantity
+      Hex.Symbol.Initial
+      Hex.Symbol.Resolve
+      Hex.Symbol.Tokens
+  other-modules:
+      Paths_hex
+  hs-source-dirs:
+      src
+  default-extensions: ConstraintKinds DataKinds DeriveAnyClass DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies EmptyCase FlexibleContexts FlexibleInstances GADTs GeneralizedNewtypeDeriving ImportQualifiedPost InstanceSigs LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedStrings PartialTypeSignatures ScopedTypeVariables StandaloneDeriving StrictData TupleSections TypeApplications TypeFamilies TypeOperators
+  ghc-options: -optP-Wno-nonportable-include-path -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-deriving-strategies -Wunused-packages -O0 +RTS -A128m -n2m -RTS -j
+  build-depends:
+      aeson
+    , ascii
+    , base
+    , binary
+    , bytestring
+    , containers
+    , directory
+    , exceptions
+    , fast-logger
+    , generic-optics
+    , generic-random
+    , hashable
+    , mtl
+    , optics-core
+    , optics-extra
+    , optparse-applicative
+    , parser-combinators
+    , path
+    , path-io
+    , protolude
+    , text
+    , time
+    , transformers
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
+
+executable hexc
+  main-is: Hexc.hs
+  other-modules:
+      Paths_hex
+  hs-source-dirs:
+      hexc
+  default-extensions: ConstraintKinds DataKinds DeriveAnyClass DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies EmptyCase FlexibleContexts FlexibleInstances GADTs GeneralizedNewtypeDeriving ImportQualifiedPost InstanceSigs LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedStrings PartialTypeSignatures ScopedTypeVariables StandaloneDeriving StrictData TupleSections TypeApplications TypeFamilies TypeOperators
+  ghc-options: -optP-Wno-nonportable-include-path -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-deriving-strategies -Wunused-packages -O0 +RTS -A128m -n2m -RTS -j -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , ascii
+    , base
+    , binary
+    , bytestring
+    , containers
+    , directory
+    , exceptions
+    , fast-logger
+    , generic-optics
+    , generic-random
+    , hashable
+    , hex
+    , mtl
+    , optics-core
+    , optics-extra
+    , optparse-applicative
+    , parser-combinators
+    , path
+    , path-io
+    , protolude
+    , text
+    , time
+    , transformers
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
+
+test-suite hex-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_hex
+  hs-source-dirs:
+      test
+  default-extensions: ConstraintKinds DataKinds DeriveAnyClass DeriveFoldable DeriveFunctor DeriveGeneric DeriveLift DeriveTraversable DerivingStrategies EmptyCase FlexibleContexts FlexibleInstances GADTs GeneralizedNewtypeDeriving ImportQualifiedPost InstanceSigs LambdaCase MultiParamTypeClasses MultiWayIf NamedFieldPuns NoImplicitPrelude OverloadedStrings PartialTypeSignatures ScopedTypeVariables StandaloneDeriving StrictData TupleSections TypeApplications TypeFamilies TypeOperators
+  ghc-options: -optP-Wno-nonportable-include-path -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints -Wmissing-deriving-strategies -Wunused-packages -O0 +RTS -A128m -n2m -RTS -j -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      aeson
+    , ascii
+    , base
+    , binary
+    , bytestring
+    , containers
+    , directory
+    , exceptions
+    , fast-logger
+    , generic-optics
+    , generic-random
+    , hashable
+    , hex
+    , hspec
+    , mtl
+    , optics-core
+    , optics-extra
+    , optparse-applicative
+    , parser-combinators
+    , path
+    , path-io
+    , protolude
+    , text
+    , time
+    , transformers
+    , unordered-containers
+    , vector
+  default-language: Haskell2010
