@@ -1,8 +1,8 @@
 module Hex.Parse.AST where
 
 import Hex.Codes qualified as H.Code
-import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
+import Hex.Quantity qualified as H.Q
 import Hex.Quantity qualified as H.Quant
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
 import Hexlude

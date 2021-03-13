@@ -2,8 +2,8 @@ module Hex.Interpret.Evaluate.Impl where
 
 import Hex.Codes qualified as H.Codes
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Quantity qualified as H.Q
 import Hex.Parse.AST qualified as AST
+import Hex.Quantity qualified as H.Q
 import Hexlude
 
 data EvaluationError

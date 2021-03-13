@@ -3,9 +3,9 @@ module Hex.HexState.Type where
 import Hex.Codes qualified as H.Codes
 import Hex.HexState.Parameters qualified as H.Inter.St.Param
 import Hex.HexState.Scope
-import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface qualified as H.MSt
+import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
 import Hex.TFM.Types qualified as H.TFM
 import Hexlude

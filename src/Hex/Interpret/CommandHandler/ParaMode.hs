@@ -4,7 +4,6 @@ import Hex.Codes qualified as H.Codes
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Interpret.CommandHandler.AllMode qualified as H.AllMode
-import Hex.Quantity qualified as H.Q
 import Hex.Interpret.Evaluate.Impl qualified as H.Inter.Eval
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Helpers qualified as H.St
@@ -12,6 +11,7 @@ import Hex.MonadHexState.Interface qualified as H.St
 import Hex.Parse.AST qualified as H.AST
 import Hex.Parse.CharSource qualified as H.Par.ChrSrc
 import Hex.Parse.MonadParse.Interface qualified as H.Par.Par
+import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
 import Hexlude
 

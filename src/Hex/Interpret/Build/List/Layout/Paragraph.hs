@@ -62,7 +62,7 @@ finishingHListElems =
   Empty
     :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty H.Q.tenK)
     :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue H.Q.filGlue)
-    :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ -H.Q.tenK)
+    :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ - H.Q.tenK)
 
 prepareHListForLayout :: H.Inter.B.List.HList -> Seq (H.Inter.B.List.HListElem, Maybe BreakItem)
 prepareHListForLayout (H.Inter.B.List.HList Empty) =

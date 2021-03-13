@@ -1,8 +1,9 @@
 {-# LANGUAGE PatternSynonyms #-}
+
 module Hex.Quantity.Length where
 
-import Hexlude
 import Hex.Quantity.Number
+import Hexlude
 
 -- =========================================================================
 -- The 'official' internal length quantity: integer number of scaled points.

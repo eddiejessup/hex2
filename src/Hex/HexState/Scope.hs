@@ -2,10 +2,10 @@ module Hex.HexState.Scope where
 
 import Hex.Codes qualified as H.Codes
 import Hex.HexState.Parameters qualified as H.Inter.St.Param
-import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface qualified as H.MSt
 import Hex.Parse.AST qualified as H.Par.AST
+import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Initial qualified as H.Sym
 import Hex.Symbol.Resolve qualified as H.Sym
 import Hex.Symbol.Tokens qualified as H.Sym.Tok

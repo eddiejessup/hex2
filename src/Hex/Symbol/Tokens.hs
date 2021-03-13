@@ -4,8 +4,8 @@ import ASCII qualified
 import ASCII.Char qualified
 import Data.Map.Strict qualified as Map
 import Hex.Codes
-import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
+import Hex.Quantity qualified as H.Q
 import Hex.Quantity qualified as H.Quant
 import Hexlude
 

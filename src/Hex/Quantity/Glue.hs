@@ -1,7 +1,7 @@
 module Hex.Quantity.Glue where
 
-import Hex.Quantity.Number
 import Hex.Quantity.Length
+import Hex.Quantity.Number
 import Hexlude
 
 data Glue = Glue {gDimen :: Length, gStretch :: Flex, gShrink :: Flex}

@@ -1,8 +1,8 @@
 module Hex.MonadHexState.Interface where
 
 import Hex.Codes qualified as H.Codes
-import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
+import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
 import Hexlude
 
