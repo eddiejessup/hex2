@@ -1,26 +1,20 @@
 module Hex.HexState.Scope where
 
-import Data.Generics.Product qualified as G.P
 import Hex.Codes qualified as H.Codes
 import Hex.HexState.Parameters qualified as H.Inter.St.Param
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
+import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
+import Hex.MonadHexState.Interface qualified as H.MSt
 import Hex.Parse.AST qualified as H.Par.AST
 import Hex.Symbol.Initial qualified as H.Sym
 import Hex.Symbol.Resolve qualified as H.Sym
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
--- Import `Optics.At` for instance:
---   (Eq k, Hashable k) => At (HashMap k a)
--- So we can do `at` on a HashMap, for control sequence map
-import Optics.At ()
-import Optics.Core ((%))
-import Optics.Core qualified as O
-import Protolude hiding ((%))
+import Hexlude
 
 data Scope = Scope
   { -- Fonts.
-    --     currentFontNr :: Maybe HexInt
-    --   familyMemberFonts :: Map (FontRange, HexInt) HexInt,
+    currentFontNr :: Maybe H.MSt.FontNumber,
+    -- familyMemberFonts :: Map (FontRange, HexInt) HexInt,
     -- Control sequences.
     csMap :: H.Sym.CSMap,
     -- Char-code attribute maps.
@@ -31,9 +25,9 @@ data Scope = Scope
     spaceFactors :: Map H.Codes.CharCode H.Codes.SpaceFactorCode,
     delimiterCodes :: Map H.Codes.CharCode H.Codes.DelimiterCode,
     -- Parameters.
-    intParameters :: Map H.Sym.Tok.IntParameter H.Inter.Eval.HexInt,
-    lengthParameters :: Map H.Sym.Tok.LengthParameter H.Inter.Eval.Length,
-    glueParameters :: Map H.Sym.Tok.GlueParameter (H.Inter.Eval.Glue H.Inter.Eval.Length)
+    intParameters :: Map H.Sym.Tok.IntParameter H.Q.HexInt,
+    lengthParameters :: Map H.Sym.Tok.LengthParameter H.Q.Length,
+    glueParameters :: Map H.Sym.Tok.GlueParameter H.Q.Glue
     --   mathGlueParameters :: Map MathGlueParameter (BL.Glue MathLength),
     --   tokenListParameters :: Map TokenListParameter BalancedText
     -- Registers.
@@ -48,9 +42,10 @@ data Scope = Scope
 
 newGlobalScope :: Scope
 newGlobalScope =
-  Scope --currentFontNr = Nothing
-  -- , familyMemberFonts = mempty
-    { csMap = H.Sym.initialCSMap,
+  Scope
+    { currentFontNr = Nothing,
+      -- familyMemberFonts = mempty
+      csMap = H.Sym.initialCSMap,
       catCodes = H.Codes.newCatCodes,
       mathCodes = H.Codes.newMathCodes,
       lowercaseCodes = H.Codes.newLowercaseCodes,
@@ -72,9 +67,10 @@ newGlobalScope =
 
 newLocalScope :: Scope
 newLocalScope =
-  Scope --currentFontNr = Nothing
-  -- , familyMemberFonts = mempty
-    { csMap = mempty,
+  Scope
+    { currentFontNr = Nothing,
+      -- familyMemberFonts = mempty
+      csMap = mempty,
       catCodes = mempty,
       mathCodes = mempty,
       lowercaseCodes = mempty,
@@ -94,37 +90,36 @@ newLocalScope =
       -- , boxRegister = mempty
     }
 
-data Group
-  = ScopeGroup Scope ScopeGroup
+data HexGroup
+  = ScopeGroup GroupScope
   | NonScopeGroup
+  deriving stock (Show, Generic)
+
+data GroupScope = GroupScope {scgScope :: Scope, scgType :: GroupScopeType}
+  deriving stock (Show, Generic)
+
+groupScopeATraversal :: AffineTraversal' HexGroup Scope
+groupScopeATraversal = _Typed @GroupScope % typed @Scope
+
+groupListScopeTraversal :: Traversal' [HexGroup] Scope
+groupListScopeTraversal = traversed % groupScopeATraversal
+
+data GroupScopeType
+  = LocalStructureGroupScope H.Par.AST.CommandTrigger
+  | ExplicitBoxGroupScope
   deriving stock (Show)
 
-groupScope :: Group -> Maybe Scope
-groupScope = \case
-  ScopeGroup scope _ ->
-    Just scope
-  _ ->
-    Nothing
+scopeResolvedTokenLens :: H.Lex.LexSymbol -> Lens' Scope (Maybe H.Sym.Tok.ResolvedToken)
+scopeResolvedTokenLens p = field @"csMap" % at' p
 
-groupScopes :: [Group] -> [Scope]
-groupScopes = mapMaybe groupScope
+scopeCategoryLens :: H.Codes.CharCode -> Lens' Scope (Maybe H.Codes.CatCode)
+scopeCategoryLens p = field @"catCodes" % at' p
 
-data ScopeGroup
-  = LocalStructureGroup H.Par.AST.CommandTrigger
-  | ExplicitBoxGroup
-  deriving stock (Show)
+scopeIntParamLens :: H.Sym.Tok.IntParameter -> Lens' Scope (Maybe H.Q.HexInt)
+scopeIntParamLens p = field @"intParameters" % at' p
 
-scopeResolvedTokenLens :: H.Lex.LexSymbol -> O.Lens' Scope (Maybe H.Sym.Tok.ResolvedToken)
-scopeResolvedTokenLens p = G.P.field @"csMap" % O.at' p
+scopeLengthParamLens :: H.Sym.Tok.LengthParameter -> Lens' Scope (Maybe H.Q.Length)
+scopeLengthParamLens p = field @"lengthParameters" % at' p
 
-scopeCategoryLens :: H.Codes.CharCode -> O.Lens' Scope (Maybe H.Codes.CatCode)
-scopeCategoryLens p = G.P.field @"catCodes" % O.at' p
-
-scopeIntParamLens :: H.Sym.Tok.IntParameter -> O.Lens' Scope (Maybe H.Inter.Eval.HexInt)
-scopeIntParamLens p = G.P.field @"intParameters" % O.at' p
-
-scopeLengthParamLens :: H.Sym.Tok.LengthParameter -> O.Lens' Scope (Maybe H.Inter.Eval.Length)
-scopeLengthParamLens p = G.P.field @"lengthParameters" % O.at' p
-
-scopeGlueParamLens :: H.Sym.Tok.GlueParameter -> O.Lens' Scope (Maybe (H.Inter.Eval.Glue H.Inter.Eval.Length))
-scopeGlueParamLens p = G.P.field @"glueParameters" % O.at' p
+scopeGlueParamLens :: H.Sym.Tok.GlueParameter -> Lens' Scope (Maybe H.Q.Glue)
+scopeGlueParamLens p = field @"glueParameters" % at' p

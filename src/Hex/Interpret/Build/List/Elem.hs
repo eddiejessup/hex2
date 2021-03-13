@@ -1,15 +1,15 @@
 module Hex.Interpret.Build.List.Elem where
 
-import Protolude
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.Quantity qualified as H.Q
+import Hexlude
 
 -- Elements.
 
 -- Vertical list.
 data VListElem
   = VListBaseElem H.Inter.B.Box.BaseElem
-  | ListGlue (H.Inter.Eval.Glue H.Inter.Eval.Length)
+  | ListGlue H.Q.Glue
   | ListPenalty Penalty
   deriving stock (Show, Generic)
 
@@ -23,11 +23,11 @@ data HListElem
 
 -- Lists.
 
-newtype HList = HList (Seq HListElem)
+newtype HList = HList {unHList :: Seq HListElem}
   deriving stock (Show)
   deriving newtype (Semigroup, Monoid)
 
-newtype VList = VList (Seq VListElem)
+newtype VList = VList {unVList :: Seq VListElem}
   deriving stock (Show)
   deriving newtype (Semigroup, Monoid)
 
@@ -38,8 +38,8 @@ data VBoxAlignType
   | TopAlign -- \vtop
   deriving stock (Show, Eq, Generic)
 
-newtype Penalty = Penalty H.Inter.Eval.HexInt
+newtype Penalty = Penalty {unPenalty :: Int}
   deriving stock (Show, Generic)
 
-data DesiredLength = Natural | Spread H.Inter.Eval.Length | To H.Inter.Eval.Length
-  deriving stock Show
+data DesiredLength = Natural | Spread H.Q.Length | To H.Q.Length
+  deriving stock (Show)

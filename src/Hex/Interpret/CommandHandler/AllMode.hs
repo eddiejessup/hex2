@@ -1,7 +1,13 @@
 module Hex.Interpret.CommandHandler.AllMode where
 
 import Hex.Parse.AST qualified as H.AST
-import Protolude
+import Hexlude
+
+data InterpretError
+  = SawEndBoxInMainVMode
+  | SawEndBoxInMainVModePara -- "No box to end: in paragraph within main V mode"
+  | NoFontSelected
+  deriving stock (Generic, Show)
 
 data AllModeCommandResult
   = SawEndBox
@@ -113,7 +119,7 @@ handleModeIndependentCommand = \case
   --         do
   --           eIdx <- texEvaluate idx
   --           eVal <- texEvaluate val
-  --           idxChar <- note (injectTyped $ ConfigError $ "Invalid character code index: " <> show eIdx) (fromTeXInt eIdx)
+  --           idxChar <- note (injectTyped $ ConfigError $ "Invalid character code index: " <> show eIdx) (fromHexInt eIdx)
   --           sLogStampedJSON
   --             "Doing code assignment"
   --             [ ("codeTableIndexSymbolic", toJSON idx),

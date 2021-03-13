@@ -1,12 +1,11 @@
 module Hex.Parse.AST where
 
-import Protolude
-import Path
 import Hex.Codes qualified as H.Code
+import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Quant
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
+import Hexlude
 
 -- HexInt.
 
@@ -15,7 +14,7 @@ type HexInt = H.Sym.Tok.Signed UnsignedHexInt
 newtype EightBitHexInt = EightBitHexInt HexInt
   deriving stock (Show, Generic)
 
-constHexInt :: H.Inter.Eval.HexInt -> HexInt
+constHexInt :: H.Q.HexInt -> HexInt
 constHexInt n = H.Sym.Tok.Signed H.Sym.Tok.Positive $ constUHexInt n
 
 data UnsignedHexInt
@@ -23,18 +22,18 @@ data UnsignedHexInt
   | CoercedHexInt CoercedHexInt
   deriving stock (Show, Generic)
 
-constUHexInt :: H.Inter.Eval.HexInt -> UnsignedHexInt
+constUHexInt :: H.Q.HexInt -> UnsignedHexInt
 constUHexInt n = NormalHexIntAsUHexInt $ HexIntConstant n
 
 -- Think: 'un-coerced integer'.
-data NormalHexInt = HexIntConstant H.Inter.Eval.HexInt | InternalHexInt InternalHexInt
+data NormalHexInt = HexIntConstant H.Q.HexInt | InternalHexInt InternalHexInt
   deriving stock (Show, Generic)
 
 zeroHexInt :: NormalHexInt
-zeroHexInt = HexIntConstant 0
+zeroHexInt = HexIntConstant $ H.Q.HexInt 0
 
 oneHexInt :: NormalHexInt
-oneHexInt = HexIntConstant 1
+oneHexInt = HexIntConstant $ H.Q.HexInt 1
 
 data CoercedHexInt
   = InternalLengthAsInt InternalLength
@@ -46,9 +45,9 @@ type Length = H.Sym.Tok.Signed UnsignedLength
 
 zeroLength :: Length
 zeroLength =
-  H.Sym.Tok.Signed H.Sym.Tok.Positive
-    $ NormalLengthAsULength
-    $ LengthSemiConstant zeroFactor scaledPointUnit
+  H.Sym.Tok.Signed H.Sym.Tok.Positive $
+    NormalLengthAsULength $
+      LengthSemiConstant zeroFactor scaledPointUnit
 
 data UnsignedLength
   = NormalLengthAsULength NormalLength
@@ -215,7 +214,7 @@ data InternalMathGlue
 data Assignment = Assignment {body :: AssignmentBody, scope :: H.Sym.Tok.ScopeFlag}
   deriving stock (Show, Generic)
 
-newtype HexFilePath = HexFilePath (Path.Path Path.Rel Path.File)
+newtype HexFilePath = HexFilePath FilePath
   deriving stock (Show, Generic)
 
 data ControlSequenceTarget
@@ -402,7 +401,7 @@ data BoxPlacement = NaturalPlacement | ShiftedPlacement H.Quant.Axis H.Quant.Dir
 
 data CharCodeRef
   = CharRef H.Code.CharCode
-  | CharTokenRef H.Inter.Eval.HexInt
+  | CharTokenRef H.Q.HexInt
   | CharCodeNrRef HexInt
   deriving stock (Show, Generic)
 

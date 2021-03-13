@@ -1,46 +1,58 @@
 module Hex.MonadHexState.Interface where
 
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
-import Protolude
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
 import Hex.Codes qualified as H.Codes
+import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
+import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hexlude
+
+newtype FontNumber = FontNumber H.Q.HexInt
+  deriving stock (Show)
+  deriving newtype (Eq, Ord, Enum)
 
 class Monad m => MonadHexState m where
-  getIntParameter :: H.Sym.Tok.IntParameter -> m H.Inter.Eval.HexInt
+  getIntParameter :: H.Sym.Tok.IntParameter -> m H.Q.HexInt
 
-  getLengthParameter :: H.Sym.Tok.LengthParameter -> m H.Inter.Eval.Length
+  getLengthParameter :: H.Sym.Tok.LengthParameter -> m H.Q.Length
 
-  getGlueParameter :: H.Sym.Tok.GlueParameter -> m (H.Inter.Eval.Glue H.Inter.Eval.Length)
+  getGlueParameter :: H.Sym.Tok.GlueParameter -> m H.Q.Glue
 
-  getSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> m H.Inter.Eval.Length
+  getSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> m H.Q.Length
 
-  setSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> H.Inter.Eval.Length -> m ()
+  setSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> H.Q.Length -> m ()
 
   getCategory :: H.Codes.CharCode -> m H.Codes.CatCode
 
   resolveSymbol :: H.Lex.LexSymbol -> m (Maybe H.Sym.Tok.ResolvedToken)
 
+  loadFont :: FilePath -> m (FontNumber, Text)
+
+  selectFont :: FontNumber -> H.Sym.Tok.ScopeFlag -> m ()
+
+  currentFontCharacter :: H.Codes.CharCode -> m (Maybe (H.Q.Length, H.Q.Length, H.Q.Length, H.Q.Length))
+
+  currentFontSpaceGlue :: m (Maybe H.Q.Glue)
+
 -- Lifting.
-
 instance MonadHexState m => MonadHexState (ExceptT e m) where
-  getIntParameter :: H.Sym.Tok.IntParameter -> ExceptT e m H.Inter.Eval.HexInt
-  getIntParameter p = lift $ getIntParameter p
+  getIntParameter = lift . getIntParameter
 
-  getLengthParameter :: H.Sym.Tok.LengthParameter -> ExceptT e m H.Inter.Eval.Length
-  getLengthParameter p = lift $ getLengthParameter p
+  getLengthParameter = lift . getLengthParameter
 
-  getGlueParameter :: H.Sym.Tok.GlueParameter -> ExceptT e m (H.Inter.Eval.Glue H.Inter.Eval.Length)
-  getGlueParameter p = lift $ getGlueParameter p
+  getGlueParameter = lift . getGlueParameter
 
-  getSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> ExceptT e m H.Inter.Eval.Length
-  getSpecialLengthParameter p = lift $ getSpecialLengthParameter p
+  getSpecialLengthParameter = lift . getSpecialLengthParameter
 
-  setSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> H.Inter.Eval.Length -> ExceptT e m ()
   setSpecialLengthParameter p v = lift $ setSpecialLengthParameter p v
 
-  getCategory :: H.Codes.CharCode -> ExceptT e m H.Codes.CatCode
   getCategory p = lift $ getCategory p
 
-  resolveSymbol :: H.Lex.LexSymbol -> ExceptT e m (Maybe H.Sym.Tok.ResolvedToken)
   resolveSymbol a = lift $ resolveSymbol a
+
+  loadFont = lift . loadFont
+
+  selectFont a b = lift $ selectFont a b
+
+  currentFontCharacter = lift . currentFontCharacter
+
+  currentFontSpaceGlue = lift currentFontSpaceGlue

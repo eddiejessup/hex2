@@ -2,11 +2,11 @@
 
 module Hex.Parse.MonadTokenSource.Interface where
 
-import Protolude
 import Hex.Lex.Types qualified as Lex
 import Hex.Parse.CharSource
-import Hex.Symbol.Tokens qualified as Sym.Tok
 import Hex.Symbol.Resolve as Sym.Res
+import Hex.Symbol.Tokens qualified as Sym.Tok
+import Hexlude
 
 data ResolutionError = ResolutionError
 
@@ -27,6 +27,7 @@ getResolvedToken :: MonadTokenSource m => ResolutionMode -> m (Maybe (Lex.LexTok
 getResolvedToken resMode = do
   getLexToken >>= \case
     Nothing -> pure Nothing
-    Just lt -> resolveLexToken resMode lt >>= \case
-      Left _ -> pure Nothing
-      Right rt -> pure $ Just (lt, rt)
+    Just lt ->
+      resolveLexToken resMode lt >>= \case
+        Left _ -> pure Nothing
+        Right rt -> pure $ Just (lt, rt)

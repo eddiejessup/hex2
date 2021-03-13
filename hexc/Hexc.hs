@@ -1,13 +1,10 @@
 module Main where
 
-import Protolude
-import Path qualified
-import Path.IO qualified
+import Hexlude
 import Options.Applicative
 
 import Hex.Categorise qualified as H.Cat
 import Hex.Lex qualified as H.Lex
-import qualified Data.ByteString as BS
 
 data Input = FileInput FilePath | StdInput
 
@@ -84,9 +81,10 @@ main = do
         cs <- liftIO BS.getContents
         pure (cs, Nothing)
       FileInput inPathStr -> do
-        path <- Path.IO.resolveFile' (toS inPathStr)
-        cs <- BS.readFile (Path.toFilePath path)
-        pure (cs, Just path)
+        undefined
+        -- path <- Path.IO.resolveFile' (toS inPathStr)
+        -- cs <- BS.readFile (Path.toFilePath path)
+        -- pure (cs, Just path)
 
   case mode opts of
     CatMode ->

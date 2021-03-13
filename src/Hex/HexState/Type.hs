@@ -1,18 +1,18 @@
 module Hex.HexState.Type where
 
-import Data.Generics.Product qualified as G.P
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
+import Hex.Codes qualified as H.Codes
 import Hex.HexState.Parameters qualified as H.Inter.St.Param
 import Hex.HexState.Scope
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
-import Optics.Core ((%), (.~))
-import Optics.Core qualified as O
-import Protolude hiding ((%))
-import Hex.Codes qualified as H.Codes
+import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
+import Hex.MonadHexState.Interface qualified as H.MSt
+import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.TFM.Types qualified as H.TFM
+import Hexlude
+import Optics.Core qualified as O
 
 data HexState = HexState
-  { --fontInfos :: Map HexInt FontInfo,
+  { fontInfos :: Map H.MSt.FontNumber FontInfo,
     --searchDirectories :: [Path Abs Dir],
     -- File streams.
     -- logStream :: Handle,
@@ -20,19 +20,20 @@ data HexState = HexState
     -- internalLoggerSet :: Log.LoggerSet,
     -- / File streams.
     -- Global parameters.
-    specialInts :: Map H.Sym.Tok.SpecialIntParameter H.Inter.Eval.HexInt,
-    specialLengths :: Map H.Sym.Tok.SpecialLengthParameter H.Inter.Eval.Length,
+    specialInts :: Map H.Sym.Tok.SpecialIntParameter H.Q.HexInt,
+    specialLengths :: Map H.Sym.Tok.SpecialLengthParameter H.Q.Length,
     -- afterAssignmentToken :: Maybe Lex.Token,
     -- Scopes and groups.
     globalScope :: Scope,
-    groups :: [Group]
+    groups :: [HexGroup]
   }
   deriving stock (Generic)
 
 newHexState :: HexState
 newHexState =
   HexState
-    { specialInts = H.Inter.St.Param.newSpecialIntParameters,
+    { fontInfos = mempty,
+      specialInts = H.Inter.St.Param.newSpecialIntParameters,
       specialLengths = H.Inter.St.Param.newSpecialLengthParameters,
       -- , logStream = logHandle
       -- , outFileStreams = mempty
@@ -42,17 +43,23 @@ newHexState =
       -- , internalLoggerSet
     }
 
+data FontInfo = FontInfo {fontMetrics :: H.TFM.Font, hyphenChar :: H.Q.HexInt, skewChar :: H.Q.HexInt}
+  deriving stock (Show, Generic)
+
+stateLocalScopesTraversal :: Traversal' HexState Scope
+stateLocalScopesTraversal = field @"groups" % groupListScopeTraversal
+
 stateScopes :: HexState -> [Scope]
-stateScopes HexState{ globalScope, groups } = globalScope : groupScopes groups
+stateScopes HexState {globalScope, groups} = globalScope : toListOf groupListScopeTraversal groups
 
 scopedLookup :: (Scope -> Maybe v) -> HexState -> Maybe v
 scopedLookup f c = asum $ f <$> stateScopes c
 
-stateLocalScopeLens :: O.Lens' HexState Scope
-stateLocalScopeLens = O.lens getter setter
+stateLocalMostScopeLens :: Lens' HexState Scope
+stateLocalMostScopeLens = lens getter setter
   where
     getter :: HexState -> Scope
-    getter HexState {globalScope, groups} = fromMaybe globalScope $ asum $ groupScope <$> groups
+    getter st@HexState {globalScope} = fromMaybe globalScope $ O.headOf stateLocalScopesTraversal st
 
     setter :: HexState -> Scope -> HexState
     setter c@HexState {groups} newScope =
@@ -64,29 +71,45 @@ stateLocalScopeLens = O.lens getter setter
           -- If we've traversed all groups without finding a scope group, set
           -- the global scope to the new scope.
           [] ->
-            G.P.field @"globalScope" .~ newScope
+            field @"globalScope" .~ newScope
           -- If we see a scope group, replace that with the new scope, keeping
           -- the groups before and after as before.
-          ScopeGroup _ scopeGroupType : restAftGroups ->
-            G.P.field @"groups" .~ (befGroups ++ (ScopeGroup newScope scopeGroupType : restAftGroups))
+          ScopeGroup grpScope : restAftGroups ->
+            field @"groups" .~ (befGroups ++ (ScopeGroup grpScope {scgScope = newScope} : restAftGroups))
           -- If we see a non-scope group, add it to our befGroups stack and keep traversing the groups.
           nonScopeGroup : restAftGroups ->
             go (befGroups ++ [nonScopeGroup]) restAftGroups
 
 stateLocalResolvedToken :: H.Lex.LexSymbol -> HexState -> Maybe H.Sym.Tok.ResolvedToken
-stateLocalResolvedToken p = scopedLookup (O.view (scopeResolvedTokenLens p))
+stateLocalResolvedToken p = scopedLookup (view (scopeResolvedTokenLens p))
 
 stateLocalCategory :: H.Codes.CharCode -> HexState -> H.Codes.CatCode
-stateLocalCategory p = fromMaybe H.Codes.Invalid . scopedLookup (O.view (scopeCategoryLens p))
+stateLocalCategory p = fromMaybe H.Codes.Invalid . scopedLookup (view (scopeCategoryLens p))
 
-stateLocalIntParam :: H.Sym.Tok.IntParameter -> HexState -> H.Inter.Eval.HexInt
-stateLocalIntParam p = fromMaybe 0 . scopedLookup (O.view (scopeIntParamLens p))
+stateLocalIntParam :: H.Sym.Tok.IntParameter -> HexState -> H.Q.HexInt
+stateLocalIntParam p = fromMaybe H.Q.zeroHexInt . scopedLookup (view (scopeIntParamLens p))
 
-stateLocalLengthParam :: H.Sym.Tok.LengthParameter -> HexState -> H.Inter.Eval.Length
-stateLocalLengthParam p = fromMaybe 0 . scopedLookup (O.view (scopeLengthParamLens p))
+stateLocalLengthParam :: H.Sym.Tok.LengthParameter -> HexState -> H.Q.Length
+stateLocalLengthParam p = fromMaybe mempty . scopedLookup (view (scopeLengthParamLens p))
 
-stateLocalGlueParam :: H.Sym.Tok.GlueParameter -> HexState -> H.Inter.Eval.Glue H.Inter.Eval.Length
-stateLocalGlueParam p = fromMaybe mempty . scopedLookup (O.view (scopeGlueParamLens p))
+stateLocalGlueParam :: H.Sym.Tok.GlueParameter -> HexState -> H.Q.Glue
+stateLocalGlueParam p = fromMaybe mempty . scopedLookup (view (scopeGlueParamLens p))
 
-stateSpecialLengthParamLens :: H.Sym.Tok.SpecialLengthParameter -> O.Lens' HexState H.Inter.Eval.Length
-stateSpecialLengthParamLens p = G.P.field @"specialLengths" % O.at' p % O.non (H.Inter.Eval.Length 0)
+stateSpecialLengthParamLens :: H.Sym.Tok.SpecialLengthParameter -> Lens' HexState H.Q.Length
+stateSpecialLengthParamLens p = field @"specialLengths" % at' p % O.non (H.Q.Length 0)
+
+stateCurrentFontNr :: HexState -> Maybe H.MSt.FontNumber
+stateCurrentFontNr = scopedLookup (getField @"currentFontNr")
+
+stateFontInfoLens :: H.MSt.FontNumber -> Lens' HexState (Maybe FontInfo)
+stateFontInfoLens fNr = field @"fontInfos" % at' fNr
+
+selectFontNr :: H.MSt.FontNumber -> H.Sym.Tok.ScopeFlag -> HexState -> HexState
+selectFontNr n scopeFlag st =
+  case scopeFlag of
+    H.Sym.Tok.Global ->
+      st
+        & field @"globalScope" % field @"currentFontNr" ?~ n
+        & stateLocalScopesTraversal % field @"currentFontNr" .~ Nothing
+    H.Sym.Tok.Local ->
+      st & stateLocalMostScopeLens % field @"currentFontNr" ?~ n

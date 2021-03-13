@@ -1,11 +1,10 @@
 module Hex.Parse.CharSource where
 
-import Protolude
-import Path qualified
 import Hex.Lex.Types qualified as H.Lex
+import Hexlude
 
 data CharSource = CharSource
-  { sourcePath :: Maybe (Path.Path Path.Abs Path.File),
+  { sourcePath :: Maybe FilePath,
     sourceChars :: ByteString,
     sourceLexTokens :: Seq H.Lex.LexToken,
     sourceLexState :: H.Lex.LexState

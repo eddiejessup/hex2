@@ -1,12 +1,13 @@
 module Hex.Lex.Types where
 
 import Data.ByteString qualified as BS
-import Hex.Codes qualified as Code
 import Hex.Categorise.Types as H.Cat
-import Protolude
+import Hex.Codes qualified as Code
+import Hexlude
 
 newtype ControlSequence = ControlSequence ByteString
-  deriving newtype (Show, Eq, Hashable)
+  deriving stock (Show)
+  deriving newtype (Eq, Hashable)
 
 mkControlSequence :: [Code.CharCode] -> ControlSequence
 mkControlSequence csChars = ControlSequence $ BS.pack $ Code.codeWord <$> csChars
@@ -18,11 +19,10 @@ data LexSymbol
 
 instance Hashable LexSymbol
 
-data LexCharCat
-  = LexCharCat
-      { lexCCChar :: Code.CharCode
-      , lexCCCat :: Code.CoreCatCode
-      }
+data LexCharCat = LexCharCat
+  { lexCCChar :: Code.CharCode,
+    lexCCCat :: Code.CoreCatCode
+  }
   deriving stock (Show, Eq, Generic)
 
 data LexToken

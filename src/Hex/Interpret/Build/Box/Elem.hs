@@ -1,9 +1,8 @@
 module Hex.Interpret.Build.Box.Elem where
 
-import Protolude
-import Path qualified
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
 import Hex.Codes qualified as H.Codes
+import Hex.Quantity qualified as H.Q
+import Hexlude
 
 -- Box elements.
 
@@ -15,11 +14,11 @@ data HBoxElem
 -- TODO: Ligature, DiscretionaryBreak, Math on/off, V-adust
 newtype HBaseElem
   = ElemCharacter Character
-  deriving stock Show
+  deriving stock (Show)
 
 data VBoxElem
   = VBoxBaseElem BaseElem
-  | BoxGlue (SetGlue H.Inter.Eval.Length)
+  | BoxGlue (SetGlue H.Q.Length)
   deriving stock (Show, Generic)
 
 data BaseElem
@@ -40,11 +39,11 @@ newtype VBox = VBox (Seq VBoxElem)
   deriving stock (Show, Generic)
   deriving newtype (Semigroup, Monoid)
 
-data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: H.Inter.Eval.Length}
+data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: H.Q.Length}
   deriving stock (Show, Generic, Functor, Foldable)
 
 newtype Page = Page (Box VBox)
-  deriving stock Show
+  deriving stock (Show)
 
 -- Element constituents.
 
@@ -56,26 +55,24 @@ data BoxContents
   | VBoxContents VBox
   deriving stock (Show, Generic)
 
-data Rule = Rule {ruleWidth, ruleHeight, ruleDepth :: H.Inter.Eval.Length}
+newtype Rule = Rule (Box ())
   deriving stock (Show, Generic)
 
-newtype Kern = Kern {kernDimen :: H.Inter.Eval.Length}
-  deriving stock Show
+newtype Kern = Kern {kernDimen :: H.Q.Length}
+  deriving stock (Show)
 
-data Character
-  = Character {char :: H.Codes.CharCode, charWidth, charHeight, charDepth :: H.Inter.Eval.Length}
+newtype Character = Character (Box H.Codes.CharCode)
   deriving stock (Show, Generic)
 
-data FontDefinition
-  = FontDefinition
-      { fontDefChecksum :: Int
-      , fontDefDesignSize :: H.Inter.Eval.Length
-      , fontDefDesignScale :: H.Inter.Eval.Length
-      , fontPath :: Path.Path Path.Rel Path.File
-      , fontName :: Text
-      , fontNr :: H.Inter.Eval.HexInt
-      }
+data FontDefinition = FontDefinition
+  { fontDefChecksum :: Int,
+    fontDefDesignSize :: H.Q.Length,
+    fontDefDesignScale :: H.Q.Length,
+    fontPath :: FilePath,
+    fontName :: Text,
+    fontNr :: H.Q.HexInt
+  }
   deriving stock (Show, Generic)
 
-newtype FontSelection = FontSelection H.Inter.Eval.HexInt
+newtype FontSelection = FontSelection H.Q.HexInt
   deriving stock (Show, Generic)

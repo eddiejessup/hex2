@@ -1,44 +1,44 @@
 module Hex.HexState.Parameters where
 
 import Data.Map.Strict qualified as Map
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
+import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
-import Protolude
+import Hexlude
 
-newIntParameters :: Map H.Sym.Tok.IntParameter H.Inter.Eval.HexInt
+newIntParameters :: Map H.Sym.Tok.IntParameter H.Q.HexInt
 newIntParameters =
   Map.fromList
-    [ (H.Sym.Tok.Tolerance, 10000),
-      (H.Sym.Tok.EscapeChar, 92), -- '\'
-      (H.Sym.Tok.EndLineChar, 13), -- '\r'
-      (H.Sym.Tok.MaxDeadCycles, 25),
-      (H.Sym.Tok.HangAfter, 1),
-      (H.Sym.Tok.Mag, 1000),
-      (H.Sym.Tok.Time, 1),
-      (H.Sym.Tok.Day, 1),
-      (H.Sym.Tok.Month, 1),
-      (H.Sym.Tok.Year, 1970)
+    [ (H.Sym.Tok.Tolerance, H.Q.HexInt 10000),
+      (H.Sym.Tok.EscapeChar, H.Q.HexInt 92), -- '\'
+      (H.Sym.Tok.EndLineChar, H.Q.HexInt 13), -- '\r'
+      (H.Sym.Tok.MaxDeadCycles, H.Q.HexInt 25),
+      (H.Sym.Tok.HangAfter, H.Q.HexInt 1),
+      (H.Sym.Tok.Mag, H.Q.HexInt 1000),
+      (H.Sym.Tok.Time, H.Q.HexInt 1),
+      (H.Sym.Tok.Day, H.Q.HexInt 1),
+      (H.Sym.Tok.Month, H.Q.HexInt 1),
+      (H.Sym.Tok.Year, H.Q.HexInt 1970)
     ]
 
-newLengthParameters :: Map H.Sym.Tok.LengthParameter H.Inter.Eval.Length
+newLengthParameters :: Map H.Sym.Tok.LengthParameter H.Q.Length
 newLengthParameters = mempty
 
-newGlueParameters :: Map H.Sym.Tok.GlueParameter (H.Inter.Eval.Glue H.Inter.Eval.Length)
+newGlueParameters :: Map H.Sym.Tok.GlueParameter H.Q.Glue
 newGlueParameters = mempty
 
-newMathGlueParameters :: Map H.Sym.Tok.MathGlueParameter (H.Inter.Eval.Glue H.Inter.Eval.MathLength)
+newMathGlueParameters :: Map H.Sym.Tok.MathGlueParameter H.Q.MathGlue
 newMathGlueParameters = mempty
 
 newTokenListParameters :: Map H.Sym.Tok.TokenListParameter H.Sym.Tok.BalancedText
 newTokenListParameters = mempty
 
-newSpecialIntParameters :: Map H.Sym.Tok.SpecialIntParameter H.Inter.Eval.HexInt
+newSpecialIntParameters :: Map H.Sym.Tok.SpecialIntParameter H.Q.HexInt
 newSpecialIntParameters = mempty
 
-newSpecialLengthParameters :: Map H.Sym.Tok.SpecialLengthParameter H.Inter.Eval.Length
+newSpecialLengthParameters :: Map H.Sym.Tok.SpecialLengthParameter H.Q.Length
 newSpecialLengthParameters =
   Map.fromList
-    [ (H.Sym.Tok.PrevDepth, - H.Inter.Eval.oneKPt)
+    [ (H.Sym.Tok.PrevDepth, invert H.Q.oneKPt)
     ]
 
 -- usableIntParameters :: Map IntParameter Int

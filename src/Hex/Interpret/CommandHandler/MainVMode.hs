@@ -1,35 +1,29 @@
 module Hex.Interpret.CommandHandler.MainVMode where
 
-import Data.Sequence (Seq (..))
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
-import Hex.Interpret.Evaluate.Impl qualified as H.Inter.Eval
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
+import Hex.Interpret.Build.List.Layout.Paragraph qualified as H.Inter.B.List.Layout
 import Hex.Interpret.CommandHandler.AllMode qualified as H.AllMode
+import Hex.Interpret.CommandHandler.ParaMode qualified as H.Para
+import Hex.Quantity qualified as H.Q
+import Hex.Interpret.Evaluate.Impl qualified as H.Inter.Eval
+import Hex.MonadHexState.Interface qualified as H.Inter.St
 import Hex.Parse.AST qualified as H.AST
+import Hex.Parse.CharSource qualified as H.Par.ChrSrc
 import Hex.Parse.MonadParse.Interface qualified as H.Par.Par
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
-import Protolude
-import Hex.Interpret.CommandHandler.ParaMode qualified as H.Para
-import Data.Generics.Sum.Typed
-import Hex.MonadHexState.Interface qualified as H.Inter.St
-import Hex.Interpret.Build.List.Layout.Paragraph qualified as H.Inter.B.List.Layout
-import Hex.Parse.CharSource qualified as H.Par.ChrSrc
+import Hexlude
 
 data VModeCommandResult
   = ContinueMainVMode
   | EndMainVMode
 
-data InterpretError
-  = SawEndBoxInMainVMode
-  | SawEndBoxInMainVModePara -- "No box to end: in paragraph within main V mode"
-  deriving stock (Generic, Show)
-
 buildMainVList ::
   ( H.Par.Par.MonadParse m,
+    H.Inter.St.MonadHexState m,
     MonadError e m,
-    AsType InterpretError e,
-    H.Inter.St.MonadHexState m
+    AsType H.AllMode.InterpretError e,
+    AsType H.Inter.Eval.EvaluationError e
   ) =>
   m H.Inter.B.List.VList
 buildMainVList = execStateT go mempty
@@ -37,12 +31,18 @@ buildMainVList = execStateT go mempty
     go = do
       streamPreParse <- lift H.Par.Par.getStream
       command <- lift H.Par.Par.parseCommand
+      traceM $ show command
       handleCommandInMainVMode streamPreParse command >>= \case
         EndMainVMode -> pure ()
         ContinueMainVMode -> go
 
 handleCommandInMainVMode ::
-  ( Monad m, H.Par.Par.MonadParse m, MonadError e m, AsType InterpretError e, H.Inter.St.MonadHexState m) =>
+  ( H.Par.Par.MonadParse m,
+    H.Inter.St.MonadHexState m,
+    MonadError e m,
+    AsType H.AllMode.InterpretError e,
+    AsType H.Inter.Eval.EvaluationError e
+  ) =>
   H.Par.ChrSrc.CharSource ->
   H.AST.Command ->
   StateT H.Inter.B.List.VList m VModeCommandResult
@@ -68,7 +68,7 @@ handleCommandInMainVMode oldSrc = \case
   H.AST.ModeIndependentCommand modeIndependentCommand -> do
     H.AllMode.handleModeIndependentCommand modeIndependentCommand >>= \case
       H.AllMode.SawEndBox ->
-        lift $ throwError $ injectTyped SawEndBoxInMainVMode
+        lift $ throwError $ injectTyped H.AllMode.SawEndBoxInMainVMode
       H.AllMode.DidNotSeeEndBox ->
         pure ContinueMainVMode
   oth ->
@@ -84,7 +84,7 @@ handleCommandInMainVMode oldSrc = \case
         H.Para.EndParaSawEndParaCommand ->
           pure ContinueMainVMode
         H.Para.EndParaSawLeaveBox ->
-          lift $ throwError $ injectTyped SawEndBoxInMainVModePara
+          lift $ throwError $ injectTyped H.AllMode.SawEndBoxInMainVModePara
 
 extendVListWithParagraphStateT ::
   ( H.Inter.St.MonadHexState m
@@ -128,25 +128,25 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
     -- Otherwise:
     --    \lineskip
     -- Then set \prevdepth to the depth of the new box.
-    _prevDepth <- H.Inter.St.getSpecialLengthParameter H.Sym.Tok.PrevDepth
-    (H.Inter.Eval.Glue blineLength blineStretch blineShrink) <- H.Inter.St.getGlueParameter H.Sym.Tok.BaselineSkip
+    prevDepth <- H.Inter.St.getSpecialLengthParameter H.Sym.Tok.PrevDepth
+    (H.Q.Glue blineLength blineStretch blineShrink) <- H.Inter.St.getGlueParameter H.Sym.Tok.BaselineSkip
     skipLimit <- H.Inter.St.getLengthParameter H.Sym.Tok.LineSkipLimit
     skip <- H.Inter.St.getGlueParameter H.Sym.Tok.LineSkip
     H.Inter.St.setSpecialLengthParameter H.Sym.Tok.PrevDepth (H.Inter.B.Box.boxDepth b)
-    pure $ H.Inter.B.List.VList $
-      if _prevDepth <= - H.Inter.Eval.oneKPt
-        then
-          accSeq :|> e
-        else
-          let proposedBaselineLength = blineLength - _prevDepth - H.Inter.B.Box.boxHeight b
-              -- Intuition: set the distance between baselines to \baselineskip, but no
-              -- closer than \lineskiplimit [theBaselineLengthMin], in which case
-              -- \lineskip [theMinBaselineGlue] is used.
-              glue =
-                H.Inter.B.List.ListGlue $
-                  if proposedBaselineLength >= skipLimit
-                    then H.Inter.Eval.Glue proposedBaselineLength blineStretch blineShrink
-                    else skip
-            in (accSeq :|> glue) :|> e
+    pure $
+      H.Inter.B.List.VList $
+        if (prevDepth ^. typed @Int) <= - (H.Q.oneKPt ^. typed @Int)
+          then accSeq :|> e
+          else
+            let proposedBaselineLength = blineLength ~~ prevDepth ~~ H.Inter.B.Box.boxHeight b
+                -- Intuition: set the distance between baselines to \baselineskip, but no
+                -- closer than \lineskiplimit [theBaselineLengthMin], in which case
+                -- \lineskip [theMinBaselineGlue] is used.
+                glue =
+                  H.Inter.B.List.ListGlue $
+                    if proposedBaselineLength >= skipLimit
+                      then H.Q.Glue proposedBaselineLength blineStretch blineShrink
+                      else skip
+             in (accSeq :|> glue) :|> e
   _ ->
     pure (H.Inter.B.List.VList (accSeq :|> e))

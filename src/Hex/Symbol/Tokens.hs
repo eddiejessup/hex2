@@ -1,13 +1,13 @@
 module Hex.Symbol.Tokens where
 
-import Protolude
 import ASCII qualified
 import ASCII.Char qualified
 import Data.Map.Strict qualified as Map
 import Hex.Codes
+import Hex.Quantity qualified as H.Q
 import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Quant
-import Hex.Interpret.Evaluate.Evaluated qualified as H.Inter.Eval
+import Hexlude
 
 -- mconcat to fold over a list of signs.
 data Sign
@@ -16,11 +16,9 @@ data Sign
   deriving stock (Show, Eq, Generic)
 
 instance Semigroup Sign where
-
   a <> b = if a == b then Positive else Negative
 
 instance Monoid Sign where
-
   mempty = Positive
 
 data Signed a = Signed Sign a
@@ -31,7 +29,7 @@ deriving stock instance Show a => Show (Signed a)
 evalSigned :: Num a => Signed a -> a
 evalSigned (Signed sign a) = case sign of
   Positive -> a
-  Negative -> -a
+  Negative -> - a
 
 data IntParameter
   = PreTolerance -- Badness tolerance before hyphenation
@@ -344,16 +342,15 @@ data MacroTextToken
 -- A macro template.
 newtype MacroText = MacroText (Seq MacroTextToken)
   deriving stock (Show, Generic)
-  deriving newtype Eq
+  deriving newtype (Eq)
 
-data MacroContents
-  = MacroContents
-      { -- Tokens to expect before the first argument.
-        preParamTokens :: BalancedText
-      , parameters :: MacroParameters
-      , replacementTokens :: MacroText
-      , long, outer :: Bool
-      }
+data MacroContents = MacroContents
+  { -- Tokens to expect before the first argument.
+    preParamTokens :: BalancedText,
+    parameters :: MacroParameters,
+    replacementTokens :: MacroText,
+    long, outer :: Bool
+  }
   deriving stock (Show, Eq, Generic)
 
 data RemovableItem
@@ -402,12 +399,12 @@ data PrimitiveToken
   | LeadersTok LeadersType
   | StartParagraphTok IndentFlag -- \indent, \noindent
   | EndParagraphTok -- \par
-    -- Starters of mode-specific commands with almost mode-independent grammar.
+  -- Starters of mode-specific commands with almost mode-independent grammar.
   | ModedCommand H.Quant.Axis ModedCommandPrimitiveToken
   | -- Starters of Vertical-Mode-specific commands.
     EndTok -- \end
   | DumpTok -- \dump
-    -- Starters of Horizontal-Mode-specific commands.
+  -- Starters of Horizontal-Mode-specific commands.
   | ControlSpaceTok -- \␣ (a control symbol named ' ')
   | ControlCharTok -- \char
   | AccentTok -- \accent
@@ -415,7 +412,7 @@ data PrimitiveToken
   | DiscretionaryTextTok -- \discretionary
   | DiscretionaryHyphenTok -- \-
   | ToggleMathModeTok -- '$'
-    -- > > Modifying how to apply assignments.
+  -- > > Modifying how to apply assignments.
   | AssignPrefixTok AssignPrefixTok
   | -- > > Modifying how to parse the macro.
     --     \def, \gdef, \edef (expanded-def), \xdef (global-expanded-def).
@@ -428,8 +425,8 @@ data PrimitiveToken
   | TokenListParamVarTok TokenListParameter
   | SpecialIntParameterTok SpecialIntParameter -- \example: \spacefactor
   | SpecialLengthParameterTok SpecialLengthParameter -- \example: \pagestretch
-      -- Tokens storing integers defined by short-hand definitions.
-  | IntRefTok QuantityType H.Inter.Eval.HexInt
+  -- Tokens storing integers defined by short-hand definitions.
+  | IntRefTok QuantityType H.Q.HexInt
   | -- A char-cat pair defined by a 'let' assignment. This differs from a
     -- \chardef target, because \chardef maps to a character number, which is
     -- categorised at the time of use, while a \let maps to a static char-cat
@@ -437,7 +434,7 @@ data PrimitiveToken
     LetCharCat H.Lex.LexCharCat
   | -- A control sequence representing a particular font, such as defined through
     -- \font.
-    FontRefToken H.Inter.Eval.HexInt
+    FontRefToken H.Q.HexInt
   | -- Heads of register references.
     RegisterVariableTok RegisterType
   | -- Heads of int-ref definitions.
@@ -449,20 +446,20 @@ data PrimitiveToken
   | -- > Aliasing tokens.
     LetTok -- \let
   | FutureLetTok -- \futurelet
-    -- > Setting font math-family-member things.
+  -- > Setting font math-family-member things.
   | FontRangeTok FontRange
   | -- > Internal integers.
     LastPenaltyTok -- \lastpenalty
   | ParagraphShapeTok -- \parshape
   | BadnessTok -- \badness
   | InputLineNrTok -- \inputlineno
-    -- Internal lengths.
+  -- Internal lengths.
   | LastKernTok -- \lastkern
   | FontDimensionTok -- \fontdimen
   | BoxDimensionTok H.Quant.BoxDim -- \ht, \wd, \dp
-      -- Internal glues.
+  -- Internal glues.
   | LastGlueTok -- \lastskip
-    -- Specifying boxes.
+  -- Specifying boxes.
   | FetchedBoxTok BoxFetchMode -- \box, \copy
   | LastBoxTok -- \lastbox
   | SplitVBoxTok -- \vsplit
@@ -471,15 +468,15 @@ data PrimitiveToken
     SetBoxRegisterTok -- \setbox
     -- > Reading contents into control sequences (not sure what this is about).
   | ReadTok -- \read
-    -- > Defining macros resolving to a font.
+  -- > Defining macros resolving to a font.
   | FontTok -- \font
-    -- Involved in global assignments.
-    -- > Setting properties of a font.
+  -- Involved in global assignments.
+  -- > Setting properties of a font.
   | FontCharTok FontChar
   | -- > Configuring hyphenation.
     HyphenationTok -- \hyphenation
   | HyphenationPatternsTok -- \patterns
-    -- > Setting interaction mode.
+  -- > Setting interaction mode.
   | InteractionModeTok InteractionMode
   | UnresolvedTok H.Lex.LexToken
   deriving stock (Show, Eq, Generic)

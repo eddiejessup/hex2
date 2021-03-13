@@ -3,95 +3,95 @@
 
 module Hex.Parse.MonadParse.Impls.MonadTokenSource where
 
-import Protolude
 import Hex.Codes qualified as H.Codes
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
-import Hex.Symbol.Resolve qualified as H.Sym.Res
 import Hex.Parse.AST qualified as H.Par.AST
 import Hex.Parse.MonadParse.Interface
 import Hex.Parse.MonadTokenSource.Interface qualified as H.Par.TokSrc
-import Data.Generics.Sum qualified as G.S
+import Hex.Symbol.Resolve qualified as H.Sym.Res
+import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hexlude
 
-expandSyntaxCommand
-  :: ( MonadParse m
-     )
-  => H.Sym.Tok.SyntaxCommandHeadToken
-  -> m (Seq H.Lex.LexToken)
+expandSyntaxCommand ::
+  ( MonadParse m
+  ) =>
+  H.Sym.Tok.SyntaxCommandHeadToken ->
+  m (Seq H.Lex.LexToken)
 expandSyntaxCommand = \case
-  -- MacroTok m -> do
-  --   args <- parseMacroArgs m
-  --   expandMacro m args
-  -- ConditionTok ct -> do
-  --   expandConditionToken ct
-  --   pure mempty
-  -- NumberTok ->
-  --   panic "Not implemented: syntax command NumberTok"
-  -- RomanNumeralTok ->
-  --   panic "Not implemented: syntax command RomanNumeralTok"
-  -- StringTok -> do
-  --   conf <- use $ typed @Conf.Config
-  --   let escapeChar = (Conf.IntParamVal . Conf.lookupIntParameter EscapeChar) conf
-  --   expandString escapeChar <$> parseLexToken
-  -- JobNameTok ->
-  --   panic "Not implemented: syntax command JobNameTok"
-  -- FontNameTok ->
-  --   panic "Not implemented: syntax command FontNameTok"
-  -- MeaningTok ->
-  --   panic "Not implemented: syntax command MeaningTok"
-  -- CSNameTok -> do
-  --   a <- parseCSNameArgs
-  --   singleton <$> expandCSName a
-  -- ExpandAfterTok -> do
-  --   argLT <- takeLexToken
-  --   (_, postArgLTs) <- takeAndExpandResolvedToken
-  --   -- Prepend the unexpanded token.
-  --   pure (argLT <| postArgLTs)
-  -- NoExpandTok ->
-  --   panic "Not implemented: syntax command NoExpandTok"
-  -- MarkRegisterTok _ ->
-  --   panic "Not implemented: syntax command MarkRegisterTok"
-  -- -- \input ⟨file name⟩:
-  -- -- - Expand to no tokens
-  -- -- - Prepare to read from the specified file before looking at any more
-  -- --   tokens from the current source.
-  -- InputTok -> do
-  --   TeXFilePath texPath <- parseFileName
-  --   inputPath texPath
-  --   pure mempty
-  -- EndInputTok ->
-  --   panic "Not implemented: syntax command EndInputTok"
-  -- TheTok -> do
-  --   intQuant <- parseInternalQuantity
-  --   fmap charCodeAsMadeToken <$> texEvaluate intQuant
-  -- ChangeCaseTok direction -> do
-  --   conf <- use $ typed @Conf.Config
-  --   expandChangeCase
-  --     (\c -> Conf.lookupChangeCaseCode direction c conf)
-  --     <$> parseGeneralText
+
+-- MacroTok m -> do
+--   args <- parseMacroArgs m
+--   expandMacro m args
+-- ConditionTok ct -> do
+--   expandConditionToken ct
+--   pure mempty
+-- NumberTok ->
+--   panic "Not implemented: syntax command NumberTok"
+-- RomanNumeralTok ->
+--   panic "Not implemented: syntax command RomanNumeralTok"
+-- StringTok -> do
+--   conf <- use $ typed @Conf.Config
+--   let escapeChar = (Conf.IntParamVal . Conf.lookupIntParameter EscapeChar) conf
+--   expandString escapeChar <$> parseLexToken
+-- JobNameTok ->
+--   panic "Not implemented: syntax command JobNameTok"
+-- FontNameTok ->
+--   panic "Not implemented: syntax command FontNameTok"
+-- MeaningTok ->
+--   panic "Not implemented: syntax command MeaningTok"
+-- CSNameTok -> do
+--   a <- parseCSNameArgs
+--   singleton <$> expandCSName a
+-- ExpandAfterTok -> do
+--   argLT <- takeLexToken
+--   (_, postArgLTs) <- takeAndExpandResolvedToken
+--   -- Prepend the unexpanded token.
+--   pure (argLT <| postArgLTs)
+-- NoExpandTok ->
+--   panic "Not implemented: syntax command NoExpandTok"
+-- MarkRegisterTok _ ->
+--   panic "Not implemented: syntax command MarkRegisterTok"
+-- -- \input ⟨file name⟩:
+-- -- - Expand to no tokens
+-- -- - Prepare to read from the specified file before looking at any more
+-- --   tokens from the current source.
+-- InputTok -> do
+--   TeXFilePath texPath <- parseFileName
+--   inputPath texPath
+--   pure mempty
+-- EndInputTok ->
+--   panic "Not implemented: syntax command EndInputTok"
+-- TheTok -> do
+--   intQuant <- parseInternalQuantity
+--   fmap charCodeAsMadeToken <$> texEvaluate intQuant
+-- ChangeCaseTok direction -> do
+--   conf <- use $ typed @Conf.Config
+--   expandChangeCase
+--     (\c -> Conf.lookupChangeCaseCode direction c conf)
+--     <$> parseGeneralText
 
 data ParseError
   = UnexpectedEndOfInput
   deriving stock (Generic, Show)
 
-fetchPrimitiveToken :: (H.Par.TokSrc.MonadTokenSource m, MonadError e m, G.S.AsType ParseError e) => m H.Sym.Tok.PrimitiveToken
+fetchPrimitiveToken :: (H.Par.TokSrc.MonadTokenSource m, MonadError e m, AsType ParseError e) => m H.Sym.Tok.PrimitiveToken
 fetchPrimitiveToken = do
   H.Par.TokSrc.getLexToken >>= \case
-    Nothing -> throwError $ G.S.injectTyped UnexpectedEndOfInput
-    Just lt -> H.Par.TokSrc.resolveLexToken H.Sym.Res.Resolving lt >>= \case
-      Left H.Par.TokSrc.ResolutionError ->
-        panic "Bad resolve"
-      Right rt ->
-        case rt of
-          H.Sym.Tok.PrimitiveToken pt ->
-            pure pt
-          H.Sym.Tok.SyntaxCommandHeadToken headTok -> do
-            lts <- expandSyntaxCommand headTok
-            H.Par.TokSrc.insertLexTokensToSource lts
-            fetchPrimitiveToken
+    Nothing -> throwError $ injectTyped UnexpectedEndOfInput
+    Just lt ->
+      H.Par.TokSrc.resolveLexToken H.Sym.Res.Resolving lt >>= \case
+        Left H.Par.TokSrc.ResolutionError ->
+          panic "Bad resolve"
+        Right rt ->
+          case rt of
+            H.Sym.Tok.PrimitiveToken pt ->
+              pure pt
+            H.Sym.Tok.SyntaxCommandHeadToken headTok -> do
+              lts <- expandSyntaxCommand headTok
+              H.Par.TokSrc.insertLexTokensToSource lts
+              fetchPrimitiveToken
 
-instance (Monad m, H.Par.TokSrc.MonadTokenSource m, MonadError e m, G.S.AsType ParseError e) => MonadParse m where
-
+instance (Monad m, H.Par.TokSrc.MonadTokenSource m, MonadError e m, AsType ParseError e) => MonadParse m where
   parseCommand =
     fetchPrimitiveToken >>= \case
       -- H.Sym.Tok.ShowTokenTok ->
@@ -110,8 +110,9 @@ instance (Monad m, H.Par.TokSrc.MonadTokenSource m, MonadError e m, G.S.AsType P
         pure $ H.Par.AST.StartParagraph _indent
       H.Sym.Tok.EndParagraphTok ->
         pure H.Par.AST.EndParagraph
-      t | primTokHasCategory H.Codes.Space t ->
-        pure H.Par.AST.AddSpace
+      t
+        | primTokHasCategory H.Codes.Space t ->
+          pure H.Par.AST.AddSpace
       -- , parseInsert
       -- , parseVAdjust
       -- , parseAlign mode
@@ -144,11 +145,11 @@ instance (Monad m, H.Par.TokSrc.MonadTokenSource m, MonadError e m, G.S.AsType P
         parseModifyFileStream H.Par.AST.FileInput
       H.Sym.Tok.ImmediateTok ->
         undefined
-        -- PC.choice
-        --   [ parseHeaded (headToParseOpenOutput Immediate)
-        --   , parseHeaded (headToParseCloseOutput Immediate)
-        --   , parseHeaded (headToParseWriteToStream Immediate)
-        --   ]
+      -- PC.choice
+      --   [ parseHeaded (headToParseOpenOutput Immediate)
+      --   , parseHeaded (headToParseCloseOutput Immediate)
+      --   , parseHeaded (headToParseWriteToStream Immediate)
+      --   ]
       H.Sym.Tok.ModedCommand axis (H.Sym.Tok.ShiftedBoxTok direction) -> do
         placement <- H.Par.AST.ShiftedPlacement axis direction <$> parseLength
         H.Par.AST.ModeIndependentCommand . H.Par.AST.AddBox placement <$> parseHeaded headToParseBox
@@ -173,20 +174,21 @@ instance (Monad m, H.Par.TokSrc.MonadTokenSource m, MonadError e m, G.S.AsType P
         pure $ H.Par.AST.HModeCommand H.Par.AST.AddItalicCorrection
       H.Sym.Tok.DiscretionaryHyphenTok ->
         pure $ H.Par.AST.HModeCommand H.Par.AST.AddDiscretionaryHyphen
-      t | primTokHasCategory H.Codes.MathShift t ->
-        pure $ H.Par.AST.HModeCommand H.Par.AST.EnterMathMode
+      t
+        | primTokHasCategory H.Codes.MathShift t ->
+          pure $ H.Par.AST.HModeCommand H.Par.AST.EnterMathMode
       H.Sym.Tok.AccentTok ->
         undefined
-        -- H.Par.AST.AddAccentedCharacter
-        --   <$> parseHexInt
-        --   <*> PC.many parseNonSetBoxAssignment
-        --   <*> PC.optional (parseHeaded headToParseCharCodeRef)
+      -- H.Par.AST.AddAccentedCharacter
+      --   <$> parseHexInt
+      --   <*> PC.many parseNonSetBoxAssignment
+      --   <*> PC.optional (parseHeaded headToParseCharCodeRef)
       H.Sym.Tok.DiscretionaryTextTok ->
         undefined
-        -- H.Par.AST.AddDiscretionaryText
-        --   <$> parseGeneralText
-        --   <*> parseGeneralText
-        --   <*> parseGeneralText
+      -- H.Par.AST.AddDiscretionaryText
+      --   <$> parseGeneralText
+      --   <*> parseGeneralText
+      --   <*> parseGeneralText
       -- , fmap AddCharacter <$> headToParseCharCodeRef
       -- Add character.
       H.Sym.Tok.UnresolvedTok (H.Lex.CharCatLexToken (H.Lex.LexCharCat c H.Codes.Letter)) ->
@@ -197,7 +199,6 @@ instance (Monad m, H.Par.TokSrc.MonadTokenSource m, MonadError e m, G.S.AsType P
         pure $ H.Par.AST.HModeCommand $ H.Par.AST.AddCharacter $ H.Par.AST.CharTokenRef i
       H.Sym.Tok.ControlCharTok ->
         H.Par.AST.HModeCommand . H.Par.AST.AddCharacter . H.Par.AST.CharCodeNrRef <$> parseHexInt
-
       -- , fmap AddHGlue <$> headToParseModedGlue Horizontal
       -- , fmap AddHLeaders <$> headToParseLeadersSpec Horizontal
       -- , fmap AddHRule <$> headToParseModedRule Horizontal

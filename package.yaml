@@ -12,28 +12,21 @@ extra-source-files:
 description: Please see the README on GitHub at <https://github.com/eddiejessup/hex#readme>
 
 dependencies:
-- aeson
 - ascii
 - base
 - binary
 - bytestring
+- cereal
 - containers
-- directory
-- exceptions
-- fast-logger
+- filepath
 - generic-optics
-- generic-random
+- groups
 - hashable
 - mtl
 - optics-core
 - optics-extra
-- optparse-applicative
-- parser-combinators
-- path
-- path-io
 - protolude
 - text
-- time
 - transformers
 - unordered-containers
 - vector
@@ -92,6 +85,7 @@ default-extensions:
 - DeriveLift
 - DeriveTraversable
 - DerivingStrategies
+- DerivingVia
 - EmptyCase
 - FlexibleContexts
 - FlexibleInstances

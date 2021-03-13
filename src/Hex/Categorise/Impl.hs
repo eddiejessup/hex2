@@ -1,15 +1,13 @@
 module Hex.Categorise.Impl where
 
-import Protolude
 import Data.ByteString qualified as BS
-import Hex.Codes qualified as Code
-import Data.Text qualified as Tx
-import Hex.MonadHexState.Interface qualified as H.St
 import Hex.Categorise.Types
-import Data.Generics.Sum (AsType, injectTyped)
+import Hex.Codes qualified as Code
+import Hex.MonadHexState.Interface qualified as H.St
+import Hexlude
 
-extractCharCat
-  :: (H.St.MonadHexState m, MonadError e m, AsType EndOfInput e) => BS.ByteString -> m (RawCharCat, BS.ByteString)
+extractCharCat ::
+  (H.St.MonadHexState m, MonadError e m, AsType EndOfInput e) => ByteString -> m (RawCharCat, ByteString)
 extractCharCat xs = do
   (n1, rest1) <- note (injectTyped EndOfInput) (BS.uncons xs)
   -- Next two characters must be identical, and have category
@@ -20,13 +18,14 @@ extractCharCat xs = do
     Code.CoreCatCode Code.Superscript -> case BS.uncons rest1 of
       Just (n2, rest2) | n1 == n2 ->
         case BS.uncons rest2 of
-          Just (n3, rest3) -> H.St.getCategory (Code.CharCode n3) >>= \case
-            Code.EndOfLine ->
-              pure normal
-            _ -> do
-              let char3Triod = Code.CharCode $ if n3 < 64 then n3 + 64 else n3 - 64
-              cat3 <- H.St.getCategory char3Triod
-              pure (RawCharCat char3Triod cat3, rest3)
+          Just (n3, rest3) ->
+            H.St.getCategory (Code.CharCode n3) >>= \case
+              Code.EndOfLine ->
+                pure normal
+              _ -> do
+                let char3Triod = Code.CharCode $ if n3 < 64 then n3 + 64 else n3 - 64
+                cat3 <- H.St.getCategory char3Triod
+                pure (RawCharCat char3Triod cat3, rest3)
           Nothing ->
             pure normal
       _ ->
@@ -34,23 +33,24 @@ extractCharCat xs = do
     _ ->
       pure normal
 
-charsToCharCats :: forall m. H.St.MonadHexState m => BS.ByteString -> m [RawCharCat]
+charsToCharCats :: forall m. H.St.MonadHexState m => ByteString -> m [RawCharCat]
 charsToCharCats = go
   where
     -- Just specialising to make it clearer what's going on monad-wise.
-    extractCharCatMono :: BS.ByteString -> ExceptT CatFailure m (RawCharCat, BS.ByteString)
+    extractCharCatMono :: ByteString -> ExceptT CatFailure m (RawCharCat, ByteString)
     extractCharCatMono xs = extractCharCat xs
 
-    go :: BS.ByteString -> m [RawCharCat]
-    go xs = runExceptT (extractCharCatMono xs) >>= \case
-      Left (CatEndOfInputFailure EndOfInput) ->
-        pure []
-      Right (cc, xs1) -> do
-        v <- go xs1
-        pure $ cc : v
+    go :: ByteString -> m [RawCharCat]
+    go xs =
+      runExceptT (extractCharCatMono xs) >>= \case
+        Left (CatEndOfInputFailure EndOfInput) ->
+          pure []
+        Right (cc, xs1) -> do
+          v <- go xs1
+          pure $ cc : v
 
--- usableCharsToCharCats :: BS.ByteString -> [RawCharCat]
+-- usableCharsToCharCats :: ByteString -> [RawCharCat]
 -- usableCharsToCharCats = charsToCharCats Code.usableCatLookup
 
 renderCategoriseResult :: [RawCharCat] -> Text
-renderCategoriseResult ccs = Tx.intercalate "\n" $ show <$> ccs
+renderCategoriseResult ccs = joinTexts "\n" $ show <$> ccs
