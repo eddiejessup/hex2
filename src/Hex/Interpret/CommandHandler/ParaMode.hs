@@ -76,8 +76,9 @@ handleCommandInParaMode oldSrc = \case
     charBox <- lift $ charAsBox evalChar
     extendHListStateT $ H.Inter.B.List.HListHBaseElem $ H.Inter.B.Box.ElemCharacter charBox
     pure ContinuePara
-  H.AST.HModeCommand (H.AST.AddHRule rule) -> do
-    H.Inter.Eval.evalASTHModeRule rule >>= extendHListStateT . H.Inter.B.List.HVListElem . H.Inter.B.List.VListBaseElem . H.Inter.B.Box.ElemRule
+  H.AST.HModeCommand (H.AST.AddHRule astRule) -> do
+    rule <- H.Inter.Eval.evalASTHModeRule astRule
+    extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
     pure ContinuePara
   H.AST.AddSpace -> do
     spaceGlue <- lift $ H.St.currentFontSpaceGlue >>= note (injectTyped H.AllMode.NoFontSelected)
@@ -104,11 +105,11 @@ charAsBox ::
     AsType H.AllMode.InterpretError e
   ) =>
   H.Codes.CharCode ->
-  m H.Inter.B.Box.Character
+  m H.Inter.B.Box.CharBox
 charAsBox char = do
   (width, height, depth, _) <- H.St.currentFontCharacter char >>= note (injectTyped H.AllMode.NoFontSelected)
   pure $
-    H.Inter.B.Box.Character
+    H.Inter.B.Box.CharBox
       H.Inter.B.Box.Box
         { H.Inter.B.Box.contents = char,
           H.Inter.B.Box.boxWidth = width ^. typed @H.Q.Length,

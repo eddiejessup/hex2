@@ -39,7 +39,7 @@ instance
             throwError $ injectTyped e
           Right (lt, newLexState, newChars) -> do
             modifying' (typed @H.Par.ChrSrc.CharSource) $
-              \src -> src & field @"sourceChars" .~ newChars & field @"sourceLexState" .~ newLexState
+              \src -> src & #sourceChars .~ newChars & #sourceLexState .~ newLexState
             pure $ Just lt
 
   resolveLexToken resMode lt = do
@@ -50,7 +50,7 @@ instance
   -- Insert in reverse order, so, we insert the "r" of "relax" last, so we pop "r" next.
   insertLexTokensToSource lts = forM_ (Seq.reverse lts) insertLexTokenToSource
 
-  insertLexTokenToSource lt = modifying' (typed @H.Par.ChrSrc.CharSource % field @"sourceLexTokens") (lt :<|)
+  insertLexTokenToSource lt = modifying' (typed @H.Par.ChrSrc.CharSource % #sourceLexTokens) (lt :<|)
 
   getSource = use (typed @H.Par.ChrSrc.CharSource)
 

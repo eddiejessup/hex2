@@ -2,7 +2,8 @@ module Hex.Interpret.CommandHandler.MainVMode where
 
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
-import Hex.Interpret.Build.List.Layout.Paragraph qualified as H.Inter.B.List.Layout
+import Hex.Interpret.Build.List.Horizontal.Paragraph.Break qualified as H.Inter.B.List.H.Para
+import Hex.Interpret.Build.List.Horizontal.Set qualified as H.Inter.B.List.H
 import Hex.Interpret.CommandHandler.AllMode qualified as H.AllMode
 import Hex.Interpret.CommandHandler.ParaMode qualified as H.Para
 import Hex.Interpret.Evaluate.Impl qualified as H.Inter.Eval
@@ -26,7 +27,7 @@ buildMainVList ::
     AsType H.Inter.Eval.EvaluationError e
   ) =>
   m H.Inter.B.List.VList
-buildMainVList = execStateT go mempty
+buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
   where
     go = do
       streamPreParse <- lift H.Par.Par.getStream
@@ -52,8 +53,9 @@ handleCommandInMainVMode oldSrc = \case
   H.AST.VModeCommand (H.AST.AddVGlue g) -> do
     H.Inter.Eval.evalASTGlue g >>= extendVListStateT . H.Inter.B.List.ListGlue
     pure ContinueMainVMode
-  H.AST.VModeCommand (H.AST.AddVRule rule) -> do
-    H.Inter.Eval.evalASTVModeRule rule >>= extendVListStateT . H.Inter.B.List.VListBaseElem . H.Inter.B.Box.ElemRule
+  H.AST.VModeCommand (H.AST.AddVRule astRule) -> do
+    rule <- H.Inter.Eval.evalASTVModeRule astRule
+    extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
     pure ContinueMainVMode
   H.AST.HModeCommand _ -> do
     addPara H.Sym.Tok.Indent
@@ -92,21 +94,34 @@ extendVListWithParagraphStateT ::
   H.Inter.B.List.HList ->
   StateT H.Inter.B.List.VList m ()
 extendVListWithParagraphStateT paraHList = do
-  lineBoxes <- lift $ setHListToHBoxes paraHList
-  for_ lineBoxes $ \b ->
-    extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.HBoxContents <$> b
+  lineBoxes <- lift $ setAndBreakHListToHBoxes paraHList
+  for_ lineBoxes $ \b -> do
+    extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox (H.Inter.B.Box.HBoxContents <$> b)
 
-setHListToHBoxes ::
+setAndBreakHListToHBoxes ::
   ( H.Inter.St.MonadHexState m
   ) =>
   H.Inter.B.List.HList ->
-  m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBox))
-setHListToHBoxes hList =
+  m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBoxElemSeq))
+setAndBreakHListToHBoxes hList =
   do
-    hSize <- H.Inter.St.getLengthParameter H.Sym.Tok.HSize
-    lineTol <- H.Inter.St.getIntParameter H.Sym.Tok.Tolerance
-    linePen <- H.Inter.St.getIntParameter H.Sym.Tok.LinePenalty
-    H.Inter.B.List.Layout.layOutParagraph hSize lineTol linePen hList
+    -- hSize <- H.Inter.St.getLengthParameter H.Sym.Tok.HSize
+    -- traceM $ "hSize: " <> H.Q.renderLengthWithUnit hSize
+
+    let hSize = H.Q.pt 200
+    -- lineTol <- H.Inter.St.getIntParameter H.Sym.Tok.Tolerance
+    -- linePen <- H.Inter.St.getIntParameter H.Sym.Tok.LinePenalty
+    let lineHLists = H.Inter.B.List.H.Para.breakGreedy hSize hList
+    -- H.Inter.B.List.H.Paragraph.breakGreedy hSize lineTol linePen hList
+
+    -- TODO: Get these.
+    let boxHeight = H.Q.pt 20
+    let boxDepth = H.Q.pt 0
+
+    pure $
+      lineHLists <&> \lineHList ->
+        let (hBoxElems, _) = H.Inter.B.List.H.setList lineHList hSize
+         in H.Inter.B.Box.Box {contents = hBoxElems, boxWidth = hSize, boxHeight, boxDepth}
 
 extendVListStateT :: H.Inter.St.MonadHexState m => H.Inter.B.List.VListElem -> StateT H.Inter.B.List.VList m ()
 extendVListStateT e = get >>= lift . extendVList e >>= put
@@ -129,7 +144,7 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
     --    \lineskip
     -- Then set \prevdepth to the depth of the new box.
     prevDepth <- H.Inter.St.getSpecialLengthParameter H.Sym.Tok.PrevDepth
-    (H.Q.Glue blineLength blineStretch blineShrink) <- H.Inter.St.getGlueParameter H.Sym.Tok.BaselineSkip
+    blineGlue <- H.Inter.St.getGlueParameter H.Sym.Tok.BaselineSkip
     skipLimit <- H.Inter.St.getLengthParameter H.Sym.Tok.LineSkipLimit
     skip <- H.Inter.St.getGlueParameter H.Sym.Tok.LineSkip
     H.Inter.St.setSpecialLengthParameter H.Sym.Tok.PrevDepth (H.Inter.B.Box.boxDepth b)
@@ -138,14 +153,14 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
         if (prevDepth ^. typed @Int) <= - (H.Q.oneKPt ^. typed @Int)
           then accSeq :|> e
           else
-            let proposedBaselineLength = blineLength ~~ prevDepth ~~ H.Inter.B.Box.boxHeight b
+            let proposedBaselineLength = (blineGlue ^. #gDimen) ~~ prevDepth ~~ H.Inter.B.Box.boxHeight b
                 -- Intuition: set the distance between baselines to \baselineskip, but no
                 -- closer than \lineskiplimit [theBaselineLengthMin], in which case
                 -- \lineskip [theMinBaselineGlue] is used.
                 glue =
                   H.Inter.B.List.ListGlue $
                     if proposedBaselineLength >= skipLimit
-                      then H.Q.Glue proposedBaselineLength blineStretch blineShrink
+                      then blineGlue & #gDimen .~ proposedBaselineLength
                       else skip
              in (accSeq :|> glue) :|> e
   _ ->

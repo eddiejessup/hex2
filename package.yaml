@@ -30,6 +30,7 @@ dependencies:
 - transformers
 - unordered-containers
 - vector
+- formatting
 
 library:
   source-dirs: src
@@ -86,6 +87,7 @@ default-extensions:
 - DeriveTraversable
 - DerivingStrategies
 - DerivingVia
+- DuplicateRecordFields
 - EmptyCase
 - FlexibleContexts
 - FlexibleInstances
@@ -98,6 +100,7 @@ default-extensions:
 - MultiWayIf
 - NamedFieldPuns
 - NoImplicitPrelude
+- OverloadedLabels
 - OverloadedStrings
 - PartialTypeSignatures
 - ScopedTypeVariables

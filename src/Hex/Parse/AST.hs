@@ -29,8 +29,8 @@ constUHexInt n = NormalHexIntAsUHexInt $ HexIntConstant n
 data NormalHexInt = HexIntConstant H.Q.HexInt | InternalHexInt InternalHexInt
   deriving stock (Show, Generic)
 
-zeroHexInt :: NormalHexInt
-zeroHexInt = HexIntConstant $ H.Q.HexInt 0
+zeroInt :: NormalHexInt
+zeroInt = HexIntConstant $ H.Q.HexInt 0
 
 oneHexInt :: NormalHexInt
 oneHexInt = HexIntConstant $ H.Q.HexInt 1
@@ -70,7 +70,7 @@ data Factor
   deriving stock (Show, Generic)
 
 zeroFactor, oneFactor :: Factor
-zeroFactor = NormalHexIntFactor zeroHexInt
+zeroFactor = NormalHexIntFactor zeroInt
 oneFactor = NormalHexIntFactor oneHexInt
 
 data Unit

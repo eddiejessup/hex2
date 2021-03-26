@@ -2,6 +2,9 @@
 
 module Hex.Quantity.Length where
 
+import Data.Fixed qualified as Fixed
+import Data.Ratio qualified as Ratio
+import Formatting qualified as F
 import Hex.Quantity.Number
 import Hexlude
 
@@ -16,17 +19,28 @@ pattern Length x = LengthScaledPoints x
 
 {-# COMPLETE Length #-}
 
-lengthToInt :: Length -> HexInt
-lengthToInt d = HexInt $ unLengthScaledPoints d
+scaleLength :: HexInt -> Length -> Length
+scaleLength (HexInt n) (Length d) = Length (d * n)
 
-scaleLength :: Length -> HexInt -> Length
-scaleLength (Length d) (HexInt n) = Length (d * n)
+shrinkLength :: HexInt -> Length -> Length
+shrinkLength (HexInt n) (Length d) = Length (d `quot` n)
 
-shrinkLength :: Length -> HexInt -> Length
-shrinkLength (Length d) (HexInt n) = Length (d `quot` n)
+zeroLength :: Length
+zeroLength = Length 0
+
+onePt :: Length
+onePt = pt 1
 
 oneKPt :: Length
-oneKPt = lengthFromPointsInt 1000
+oneKPt = pt 1000
+
+pt :: Int -> Length
+pt v = Length $ pointInScaledPoint * v
+
+lengthRatio :: Length -> Length -> Rational
+lengthRatio a b =
+  let lenToInteger = view (typed @Int % to (fromIntegral @Int @Integer))
+   in lenToInteger a Ratio.% lenToInteger b
 
 -- Concepts.
 ------------
@@ -173,14 +187,23 @@ deriving via (Sum a) instance Num a => Group (LengthDesignSize a)
 pointInScaledPoint :: Int
 pointInScaledPoint = 2 ^ (16 :: Int)
 
-lengthFromPointsInt :: Int -> LengthScaledPoints Int
-lengthFromPointsInt v = LengthScaledPoints $ pointInScaledPoint * v
-
 lengthFromPointsRational :: Rational -> LengthScaledPoints Rational
 lengthFromPointsRational v = LengthScaledPoints $ fromIntegral @Int @Rational pointInScaledPoint * v
 
 fromDesignSize :: LengthDesignSize Rational -> LengthScaledPoints Rational -> LengthScaledPoints Rational
 fromDesignSize (LengthDesignSize d) (LengthScaledPoints p) = LengthScaledPoints (d * p)
 
-roundScaledPoints :: LengthScaledPoints Rational -> LengthScaledPoints Int
+roundScaledPoints :: LengthScaledPoints Rational -> Length
 roundScaledPoints (LengthScaledPoints p) = LengthScaledPoints $ round p
+
+lengthPoints :: Length -> Rational
+lengthPoints (Length n) = fromIntegral @Int @Rational n / fromIntegral @Int @Rational pointInScaledPoint
+
+fmtLengthMagnitude :: F.Format r (Length -> r)
+fmtLengthMagnitude = F.later $ \len -> F.bformat F.shortest (fromRational @Fixed.Centi $ lengthPoints len)
+
+-- renderLengthWithUnit :: Length -> Text
+-- renderLengthWithUnit len = renderLengthMag len <> "pt"
+
+fmtLengthWithUnit :: F.Format r (Length -> r)
+fmtLengthWithUnit = fmtLengthMagnitude F.% "pt"

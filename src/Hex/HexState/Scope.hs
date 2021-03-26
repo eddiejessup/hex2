@@ -110,16 +110,16 @@ data GroupScopeType
   deriving stock (Show)
 
 scopeResolvedTokenLens :: H.Lex.LexSymbol -> Lens' Scope (Maybe H.Sym.Tok.ResolvedToken)
-scopeResolvedTokenLens p = field @"csMap" % at' p
+scopeResolvedTokenLens p = #csMap % at' p
 
 scopeCategoryLens :: H.Codes.CharCode -> Lens' Scope (Maybe H.Codes.CatCode)
-scopeCategoryLens p = field @"catCodes" % at' p
+scopeCategoryLens p = #catCodes % at' p
 
 scopeIntParamLens :: H.Sym.Tok.IntParameter -> Lens' Scope (Maybe H.Q.HexInt)
-scopeIntParamLens p = field @"intParameters" % at' p
+scopeIntParamLens p = #intParameters % at' p
 
 scopeLengthParamLens :: H.Sym.Tok.LengthParameter -> Lens' Scope (Maybe H.Q.Length)
-scopeLengthParamLens p = field @"lengthParameters" % at' p
+scopeLengthParamLens p = #lengthParameters % at' p
 
 scopeGlueParamLens :: H.Sym.Tok.GlueParameter -> Lens' Scope (Maybe H.Q.Glue)
-scopeGlueParamLens p = field @"glueParameters" % at' p
+scopeGlueParamLens p = #glueParameters % at' p

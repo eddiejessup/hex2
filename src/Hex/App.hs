@@ -1,12 +1,11 @@
 module Hex.App where
 
-import Data.Text qualified as Tx
-import Hex.Codes qualified as H.Codes
+import Formatting qualified as F
 import Hex.HexState.Instances.MonadHexState ()
 import Hex.HexState.Instances.MonadHexState qualified as H.St
 import Hex.HexState.Type qualified as H.St
 import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
-import Hex.Interpret.Build.List.Layout.Paragraph qualified as Hex.Inter.B.List.Para
+import Hex.Interpret.Build.List.Horizontal.Paragraph.Break qualified as Hex.Inter.B.List.Para
 import Hex.Interpret.CommandHandler.AllMode qualified as H.Inter.Comm.AllMode
 import Hex.Interpret.CommandHandler.MainVMode qualified as H.Inter.Comm.MainV
 import Hex.Interpret.CommandHandler.ParaMode qualified as H.Inter.Comm.Para
@@ -47,6 +46,8 @@ runNewApp ::
   IO (Either AppError (a, AppState))
 runNewApp = runApp . newAppState
 
+-- H.Inter.Comm.Para.charAsBox (H.Codes.CharCode_ 'a') >>= print
+
 -- > evalNewApp "" (getCategory currentFontSpacing)
 -- Right Escape
 -- > evalNewApp "" (getCategory (CharCode_ '\\'))
@@ -66,6 +67,12 @@ runNewApp = runApp . newAppState
 evalNewApp :: ByteString -> StateT AppState (ExceptT AppError IO) a -> IO (Either AppError a)
 evalNewApp chrs = fmap (fmap fst) <$> runNewApp chrs
 
+unsafeEvalNewApp :: ByteString -> StateT AppState (ExceptT AppError IO) a -> IO a
+unsafeEvalNewApp chrs app = do
+  evalNewApp chrs app >>= \case
+    Left e -> panic $ "got error: " <> show e
+    Right v -> pure v
+
 testAppLoadSelectFont :: StateT AppState (ExceptT AppError IO) ()
 testAppLoadSelectFont = do
   (fNr, _name) <- loadFont "cmr10.tfm"
@@ -78,22 +85,16 @@ testApp = do
   currentFontSpaceGlue >>= print
   selectFont fNr Local
   currentFontSpaceGlue >>= print
-  H.Inter.Comm.Para.charAsBox (H.Codes.CharCode_ 'a') >>= print
-  H.Inter.Comm.Para.charAsBox (H.Codes.CharCode_ ' ') >>= print
-  H.Inter.Comm.Para.charAsBox (H.Codes.CharCode_ 't') >>= print
-  H.Inter.Comm.Para.charAsBox (H.Codes.CharCode_ 'p') >>= print
-  H.Inter.Comm.Para.charAsBox (H.Codes.CharCode_ 'y') >>= print
 
-  H.Inter.Comm.MainV.buildMainVList >>= print
+  vList <- H.Inter.Comm.MainV.buildMainVList
 
-testParaAppHLayList :: StateT AppState (ExceptT AppError IO) (Seq (H.Inter.B.List.HListElem, Maybe Hex.Inter.B.List.Para.BreakItem))
+  putText $ F.sformat H.Inter.B.List.fmtVList vList
+
+testParaAppHLayList :: StateT AppState (ExceptT AppError IO) H.Inter.B.List.HList
 testParaAppHLayList = do
   testAppLoadSelectFont
   (_endParaReason, hList) <- H.Inter.Comm.Para.buildParaList DoNotIndent
-  pure $ Hex.Inter.B.List.Para.prepareHListForLayout hList
-
-printContainer :: (MonadIO m, Foldable t, Show a, Functor t) => t a -> m ()
-printContainer xs = putText $ Tx.intercalate "\n\n" (toList (show <$> xs))
+  pure $ Hex.Inter.B.List.Para.finaliseHList hList
 
 testParaApp :: StateT AppState (ExceptT AppError IO) ()
 testParaApp = do
@@ -101,5 +102,46 @@ testParaApp = do
 
   (endParaReason, hList) <- H.Inter.Comm.Para.buildParaList DoNotIndent
   print endParaReason
-  let layElems = Hex.Inter.B.List.Para.prepareHListForLayout hList
-  putText $ Tx.intercalate "\n\n" (toList (show <$> layElems))
+
+  putText "{{{{{{{{{{{{{{{{{{{{{{"
+  putText "Raw HList:"
+  putText "==================="
+  putText $ F.sformat H.Inter.B.List.fmtHListMultiLine hList
+  putText "}}}}}}}}}}}}}}}}}}}}}}"
+  putText ""
+
+  let layHList = Hex.Inter.B.List.Para.finaliseHList hList
+  putText "{{{{{{{{{{{{{{{{{{{{{{"
+  putText "Finalised HList:"
+  putText "==================="
+  putText $ F.sformat H.Inter.B.List.fmtHListMultiLine layHList
+  putText "}}}}}}}}}}}}}}}}}}}}}}"
+  putText ""
+
+  -- let chunks = Hex.Inter.B.List.Para.chunkHList layHList
+  -- HACK:
+  let chunks = Hex.Inter.B.List.Para.chunkHList hList
+  putText ""
+  putText "{{{{{{{{{{{{{{{{{{{{{{"
+  putText "HList elems in chunks:"
+  putText "==================="
+  putText $ F.sformat (F.intercalated "\n\n" F.shown) chunks
+  putText "}}}}}}}}}}}}}}}}}}}}}}"
+  putText ""
+
+  -- let breakSequences = Hex.Inter.B.List.Para.allBreakSequences chunks
+  -- putText "{{{{{{{{{{{{{{{{{{{{{{"
+  -- putText "All paras:"
+  -- putText "==================="
+
+  -- ifor_ breakSequences $ \i breakSequence -> do
+  --   putText ""
+  --   putText "[[[[[[[[[[[[[[[[[[[[["
+  --   putText $ "Para sequence " <> show i <> " (" <> show (length breakSequence) <> " lines):"
+  --   putText "~~~~~~~~~~~~~~~~~~~"
+  --   putText $ renderTextContainer $ breakSequence <&> \line -> "Line:\n" <> Hex.Inter.B.List.Para.renderLine line
+  --   putText "]]]]]]]]]]]]]]]]]]]]]"
+  --   putText ""
+  -- putText "}}}}}}}}}}}}}}}}}}}}}}"
+
+  pure ()

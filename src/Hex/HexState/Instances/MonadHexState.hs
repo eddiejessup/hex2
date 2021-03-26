@@ -51,8 +51,8 @@ instance (Monad m, MonadIO m, MonadState st m, HasType HexState st, MonadError e
       Just fInfo -> do
         let font = fontMetrics fInfo
         let spacing = H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spacing . H.TFM.params)
-        let gStretch = H.Q.FiniteFlex $ H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spaceStretch . H.TFM.params)
-        let gShrink = H.Q.FiniteFlex $ H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spaceShrink . H.TFM.params)
+        let gStretch = H.Q.FinitePureFlex $ H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spaceStretch . H.TFM.params)
+        let gShrink = H.Q.FinitePureFlex $ H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spaceShrink . H.TFM.params)
         pure $ Just $ H.Q.Glue {H.Q.gDimen = spacing, H.Q.gStretch, H.Q.gShrink}
 
   currentFontCharacter :: H.Codes.CharCode -> m (Maybe (H.Q.Length, H.Q.Length, H.Q.Length, H.Q.Length))
@@ -61,19 +61,19 @@ instance (Monad m, MonadIO m, MonadState st m, HasType HexState st, MonadError e
       Nothing -> pure Nothing
       Just fInfo -> do
         let fontMetrics = fInfo ^. typed @H.TFM.Font
-        tfmChar <- note (injectTyped CharacterCodeNotFound) $ fontMetrics ^. field @"characters" % at' (fromIntegral $ H.Codes.codeWord chrCode)
+        tfmChar <- note (injectTyped CharacterCodeNotFound) $ fontMetrics ^. #characters % at' (fromIntegral $ H.Codes.unCharCode chrCode)
         let toLen :: H.Q.LengthDesignSize Rational -> H.Q.LengthScaledPoints Int
             toLen = H.TFM.fontLengthScaledPointsInt fontMetrics
-        pure $ Just (tfmChar ^. field @"width" % to toLen, tfmChar ^. field @"height" % to toLen, tfmChar ^. field @"depth" % to toLen, tfmChar ^. field @"italicCorrection" % to toLen)
+        pure $ Just (tfmChar ^. #width % to toLen, tfmChar ^. #height % to toLen, tfmChar ^. #depth % to toLen, tfmChar ^. #italicCorrection % to toLen)
 
   loadFont :: FilePath -> m (FontNumber, Text)
   loadFont path = do
     fontInfo <- readFontInfo path
-    mayLastKey <- use $ typed @HexState % field @"fontInfos" % to Map.lookupMax
+    mayLastKey <- use $ typed @HexState % #fontInfos % to Map.lookupMax
     let newKey = case mayLastKey of
           Nothing -> FontNumber $ H.Q.HexInt 0
           Just (i, _) -> succ i
-    assign' (typed @HexState % field @"fontInfos" % at' newKey) (Just fontInfo)
+    assign' (typed @HexState % #fontInfos % at' newKey) (Just fontInfo)
 
     let fontName = Tx.pack $ FilePath.takeBaseName path
     pure (newKey, fontName)

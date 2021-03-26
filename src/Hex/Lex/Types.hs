@@ -10,7 +10,7 @@ newtype ControlSequence = ControlSequence ByteString
   deriving newtype (Eq, Hashable)
 
 mkControlSequence :: [Code.CharCode] -> ControlSequence
-mkControlSequence csChars = ControlSequence $ BS.pack $ Code.codeWord <$> csChars
+mkControlSequence csChars = ControlSequence $ BS.pack $ Code.unCharCode <$> csChars
 
 data LexSymbol
   = ActiveCharacterSymbol Code.CharCode

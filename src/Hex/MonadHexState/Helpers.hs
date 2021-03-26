@@ -14,7 +14,7 @@ getParIndentBox = do
       H.Inter.B.List.VListBaseElem $
         H.Inter.B.Box.ElemBox $
           H.Inter.B.Box.Box
-            { H.Inter.B.Box.contents = H.Inter.B.Box.HBoxContents mempty,
+            { H.Inter.B.Box.contents = H.Inter.B.Box.HBoxContents (H.Inter.B.Box.HBoxElemSeq Empty),
               H.Inter.B.Box.boxWidth,
               H.Inter.B.Box.boxHeight = mempty,
               H.Inter.B.Box.boxDepth = mempty

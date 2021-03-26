@@ -9,7 +9,6 @@ import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
 import Hex.TFM.Types qualified as H.TFM
 import Hexlude
-import Optics.Core qualified as O
 
 data HexState = HexState
   { fontInfos :: Map H.MSt.FontNumber FontInfo,
@@ -47,7 +46,7 @@ data FontInfo = FontInfo {fontMetrics :: H.TFM.Font, hyphenChar :: H.Q.HexInt, s
   deriving stock (Show, Generic)
 
 stateLocalScopesTraversal :: Traversal' HexState Scope
-stateLocalScopesTraversal = field @"groups" % groupListScopeTraversal
+stateLocalScopesTraversal = #groups % groupListScopeTraversal
 
 stateScopes :: HexState -> [Scope]
 stateScopes HexState {globalScope, groups} = globalScope : toListOf groupListScopeTraversal groups
@@ -59,7 +58,7 @@ stateLocalMostScopeLens :: Lens' HexState Scope
 stateLocalMostScopeLens = lens getter setter
   where
     getter :: HexState -> Scope
-    getter st@HexState {globalScope} = fromMaybe globalScope $ O.headOf stateLocalScopesTraversal st
+    getter st@HexState {globalScope} = fromMaybe globalScope $ headOf stateLocalScopesTraversal st
 
     setter :: HexState -> Scope -> HexState
     setter c@HexState {groups} newScope =
@@ -71,11 +70,11 @@ stateLocalMostScopeLens = lens getter setter
           -- If we've traversed all groups without finding a scope group, set
           -- the global scope to the new scope.
           [] ->
-            field @"globalScope" .~ newScope
+            #globalScope .~ newScope
           -- If we see a scope group, replace that with the new scope, keeping
           -- the groups before and after as before.
           ScopeGroup grpScope : restAftGroups ->
-            field @"groups" .~ (befGroups ++ (ScopeGroup grpScope {scgScope = newScope} : restAftGroups))
+            #groups .~ (befGroups ++ (ScopeGroup grpScope {scgScope = newScope} : restAftGroups))
           -- If we see a non-scope group, add it to our befGroups stack and keep traversing the groups.
           nonScopeGroup : restAftGroups ->
             go (befGroups ++ [nonScopeGroup]) restAftGroups
@@ -87,29 +86,29 @@ stateLocalCategory :: H.Codes.CharCode -> HexState -> H.Codes.CatCode
 stateLocalCategory p = fromMaybe H.Codes.Invalid . scopedLookup (view (scopeCategoryLens p))
 
 stateLocalIntParam :: H.Sym.Tok.IntParameter -> HexState -> H.Q.HexInt
-stateLocalIntParam p = fromMaybe H.Q.zeroHexInt . scopedLookup (view (scopeIntParamLens p))
+stateLocalIntParam p = fromMaybe H.Q.zeroInt . scopedLookup (view (scopeIntParamLens p))
 
 stateLocalLengthParam :: H.Sym.Tok.LengthParameter -> HexState -> H.Q.Length
-stateLocalLengthParam p = fromMaybe mempty . scopedLookup (view (scopeLengthParamLens p))
+stateLocalLengthParam p = fromMaybe H.Q.zeroLength . scopedLookup (view (scopeLengthParamLens p))
 
 stateLocalGlueParam :: H.Sym.Tok.GlueParameter -> HexState -> H.Q.Glue
-stateLocalGlueParam p = fromMaybe mempty . scopedLookup (view (scopeGlueParamLens p))
+stateLocalGlueParam p = fromMaybe H.Q.zeroGlue . scopedLookup (view (scopeGlueParamLens p))
 
 stateSpecialLengthParamLens :: H.Sym.Tok.SpecialLengthParameter -> Lens' HexState H.Q.Length
-stateSpecialLengthParamLens p = field @"specialLengths" % at' p % O.non (H.Q.Length 0)
+stateSpecialLengthParamLens p = #specialLengths % at' p % non (H.Q.Length 0)
 
 stateCurrentFontNr :: HexState -> Maybe H.MSt.FontNumber
 stateCurrentFontNr = scopedLookup (getField @"currentFontNr")
 
 stateFontInfoLens :: H.MSt.FontNumber -> Lens' HexState (Maybe FontInfo)
-stateFontInfoLens fNr = field @"fontInfos" % at' fNr
+stateFontInfoLens fNr = #fontInfos % at' fNr
 
 selectFontNr :: H.MSt.FontNumber -> H.Sym.Tok.ScopeFlag -> HexState -> HexState
 selectFontNr n scopeFlag st =
   case scopeFlag of
     H.Sym.Tok.Global ->
       st
-        & field @"globalScope" % field @"currentFontNr" ?~ n
-        & stateLocalScopesTraversal % field @"currentFontNr" .~ Nothing
+        & #globalScope % #currentFontNr ?~ n
+        & stateLocalScopesTraversal % #currentFontNr .~ Nothing
     H.Sym.Tok.Local ->
-      st & stateLocalMostScopeLens % field @"currentFontNr" ?~ n
+      st & stateLocalMostScopeLens % #currentFontNr ?~ n

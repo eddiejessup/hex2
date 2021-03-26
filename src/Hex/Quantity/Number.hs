@@ -6,8 +6,8 @@ newtype HexInt = HexInt {unInt :: Int}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord, Enum, Bounded, Hashable, Num, Bits, FiniteBits)
 
-zeroHexInt :: HexInt
-zeroHexInt = HexInt 0
+zeroInt :: HexInt
+zeroInt = HexInt 0
 
 tenK :: Int
 tenK = 10000

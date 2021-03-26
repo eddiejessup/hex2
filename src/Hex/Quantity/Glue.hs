@@ -1,92 +1,155 @@
 module Hex.Quantity.Glue where
 
+import Formatting qualified as F
 import Hex.Quantity.Length
 import Hex.Quantity.Number
 import Hexlude
 
-data Glue = Glue {gDimen :: Length, gStretch :: Flex, gShrink :: Flex}
-  deriving stock (Show, Eq, Generic)
+data Glue = Glue {gDimen :: Length, gStretch, gShrink :: PureFlex}
+  deriving stock (Show, Generic)
 
-negateGlue :: Glue -> Glue
-negateGlue (Glue d str shr) = Glue (invert d) str shr
+fmtGlue :: Fmt Glue r
+fmtGlue =
+  "\\glue " F.% fmtViewed #gDimen fmtLengthWithUnit
+    <> (" plus " F.% fmtViewed #gStretch fmtPureFlex)
+    <> (" minus " F.% fmtViewed #gShrink fmtPureFlex)
 
-instance Semigroup Glue where
-  (Glue dA strA shrA) <> (Glue dB strB shrB) =
-    Glue (dA <> dB) (strA <> strB) (shrA <> shrB)
+zeroGlue :: Glue
+zeroGlue = Glue zeroLength zeroFlex zeroFlex
 
-instance Monoid Glue where
-  mempty = Glue mempty mempty mempty
+invertGlue :: Glue -> Glue
+invertGlue (Glue d str shr) = Glue (invert d) str shr
 
-scaleGlue :: Glue -> HexInt -> Glue
-scaleGlue (Glue dim str shr) i =
-  Glue (scaleLength dim i) (scaleFlex str i) (scaleFlex shr i)
-
--- \divide <glue> by 2’ halves all three components of <glue>.
-shrinkGlue :: Glue -> HexInt -> Glue
-shrinkGlue (Glue dim str shr) i =
-  Glue (shrinkLength dim i) (shrinkFlex str i) (shrinkFlex shr i)
-
-filGlue :: Glue
-filGlue = Glue {gDimen = mempty, gStretch = filFlex, gShrink = noFlex}
+-- \fil
+filStretchGlue :: Length -> Glue
+filStretchGlue x = Glue {gDimen = mempty, gStretch = filFlex x, gShrink = zeroFlex}
 
 fixedGlue :: Length -> Glue
-fixedGlue d = Glue {gDimen = d, gStretch = noFlex, gShrink = noFlex}
+fixedGlue d = Glue {gDimen = d, gStretch = zeroFlex, gShrink = zeroFlex}
 
--- Flex.
-data Flex
-  = FiniteFlex Length
-  | InfiniteFlex InfFlex
+-- Multiplication and division are possible too, but only by integers. For
+-- example, ‘\multiply\dimen4 by 3’ triples the value of \dimen4, and
+-- ‘\divide\skip5 by 2’ cuts in half all three components of the glue that is
+-- currently registered in \skip5. You shouldn’t divide by zero, nor should you
+-- multiply by numbers that will make the results exceed the register
+-- capacities. Division of a positive integer by a positive integer sp discards
+-- the remainder, and the sign of the result changes if you change the sign of
+-- either operand. For example, 14 divided by 3 yields 4; −14 divided by 3
+-- yields −4; number dimen glue −14 divided by −3 yields 4. Dimension values are
+-- integer multiples of sp (scaled points).
+
+scaleGlue :: HexInt -> Glue -> Glue
+scaleGlue i (Glue dim str shr) =
+  Glue (scaleLength i dim) (scalePureFlex i str) (scalePureFlex i shr)
+
+-- \divide <glue> by 2’ halves all three components of <glue>.
+shrinkGlue :: HexInt -> Glue -> Glue
+shrinkGlue i (Glue dim str shr) =
+  Glue (shrinkLength i dim) (shrinkPureFlex i str) (shrinkPureFlex i shr)
+
+-- PureFlex
+
+data PureFlex = FinitePureFlex Length | InfPureFlex InfLengthOfOrder
+  deriving stock (Show, Generic)
+
+zeroFlex :: PureFlex
+zeroFlex = FinitePureFlex zeroLength
+
+flexPt :: Int -> PureFlex
+flexPt = FinitePureFlex . pt
+
+filFlexPt :: Int -> PureFlex
+filFlexPt = filFlex . pt
+
+filFlex :: Length -> PureFlex
+filFlex x = InfPureFlex (InfLengthOfOrder Fil1 x)
+
+scalePureFlex :: HexInt -> PureFlex -> PureFlex
+scalePureFlex i = \case
+  FinitePureFlex x -> FinitePureFlex $ scaleLength i x
+  InfPureFlex x -> InfPureFlex $ scaleInfLengthOfOrder i x
+
+shrinkPureFlex :: HexInt -> PureFlex -> PureFlex
+shrinkPureFlex i = \case
+  FinitePureFlex x -> FinitePureFlex $ shrinkLength i x
+  InfPureFlex x -> InfPureFlex $ shrinkInfLengthOfOrder i x
+
+fmtPureFlex :: Fmt PureFlex r
+fmtPureFlex = F.later $ \case
+  FinitePureFlex ln -> F.bformat fmtLengthWithUnit ln
+  InfPureFlex ln -> F.bformat fmtInfLengthOfOrder ln
+
+-- Net Flex.
+
+data NetFlex = NetFlex {finiteFlex :: Length, fil1Flex, fil2Flex, fil3Flex :: Length}
+  deriving stock (Show, Generic)
+
+netFlexPt :: Int -> NetFlex
+netFlexPt = pureAsNetFlex . flexPt
+
+filNetFlexPt :: Int -> NetFlex
+filNetFlexPt = pureAsNetFlex . filFlexPt
+
+zeroNetFlex :: NetFlex
+zeroNetFlex = NetFlex zeroLength zeroLength zeroLength zeroLength
+
+instance Semigroup NetFlex where
+  (NetFlex a1 b1 c1 d1) <> (NetFlex a2 b2 c2 d2) = NetFlex (a1 <> a2) (b1 <> b2) (c1 <> c2) (d1 <> d2)
+
+instance Monoid NetFlex where
+  mempty = zeroNetFlex
+
+instance Group NetFlex where
+  invert (NetFlex a1 b1 c1 d1) = NetFlex (invert a1) (invert b1) (invert c1) (invert d1)
+
+pureAsNetFlex :: PureFlex -> NetFlex
+pureAsNetFlex = \case
+  FinitePureFlex len -> mempty {finiteFlex = len}
+  InfPureFlex (InfLengthOfOrder order infLen) -> case order of
+    Fil1 -> mempty {fil1Flex = infLen}
+    Fil2 -> mempty {fil2Flex = infLen}
+    Fil3 -> mempty {fil3Flex = infLen}
+
+highestNetFlexOrder :: NetFlex -> PureFlex
+highestNetFlexOrder flex
+  | flex ^. #fil3Flex /= zeroLength = InfPureFlex (InfLengthOfOrder Fil3 (flex ^. #fil3Flex))
+  | flex ^. #fil2Flex /= zeroLength = InfPureFlex (InfLengthOfOrder Fil2 (flex ^. #fil2Flex))
+  | flex ^. #fil1Flex /= zeroLength = InfPureFlex (InfLengthOfOrder Fil1 (flex ^. #fil1Flex))
+  | otherwise = FinitePureFlex (flex ^. #finiteFlex)
+
+-- BiNetFlex.
+data BiNetFlex = BiNetFlex {biStretch, biShrink :: NetFlex}
+  deriving stock (Show, Generic)
+
+instance Semigroup BiNetFlex where
+  (BiNetFlex strA shrA) <> (BiNetFlex strB shrB) =
+    BiNetFlex (strA <> strB) (shrA <> shrB)
+
+instance Monoid BiNetFlex where
+  mempty = BiNetFlex zeroNetFlex zeroNetFlex
+
+asBiNetFlex :: Glue -> BiNetFlex
+asBiNetFlex g = BiNetFlex (g ^. #gStretch % to pureAsNetFlex) (g ^. #gShrink % to pureAsNetFlex)
+
+-- Inf length of specified order.
+
+data InfLengthOrder = Fil1 | Fil2 | Fil3
   deriving stock (Show, Generic, Eq)
 
-instance Semigroup Flex where
-  (FiniteFlex a) <> (FiniteFlex b) = FiniteFlex (a <> b)
-  (InfiniteFlex a) <> (InfiniteFlex b) = InfiniteFlex (a <> b)
-  a@(InfiniteFlex _) <> (FiniteFlex _) = a
-  (FiniteFlex _) <> b@(InfiniteFlex _) = b
+fmtInfLengthOrder :: Fmt InfLengthOrder r
+fmtInfLengthOrder = F.later $ \case
+  Fil1 -> "fil"
+  Fil2 -> "fill"
+  Fil3 -> "filll"
 
-instance Monoid Flex where
-  mempty = FiniteFlex mempty
+data InfLengthOfOrder = InfLengthOfOrder InfLengthOrder Length
+  deriving stock (Show, Generic)
 
-scaleFlex :: Flex -> HexInt -> Flex
-scaleFlex (FiniteFlex l) i = FiniteFlex (scaleLength l i)
-scaleFlex (InfiniteFlex a) i = InfiniteFlex (scaleInfFlex a)
-  where
-    scaleInfFlex InfFlex {infFlexFactor, infFlexOrder} =
-      InfFlex {infFlexFactor = infFlexFactor * fromIntegral @Int @Rational (i ^. typed @Int), infFlexOrder}
+scaleInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
+scaleInfLengthOfOrder i (InfLengthOfOrder order infLen) = InfLengthOfOrder order (scaleLength i infLen)
 
-shrinkFlex :: Flex -> HexInt -> Flex
-shrinkFlex (FiniteFlex a) i = FiniteFlex (shrinkLength a i)
-shrinkFlex (InfiniteFlex a) i = InfiniteFlex (shrinkInfFlex a)
-  where
-    shrinkInfFlex InfFlex {infFlexFactor, infFlexOrder} = InfFlex {infFlexFactor = infFlexFactor / fromIntegral @Int @Rational (i ^. typed @Int), infFlexOrder}
+shrinkInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
+shrinkInfLengthOfOrder i (InfLengthOfOrder order infLen) = InfLengthOfOrder order (shrinkLength i infLen)
 
-noFlex :: Flex
-noFlex = mempty
-
-filFlex :: Flex
-filFlex = InfiniteFlex filInfFlex
-
--- InfFlex.
-data InfFlex = InfFlex {infFlexFactor :: Rational, infFlexOrder :: Int}
-  deriving stock (Show, Generic, Eq)
-
-instance Semigroup InfFlex where
-  a@InfFlex {infFlexFactor = aFac, infFlexOrder = aOrd} <> b@InfFlex {infFlexFactor = bFac, infFlexOrder = bOrd} =
-    case compare aOrd bOrd of
-      LT -> b
-      GT -> a
-      EQ -> InfFlex {infFlexFactor = aFac + bFac, infFlexOrder = aOrd}
-
-instance Monoid InfFlex where
-  mempty = InfFlex 0 0
-
-filInfFlex :: InfFlex
-filInfFlex = InfFlex 1 1
-
--- scaleMathGlue :: Glue MathLength -> HexInt -> Glue MathLength
--- scaleMathGlue (Glue d str shr) i =
---   Glue (scaleMathLength d i) (scaleFlex str i) (scaleFlex shr i)
-
--- shrinkMathGlue :: Glue MathLength -> HexInt -> Glue MathLength
--- shrinkMathGlue (Glue d str shr) i =
---   Glue (shrinkMathLength d i) (shrinkFlex str i) (shrinkFlex shr i)
+fmtInfLengthOfOrder :: Fmt InfLengthOfOrder r
+fmtInfLengthOfOrder = fmtViewed (typed @Length) fmtLengthMagnitude |<>| F.fconst " " |<>| fmtViewed (typed @InfLengthOrder) fmtInfLengthOrder

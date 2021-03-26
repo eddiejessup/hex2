@@ -36,7 +36,7 @@ handleModeIndependentCommand = \case
   -- construction (not after the '}'). Insert the ⟨token⟩ just before tokens
   -- inserted by \everyhbox or \everyvbox.
   -- H.AST.SetAfterAssignmentToken lt -> do
-  --   assign' (typed @Config % field @"afterAssignmentToken") (Just lt)
+  --   assign' (typed @Config % #afterAssignmentToken) (Just lt)
   --   pure DidNotSeeEndBox
   -- H.AST.AddPenalty n -> do
   --   addVElem . BL.ListPenalty . BL.Penalty =<< texEvaluate n
@@ -168,17 +168,17 @@ handleModeIndependentCommand = \case
   --           modifyFont fNr updateFontChar
   --       oth ->
   --         panic $ show oth
-  --     use (typed @Config % field @"afterAssignmentToken") >>= \case
+  --     use (typed @Config % #afterAssignmentToken) >>= \case
   --       Nothing ->
   --         pure ()
   --       Just lt ->
   --         do
   --           insertLexToken lt
-  --           assign' (typed @Config % field @"afterAssignmentToken") Nothing
+  --           assign' (typed @Config % #afterAssignmentToken) Nothing
   --     pure DidNotSeeEndBox
   -- H.AST.WriteToStream n (H.AST.ImmediateWriteText eTxt) -> do
   --   en <- texEvaluate n
-  --   fStreams <- use $ typed @Config % field @"outFileStreams"
+  --   fStreams <- use $ typed @Config % #outFileStreams
   --   let txtTxt = Codes.unsafeCodesAsChars (showExpandedBalancedText eTxt)
   --   -- Write to:
   --   -- if stream number corresponds to existing, open file:
@@ -194,7 +194,7 @@ handleModeIndependentCommand = \case
   --         -- Write to terminal.
   --         when (en >= 0) $ sLog (BS.C8.pack txtTxt)
   --         -- Write to log
-  --         logHandle <- use $ typed @Config % field @"logStream"
+  --         logHandle <- use $ typed @Config % #logStream
   --         liftIO $ hPutStrLn logHandle txtTxt
   --   pure DidNotSeeEndBox
   -- -- Start a new level of grouping.

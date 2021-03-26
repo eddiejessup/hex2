@@ -6,7 +6,12 @@ module Hexlude
     module Data.Generics.Sum,
     module Data.Sequence,
     module Data.Group,
-    joinTexts,
+    module Data.Sequence.Optics,
+    module Formatting,
+    (|%|),
+    (|<>|),
+    fmtViewed,
+    Fmt,
   )
 where
 
@@ -14,31 +19,25 @@ import Data.Generics.Product (HasType, field, typed)
 import Data.Generics.Sum (AsType, injectTyped, _Typed)
 import Data.Group (Group (..), (~~))
 import Data.Sequence (Seq (Empty, (:<|), (:|>)), singleton, (><))
-import Data.Text qualified as Tx
+import Data.Sequence.Optics (seqOf)
 -- Import `Optics.At` for instance:
 --   (Eq k, Hashable k) => At (HashMap k a)
 -- So we can do `at` on a HashMap, for control sequence map
-import Optics.At ()
-import Optics.Core
-  ( AffineTraversal',
-    Lens',
-    Prism',
-    Traversal',
-    at',
-    headOf,
-    lens,
-    to,
-    toListOf,
-    traversed,
-    view,
-    (%),
-    (.~),
-    (?~),
-    (^.),
-    (^..),
-  )
-import Optics.State (assign', modifying', use)
-import Protolude hiding (to, (%))
 
-joinTexts :: Text -> [Text] -> Text
-joinTexts = Tx.intercalate
+import Formatting (Format, bformat, later, sformat)
+import Formatting qualified as F
+import Optics.At ()
+import Optics.Core hiding (Empty)
+import Optics.State (assign', modifying', use)
+import Protolude hiding (to, uncons, unsnoc, (%))
+
+(|%|) :: Format r a -> Format r' r -> Format r' a
+(|%|) = (F.%)
+
+(|<>|) :: Format r (a -> r) -> Format r (a -> r) -> Format r (a -> r)
+(|<>|) = (<>)
+
+fmtViewed :: Is k A_Getter => Optic' k is s a -> Format r (a -> r) -> Format r (s -> r)
+fmtViewed lens_ = F.accessed (view lens_)
+
+type Fmt a r = Format r (a -> r)

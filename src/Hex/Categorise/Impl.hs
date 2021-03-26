@@ -1,6 +1,7 @@
 module Hex.Categorise.Impl where
 
 import Data.ByteString qualified as BS
+import Formatting qualified as F
 import Hex.Categorise.Types
 import Hex.Codes qualified as Code
 import Hex.MonadHexState.Interface qualified as H.St
@@ -52,5 +53,5 @@ charsToCharCats = go
 -- usableCharsToCharCats :: ByteString -> [RawCharCat]
 -- usableCharsToCharCats = charsToCharCats Code.usableCatLookup
 
-renderCategoriseResult :: [RawCharCat] -> Text
-renderCategoriseResult ccs = joinTexts "\n" $ show <$> ccs
+fmtCategoriseResult :: Fmt [RawCharCat] r
+fmtCategoriseResult = F.unlined F.shown

@@ -15,7 +15,7 @@ class HexCode a where
 
   fromHexInt :: H.Q.HexInt -> Maybe a
 
-newtype CharCode = CharCode {codeWord :: Word8}
+newtype CharCode = CharCode {unCharCode :: Word8}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord, Enum, Bounded, Bits, FiniteBits, Hashable)
 
@@ -39,13 +39,13 @@ codeFromAsciiChar :: ASCII.Char -> CharCode
 codeFromAsciiChar = CharCode . ASCII.charToWord8
 
 codeInt :: CharCode -> Int
-codeInt = fromIntegral . codeWord
+codeInt = fromIntegral . unCharCode
 
 asciiPred :: (ASCII.Char -> Bool) -> CharCode -> Bool
 asciiPred f (CharCode w) = maybe False f (ASCII.word8ToCharMaybe w)
 
 instance HexCode CharCode where
-  toHexInt charCode = H.Q.HexInt $ charCode ^. typed @Word8 % to (fromIntegral @Word8 @Int)
+  toHexInt charCode = H.Q.HexInt $ charCode ^. #unCharCode % to (fromIntegral @Word8 @Int)
 
   fromHexInt (H.Q.HexInt n)
     | n > 256 = Nothing
@@ -310,7 +310,7 @@ instance HexCode CaseChangeCode where
 newCaseCodes :: ASCII.Case -> Map CharCode CaseChangeCode
 newCaseCodes destCase = initialiseCharCodeMap f
   where
-    f c = case ASCII.word8ToCharMaybe (codeWord c) of
+    f c = case ASCII.word8ToCharMaybe (unCharCode c) of
       Just asciiChar
         | ASCII.Pred.isLetter asciiChar ->
           ChangeToCode $ codeFromAsciiChar $ ASCII.toCaseChar destCase asciiChar

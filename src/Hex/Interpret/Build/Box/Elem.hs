@@ -1,5 +1,6 @@
 module Hex.Interpret.Build.Box.Elem where
 
+import Formatting qualified as F
 import Hex.Codes qualified as H.Codes
 import Hex.Quantity qualified as H.Q
 import Hexlude
@@ -11,58 +12,105 @@ data HBoxElem
   | HBoxHBaseElem HBaseElem
   deriving stock (Show, Generic)
 
+fmtHBoxElem :: Fmt HBoxElem r
+fmtHBoxElem = F.later $ \case
+  HVBoxElem vBoxElem -> bformat fmtVBoxElemOneLine vBoxElem
+  HBoxHBaseElem e -> bformat fmtHBaseElem e
+
 -- TODO: Ligature, DiscretionaryBreak, Math on/off, V-adust
 newtype HBaseElem
-  = ElemCharacter Character
+  = ElemCharacter CharBox
   deriving stock (Show)
+
+fmtHBaseElem :: Fmt HBaseElem r
+fmtHBaseElem = F.later $ \case
+  ElemCharacter c -> bformat fmtCharBoxWithDimens c
 
 data VBoxElem
   = VBoxBaseElem BaseElem
-  | BoxGlue (SetGlue H.Q.Length)
+  | BoxGlue SetGlue
   deriving stock (Show, Generic)
 
+fmtVBoxElemOneLine :: Fmt VBoxElem r
+fmtVBoxElemOneLine = F.later $ \case
+  VBoxBaseElem e -> bformat fmtBaseElemOneLine e
+  BoxGlue sg -> bformat fmtSetGlue sg
+
 data BaseElem
-  = ElemBox (Box BoxContents)
-  | ElemRule Rule
+  = ElemBox (Box BaseBoxContents)
   | ElemFontDefinition FontDefinition
   | ElemFontSelection FontSelection
   | ElemKern Kern
   deriving stock (Show, Generic)
 
+fmtBaseElemOneLine :: Fmt BaseElem r
+fmtBaseElemOneLine = F.later $ \case
+  ElemBox b -> bformat fmtBaseBox b
+  ElemFontDefinition _ ->
+    "font-definition"
+  ElemFontSelection _ ->
+    "font-selection"
+  ElemKern _ ->
+    "kern"
+
 -- Boxes.
-
-newtype HBox = HBox (Seq HBoxElem)
-  deriving stock (Show, Generic)
-  deriving newtype (Semigroup, Monoid)
-
-newtype VBox = VBox (Seq VBoxElem)
-  deriving stock (Show, Generic)
-  deriving newtype (Semigroup, Monoid)
 
 data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: H.Q.Length}
   deriving stock (Show, Generic, Functor, Foldable)
 
-newtype Page = Page (Box VBox)
-  deriving stock (Show)
+fmtBoxDimens :: Fmt (Box a) r
+fmtBoxDimens =
+  let fmtWidth = fmtViewed #boxWidth H.Q.fmtLengthMagnitude
+      fmtHeight = fmtViewed #boxHeight H.Q.fmtLengthMagnitude
+      fmtDepth = fmtViewed #boxDepth H.Q.fmtLengthMagnitude
+   in F.squared $ F.fconst "⇿" <> fmtWidth <> F.fconst "↥" <> fmtHeight <> F.fconst "↧" <> fmtDepth
 
 -- Element constituents.
 
-newtype SetGlue a = SetGlue {glueDimen :: a}
+newtype SetGlue = SetGlue {sgDimen :: H.Q.Length}
   deriving stock (Show, Generic)
 
-data BoxContents
-  = HBoxContents HBox
-  | VBoxContents VBox
+fmtSetGlue :: Fmt SetGlue r
+fmtSetGlue = F.fconst "\\setglue " <> fmtViewed #sgDimen H.Q.fmtLengthWithUnit
+
+data BaseBoxContents
+  = HBoxContents HBoxElemSeq
+  | VBoxContents VBoxElemSeq
+  | RuleContents
   deriving stock (Show, Generic)
 
-newtype Rule = Rule (Box ())
+fmtBaseBoxContents :: Fmt BaseBoxContents r
+fmtBaseBoxContents = F.later $ \case
+  HBoxContents hboxElemSeq -> bformat (F.prefixed "\\hbox" $ fmtViewed #unHBoxElemSeq (F.braced (F.commaSpaceSep fmtHBoxElem))) hboxElemSeq
+  VBoxContents vboxElemSeq -> bformat (F.prefixed "\\vbox" $ fmtViewed #unVBoxElemSeq (F.braced (F.commaSpaceSep fmtVBoxElemOneLine))) vboxElemSeq
+  RuleContents -> "\\rule{}"
+
+fmtBaseBox :: Fmt (Box BaseBoxContents) r
+fmtBaseBox = fmtBoxDimens <> fmtViewed #contents fmtBaseBoxContents
+
+newtype Kern = Kern {unKern :: H.Q.Length}
   deriving stock (Show, Generic)
 
-newtype Kern = Kern {kernDimen :: H.Q.Length}
-  deriving stock (Show)
-
-newtype Character = Character (Box H.Codes.CharCode)
+newtype HBoxElemSeq = HBoxElemSeq {unHBoxElemSeq :: Seq HBoxElem}
   deriving stock (Show, Generic)
+
+newtype VBoxElemSeq = VBoxElemSeq {unVBoxElemSeq :: Seq VBoxElem}
+  deriving stock (Show, Generic)
+
+newtype Rule = Rule {unRule :: Box ()}
+  deriving stock (Show, Generic)
+
+newtype CharBox = CharBox {unCharacter :: Box H.Codes.CharCode}
+  deriving stock (Show, Generic)
+
+fmtCharBox :: Fmt CharBox r
+fmtCharBox = fmtViewed (to charBoxChar) (F.squoted F.char)
+
+fmtCharBoxWithDimens :: Fmt CharBox r
+fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> F.prefixed "\\c" fmtCharBox
+
+charBoxChar :: CharBox -> Char
+charBoxChar = view $ #unCharacter % #contents % to H.Codes.unsafeCodeAsChar
 
 data FontDefinition = FontDefinition
   { fontDefChecksum :: Int,
