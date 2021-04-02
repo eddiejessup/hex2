@@ -7,7 +7,7 @@ data RawCharCat = RawCharCat
   { rawCCChar :: Code.CharCode,
     rawCCCat :: Code.CatCode
   }
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data EndOfInput = EndOfInput
   deriving stock (Show, Eq, Generic)

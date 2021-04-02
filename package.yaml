@@ -14,11 +14,12 @@ description: Please see the README on GitHub at <https://github.com/eddiejessup/
 dependencies:
 - ascii
 - base
-- binary
 - bytestring
 - cereal
 - containers
 - filepath
+- formatting
+- generic-lens-core
 - generic-optics
 - groups
 - hashable
@@ -29,8 +30,7 @@ dependencies:
 - text
 - transformers
 - unordered-containers
-- vector
-- formatting
+- parser-combinators
 
 library:
   source-dirs: src
@@ -66,7 +66,7 @@ executables:
 
 tests:
   hex-test:
-    main:                Spec.hs
+    main:                test.hs
     source-dirs:         test
     ghc-options:
     - -threaded
@@ -74,7 +74,8 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - hex
-    - hspec
+    - tasty
+    - tasty-hunit
 
 default-extensions:
 - ConstraintKinds

@@ -4,7 +4,7 @@ import Hexlude
 
 newtype HexInt = HexInt {unInt :: Int}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord, Enum, Bounded, Hashable, Num, Bits, FiniteBits)
+  deriving newtype (Eq, Ord, Enum, Bounded, Hashable, Num)
 
 zeroInt :: HexInt
 zeroInt = HexInt 0
@@ -38,3 +38,28 @@ newtype FourBitInt = FourBitInt Int
 
 newFourBitInt :: Alternative f => Int -> f FourBitInt
 newFourBitInt = newNBitInt FourBitInt 4
+
+-- Signs.
+
+-- mconcat to fold over a list of signs.
+data Sign
+  = Positive
+  | Negative
+  deriving stock (Show, Eq, Generic)
+
+instance Semigroup Sign where
+  a <> b = if a == b then Positive else Negative
+
+instance Monoid Sign where
+  mempty = Positive
+
+data Signed a = Signed Sign a
+  deriving stock (Functor, Generic)
+
+deriving stock instance Show a => Show (Signed a)
+
+evalSigned :: Num a => Signed a -> a
+evalSigned (Signed sign a) = case sign of
+  Positive -> a
+  Negative -> - a
+

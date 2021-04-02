@@ -1,20 +1,18 @@
 module Hex.App where
 
-import Formatting qualified as F
 import Hex.HexState.Instances.MonadHexState ()
 import Hex.HexState.Instances.MonadHexState qualified as H.St
 import Hex.HexState.Type qualified as H.St
-import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
-import Hex.Interpret.Build.List.Horizontal.Paragraph.Break qualified as Hex.Inter.B.List.Para
 import Hex.Interpret.CommandHandler.AllMode qualified as H.Inter.Comm.AllMode
-import Hex.Interpret.CommandHandler.MainVMode qualified as H.Inter.Comm.MainV
-import Hex.Interpret.CommandHandler.ParaMode qualified as H.Inter.Comm.Para
 import Hex.Interpret.Evaluate.Impl qualified as H.Inter.Eval
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface
 import Hex.Parse.CharSource qualified as H.Par.ChrSrc
-import Hex.Parse.MonadParse.Impls.MonadTokenSource qualified as H.Par.Par
+import Hex.Parse.MonadPrimTokenSource.Impls.MonadTokenSource qualified as H.Par.PTSrc
+import Hex.Parse.MonadPrimTokenSource.Interface qualified as H.Par.PTSrc
 import Hex.Parse.MonadTokenSource.Impls.CharSource ()
+import Hex.Parse.MonadTokenSource.Interface qualified as H.Par.TokSrc
+import Hex.Parse.Parsers.Quantity as H.Par.Par
 import Hex.Symbol.Tokens
 import Hex.TFM.Get qualified as H.TFM
 import Hexlude
@@ -27,7 +25,8 @@ newAppState chrs = AppState H.St.newHexState (H.Par.ChrSrc.newCharSource chrs)
 
 data AppError
   = AppLexError H.Lex.LexError
-  | AppParseError H.Par.Par.ParseError
+  | AppParseError H.Par.PTSrc.ParsingError
+  | AppExpansionError H.Par.PTSrc.ExpansionError
   | AppInterpretError H.Inter.Comm.AllMode.InterpretError
   | AppEvaluationError H.Inter.Eval.EvaluationError
   | AppHexStateError H.St.HexStateError
@@ -78,70 +77,81 @@ testAppLoadSelectFont = do
   (fNr, _name) <- loadFont "cmr10.tfm"
   selectFont fNr Local
 
-testApp :: StateT AppState (ExceptT AppError IO) ()
-testApp = do
-  (fNr, name) <- loadFont "cmr10.tfm"
-  print name
-  currentFontSpaceGlue >>= print
-  selectFont fNr Local
-  currentFontSpaceGlue >>= print
+-- testApp :: StateT AppState (ExceptT AppError IO) ()
+-- testApp = do
+--   (fNr, name) <- loadFont "cmr10.tfm"
+--   print name
+--   currentFontSpaceGlue >>= print
+--   selectFont fNr Local
+--   currentFontSpaceGlue >>= print
 
-  vList <- H.Inter.Comm.MainV.buildMainVList
+--   vList <- H.Inter.Comm.MainV.buildMainVList
 
-  putText $ F.sformat H.Inter.B.List.fmtVList vList
+--   putText $ F.sformat H.Inter.B.List.fmtVList vList
 
-testParaAppHLayList :: StateT AppState (ExceptT AppError IO) H.Inter.B.List.HList
-testParaAppHLayList = do
-  testAppLoadSelectFont
-  (_endParaReason, hList) <- H.Inter.Comm.Para.buildParaList DoNotIndent
-  pure $ Hex.Inter.B.List.Para.finaliseHList hList
+-- testParaAppHLayList :: StateT AppState (ExceptT AppError IO) H.Inter.B.List.HList
+-- testParaAppHLayList = do
+--   testAppLoadSelectFont
+--   (_endParaReason, hList) <- H.Inter.Comm.Para.buildParaList DoNotIndent
+--   pure $ Hex.Inter.B.List.Para.finaliseHList hList
 
-testParaApp :: StateT AppState (ExceptT AppError IO) ()
-testParaApp = do
-  testAppLoadSelectFont
+-- testParaApp :: StateT AppState (ExceptT AppError IO) ()
+-- testParaApp = do
+--   testAppLoadSelectFont
 
-  (endParaReason, hList) <- H.Inter.Comm.Para.buildParaList DoNotIndent
-  print endParaReason
+--   (endParaReason, hList) <- H.Inter.Comm.Para.buildParaList DoNotIndent
+--   print endParaReason
 
-  putText "{{{{{{{{{{{{{{{{{{{{{{"
-  putText "Raw HList:"
-  putText "==================="
-  putText $ F.sformat H.Inter.B.List.fmtHListMultiLine hList
-  putText "}}}}}}}}}}}}}}}}}}}}}}"
-  putText ""
+--   putText "{{{{{{{{{{{{{{{{{{{{{{"
+--   putText "Raw HList:"
+--   putText "==================="
+--   putText $ F.sformat H.Inter.B.List.fmtHListMultiLine hList
+--   putText "}}}}}}}}}}}}}}}}}}}}}}"
+--   putText ""
 
-  let layHList = Hex.Inter.B.List.Para.finaliseHList hList
-  putText "{{{{{{{{{{{{{{{{{{{{{{"
-  putText "Finalised HList:"
-  putText "==================="
-  putText $ F.sformat H.Inter.B.List.fmtHListMultiLine layHList
-  putText "}}}}}}}}}}}}}}}}}}}}}}"
-  putText ""
+--   let layHList = Hex.Inter.B.List.Para.finaliseHList hList
+--   putText "{{{{{{{{{{{{{{{{{{{{{{"
+--   putText "Finalised HList:"
+--   putText "==================="
+--   putText $ F.sformat H.Inter.B.List.fmtHListMultiLine layHList
+--   putText "}}}}}}}}}}}}}}}}}}}}}}"
+--   putText ""
 
-  -- let chunks = Hex.Inter.B.List.Para.chunkHList layHList
-  -- HACK:
-  let chunks = Hex.Inter.B.List.Para.chunkHList hList
-  putText ""
-  putText "{{{{{{{{{{{{{{{{{{{{{{"
-  putText "HList elems in chunks:"
-  putText "==================="
-  putText $ F.sformat (F.intercalated "\n\n" F.shown) chunks
-  putText "}}}}}}}}}}}}}}}}}}}}}}"
-  putText ""
+--   -- let chunks = Hex.Inter.B.List.Para.chunkHList layHList
+--   -- HACK:
+--   let chunks = Hex.Inter.B.List.Para.chunkHList hList
+--   putText ""
+--   putText "{{{{{{{{{{{{{{{{{{{{{{"
+--   putText "HList elems in chunks:"
+--   putText "==================="
+--   putText $ F.sformat (F.intercalated "\n\n" F.shown) chunks
+--   putText "}}}}}}}}}}}}}}}}}}}}}}"
+--   putText ""
 
-  -- let breakSequences = Hex.Inter.B.List.Para.allBreakSequences chunks
-  -- putText "{{{{{{{{{{{{{{{{{{{{{{"
-  -- putText "All paras:"
-  -- putText "==================="
+--   -- let breakSequences = Hex.Inter.B.List.Para.allBreakSequences chunks
+--   -- putText "{{{{{{{{{{{{{{{{{{{{{{"
+--   -- putText "All paras:"
+--   -- putText "==================="
 
-  -- ifor_ breakSequences $ \i breakSequence -> do
-  --   putText ""
-  --   putText "[[[[[[[[[[[[[[[[[[[[["
-  --   putText $ "Para sequence " <> show i <> " (" <> show (length breakSequence) <> " lines):"
-  --   putText "~~~~~~~~~~~~~~~~~~~"
-  --   putText $ renderTextContainer $ breakSequence <&> \line -> "Line:\n" <> Hex.Inter.B.List.Para.renderLine line
-  --   putText "]]]]]]]]]]]]]]]]]]]]]"
-  --   putText ""
-  -- putText "}}}}}}}}}}}}}}}}}}}}}}"
+--   -- ifor_ breakSequences $ \i breakSequence -> do
+--   --   putText ""
+--   --   putText "[[[[[[[[[[[[[[[[[[[[["
+--   --   putText $ "Para sequence " <> show i <> " (" <> show (length breakSequence) <> " lines):"
+--   --   putText "~~~~~~~~~~~~~~~~~~~"
+--   --   putText $ renderTextContainer $ breakSequence <&> \line -> "Line:\n" <> Hex.Inter.B.List.Para.renderLine line
+--   --   putText "]]]]]]]]]]]]]]]]]]]]]"
+--   --   putText ""
+--   -- putText "}}}}}}}}}}}}}}}}}}}}}}"
 
-  pure ()
+--   pure ()
+
+testParsing :: StateT AppState (ExceptT AppError IO) H.Par.ChrSrc.CharSource
+testParsing = do
+  r <- runExceptT $
+    H.Par.PTSrc.unParseT $ do
+      -- void $ H.Par.Par.satisfyIf $ H.Par.Par.primTokHasCategory H.Codes.Letter
+      -- H.Par.Par.skipOptionalSpaces
+      -- void $ H.Par.Par.skipManySatisfied $ H.Par.Par.primTokHasCategory H.Codes.Letter
+      H.Par.Par.parseInt
+  traceM $ "got: " <> show r
+  H.Par.TokSrc.getSource

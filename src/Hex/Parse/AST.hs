@@ -3,154 +3,157 @@ module Hex.Parse.AST where
 import Hex.Codes qualified as H.Code
 import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Q
-import Hex.Quantity qualified as H.Quant
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
 import Hexlude
 
+data Signed a = Signed [H.Q.Sign] a
+  deriving stock (Show, Eq, Generic)
+
 -- HexInt.
 
-type HexInt = H.Sym.Tok.Signed UnsignedHexInt
+newtype HexInt = HexInt {unInt :: Signed UnsignedInt}
+  deriving stock (Show, Eq, Generic)
 
-newtype EightBitHexInt = EightBitHexInt HexInt
-  deriving stock (Show, Generic)
+data UnsignedInt
+  = NormalUnsignedInt NormalInt
+  | CoercedUnsignedInt CoercedInt
+  deriving stock (Show, Eq, Generic)
 
-constHexInt :: H.Q.HexInt -> HexInt
-constHexInt n = H.Sym.Tok.Signed H.Sym.Tok.Positive $ constUHexInt n
+data IntBase = Base8 | Base10 | Base16
+  deriving stock (Show, Eq, Generic)
 
-data UnsignedHexInt
-  = NormalHexIntAsUHexInt NormalHexInt
-  | CoercedHexInt CoercedHexInt
-  deriving stock (Show, Generic)
-
-constUHexInt :: H.Q.HexInt -> UnsignedHexInt
-constUHexInt n = NormalHexIntAsUHexInt $ HexIntConstant n
+data IntConstantDigits = IntConstantDigits IntBase [Word8]
+  deriving stock (Show, Eq, Generic)
 
 -- Think: 'un-coerced integer'.
-data NormalHexInt = HexIntConstant H.Q.HexInt | InternalHexInt InternalHexInt
-  deriving stock (Show, Generic)
+data NormalInt = IntConstant IntConstantDigits | CharLikeCode Int | InternalInt InternalInt
+  deriving stock (Show, Eq, Generic)
 
-zeroInt :: NormalHexInt
-zeroInt = HexIntConstant $ H.Q.HexInt 0
+zeroInt :: NormalInt
+zeroInt = IntConstant $ IntConstantDigits Base10 [0]
 
-oneHexInt :: NormalHexInt
-oneHexInt = HexIntConstant $ H.Q.HexInt 1
+oneInt :: NormalInt
+oneInt = IntConstant $ IntConstantDigits Base10 [1]
 
-data CoercedHexInt
+data CoercedInt
   = InternalLengthAsInt InternalLength
   | InternalGlueAsInt InternalGlue
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Length.
-type Length = H.Sym.Tok.Signed UnsignedLength
+type Length = Signed UnsignedLength
 
 zeroLength :: Length
 zeroLength =
-  H.Sym.Tok.Signed H.Sym.Tok.Positive $
+  Signed [H.Q.Positive] $
     NormalLengthAsULength $
       LengthSemiConstant zeroFactor scaledPointUnit
 
 data UnsignedLength
   = NormalLengthAsULength NormalLength
   | CoercedLength CoercedLength
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Think: 'un-coerced length'.
 data NormalLength
   = -- 'semi-constant' because Factor and Unit can be quite un-constant-like.
     LengthSemiConstant Factor Unit
   | InternalLength InternalLength
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data Factor
-  = NormalHexIntFactor NormalHexInt
+  = NormalIntFactor NormalInt
   | -- Badly named 'decimal constant' in the TeXbook. Granted, it is specified
     -- with decimal digits, but its main feature is that it can represent
     -- non-integers.
     RationalConstant Rational
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 zeroFactor, oneFactor :: Factor
-zeroFactor = NormalHexIntFactor zeroInt
-oneFactor = NormalHexIntFactor oneHexInt
+zeroFactor = NormalIntFactor zeroInt
+oneFactor = NormalIntFactor oneInt
 
 data Unit
-  = PhysicalUnit PhysicalUnitFrame H.Quant.PhysicalUnit
+  = PhysicalUnit PhysicalUnitFrame H.Q.PhysicalUnit
   | InternalUnit InternalUnit
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 scaledPointUnit :: Unit
-scaledPointUnit = PhysicalUnit MagnifiedFrame H.Quant.ScaledPoint
+scaledPointUnit = PhysicalUnit MagnifiedFrame H.Q.ScaledPoint
 
 data InternalUnit
   = Em
   | Ex
-  | InternalHexIntUnit InternalHexInt
+  | InternalIntUnit InternalInt
   | InternalLengthUnit InternalLength
   | InternalGlueUnit InternalGlue
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data PhysicalUnitFrame = MagnifiedFrame | TrueFrame
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 newtype CoercedLength = InternalGlueAsLength InternalGlue
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Math-length.
-type MathLength = H.Sym.Tok.Signed UnsignedMathLength
+type MathLength = Signed UnsignedMathLength
 
 data UnsignedMathLength
   = NormalMathLengthAsUMathLength NormalMathLength
   | CoercedMathLength CoercedMathLength
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Think: 'un-coerced length'.
 data NormalMathLength
   = -- 'semi-constant' because Factor and Unit can be quite un-constant-like.
     MathLengthSemiConstant Factor MathUnit
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data MathUnit = Mu | InternalMathGlueAsUnit InternalMathGlue
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 newtype CoercedMathLength = InternalMathGlueAsMathLength InternalMathGlue
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Glue.
 data Glue
   = ExplicitGlue Length (Maybe Flex) (Maybe Flex)
-  | InternalGlue (H.Sym.Tok.Signed InternalGlue)
-  deriving stock (Show, Generic)
+  | InternalGlue (Signed InternalGlue)
+  deriving stock (Show, Eq, Generic)
 
 data Flex = FiniteFlex Length | FilFlex FilLength
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 oneFilFlex, minusOneFilFlex, oneFillFlex :: Flex
 oneFilFlex = FilFlex oneFil
 minusOneFilFlex = FilFlex minusOneFil
 oneFillFlex = FilFlex oneFill
 
-data FilLength = FilLength (H.Sym.Tok.Signed Factor) Int
-  deriving stock (Show, Generic)
+data FilLength = FilLength (Signed Factor) H.Q.InfLengthOrder
+  deriving stock (Show, Eq, Generic)
 
 oneFil, minusOneFil, oneFill :: FilLength
-oneFil = FilLength (H.Sym.Tok.Signed H.Sym.Tok.Positive oneFactor) 1
-minusOneFil = FilLength (H.Sym.Tok.Signed H.Sym.Tok.Negative oneFactor) 1
-oneFill = FilLength (H.Sym.Tok.Signed H.Sym.Tok.Positive oneFactor) 2
+oneFil = FilLength (Signed [H.Q.Positive] oneFactor) H.Q.Fil1
+minusOneFil = FilLength (Signed [H.Q.Negative] oneFactor) H.Q.Fil1
+oneFill = FilLength (Signed [H.Q.Positive] oneFactor) H.Q.Fil2
 
 -- Math glue.
 data MathGlue
   = ExplicitMathGlue MathLength (Maybe MathFlex) (Maybe MathFlex)
-  | InternalMathGlue H.Sym.Tok.Sign InternalMathGlue
-  deriving stock (Show, Generic)
+  | InternalMathGlue (Signed InternalMathGlue)
+  deriving stock (Show, Eq, Generic)
 
 data MathFlex = FiniteMathFlex MathLength | FilMathFlex FilLength
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Internal quantities.
-data QuantVariable a = ParamVar a | RegisterVar EightBitHexInt
-  deriving stock (Show, Generic)
+data QuantVariable a = ParamVar a | RegisterVar RegisterLocation
+  deriving stock (Show, Eq, Generic)
 
-type HexIntVariable = QuantVariable H.Sym.Tok.IntParameter
+data RegisterLocation = ExplicitRegisterLocation HexInt | InternalRegisterLocation H.Q.HexInt
+  deriving stock (Show, Eq, Generic)
+
+type IntVariable = QuantVariable H.Sym.Tok.IntParameter
 
 type LengthVariable = QuantVariable H.Sym.Tok.LengthParameter
 
@@ -160,39 +163,39 @@ type MathGlueVariable = QuantVariable H.Sym.Tok.MathGlueParameter
 
 type TokenListVariable = QuantVariable H.Sym.Tok.TokenListParameter
 
-data InternalHexInt
-  = InternalHexIntVariable HexIntVariable
+data InternalInt
+  = InternalIntVariable IntVariable
   | InternalSpecialIntParameter H.Sym.Tok.SpecialIntParameter
   | InternalCodeTableRef CodeTableRef
-  | InternalCharToken HexInt
-  | InternalMathCharToken HexInt
+  | InternalCharToken H.Q.HexInt
+  | InternalMathCharToken H.Q.HexInt
   | InternalFontCharRef FontCharRef
   | LastPenalty
   | ParShape
   | InputLineNr
   | Badness
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data CodeTableRef = CodeTableRef H.Sym.Tok.CodeType HexInt
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data FontCharRef = FontCharRef H.Sym.Tok.FontChar FontRef
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data FontRef
-  = FontTokenRef HexInt
+  = FontTokenRef H.Q.HexInt
   | CurrentFontRef
   | FamilyMemberFontRef FamilyMember
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data FamilyMember = FamilyMember H.Sym.Tok.FontRange HexInt
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
-data BoxDimensionRef = BoxDimensionRef EightBitHexInt H.Quant.BoxDim
-  deriving stock (Show, Generic)
+data BoxDimensionRef = BoxDimensionRef HexInt H.Q.BoxDim
+  deriving stock (Show, Eq, Generic)
 
 data FontDimensionRef = FontDimensionRef HexInt FontRef
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data InternalLength
   = InternalLengthVariable LengthVariable
@@ -200,22 +203,22 @@ data InternalLength
   | InternalFontDimensionRef FontDimensionRef
   | InternalBoxDimensionRef BoxDimensionRef
   | LastKern
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data InternalGlue = InternalGlueVariable GlueVariable | LastGlue
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data InternalMathGlue
   = InternalMathGlueVariable MathGlueVariable
   | LastMathGlue
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Assignments.
 data Assignment = Assignment {body :: AssignmentBody, scope :: H.Sym.Tok.ScopeFlag}
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 newtype HexFilePath = HexFilePath FilePath
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data ControlSequenceTarget
   = MacroTarget H.Sym.Tok.MacroContents
@@ -224,7 +227,7 @@ data ControlSequenceTarget
   | ShortDefineTarget H.Sym.Tok.QuantityType HexInt
   | ReadTarget HexInt
   | FontTarget FontSpecification HexFilePath
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data AssignmentBody
   = DefineControlSequence H.Lex.LexSymbol ControlSequenceTarget
@@ -234,7 +237,7 @@ data AssignmentBody
   | SelectFont HexInt
   | SetFamilyMember FamilyMember FontRef
   | SetParShape [(Length, Length)]
-  | SetBoxRegister EightBitHexInt Box
+  | SetBoxRegister HexInt Box
   | -- -- Global assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontChar FontCharRef HexInt
@@ -242,57 +245,57 @@ data AssignmentBody
   | SetHyphenationPatterns H.Sym.Tok.BalancedText
   | SetBoxDimension BoxDimensionRef Length
   | SetInteractionMode H.Sym.Tok.InteractionMode
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
   = TokenListAssignmentVar TokenListVariable
   | TokenListAssignmentText H.Sym.Tok.BalancedText
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data VariableAssignment
-  = HexIntVariableAssignment HexIntVariable HexInt
+  = IntVariableAssignment IntVariable HexInt
   | LengthVariableAssignment LengthVariable Length
   | GlueVariableAssignment GlueVariable Glue
   | MathGlueVariableAssignment MathGlueVariable MathGlue
   | TokenListVariableAssignment TokenListVariable TokenListAssignmentTarget
   | SpecialIntParameterVariableAssignment H.Sym.Tok.SpecialIntParameter HexInt
   | SpecialLengthParameterVariableAssignment H.Sym.Tok.SpecialLengthParameter Length
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data VariableModification
-  = AdvanceHexIntVariable HexIntVariable HexInt
+  = AdvanceIntVariable IntVariable HexInt
   | AdvanceLengthVariable LengthVariable Length
   | AdvanceGlueVariable GlueVariable Glue
   | AdvanceMathGlueVariable MathGlueVariable MathGlue
-  | ScaleVariable H.Quant.VDirection NumericVariable HexInt
-  deriving stock (Show, Generic)
+  | ScaleVariable H.Q.VDirection NumericVariable HexInt
+  deriving stock (Show, Eq, Generic)
 
 data NumericVariable
-  = HexIntNumericVariable HexIntVariable
+  = IntNumericVariable IntVariable
   | LengthNumericVariable LengthVariable
   | GlueNumericVariable GlueVariable
   | MathGlueNumericVariable MathGlueVariable
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data CodeAssignment = CodeAssignment CodeTableRef HexInt
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data FontSpecification = NaturalFont | FontAt Length | FontScaled HexInt
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Box specification.
 data Box
-  = FetchedRegisterBox H.Sym.Tok.BoxFetchMode EightBitHexInt
+  = FetchedRegisterBox H.Sym.Tok.BoxFetchMode HexInt
   | LastBox
   | VSplitBox HexInt Length
   | ExplicitBox BoxSpecification H.Sym.Tok.ExplicitBox
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data BoxSpecification = Natural | To Length | Spread Length
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
-data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule H.Quant.Axis Rule
-  deriving stock (Show, Generic)
+data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule H.Q.Axis Rule
+  deriving stock (Show, Eq, Generic)
 
 -- Commands.
 
@@ -311,8 +314,8 @@ data ModeIndependentCommand
   | WriteToStream HexInt WriteText
   | DoSpecial H.Sym.Tok.ExpandedBalancedText
   | AddBox BoxPlacement Box
-  | ChangeScope H.Sym.Tok.Sign CommandTrigger
-  deriving stock (Show, Generic)
+  | ChangeScope H.Q.Sign CommandTrigger
+  deriving stock (Show, Eq, Generic)
 
 data Command
   = ShowToken H.Lex.LexToken
@@ -332,7 +335,7 @@ data Command
     HModeCommand HModeCommand
   | VModeCommand VModeCommand
   | ModeIndependentCommand ModeIndependentCommand
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data VModeCommand
   = End
@@ -342,7 +345,7 @@ data VModeCommand
   | AddVLeaders LeadersSpec
   | AddVRule Rule
   | AddUnwrappedFetchedVBox FetchedBoxRef -- \unv{box,copy}
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data HModeCommand
   = AddControlSpace
@@ -356,67 +359,67 @@ data HModeCommand
   | AddHLeaders LeadersSpec
   | AddHRule Rule
   | AddUnwrappedFetchedHBox FetchedBoxRef -- \unh{box,copy}
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: H.Sym.Tok.BalancedText}
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data FetchedBoxRef = FetchedBoxRef HexInt H.Sym.Tok.BoxFetchMode
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data LeadersSpec = LeadersSpec H.Sym.Tok.LeadersType BoxOrRule Glue
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data CommandTrigger = CharCommandTrigger | CSCommandTrigger
   deriving stock (Show, Eq, Generic)
 
 data InternalQuantity
-  = InternalHexIntQuantity InternalHexInt
+  = InternalIntQuantity InternalInt
   | InternalLengthQuantity InternalLength
   | InternalGlueQuantity InternalGlue
   | InternalMathGlueQuantity InternalMathGlue
   | FontQuantity FontRef
   | TokenListVariableQuantity TokenListVariable
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data WriteText
   = ImmediateWriteText H.Sym.Tok.ExpandedBalancedText
   | DeferredWriteText H.Sym.Tok.BalancedText
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data WritePolicy = Immediate | Deferred
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data Rule = Rule {width, height, depth :: Maybe Length}
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data FileStreamAction = Open HexFilePath | Close
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data FileStreamType = FileInput | FileOutput WritePolicy
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
-data BoxPlacement = NaturalPlacement | ShiftedPlacement H.Quant.Axis H.Quant.Direction Length
-  deriving stock (Show, Generic)
+data BoxPlacement = NaturalPlacement | ShiftedPlacement H.Q.Axis H.Q.Direction Length
+  deriving stock (Show, Eq, Generic)
 
 data CharCodeRef
   = CharRef H.Code.CharCode
   | CharTokenRef H.Q.HexInt
   | CharCodeNrRef HexInt
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- Condition heads.
 data IfConditionHead
-  = IfHexIntPairTest HexInt Ordering HexInt -- \ifnum
+  = IfIntPairTest HexInt Ordering HexInt -- \ifnum
   | IfLengthPairTest Length Ordering Length -- \ifdim
-  | IfHexIntOdd HexInt -- \ifodd
+  | IfIntOdd HexInt -- \ifodd
   | IfInMode H.Sym.Tok.ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
   | IfTokenAttributesEqual H.Sym.Tok.TokenAttribute H.Sym.Tok.PrimitiveToken H.Sym.Tok.PrimitiveToken -- \if, \ifcat
   | IfTokensEqual H.Lex.LexToken H.Lex.LexToken -- \ifx
   | IfBoxRegisterIs H.Sym.Tok.BoxRegisterAttribute HexInt -- \ifvoid, \ifhbox, \ifvbox
   | IfInputEnded HexInt -- \ifeof
   | IfConst Bool -- \iftrue, \iffalse
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 data ConditionHead = IfConditionHead IfConditionHead | CaseConditionHead HexInt
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)

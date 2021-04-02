@@ -4,7 +4,7 @@ import Data.HashMap.Strict qualified as HMap
 import Data.Text qualified as Tx
 import Hex.Codes qualified as Code
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Quantity qualified as H.Quantity
+import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Resolve
 import Hex.Symbol.Tokens
 import Hexlude
@@ -25,10 +25,10 @@ condTok :: ConditionHeadTok -> ResolvedToken
 condTok e = syntaxTok $ ConditionTok $ ConditionHeadTok e
 
 vModeTok :: ModedCommandPrimitiveToken -> ResolvedToken
-vModeTok e = primTok $ ModedCommand H.Quantity.Vertical e
+vModeTok e = primTok $ ModedCommand H.Q.Vertical e
 
 hModeTok :: ModedCommandPrimitiveToken -> ResolvedToken
-hModeTok e = primTok $ ModedCommand H.Quantity.Horizontal e
+hModeTok e = primTok $ ModedCommand H.Q.Horizontal e
 
 initialCSMap :: CSMap
 initialCSMap =
@@ -70,14 +70,14 @@ initialCSMap =
       (_cs "input", syntaxTok InputTok),
       (_cs "endinput", syntaxTok EndInputTok),
       (_cs "the", syntaxTok TheTok),
-      (_cs "uppercase", syntaxTok $ ChangeCaseTok H.Quantity.Upward),
-      (_cs "lowercase", syntaxTok $ ChangeCaseTok H.Quantity.Downward),
+      (_cs "uppercase", syntaxTok $ ChangeCaseTok H.Q.Upward),
+      (_cs "lowercase", syntaxTok $ ChangeCaseTok H.Q.Downward),
       -- Arguments of syntax commands.
       (_cs "endcsname", primTok $ SyntaxCommandArg EndCSNameTok),
       -- Nothing special.
       (_cs "relax", primTok RelaxTok),
-      (_cs "begingroup", primTok $ ChangeScopeCSTok Positive),
-      (_cs "endgroup", primTok $ ChangeScopeCSTok Negative),
+      (_cs "begingroup", primTok $ ChangeScopeCSTok H.Q.Positive),
+      (_cs "endgroup", primTok $ ChangeScopeCSTok H.Q.Negative),
       (_cs "show", primTok ShowTokenTok),
       (_cs "showbox", primTok ShowBoxTok),
       (_cs "showlists", primTok ShowListsTok),
@@ -123,10 +123,10 @@ initialCSMap =
       -- Other moded.
       (_cs "halign", hModeTok AlignedMaterialTok),
       (_cs "valign", vModeTok AlignedMaterialTok),
-      (_cs "moveleft", hModeTok $ ShiftedBoxTok H.Quantity.Backward),
-      (_cs "moveright", hModeTok $ ShiftedBoxTok H.Quantity.Forward),
-      (_cs "raise", vModeTok $ ShiftedBoxTok H.Quantity.Backward),
-      (_cs "lower", vModeTok $ ShiftedBoxTok H.Quantity.Forward),
+      (_cs "moveleft", hModeTok $ ShiftedBoxTok H.Q.Backward),
+      (_cs "moveright", hModeTok $ ShiftedBoxTok H.Q.Forward),
+      (_cs "raise", vModeTok $ ShiftedBoxTok H.Q.Backward),
+      (_cs "lower", vModeTok $ ShiftedBoxTok H.Q.Forward),
       (_cs "unvbox", vModeTok $ UnwrappedFetchedBoxTok Pop),
       (_cs "unhbox", hModeTok $ UnwrappedFetchedBoxTok Pop),
       (_cs "unvcopy", vModeTok $ UnwrappedFetchedBoxTok Lookup),
@@ -291,13 +291,13 @@ initialCSMap =
       (_cs "toksdef", primTok $ ShortDefHeadTok $ RegQuantity RegTokenList),
       -- Modify variables.
       (_cs "advance", primTok AdvanceVarTok),
-      (_cs "multiply", primTok $ ScaleVarTok H.Quantity.Upward),
-      (_cs "divide", primTok $ ScaleVarTok H.Quantity.Downward),
+      (_cs "multiply", primTok $ ScaleVarTok H.Q.Upward),
+      (_cs "divide", primTok $ ScaleVarTok H.Q.Downward),
       -- Code types.
       (_cs "catcode", primTok $ CodeTypeTok CategoryCodeType),
       (_cs "mathcode", primTok $ CodeTypeTok MathCodeType),
-      (_cs "lccode", primTok $ CodeTypeTok $ ChangeCaseCodeType H.Quantity.Downward),
-      (_cs "uccode", primTok $ CodeTypeTok $ ChangeCaseCodeType H.Quantity.Upward),
+      (_cs "lccode", primTok $ CodeTypeTok $ ChangeCaseCodeType H.Q.Downward),
+      (_cs "uccode", primTok $ CodeTypeTok $ ChangeCaseCodeType H.Q.Upward),
       (_cs "sfcode", primTok $ CodeTypeTok SpaceFactorCodeType),
       (_cs "delcode", primTok $ CodeTypeTok DelimiterCodeType),
       -- Alias tokens.
@@ -315,9 +315,9 @@ initialCSMap =
       -- Internal length.
       (_cs "lastkern", primTok LastKernTok),
       (_cs "fontdimen", primTok FontDimensionTok),
-      (_cs "ht", primTok $ BoxDimensionTok H.Quantity.BoxHeight),
-      (_cs "wd", primTok $ BoxDimensionTok H.Quantity.BoxWidth),
-      (_cs "dp", primTok $ BoxDimensionTok H.Quantity.BoxDepth),
+      (_cs "ht", primTok $ BoxDimensionTok H.Q.BoxHeight),
+      (_cs "wd", primTok $ BoxDimensionTok H.Q.BoxWidth),
+      (_cs "dp", primTok $ BoxDimensionTok H.Q.BoxDepth),
       -- Internal glue.
       (_cs "lastskip", primTok LastGlueTok),
       -- Specifying a box.

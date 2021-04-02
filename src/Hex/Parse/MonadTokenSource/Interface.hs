@@ -9,6 +9,7 @@ import Hex.Symbol.Tokens qualified as Sym.Tok
 import Hexlude
 
 data ResolutionError = ResolutionError
+  deriving stock (Show, Generic)
 
 class Monad m => MonadTokenSource m where
   getLexToken :: m (Maybe Lex.LexToken)

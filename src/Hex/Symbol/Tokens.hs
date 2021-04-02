@@ -6,30 +6,7 @@ import Data.Map.Strict qualified as Map
 import Hex.Codes
 import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Q
-import Hex.Quantity qualified as H.Quant
 import Hexlude
-
--- mconcat to fold over a list of signs.
-data Sign
-  = Positive
-  | Negative
-  deriving stock (Show, Eq, Generic)
-
-instance Semigroup Sign where
-  a <> b = if a == b then Positive else Negative
-
-instance Monoid Sign where
-  mempty = Positive
-
-data Signed a = Signed Sign a
-  deriving stock (Functor, Generic)
-
-deriving stock instance Show a => Show (Signed a)
-
-evalSigned :: Num a => Signed a -> a
-evalSigned (Signed sign a) = case sign of
-  Positive -> a
-  Negative -> - a
 
 data IntParameter
   = PreTolerance -- Badness tolerance before hyphenation
@@ -242,7 +219,7 @@ data ModedCommandPrimitiveToken
   = SpecifiedGlueTok -- \vskip, \hskip
   | PresetGlueTok PresetGlueType -- \{v,h}{fil,fill,filneg,ss}
   | AlignedMaterialTok -- \halign, \valign
-  | ShiftedBoxTok H.Quant.Direction -- \moveleft, \moveright, \raise, \lower
+  | ShiftedBoxTok H.Q.Direction -- \moveleft, \moveright, \raise, \lower
   | UnwrappedFetchedBoxTok BoxFetchMode -- \un{v,h}{box,copy}
   | RuleTok -- \hrule, \vrule
   deriving stock (Show, Eq, Generic)
@@ -254,7 +231,7 @@ data SyntaxCommandArg
 data CodeType
   = CategoryCodeType
   | MathCodeType
-  | ChangeCaseCodeType H.Quant.VDirection
+  | ChangeCaseCodeType H.Q.VDirection
   | SpaceFactorCodeType
   | DelimiterCodeType
   deriving stock (Show, Eq, Generic)
@@ -373,7 +350,7 @@ data PrimitiveToken
   = SyntaxCommandArg SyntaxCommandArg
   | -- Starters of commands.
     RelaxTok -- \relax
-  | ChangeScopeCSTok Sign
+  | ChangeScopeCSTok H.Q.Sign
   | ShowTokenTok -- \show
   | ShowBoxTok -- \showbox
   | ShowListsTok -- \showlists
@@ -400,7 +377,7 @@ data PrimitiveToken
   | StartParagraphTok IndentFlag -- \indent, \noindent
   | EndParagraphTok -- \par
   -- Starters of mode-specific commands with almost mode-independent grammar.
-  | ModedCommand H.Quant.Axis ModedCommandPrimitiveToken
+  | ModedCommand H.Q.Axis ModedCommandPrimitiveToken
   | -- Starters of Vertical-Mode-specific commands.
     EndTok -- \end
   | DumpTok -- \dump
@@ -441,7 +418,7 @@ data PrimitiveToken
     ShortDefHeadTok QuantityType
   | -- > Modifying variable values with arithmetic.
     AdvanceVarTok -- \advance
-  | ScaleVarTok H.Quant.VDirection -- \multiply, \divide.
+  | ScaleVarTok H.Q.VDirection -- \multiply, \divide.
   | CodeTypeTok CodeType
   | -- > Aliasing tokens.
     LetTok -- \let
@@ -456,7 +433,7 @@ data PrimitiveToken
   -- Internal lengths.
   | LastKernTok -- \lastkern
   | FontDimensionTok -- \fontdimen
-  | BoxDimensionTok H.Quant.BoxDim -- \ht, \wd, \dp
+  | BoxDimensionTok H.Q.BoxDim -- \ht, \wd, \dp
   -- Internal glues.
   | LastGlueTok -- \lastskip
   -- Specifying boxes.
@@ -533,7 +510,7 @@ data SyntaxCommandHeadToken
   | InputTok -- \input
   | EndInputTok -- \endinput
   | TheTok -- \the
-  | ChangeCaseTok H.Quant.VDirection -- \uppercase, \lowercase
+  | ChangeCaseTok H.Q.VDirection -- \uppercase, \lowercase
   deriving stock (Show, Eq, Generic)
 
 data ResolvedToken

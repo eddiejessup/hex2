@@ -9,7 +9,7 @@ data CharSource = CharSource
     sourceLexTokens :: Seq H.Lex.LexToken,
     sourceLexState :: H.Lex.LexState
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
 
 newCharSource :: ByteString -> CharSource
 newCharSource sourceChars =

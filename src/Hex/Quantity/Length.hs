@@ -124,7 +124,7 @@ data PhysicalUnit
   | Didot -- 'dd'
   | Cicero -- 'cc'
   | ScaledPoint -- 'sp'
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 -- inScaledPoint :: PhysicalUnit -> Rational
 -- inScaledPoint u = case u of

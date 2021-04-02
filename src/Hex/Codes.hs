@@ -17,7 +17,7 @@ class HexCode a where
 
 newtype CharCode = CharCode {unCharCode :: Word8}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord, Enum, Bounded, Bits, FiniteBits, Hashable)
+  deriving newtype (Eq, Ord, Enum, Bounded, Hashable)
 
 pattern CharCode_ :: Char -> CharCode
 pattern CharCode_ c <-
