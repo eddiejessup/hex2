@@ -44,8 +44,9 @@ primTokCharCat = castOptic @An_AffineTraversal (_Ctor @"UnresolvedTok") % H.Lex.
 primTokCatChar :: H.C.CoreCatCode -> AffineFold PrimitiveToken H.C.CharCode
 primTokCatChar cat = primTokCharCat % filtered (isOnly (typed @H.C.CoreCatCode) cat) % typed @H.C.CharCode
 
-withInhibition :: MonadPrimTokenSource m => m a -> m a
-withInhibition = panic "TODO: Inhibition"
+-- TODO: Implement me.
+withInhibition :: m a -> m a
+withInhibition = identity
 
 fetchInhibitedLexToken :: MonadPrimTokenSource m => m H.Lex.LexToken
 fetchInhibitedLexToken = do

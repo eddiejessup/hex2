@@ -236,18 +236,18 @@ data CodeType
   | DelimiterCodeType
   deriving stock (Show, Eq, Generic)
 
-data QuantityType
+data CharryQuantityType
   = CharQuantity -- \chardef
   | MathCharQuantity -- \mathchardef
-  | RegQuantity RegisterType
+  | QuantityType QuantityType
   deriving stock (Show, Eq, Generic)
 
-data RegisterType
-  = RegInt -- \count, \countdef
-  | RegLen -- \dimen, \dimendef
-  | RegGlue -- \skip, \skipdef
-  | RegMathGlue -- \muskip, \muskipdef
-  | RegTokenList -- \toks, \toksdef
+data QuantityType
+  = IntQuantity -- \count, \countdef
+  | LenQuantity -- \dimen, \dimendef
+  | GlueQuantity -- \skip, \skipdef
+  | MathGlueQuantity -- \muskip, \muskipdef
+  | TokenListQuantity -- \toks, \toksdef
   deriving stock (Show, Eq, Generic)
 
 data InteractionMode
@@ -403,7 +403,7 @@ data PrimitiveToken
   | SpecialIntParameterTok SpecialIntParameter -- \example: \spacefactor
   | SpecialLengthParameterTok SpecialLengthParameter -- \example: \pagestretch
   -- Tokens storing integers defined by short-hand definitions.
-  | IntRefTok QuantityType H.Q.HexInt
+  | IntRefTok CharryQuantityType H.Q.HexInt
   | -- A char-cat pair defined by a 'let' assignment. This differs from a
     -- \chardef target, because \chardef maps to a character number, which is
     -- categorised at the time of use, while a \let maps to a static char-cat
@@ -413,9 +413,9 @@ data PrimitiveToken
     -- \font.
     FontRefToken H.Q.HexInt
   | -- Heads of register references.
-    RegisterVariableTok RegisterType
+    RegisterVariableTok QuantityType
   | -- Heads of int-ref definitions.
-    ShortDefHeadTok QuantityType
+    ShortDefHeadTok CharryQuantityType
   | -- > Modifying variable values with arithmetic.
     AdvanceVarTok -- \advance
   | ScaleVarTok H.Q.VDirection -- \multiply, \divide.

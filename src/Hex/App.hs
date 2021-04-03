@@ -153,5 +153,5 @@ testParsing = do
       -- H.Par.Par.skipOptionalSpaces
       -- void $ H.Par.Par.skipManySatisfied $ H.Par.Par.primTokHasCategory H.Codes.Letter
       H.Par.Par.parseInt
-  traceM $ "got: " <> show r
+  liftIO $ putText $ "got: " <> show r
   H.Par.TokSrc.getSource

@@ -26,7 +26,7 @@ data IntConstantDigits = IntConstantDigits IntBase [Word8]
   deriving stock (Show, Eq, Generic)
 
 -- Think: 'un-coerced integer'.
-data NormalInt = IntConstant IntConstantDigits | CharLikeCode Int | InternalInt InternalInt
+data NormalInt = IntConstant IntConstantDigits | CharLikeCode Word8 | InternalInt InternalInt
   deriving stock (Show, Eq, Generic)
 
 zeroInt :: NormalInt

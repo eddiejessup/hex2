@@ -59,9 +59,9 @@ headToParseNormalInt =
         empty
 
     -- Case 10, character constant like "`c".
-    parseCharLikeCodeInt :: m Int
+    parseCharLikeCodeInt :: m Word8
     parseCharLikeCodeInt = do
-      chrCodeWord <- withInhibition $ do
+      withInhibition $ do
         fetchInhibitedLexToken >>= \case
           H.Lex.CharCatLexToken cc ->
             pure $ cc ^. typed @H.C.CharCode % typed @Word8
@@ -75,7 +75,6 @@ headToParseNormalInt =
                   else empty
               Nothing ->
                 empty
-      pure $ fromIntegral @Word8 @Int chrCodeWord
 
     decCharToWord :: PrimitiveToken -> Maybe Word8
     decCharToWord = fromCatChar H.C.Other H.Ascii.fromDecDigit
@@ -117,9 +116,9 @@ headToParseIntVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.In
 headToParseIntVariable = \case
     T.IntParamVarTok p ->
         pure (AST.ParamVar p)
-    T.IntRefTok (T.RegQuantity T.RegInt) n ->
+    T.IntRefTok (T.QuantityType T.IntQuantity) n ->
         pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-    T.RegisterVariableTok T.RegInt ->
+    T.RegisterVariableTok T.IntQuantity ->
         AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
     _ ->
         empty
@@ -128,9 +127,9 @@ headToParseLengthVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST
 headToParseLengthVariable = \case
     T.LenParamVarTok p ->
         pure (AST.ParamVar p)
-    T.IntRefTok (T.RegQuantity T.RegLen) n ->
+    T.IntRefTok (T.QuantityType T.LenQuantity) n ->
         pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-    T.RegisterVariableTok T.RegLen ->
+    T.RegisterVariableTok T.LenQuantity ->
         AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
     _ ->
         empty
@@ -139,9 +138,9 @@ headToParseGlueVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.G
 headToParseGlueVariable = \case
     T.GlueParamVarTok p ->
         pure (AST.ParamVar p)
-    T.IntRefTok (T.RegQuantity T.RegGlue) n ->
+    T.IntRefTok (T.QuantityType T.GlueQuantity) n ->
         pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-    T.RegisterVariableTok T.RegGlue ->
+    T.RegisterVariableTok T.GlueQuantity ->
         AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
     _ ->
         empty
@@ -150,9 +149,9 @@ headToParseMathGlueVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m A
 headToParseMathGlueVariable = \case
     T.MathGlueParamVarTok p ->
         pure (AST.ParamVar p)
-    T.IntRefTok (T.RegQuantity T.RegMathGlue) n ->
+    T.IntRefTok (T.QuantityType T.MathGlueQuantity) n ->
         pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-    T.RegisterVariableTok T.RegMathGlue ->
+    T.RegisterVariableTok T.MathGlueQuantity ->
         AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
     _ ->
         empty
@@ -161,9 +160,9 @@ headToParseTokenListVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m 
 headToParseTokenListVariable = \case
     T.TokenListParamVarTok p ->
         pure (AST.ParamVar p)
-    T.IntRefTok (T.RegQuantity T.RegTokenList) n ->
+    T.IntRefTok (T.QuantityType T.TokenListQuantity) n ->
         pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-    T.RegisterVariableTok T.RegTokenList ->
+    T.RegisterVariableTok T.TokenListQuantity ->
         AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
     _ ->
         empty
