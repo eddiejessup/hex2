@@ -1,12 +1,13 @@
 {-# LANGUAGE PolyKinds #-}
+
 module Hex.Lex.Types where
 
 import Data.ByteString qualified as BS
+import Data.Generics.Product.HList qualified as G.P.HList
+import Data.Generics.Product.Internal.HList qualified as G.P.HList
 import Hex.Categorise.Types as H.Cat
 import Hex.Codes qualified as H.Codes
 import Hexlude
-import Data.Generics.Product.HList qualified as G.P.HList
-import Data.Generics.Product.Internal.HList qualified as G.P.HList
 
 newtype ControlSequence = ControlSequence ByteString
   deriving stock (Show, Generic)

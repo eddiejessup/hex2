@@ -8,9 +8,9 @@ import Hex.Codes qualified as H.C
 import Hex.Parse.AST.Command qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
-import Hex.Parse.Parsers.Quantity.Number qualified as Par
-import Hex.Parse.Parsers.Quantity.Length qualified as Par
 import Hex.Parse.Parsers.Quantity.Glue qualified as Par
+import Hex.Parse.Parsers.Quantity.Length qualified as Par
+import Hex.Parse.Parsers.Quantity.Number qualified as Par
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens (PrimitiveToken)
 import Hex.Symbol.Tokens qualified as T

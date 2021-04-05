@@ -7,8 +7,8 @@ import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Resolve
 import Hex.Symbol.Tokens
+import Hex.Symbol.Types qualified as H.Sym
 import Hexlude
-import qualified Hex.Symbol.Types as H.Sym
 
 _cs :: [Char] -> H.Sym.ControlSymbol
 _cs =

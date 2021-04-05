@@ -1,12 +1,12 @@
 module Categorise where
 
+import Hex.Categorise.Impl
+import Hex.Categorise.Types
+import Hex.Codes
+import Hex.MonadHexState.Interface
+import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
-import Hexlude
-import Hex.Categorise.Types
-import Hex.MonadHexState.Interface
-import Hex.Codes
-import Hex.Categorise.Impl
 
 newtype Error = Error EndOfInput
   deriving stock (Show, Generic)
@@ -14,7 +14,6 @@ newtype Error = Error EndOfInput
 newtype Mon m a = Mon {unMon :: m a}
   deriving stock (Show, Generic)
   deriving newtype (Functor, Applicative, Monad)
-
 
 instance Monad m => MonadHexState (Mon m) where
   getIntParameter = panic "NotImplemented"
@@ -48,57 +47,73 @@ instance Monad m => MonadHexState (Mon m) where
   currentFontSpaceGlue = panic "NotImplemented"
 
 tests :: TestTree
-tests = testGroup "Categorise"
-  [ testCase "Usual" usual
-  , testCase "One caret" oneCaret
-  , testCase "Two carets" twoCarets
-  , testCase "Triod up" triodUp
-  , testCase "Triod down" triodDown
-  ]
+tests =
+  testGroup
+    "Categorise"
+    [ testCase "Usual" usual,
+      testCase "One caret" oneCaret,
+      testCase "Two carets" twoCarets,
+      testCase "Triod up" triodUp,
+      testCase "Triod down" triodDown
+    ]
 
 usual :: Assertion
 usual = do
   res <- unMon $ charsToCharCats "aa"
-  assertEqual "" res
-    [ RawCharCat (Chr_ 'a') (CoreCatCode Letter)
-    , RawCharCat (Chr_ 'a') (CoreCatCode Letter)
+  assertEqual
+    ""
+    res
+    [ RawCharCat (Chr_ 'a') (CoreCatCode Letter),
+      RawCharCat (Chr_ 'a') (CoreCatCode Letter)
     ]
 
 oneCaret :: Assertion
 oneCaret = do
   res <- unMon $ charsToCharCats "^"
-  assertEqual "" res
+  assertEqual
+    ""
+    res
     [ RawCharCat (Chr_ '^') (CoreCatCode Superscript)
     ]
   res2 <- unMon $ charsToCharCats "^a"
-  assertEqual "" res2
-    [ RawCharCat (Chr_ '^') (CoreCatCode Superscript)
-    , RawCharCat (Chr_ 'a') (CoreCatCode Letter)
+  assertEqual
+    ""
+    res2
+    [ RawCharCat (Chr_ '^') (CoreCatCode Superscript),
+      RawCharCat (Chr_ 'a') (CoreCatCode Letter)
     ]
 
 twoCarets :: Assertion
 twoCarets = do
   res <- unMon $ charsToCharCats "^^"
-  assertEqual "" res
-    [ RawCharCat (Chr_ '^') (CoreCatCode Superscript)
-    , RawCharCat (Chr_ '^') (CoreCatCode Superscript)
+  assertEqual
+    ""
+    res
+    [ RawCharCat (Chr_ '^') (CoreCatCode Superscript),
+      RawCharCat (Chr_ '^') (CoreCatCode Superscript)
     ]
 
 triodUp :: Assertion
 triodUp = do
   res <- unMon $ charsToCharCats "^^?"
-  assertEqual "" res
+  assertEqual
+    ""
+    res
     [ RawCharCat (CharCode (63 + 64)) (CoreCatCode Other)
     ]
 
 triodDown :: Assertion
 triodDown = do
   res <- unMon $ charsToCharCats "^^A"
-  assertEqual "" res
+  assertEqual
+    ""
+    res
     [ RawCharCat (CharCode (65 - 64)) (CoreCatCode Other)
     ]
 
   res2 <- unMon $ charsToCharCats "^^^"
-  assertEqual "" res2
+  assertEqual
+    ""
+    res2
     [ RawCharCat (CharCode (94 - 64)) (CoreCatCode Other)
     ]

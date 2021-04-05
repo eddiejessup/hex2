@@ -1,13 +1,14 @@
 {-# LANGUAGE UndecidableInstances #-}
+
 module Hex.Parse.AST.Command where
 
 import Hex.Codes qualified as H.Code
 import Hex.Lex.Types qualified as H.Lex
+import Hex.Parse.AST.Common
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Types qualified as H.Sym
 import Hexlude
-import qualified Hex.Symbol.Types as H.Sym
-import Hex.Parse.AST.Common
 
 data Command
   = ShowToken H.Lex.LexToken
@@ -125,6 +126,7 @@ data QuantVariableAssignment (q :: H.Sym.Tok.QuantityType) = QuantVariableAssign
   deriving stock (Generic)
 
 deriving stock instance (Show (QuantVariableAST a), Show (QuantVariableTarget a)) => Show (QuantVariableAssignment a)
+
 deriving stock instance (Eq (QuantVariableAST a), Eq (QuantVariableTarget a)) => Eq (QuantVariableAssignment a)
 
 type family QuantVariableTarget a where

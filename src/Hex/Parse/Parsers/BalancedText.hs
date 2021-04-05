@@ -1,12 +1,13 @@
 {-# LANGUAGE PatternSynonyms #-}
+
 module Hex.Parse.Parsers.BalancedText where
 
+import Hex.Codes qualified as H.C
+import Hex.Lex.Types qualified as H.Lex
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
 import Hex.Symbol.Tokens qualified as T
 import Hexlude
-import Hex.Codes qualified as H.C
-import qualified Hex.Lex.Types as H.Lex
 
 parseGeneralText :: MonadPrimTokenSource m => m a -> m a
 parseGeneralText parseBalancedText = do

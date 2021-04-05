@@ -1,10 +1,10 @@
 module Hex.App where
 
+import Hex.Evaluate.Impl qualified as H.Inter.Eval
 import Hex.HexState.Instances.MonadHexState ()
 import Hex.HexState.Instances.MonadHexState qualified as H.St
 import Hex.HexState.Type qualified as H.St
 import Hex.Interpret.CommandHandler.AllMode qualified as H.Inter.Comm.AllMode
-import Hex.Evaluate.Impl qualified as H.Inter.Eval
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface
 import Hex.Parse.CharSource qualified as H.Par.ChrSrc

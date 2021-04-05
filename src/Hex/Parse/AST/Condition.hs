@@ -1,9 +1,9 @@
 module Hex.Parse.AST.Condition where
 
 import Hex.Lex.Types qualified as H.Lex
+import Hex.Parse.AST.Common
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
 import Hexlude
-import Hex.Parse.AST.Common
 
 data IfConditionHead
   = IfIntPairTest HexInt Ordering HexInt -- \ifnum

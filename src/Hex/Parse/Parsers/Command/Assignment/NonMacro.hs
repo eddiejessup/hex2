@@ -5,12 +5,12 @@ import Hex.Codes qualified as H.C
 import Hex.Parse.AST.Command qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.BalancedText qualified as Par
-import Hex.Parse.Parsers.Command.Box qualified as Par
 import Hex.Parse.Parsers.Combinators qualified as Par
+import Hex.Parse.Parsers.Command.Box qualified as Par
+import Hex.Parse.Parsers.Command.Stream qualified as Par
 import Hex.Parse.Parsers.Quantity.Glue qualified as Par
 import Hex.Parse.Parsers.Quantity.Length qualified as Par
 import Hex.Parse.Parsers.Quantity.Number qualified as Par
-import Hex.Parse.Parsers.Command.Stream qualified as Par
 -- import Hex.Parse.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Symbol.Tokens qualified as T
 import Hexlude

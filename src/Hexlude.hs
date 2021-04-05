@@ -17,7 +17,7 @@ module Hexlude
 where
 
 import Data.Generics.Product (HasType, field, typed)
-import Data.Generics.Sum (AsType, injectTyped, _Typed, _Ctor)
+import Data.Generics.Sum (AsType, injectTyped, _Ctor, _Typed)
 import Data.Group (Group (..), (~~))
 import Data.Sequence (Seq (Empty, (:<|), (:|>)), singleton, (><))
 import Data.Sequence.Optics (seqOf)
@@ -30,7 +30,7 @@ import Formatting qualified as F
 import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)
-import Protolude hiding (to, uncons, unsnoc, (%), isSpace, isDigit, isUpper, isLower, words)
+import Protolude hiding (isDigit, isLower, isSpace, isUpper, to, uncons, unsnoc, words, (%))
 
 (|%|) :: Format r a -> Format r' r -> Format r' a
 (|%|) = (F.%)

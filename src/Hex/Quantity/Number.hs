@@ -62,4 +62,3 @@ evalSigned :: Num a => Signed a -> a
 evalSigned (Signed sign a) = case sign of
   Positive -> a
   Negative -> - a
-

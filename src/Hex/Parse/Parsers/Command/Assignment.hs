@@ -2,9 +2,9 @@ module Hex.Parse.Parsers.Command.Assignment where
 
 import Hex.Parse.AST.Command qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
+import Hex.Parse.Parsers.Combinators qualified as Par
 import Hex.Parse.Parsers.Command.Assignment.Macro qualified as Par
 import Hex.Parse.Parsers.Command.Assignment.NonMacro qualified as Par
-import Hex.Parse.Parsers.Combinators qualified as Par
 import Hex.Symbol.Tokens qualified as T
 import Hexlude
 

@@ -83,110 +83,109 @@ assertParseSuccess pts parser expected = do
 
 intTests :: TestTree
 intTests =
-  let
-    nr1ConstAST = HexInt $ Signed [] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base10 [1]
-  in testGroup
-    "Int"
-    [ testCase "Decimal digit constant" $
-        assertParseSuccess
-          [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '2') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other))
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base10 [1, 2, 3]),
-      testCase "Signed decimal digit constant" $
-        assertParseSuccess
-          [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '-') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '+') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '+') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '2') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other))
-          ]
-          parseInt
-          (HexInt $ Signed [H.Q.Negative, H.Q.Positive, H.Q.Positive] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base10 [1, 2, 3]),
-      testCase "Octal digit constant" $
-        assertParseSuccess
-          [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '\'') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '2') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other))
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base8 [1, 2, 3]),
-      testCase "Hex digit constant" $
-        assertParseSuccess
-          [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '"') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '2') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ 'A') Letter))
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base16 [1, 2, 3, 10]),
-      testCase "Char-like: char" $
-        assertParseSuccess
-          [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '`') Other)),
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ 'a') Letter))
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ CharLikeCode 97),
-      testCase "Char-like: control character" $
-        assertParseSuccess
-          [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '`') Other)),
-            UnresolvedTok (ControlSequenceLexToken (ControlSequence "a"))
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ CharLikeCode 97),
-      testCase "Internal int-quantity token" $
-        assertParseSuccess
-          [ LastPenaltyTok
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt LastPenalty),
-      testCase "Internal, variable, parameter" $
-        assertParseSuccess
-          [ IntParamVarTok PreTolerance
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ ParamVar PreTolerance),
-      testCase "Internal, variable, register, symbolic location" $
-        assertParseSuccess
-          [ IntRefTok (QuantityType IntQuantity) 1
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ RegisterVar $ InternalRegisterLocation 1),
-      testCase "Internal, variable, register, explicit location" $
-        assertParseSuccess
-          [ RegisterVariableTok IntQuantity,
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other))
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ RegisterVar $ ExplicitRegisterLocation nr1ConstAST),
-      testCase "Internal, special" $
-        assertParseSuccess
-          [ SpecialIntParameterTok SpaceFactorHexInt
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalSpecialIntParameter SpaceFactorHexInt),
-      testCase "Internal, code-table reference" $
-        assertParseSuccess
-          [ CodeTypeTok CategoryCodeType,
-            UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other))
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalCodeTableRef $ CodeTableRef CategoryCodeType nr1ConstAST),
-      testCase "Internal, char token" $
-        assertParseSuccess
-          [ IntRefTok CharQuantity 1
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalCharToken 1),
-      testCase "Internal, math-char token" $
-        assertParseSuccess
-          [ IntRefTok MathCharQuantity 1
-          ]
-          parseInt
-          (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalMathCharToken 1)
-    ]
+  let nr1ConstAST = HexInt $ Signed [] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base10 [1]
+   in testGroup
+        "Int"
+        [ testCase "Decimal digit constant" $
+            assertParseSuccess
+              [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '2') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other))
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base10 [1, 2, 3]),
+          testCase "Signed decimal digit constant" $
+            assertParseSuccess
+              [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '-') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '+') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '+') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '2') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other))
+              ]
+              parseInt
+              (HexInt $ Signed [H.Q.Negative, H.Q.Positive, H.Q.Positive] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base10 [1, 2, 3]),
+          testCase "Octal digit constant" $
+            assertParseSuccess
+              [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '\'') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '2') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other))
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base8 [1, 2, 3]),
+          testCase "Hex digit constant" $
+            assertParseSuccess
+              [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '"') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '2') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ 'A') Letter))
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base16 [1, 2, 3, 10]),
+          testCase "Char-like: char" $
+            assertParseSuccess
+              [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '`') Other)),
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ 'a') Letter))
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ CharLikeCode 97),
+          testCase "Char-like: control character" $
+            assertParseSuccess
+              [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '`') Other)),
+                UnresolvedTok (ControlSequenceLexToken (ControlSequence "a"))
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ CharLikeCode 97),
+          testCase "Internal int-quantity token" $
+            assertParseSuccess
+              [ LastPenaltyTok
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt LastPenalty),
+          testCase "Internal, variable, parameter" $
+            assertParseSuccess
+              [ IntParamVarTok PreTolerance
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ ParamVar PreTolerance),
+          testCase "Internal, variable, register, symbolic location" $
+            assertParseSuccess
+              [ IntRefTok (QuantityType IntQuantity) 1
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ RegisterVar $ InternalRegisterLocation 1),
+          testCase "Internal, variable, register, explicit location" $
+            assertParseSuccess
+              [ RegisterVariableTok IntQuantity,
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other))
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ RegisterVar $ ExplicitRegisterLocation nr1ConstAST),
+          testCase "Internal, special" $
+            assertParseSuccess
+              [ SpecialIntParameterTok SpaceFactorHexInt
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalSpecialIntParameter SpaceFactorHexInt),
+          testCase "Internal, code-table reference" $
+            assertParseSuccess
+              [ CodeTypeTok CategoryCodeType,
+                UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other))
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalCodeTableRef $ CodeTableRef CategoryCodeType nr1ConstAST),
+          testCase "Internal, char token" $
+            assertParseSuccess
+              [ IntRefTok CharQuantity 1
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalCharToken 1),
+          testCase "Internal, math-char token" $
+            assertParseSuccess
+              [ IntRefTok MathCharQuantity 1
+              ]
+              parseInt
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalMathCharToken 1)
+        ]

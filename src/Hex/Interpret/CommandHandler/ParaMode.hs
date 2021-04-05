@@ -1,10 +1,10 @@
 module Hex.Interpret.CommandHandler.ParaMode where
 
 import Hex.Codes qualified as H.Codes
+import Hex.Evaluate.Impl qualified as H.Inter.Eval
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Interpret.CommandHandler.AllMode qualified as H.AllMode
-import Hex.Evaluate.Impl qualified as H.Inter.Eval
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Helpers qualified as H.St
 import Hex.MonadHexState.Interface qualified as H.St

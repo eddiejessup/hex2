@@ -7,8 +7,8 @@ import Hex.Codes (pattern Chr_)
 import Hex.Parse.AST.Common qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
-import Hex.Parse.Parsers.Quantity.Number qualified as Par
 import Hex.Parse.Parsers.Quantity.Length qualified as Par
+import Hex.Parse.Parsers.Quantity.Number qualified as Par
 import Hexlude
 
 parseMathLength :: MonadPrimTokenSource m => m AST.MathLength

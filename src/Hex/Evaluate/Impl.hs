@@ -2,8 +2,8 @@ module Hex.Evaluate.Impl where
 
 import Hex.Codes qualified as H.Codes
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Parse.AST.Common qualified as AST
 import Hex.Parse.AST.Command qualified as AST
+import Hex.Parse.AST.Common qualified as AST
 import Hex.Quantity qualified as H.Q
 import Hexlude
 
@@ -30,12 +30,13 @@ evalASTRule ::
   m H.Inter.B.Box.Rule
 evalASTRule (AST.Rule dims) defaultW defaultH defaultD =
   undefined
-  -- H.Inter.B.Box.Rule
-  --   <$> ( H.Inter.B.Box.Box ()
-  --           <$> maybe defaultW evalASTLength width
-  --           <*> maybe defaultH evalASTLength height
-  --           <*> maybe defaultD evalASTLength depth
-  --       )
+
+-- H.Inter.B.Box.Rule
+--   <$> ( H.Inter.B.Box.Box ()
+--           <$> maybe defaultW evalASTLength width
+--           <*> maybe defaultH evalASTLength height
+--           <*> maybe defaultD evalASTLength depth
+--       )
 
 evalASTVModeRule ::
   ( Monad m

@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+
 module Hex.Parse.AST.Common where
 
 import Hex.Quantity qualified as H.Q
@@ -161,6 +162,7 @@ data QuantVariableAST (a :: H.Sym.Tok.QuantityType) = ParamVar (QuantParam a) | 
   deriving stock (Generic)
 
 deriving stock instance Show (QuantParam a) => Show (QuantVariableAST a)
+
 deriving stock instance Eq (QuantParam a) => Eq (QuantVariableAST a)
 
 data RegisterLocation = ExplicitRegisterLocation HexInt | InternalRegisterLocation H.Q.HexInt
