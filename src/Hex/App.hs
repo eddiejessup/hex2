@@ -4,14 +4,14 @@ import Hex.HexState.Instances.MonadHexState ()
 import Hex.HexState.Instances.MonadHexState qualified as H.St
 import Hex.HexState.Type qualified as H.St
 import Hex.Interpret.CommandHandler.AllMode qualified as H.Inter.Comm.AllMode
-import Hex.Interpret.Evaluate.Impl qualified as H.Inter.Eval
+import Hex.Evaluate.Impl qualified as H.Inter.Eval
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface
 import Hex.Parse.CharSource qualified as H.Par.ChrSrc
-import Hex.Parse.MonadPrimTokenSource.Impls.MonadTokenSource qualified as H.Par.PTSrc
+import Hex.Parse.MonadPrimTokenSource.Impls.MonadResolvedTokenSource qualified as H.Par.PTSrc
 import Hex.Parse.MonadPrimTokenSource.Interface qualified as H.Par.PTSrc
-import Hex.Parse.MonadTokenSource.Impls.CharSource ()
-import Hex.Parse.MonadTokenSource.Interface qualified as H.Par.TokSrc
+import Hex.Parse.MonadResolvedTokenSource.Impls.CharSource ()
+import Hex.Parse.MonadResolvedTokenSource.Interface qualified as H.Par.TokSrc
 import Hex.Parse.Parsers.Quantity.Number as H.Par.Par
 import Hex.Symbol.Tokens
 import Hex.TFM.Get qualified as H.TFM

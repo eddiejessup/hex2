@@ -1,7 +1,7 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Hex.Parse.MonadTokenSource.Impls.CharSource where
+module Hex.Parse.MonadResolvedTokenSource.Impls.CharSource where
 
 import Data.Sequence qualified as Seq
 import Hex.Categorise.Types qualified as H.Cat
@@ -9,7 +9,7 @@ import Hex.Lex.Impl qualified as H.Lex
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface qualified as H.St
 import Hex.Parse.CharSource qualified as H.Par.ChrSrc
-import Hex.Parse.MonadTokenSource.Interface
+import Hex.Parse.MonadResolvedTokenSource.Interface
 import Hex.Symbol.Resolve as H.Sym.Res
 import Hexlude
 
@@ -21,7 +21,7 @@ instance
     AsType H.Lex.LexError e,
     H.St.MonadHexState m
   ) =>
-  MonadTokenSource m
+  MonadResolvedTokenSource m
   where
   getLexToken = do
     lexTokens <- use (typed @H.Par.ChrSrc.CharSource % typed @(Seq H.Lex.LexToken))

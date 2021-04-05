@@ -1,12 +1,11 @@
-module Hex.Parse.Parsers.Stream where
+module Hex.Parse.Parsers.Command.Stream where
 
--- import Hex.Parse.Parsers.Assignment.NonMacro qualified as Par
 import ASCII qualified
 import Control.Monad.Combinators qualified as PC
 import Hex.Ascii qualified as H.Ascii
 import Hex.Codes qualified as H.C
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST qualified as AST
+import Hex.Parse.AST.Command qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.BalancedText qualified as Par
 import Hex.Parse.Parsers.Combinators qualified as Par

@@ -10,7 +10,7 @@ import Hex.Lex.Types
 import Hex.Codes
 
 tests :: TestTree
-tests = testGroup "Lex tests"
+tests = testGroup "Lex"
   [ testCase "Chars" chars
   , testCase "Words" words
   , testCase "Multiple spaces" multipleSpaces

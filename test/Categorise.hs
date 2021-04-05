@@ -48,7 +48,7 @@ instance Monad m => MonadHexState (Mon m) where
   currentFontSpaceGlue = panic "NotImplemented"
 
 tests :: TestTree
-tests = testGroup "Categorise tests"
+tests = testGroup "Categorise"
   [ testCase "Usual" usual
   , testCase "One caret" oneCaret
   , testCase "Two carets" twoCarets

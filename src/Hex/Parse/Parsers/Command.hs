@@ -3,18 +3,18 @@ module Hex.Parse.Parsers.Command where
 import Control.Monad.Combinators qualified as PC
 import Hex.Codes qualified as H.C
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST qualified as AST
+import Hex.Parse.AST.Command qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
-import Hex.Parse.Parsers.Assignment qualified as Par
+import Hex.Parse.Parsers.Command.Assignment qualified as Par
 import Hex.Parse.Parsers.BalancedText qualified as Par
-import Hex.Parse.Parsers.Box qualified as Par
+import Hex.Parse.Parsers.Command.Box qualified as Par
 import Hex.Parse.Parsers.Combinators
 import Hex.Parse.Parsers.Combinators qualified as Par
 import Hex.Parse.Parsers.Quantity.Glue qualified as Par
 import Hex.Parse.Parsers.Quantity.Length qualified as Par
 import Hex.Parse.Parsers.Quantity.MathLength qualified as Par
 import Hex.Parse.Parsers.Quantity.Number qualified as Par
-import Hex.Parse.Parsers.Stream qualified as Par
+import Hex.Parse.Parsers.Command.Stream qualified as Par
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Tok
 import Hex.Symbol.Tokens qualified as T

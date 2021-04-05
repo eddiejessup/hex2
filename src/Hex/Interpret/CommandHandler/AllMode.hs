@@ -1,6 +1,6 @@
 module Hex.Interpret.CommandHandler.AllMode where
 
-import Hex.Parse.AST qualified as H.AST
+import Hex.Parse.AST.Command qualified as H.AST
 import Hexlude
 
 data InterpretError

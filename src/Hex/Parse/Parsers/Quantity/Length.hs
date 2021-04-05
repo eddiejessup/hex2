@@ -5,7 +5,7 @@ module Hex.Parse.Parsers.Quantity.Length where
 import Control.Monad.Combinators qualified as PC
 import Hex.Codes (pattern Chr_)
 import Hex.Codes qualified as H.C
-import Hex.Parse.AST qualified as AST
+import Hex.Parse.AST.Common qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators qualified as Par
 import Hex.Parse.Parsers.Quantity.Number qualified as Par

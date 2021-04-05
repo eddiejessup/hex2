@@ -2,7 +2,7 @@ module Parse where
 
 import Hex.Codes
 import Hex.Lex.Types
-import Hex.Parse.AST
+import Hex.Parse.AST.Common
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Quantity.Number
 import Hex.Quantity qualified as H.Q
@@ -66,7 +66,7 @@ instance MonadPrimTokenSource Parse where
 tests :: TestTree
 tests =
   testGroup
-    "Parsing"
+    "Parse"
     [ intTests
     ]
 

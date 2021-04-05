@@ -1,11 +1,11 @@
 {-# LANGUAGE PatternSynonyms #-}
 
-module Hex.Parse.Parsers.Box where
+module Hex.Parse.Parsers.Command.Box where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Codes (pattern Chr_)
 import Hex.Codes qualified as H.C
-import Hex.Parse.AST qualified as AST
+import Hex.Parse.AST.Command qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
 import Hex.Parse.Parsers.Quantity.Number qualified as Par

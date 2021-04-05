@@ -1,7 +1,7 @@
 module Hex.Parse.MonadParse.Interface where
 
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST (Command)
+import Hex.Parse.AST.Command (Command)
 import Hex.Parse.CharSource qualified as H.Par.ChrSrc
 import Hexlude
 

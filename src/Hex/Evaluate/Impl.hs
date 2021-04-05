@@ -1,8 +1,9 @@
-module Hex.Interpret.Evaluate.Impl where
+module Hex.Evaluate.Impl where
 
 import Hex.Codes qualified as H.Codes
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Parse.AST qualified as AST
+import Hex.Parse.AST.Common qualified as AST
+import Hex.Parse.AST.Command qualified as AST
 import Hex.Quantity qualified as H.Q
 import Hexlude
 

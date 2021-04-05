@@ -5,7 +5,7 @@ import Data.ByteString qualified as BS
 import Hex.Ascii qualified as H.Ascii
 import Hex.Codes qualified as H.C
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST qualified as AST
+import Hex.Parse.AST.Common qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
 import Hex.Quantity qualified as H.Q
