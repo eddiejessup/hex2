@@ -1,9 +1,9 @@
 module Hex.MonadHexState.Interface where
 
 import Hex.Codes qualified as H.Codes
-import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Types qualified as H.Sym
 import Hexlude
 
 newtype FontNumber = FontNumber H.Q.HexInt
@@ -23,7 +23,7 @@ class Monad m => MonadHexState m where
 
   getCategory :: H.Codes.CharCode -> m H.Codes.CatCode
 
-  resolveSymbol :: H.Lex.LexSymbol -> m (Maybe H.Sym.Tok.ResolvedToken)
+  resolveSymbol :: H.Sym.ControlSymbol -> m (Maybe H.Sym.Tok.ResolvedToken)
 
   loadFont :: FilePath -> m (FontNumber, Text)
 

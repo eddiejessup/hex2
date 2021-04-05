@@ -2,7 +2,6 @@ module Hex.Symbol.Tokens where
 
 import ASCII qualified
 import ASCII.Char qualified
-import Data.Map.Strict qualified as Map
 import Hex.Codes
 import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Q
@@ -295,7 +294,7 @@ charCodeToDigit cc = case unsafeCodeAsChar cc of
   '9' -> Just Digit9
   _ -> Nothing
 
-newtype BalancedText = BalancedText (Seq H.Lex.LexToken)
+newtype InhibitedBalancedText = InhibitedBalancedText (Seq H.Lex.LexToken)
   deriving stock (Show, Generic)
   deriving newtype (Eq, Semigroup, Monoid)
 
@@ -303,29 +302,19 @@ newtype ExpandedBalancedText = ExpandedBalancedText (Seq PrimitiveToken)
   deriving stock (Show, Generic)
   deriving newtype (Eq, Semigroup, Monoid)
 
--- We use a map to restrict our parameter keys' domain to [1..9].
-type MacroParameters = Map.Map NonZeroDigit BalancedText
-
--- A token in a macro template.
--- TODO: Technically, we could narrow the domain of a MacroTextLexToken,
--- because we should know that we won't have a 'Parameter'-category token.
-data MacroTextToken
-  = -- A 'normal' token.
-    MacroTextLexToken H.Lex.LexToken
-  | -- A token to be substituted by a macro argument.
-    MacroTextParamToken NonZeroDigit
-  deriving stock (Eq, Show, Generic)
-
--- A macro template.
-newtype MacroText = MacroText (Seq MacroTextToken)
+-- Like a balanced-text, except with a proof that it contains no braces.
+newtype ParameterText = ParameterText (Seq H.Lex.LexToken)
   deriving stock (Show, Generic)
   deriving newtype (Eq)
 
-data MacroContents = MacroContents
-  { -- Tokens to expect before the first argument.
-    preParamTokens :: BalancedText,
-    parameters :: MacroParameters,
-    replacementTokens :: MacroText,
+data MacroReplacementText
+  = ExpandedReplacementText ExpandedBalancedText
+  | InhibitedReplacementText InhibitedBalancedText
+  deriving stock (Show, Eq, Generic)
+
+data MacroDefinition = MacroDefinition
+  { paramText :: ParameterText,
+    replacementText :: MacroReplacementText,
     long, outer :: Bool
   }
   deriving stock (Show, Eq, Generic)
@@ -495,7 +484,7 @@ data ConditionBodyTok
   deriving stock (Show, Eq, Generic)
 
 data SyntaxCommandHeadToken
-  = MacroTok MacroContents
+  = MacroTok MacroDefinition
   | ConditionTok ConditionTok
   | NumberTok -- \number
   | RomanNumeralTok -- \romannumeral

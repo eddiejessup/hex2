@@ -30,7 +30,7 @@ import Formatting qualified as F
 import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)
-import Protolude hiding (to, uncons, unsnoc, (%), isSpace, isDigit, words)
+import Protolude hiding (to, uncons, unsnoc, (%), isSpace, isDigit, isUpper, isLower, words)
 
 (|%|) :: Format r a -> Format r' r -> Format r' a
 (|%|) = (F.%)

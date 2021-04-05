@@ -28,13 +28,13 @@ instance Monad m => MonadHexState (Mon m) where
   setSpecialLengthParameter = panic "NotImplemented"
 
   getCategory c = pure $ case c of
-    CharCode_ '\\' -> Escape
-    CharCode_ ' ' -> CoreCatCode Space
-    CharCode_ '%' -> Comment
-    CharCode_ '\n' -> EndOfLine
-    CharCode_ '^' -> CoreCatCode Superscript
-    CharCode_ 'a' -> CoreCatCode Letter
-    CharCode_ 'b' -> CoreCatCode Letter
+    Chr_ '\\' -> Escape
+    Chr_ ' ' -> CoreCatCode Space
+    Chr_ '%' -> Comment
+    Chr_ '\n' -> EndOfLine
+    Chr_ '^' -> CoreCatCode Superscript
+    Chr_ 'a' -> CoreCatCode Letter
+    Chr_ 'b' -> CoreCatCode Letter
     _ -> CoreCatCode Other
 
   resolveSymbol = panic "NotImplemented"
@@ -60,28 +60,28 @@ usual :: Assertion
 usual = do
   res <- unMon $ charsToCharCats "aa"
   assertEqual "" res
-    [ RawCharCat (CharCode_ 'a') (CoreCatCode Letter)
-    , RawCharCat (CharCode_ 'a') (CoreCatCode Letter)
+    [ RawCharCat (Chr_ 'a') (CoreCatCode Letter)
+    , RawCharCat (Chr_ 'a') (CoreCatCode Letter)
     ]
 
 oneCaret :: Assertion
 oneCaret = do
   res <- unMon $ charsToCharCats "^"
   assertEqual "" res
-    [ RawCharCat (CharCode_ '^') (CoreCatCode Superscript)
+    [ RawCharCat (Chr_ '^') (CoreCatCode Superscript)
     ]
   res2 <- unMon $ charsToCharCats "^a"
   assertEqual "" res2
-    [ RawCharCat (CharCode_ '^') (CoreCatCode Superscript)
-    , RawCharCat (CharCode_ 'a') (CoreCatCode Letter)
+    [ RawCharCat (Chr_ '^') (CoreCatCode Superscript)
+    , RawCharCat (Chr_ 'a') (CoreCatCode Letter)
     ]
 
 twoCarets :: Assertion
 twoCarets = do
   res <- unMon $ charsToCharCats "^^"
   assertEqual "" res
-    [ RawCharCat (CharCode_ '^') (CoreCatCode Superscript)
-    , RawCharCat (CharCode_ '^') (CoreCatCode Superscript)
+    [ RawCharCat (Chr_ '^') (CoreCatCode Superscript)
+    , RawCharCat (Chr_ '^') (CoreCatCode Superscript)
     ]
 
 triodUp :: Assertion

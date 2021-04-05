@@ -1,17 +1,17 @@
-{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module Hex.Parse.MonadPrimTokenSource.Impls.MonadTokenSource where
 
 import Control.Monad.Trans (MonadTrans (..))
 import Hex.Lex.Types qualified as H.Lex
+import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.MonadTokenSource.Interface qualified as H.Par.TokSrc
 import Hex.Symbol.Resolve qualified as H.Sym.Res
+import Hex.Symbol.Tokens (PrimitiveToken)
 import Hex.Symbol.Tokens qualified as T
 import Hexlude
-import Hex.Symbol.Tokens (PrimitiveToken)
-import Hex.Parse.MonadPrimTokenSource.Interface
 
 data ExpansionError
   = UnexpectedEndOfInputExpansionError
@@ -85,13 +85,13 @@ fetchPrimitiveToken = do
 
 instance H.Par.TokSrc.MonadTokenSource m => MonadPlus (ParseT m)
 
-
 expandSyntaxCommand ::
   ( H.Par.TokSrc.MonadTokenSource m
   ) =>
   T.SyntaxCommandHeadToken ->
   m (Seq H.Lex.LexToken)
 expandSyntaxCommand = \case
+
 -- MacroTok m -> do
 --   args <- parseMacroArgs m
 --   expandMacro m args
@@ -142,4 +142,3 @@ expandSyntaxCommand = \case
 --   expandChangeCase
 --     (\c -> Conf.lookupChangeCaseCode direction c conf)
 --     <$> parseGeneralText
-

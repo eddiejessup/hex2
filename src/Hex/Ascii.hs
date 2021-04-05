@@ -40,3 +40,19 @@ fromUpHexAF :: Word8 -> Maybe Word8
 fromUpHexAF w
   | isUpAF w = Just $ unsafeFromUpAF w
   | otherwise = Nothing
+
+isUpper :: Word8 -> Bool
+isUpper w = ascii 'A' <= w && w <= ascii 'Z'
+
+isLower :: Word8 -> Bool
+isLower w = ascii 'a' <= w && w <= ascii 'z'
+
+toUpper :: Word8 -> Word8
+toUpper w
+  | isLower w = w - ascii ' '
+  | otherwise = w
+
+toLower :: Word8 -> Word8
+toLower w
+  | isUpper w = w + ascii ' '
+  | otherwise = w

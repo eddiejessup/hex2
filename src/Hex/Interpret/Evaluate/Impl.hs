@@ -27,13 +27,14 @@ evalASTRule ::
   m H.Q.Length ->
   m H.Q.Length ->
   m H.Inter.B.Box.Rule
-evalASTRule AST.Rule {AST.width, AST.height, AST.depth} defaultW defaultH defaultD =
-  H.Inter.B.Box.Rule
-    <$> ( H.Inter.B.Box.Box ()
-            <$> maybe defaultW evalASTLength width
-            <*> maybe defaultH evalASTLength height
-            <*> maybe defaultD evalASTLength depth
-        )
+evalASTRule (AST.Rule dims) defaultW defaultH defaultD =
+  undefined
+  -- H.Inter.B.Box.Rule
+  --   <$> ( H.Inter.B.Box.Box ()
+  --           <$> maybe defaultW evalASTLength width
+  --           <*> maybe defaultH evalASTLength height
+  --           <*> maybe defaultD evalASTLength depth
+  --       )
 
 evalASTVModeRule ::
   ( Monad m

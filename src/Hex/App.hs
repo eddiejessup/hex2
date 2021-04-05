@@ -12,7 +12,7 @@ import Hex.Parse.MonadPrimTokenSource.Impls.MonadTokenSource qualified as H.Par.
 import Hex.Parse.MonadPrimTokenSource.Interface qualified as H.Par.PTSrc
 import Hex.Parse.MonadTokenSource.Impls.CharSource ()
 import Hex.Parse.MonadTokenSource.Interface qualified as H.Par.TokSrc
-import Hex.Parse.Parsers.Quantity as H.Par.Par
+import Hex.Parse.Parsers.Quantity.Number as H.Par.Par
 import Hex.Symbol.Tokens
 import Hex.TFM.Get qualified as H.TFM
 import Hexlude
@@ -45,11 +45,11 @@ runNewApp ::
   IO (Either AppError (a, AppState))
 runNewApp = runApp . newAppState
 
--- H.Inter.Comm.Para.charAsBox (H.Codes.CharCode_ 'a') >>= print
+-- H.Inter.Comm.Para.charAsBox (H.Codes.Chr_ 'a') >>= print
 
 -- > evalNewApp "" (getCategory currentFontSpacing)
 -- Right Escape
--- > evalNewApp "" (getCategory (CharCode_ '\\'))
+-- > evalNewApp "" (getCategory (Chr_ '\\'))
 -- Right Escape
 -- > evalNewApp "" (getIntParameter PreTolerance)
 -- Right (HexInt {unInt = 0})

@@ -29,7 +29,7 @@ newGlueParameters = mempty
 newMathGlueParameters :: Map H.Sym.Tok.MathGlueParameter H.Q.MathGlue
 newMathGlueParameters = mempty
 
-newTokenListParameters :: Map H.Sym.Tok.TokenListParameter H.Sym.Tok.BalancedText
+newTokenListParameters :: Map H.Sym.Tok.TokenListParameter H.Sym.Tok.InhibitedBalancedText
 newTokenListParameters = mempty
 
 newSpecialIntParameters :: Map H.Sym.Tok.SpecialIntParameter H.Q.HexInt

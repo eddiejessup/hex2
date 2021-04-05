@@ -8,10 +8,11 @@ import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Resolve
 import Hex.Symbol.Tokens
 import Hexlude
+import qualified Hex.Symbol.Types as H.Sym
 
-_cs :: [Char] -> H.Lex.LexSymbol
+_cs :: [Char] -> H.Sym.ControlSymbol
 _cs =
-  H.Lex.ControlSequenceSymbol
+  H.Sym.ControlSequenceSymbol
     . H.Lex.mkControlSequence
     . fmap Code.unsafeCodeFromChar
 
@@ -345,7 +346,7 @@ initialCSMap =
       (_cs "batchmode", primTok $ InteractionModeTok BatchMode)
     ]
 
-initialLookupCS :: H.Lex.LexSymbol -> Maybe ResolvedToken
+initialLookupCS :: H.Sym.ControlSymbol -> Maybe ResolvedToken
 initialLookupCS cs = HMap.lookup cs initialCSMap
 
 -- usableCodesToResolvedTokens :: ResolutionMode -> ByteString -> Either H.Lex.LexError [(Lex.LexToken, Maybe ResolvedToken)]

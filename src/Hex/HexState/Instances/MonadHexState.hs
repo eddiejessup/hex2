@@ -7,10 +7,10 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Codes qualified as H.Codes
 import Hex.HexState.Type
-import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Types qualified as H.Sym
 import Hex.TFM.Get qualified as H.TFM
 import Hex.TFM.Types qualified as H.TFM
 import Hexlude
@@ -41,7 +41,7 @@ instance (Monad m, MonadIO m, MonadState st m, HasType HexState st, MonadError e
   getCategory :: H.Codes.CharCode -> m H.Codes.CatCode
   getCategory p = use $ typed @HexState % to (stateLocalCategory p)
 
-  resolveSymbol :: H.Lex.LexSymbol -> m (Maybe H.Sym.Tok.ResolvedToken)
+  resolveSymbol :: H.Sym.ControlSymbol -> m (Maybe H.Sym.Tok.ResolvedToken)
   resolveSymbol p = use $ typed @HexState % to (stateLocalResolvedToken p)
 
   currentFontSpaceGlue :: m (Maybe H.Q.Glue)

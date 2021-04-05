@@ -15,13 +15,6 @@ newtype ControlSequence = ControlSequence ByteString
 mkControlSequence :: [H.Codes.CharCode] -> ControlSequence
 mkControlSequence csChars = ControlSequence $ BS.pack $ H.Codes.unCharCode <$> csChars
 
-data LexSymbol
-  = ActiveCharacterSymbol H.Codes.CharCode
-  | ControlSequenceSymbol ControlSequence
-  deriving stock (Show, Eq, Generic)
-
-instance Hashable LexSymbol
-
 data LexCharCat = LexCharCat
   { lexCCChar :: H.Codes.CharCode,
     lexCCCat :: H.Codes.CoreCatCode

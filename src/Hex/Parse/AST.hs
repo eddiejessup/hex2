@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 module Hex.Parse.AST where
 
 import Hex.Codes qualified as H.Code
@@ -5,6 +6,7 @@ import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
 import Hexlude
+import qualified Hex.Symbol.Types as H.Sym
 
 data Signed a = Signed [H.Q.Sign] a
   deriving stock (Show, Eq, Generic)
@@ -66,12 +68,15 @@ data Factor
   | -- Badly named 'decimal constant' in the TeXbook. Granted, it is specified
     -- with decimal digits, but its main feature is that it can represent
     -- non-integers.
-    RationalConstant Rational
+    DecimalFractionFactor DecimalFraction
   deriving stock (Show, Eq, Generic)
 
 zeroFactor, oneFactor :: Factor
 zeroFactor = NormalIntFactor zeroInt
 oneFactor = NormalIntFactor oneInt
+
+data DecimalFraction = DecimalFraction {wholeDigits :: [Word8], fracDigits :: [Word8]}
+  deriving stock (Show, Eq, Generic)
 
 data Unit
   = PhysicalUnit PhysicalUnitFrame H.Q.PhysicalUnit
@@ -117,8 +122,11 @@ newtype CoercedMathLength = InternalMathGlueAsMathLength InternalMathGlue
 
 -- Glue.
 data Glue
-  = ExplicitGlue Length (Maybe Flex) (Maybe Flex)
+  = ExplicitGlue ExplicitGlueSpec
   | InternalGlue (Signed InternalGlue)
+  deriving stock (Show, Eq, Generic)
+
+data ExplicitGlueSpec = ExplicitGlueSpec {egLength :: Length, egStretch :: Maybe Flex, egShrink :: Maybe Flex}
   deriving stock (Show, Eq, Generic)
 
 data Flex = FiniteFlex Length | FilFlex FilLength
@@ -146,25 +154,32 @@ data MathGlue
 data MathFlex = FiniteMathFlex MathLength | FilMathFlex FilLength
   deriving stock (Show, Eq, Generic)
 
+type family QuantParam (a :: H.Sym.Tok.QuantityType) where
+  QuantParam 'H.Sym.Tok.IntQuantity = H.Sym.Tok.IntParameter
+  QuantParam 'H.Sym.Tok.LenQuantity = H.Sym.Tok.LengthParameter
+  QuantParam 'H.Sym.Tok.GlueQuantity = H.Sym.Tok.GlueParameter
+  QuantParam 'H.Sym.Tok.MathGlueQuantity = H.Sym.Tok.MathGlueParameter
+  QuantParam 'H.Sym.Tok.TokenListQuantity = H.Sym.Tok.TokenListParameter
+
+type family QuantVariableTargetAST a where
+  QuantVariableTargetAST 'H.Sym.Tok.IntQuantity = HexInt
+  QuantVariableTargetAST 'H.Sym.Tok.LenQuantity = Length
+  QuantVariableTargetAST 'H.Sym.Tok.GlueQuantity = Glue
+  QuantVariableTargetAST 'H.Sym.Tok.MathGlueQuantity = MathGlue
+  QuantVariableTargetAST 'H.Sym.Tok.TokenListQuantity = TokenListAssignmentTarget
+
 -- Internal quantities.
-data QuantVariable a = ParamVar a | RegisterVar RegisterLocation
-  deriving stock (Show, Eq, Generic)
+data QuantVariableAST (a :: H.Sym.Tok.QuantityType) = ParamVar (QuantParam a) | RegisterVar RegisterLocation
+  deriving stock (Generic)
+
+deriving stock instance Show (QuantParam a) => Show (QuantVariableAST a)
+deriving stock instance Eq (QuantParam a) => Eq (QuantVariableAST a)
 
 data RegisterLocation = ExplicitRegisterLocation HexInt | InternalRegisterLocation H.Q.HexInt
   deriving stock (Show, Eq, Generic)
 
-type IntVariable = QuantVariable H.Sym.Tok.IntParameter
-
-type LengthVariable = QuantVariable H.Sym.Tok.LengthParameter
-
-type GlueVariable = QuantVariable H.Sym.Tok.GlueParameter
-
-type MathGlueVariable = QuantVariable H.Sym.Tok.MathGlueParameter
-
-type TokenListVariable = QuantVariable H.Sym.Tok.TokenListParameter
-
 data InternalInt
-  = InternalIntVariable IntVariable
+  = InternalIntVariable (QuantVariableAST 'H.Sym.Tok.IntQuantity)
   | InternalSpecialIntParameter H.Sym.Tok.SpecialIntParameter
   | InternalCodeTableRef CodeTableRef
   | InternalCharToken H.Q.HexInt
@@ -198,18 +213,18 @@ data FontDimensionRef = FontDimensionRef HexInt FontRef
   deriving stock (Show, Eq, Generic)
 
 data InternalLength
-  = InternalLengthVariable LengthVariable
+  = InternalLengthVariable (QuantVariableAST 'H.Sym.Tok.LenQuantity)
   | InternalSpecialLengthParameter H.Sym.Tok.SpecialLengthParameter
   | InternalFontDimensionRef FontDimensionRef
   | InternalBoxDimensionRef BoxDimensionRef
   | LastKern
   deriving stock (Show, Eq, Generic)
 
-data InternalGlue = InternalGlueVariable GlueVariable | LastGlue
+data InternalGlue = InternalGlueVariable (QuantVariableAST 'H.Sym.Tok.GlueQuantity) | LastGlue
   deriving stock (Show, Eq, Generic)
 
 data InternalMathGlue
-  = InternalMathGlueVariable MathGlueVariable
+  = InternalMathGlueVariable (QuantVariableAST 'H.Sym.Tok.MathGlueQuantity)
   | LastMathGlue
   deriving stock (Show, Eq, Generic)
 
@@ -221,60 +236,69 @@ newtype HexFilePath = HexFilePath FilePath
   deriving stock (Show, Eq, Generic)
 
 data ControlSequenceTarget
-  = MacroTarget H.Sym.Tok.MacroContents
+  = MacroTarget H.Sym.Tok.MacroDefinition
   | LetTarget H.Lex.LexToken
   | FutureLetTarget H.Lex.LexToken H.Lex.LexToken
-  | ShortDefineTarget H.Sym.Tok.QuantityType HexInt
+  | ShortDefineTarget H.Sym.Tok.CharryQuantityType HexInt
   | ReadTarget HexInt
-  | FontTarget FontSpecification HexFilePath
+  | FontTarget FontFileSpec
+  deriving stock (Show, Eq, Generic)
+
+data FontFileSpec = FontFileSpec FontSpecification HexFilePath
   deriving stock (Show, Eq, Generic)
 
 data AssignmentBody
-  = DefineControlSequence H.Lex.LexSymbol ControlSequenceTarget
+  = DefineControlSequence H.Sym.ControlSymbol ControlSequenceTarget
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont HexInt
+  | SelectFont H.Q.HexInt
   | SetFamilyMember FamilyMember FontRef
-  | SetParShape [(Length, Length)]
+  | SetParShape HexInt [Length]
   | SetBoxRegister HexInt Box
   | -- -- Global assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontChar FontCharRef HexInt
-  | SetHyphenation H.Sym.Tok.BalancedText
-  | SetHyphenationPatterns H.Sym.Tok.BalancedText
+  | SetHyphenation H.Sym.Tok.InhibitedBalancedText
+  | SetHyphenationPatterns H.Sym.Tok.InhibitedBalancedText
   | SetBoxDimension BoxDimensionRef Length
   | SetInteractionMode H.Sym.Tok.InteractionMode
   deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
-  = TokenListAssignmentVar TokenListVariable
-  | TokenListAssignmentText H.Sym.Tok.BalancedText
+  = TokenListAssignmentVar (QuantVariableAST 'H.Sym.Tok.TokenListQuantity)
+  | TokenListAssignmentText H.Sym.Tok.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
+data QuantVariableAssignment (q :: H.Sym.Tok.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTargetAST q)
+  deriving stock (Generic)
+
+deriving stock instance (Show (QuantVariableAST a), Show (QuantVariableTargetAST a)) => Show (QuantVariableAssignment a)
+deriving stock instance (Eq (QuantVariableAST a), Eq (QuantVariableTargetAST a)) => Eq (QuantVariableAssignment a)
+
 data VariableAssignment
-  = IntVariableAssignment IntVariable HexInt
-  | LengthVariableAssignment LengthVariable Length
-  | GlueVariableAssignment GlueVariable Glue
-  | MathGlueVariableAssignment MathGlueVariable MathGlue
-  | TokenListVariableAssignment TokenListVariable TokenListAssignmentTarget
+  = IntVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.IntQuantity)
+  | LengthVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.LenQuantity)
+  | GlueVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.GlueQuantity)
+  | MathGlueVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.MathGlueQuantity)
+  | TokenListVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.TokenListQuantity)
   | SpecialIntParameterVariableAssignment H.Sym.Tok.SpecialIntParameter HexInt
   | SpecialLengthParameterVariableAssignment H.Sym.Tok.SpecialLengthParameter Length
   deriving stock (Show, Eq, Generic)
 
 data VariableModification
-  = AdvanceIntVariable IntVariable HexInt
-  | AdvanceLengthVariable LengthVariable Length
-  | AdvanceGlueVariable GlueVariable Glue
-  | AdvanceMathGlueVariable MathGlueVariable MathGlue
+  = AdvanceIntVariable (QuantVariableAST 'H.Sym.Tok.IntQuantity) (QuantVariableTargetAST 'H.Sym.Tok.IntQuantity)
+  | AdvanceLengthVariable (QuantVariableAST 'H.Sym.Tok.LenQuantity) (QuantVariableTargetAST 'H.Sym.Tok.LenQuantity)
+  | AdvanceGlueVariable (QuantVariableAST 'H.Sym.Tok.GlueQuantity) (QuantVariableTargetAST 'H.Sym.Tok.GlueQuantity)
+  | AdvanceMathGlueVariable (QuantVariableAST 'H.Sym.Tok.MathGlueQuantity) (QuantVariableTargetAST 'H.Sym.Tok.MathGlueQuantity)
   | ScaleVariable H.Q.VDirection NumericVariable HexInt
   deriving stock (Show, Eq, Generic)
 
 data NumericVariable
-  = IntNumericVariable IntVariable
-  | LengthNumericVariable LengthVariable
-  | GlueNumericVariable GlueVariable
-  | MathGlueNumericVariable MathGlueVariable
+  = IntNumericVariable (QuantVariableAST 'H.Sym.Tok.IntQuantity)
+  | LengthNumericVariable (QuantVariableAST 'H.Sym.Tok.LenQuantity)
+  | GlueNumericVariable (QuantVariableAST 'H.Sym.Tok.GlueQuantity)
+  | MathGlueNumericVariable (QuantVariableAST 'H.Sym.Tok.MathGlueQuantity)
   deriving stock (Show, Eq, Generic)
 
 data CodeAssignment = CodeAssignment CodeTableRef HexInt
@@ -309,12 +333,21 @@ data ModeIndependentCommand
   | RemoveItem H.Sym.Tok.RemovableItem
   | SetAfterAssignmentToken H.Lex.LexToken
   | AddToAfterGroupTokens H.Lex.LexToken
-  | Message H.Sym.Tok.StandardOutputStream H.Sym.Tok.ExpandedBalancedText
-  | ModifyFileStream FileStreamType FileStreamAction HexInt
-  | WriteToStream HexInt WriteText
+  | WriteMessage MessageWriteCommand
+  | ModifyFileStream FileStreamModificationCommand
+  | WriteToStream StreamWriteCommand
   | DoSpecial H.Sym.Tok.ExpandedBalancedText
   | AddBox BoxPlacement Box
   | ChangeScope H.Q.Sign CommandTrigger
+  deriving stock (Show, Eq, Generic)
+
+data StreamWriteCommand = StreamWriteCommand HexInt WriteText
+  deriving stock (Show, Eq, Generic)
+
+data MessageWriteCommand = MessageWriteCommand H.Sym.Tok.StandardOutputStream H.Sym.Tok.ExpandedBalancedText
+  deriving stock (Show, Eq, Generic)
+
+data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction HexInt
   deriving stock (Show, Eq, Generic)
 
 data Command
@@ -323,7 +356,7 @@ data Command
   | ShowLists
   | ShowTheInternalQuantity InternalQuantity
   | ShipOut Box
-  | AddMark H.Sym.Tok.BalancedText
+  | AddMark H.Sym.Tok.ExpandedBalancedText
   | -- -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- -- then can 'migrate' out.
     -- \| AddInsertion HexInt VModeMaterial
@@ -361,7 +394,7 @@ data HModeCommand
   | AddUnwrappedFetchedHBox FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
 
-data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: H.Sym.Tok.BalancedText}
+data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: H.Sym.Tok.ExpandedBalancedText}
   deriving stock (Show, Eq, Generic)
 
 data FetchedBoxRef = FetchedBoxRef HexInt H.Sym.Tok.BoxFetchMode
@@ -379,18 +412,18 @@ data InternalQuantity
   | InternalGlueQuantity InternalGlue
   | InternalMathGlueQuantity InternalMathGlue
   | FontQuantity FontRef
-  | TokenListVariableQuantity TokenListVariable
+  | TokenListVariableQuantity (QuantVariableAST 'H.Sym.Tok.TokenListQuantity)
   deriving stock (Show, Eq, Generic)
 
 data WriteText
   = ImmediateWriteText H.Sym.Tok.ExpandedBalancedText
-  | DeferredWriteText H.Sym.Tok.BalancedText
+  | DeferredWriteText H.Sym.Tok.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data WritePolicy = Immediate | Deferred
   deriving stock (Show, Eq, Generic)
 
-data Rule = Rule {width, height, depth :: Maybe Length}
+newtype Rule = Rule (Seq (H.Q.BoxDim, Length))
   deriving stock (Show, Eq, Generic)
 
 data FileStreamAction = Open HexFilePath | Close

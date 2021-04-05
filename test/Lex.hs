@@ -31,10 +31,10 @@ assertFailedLex s = do
   assertEqual "" (Left TerminalEscapeCharacter) res
 
 letter :: Char -> LexToken
-letter c = CharCatLexToken (LexCharCat (CharCode_ c) Letter)
+letter c = CharCatLexToken (LexCharCat (Chr_ c) Letter)
 
 space :: LexToken
-space = CharCatLexToken (LexCharCat (CharCode_ ' ') Space)
+space = CharCatLexToken (LexCharCat (Chr_ ' ') Space)
 
 chars :: Assertion
 chars = do
@@ -98,7 +98,7 @@ controlSequenceTests = testGroup "Control word"
       ]
   , testCase "Control word with following digit" $ assertSuccessLexEqual "\\abab1"
     [ ControlSequenceLexToken (ControlSequence "abab")
-    , CharCatLexToken (LexCharCat (CharCode_ '1') Other)
+    , CharCatLexToken (LexCharCat (Chr_ '1') Other)
     ]
   , testCase "Control word with following space" $ assertSuccessLexEqual "\\abab "
     [ ControlSequenceLexToken (ControlSequence "abab")
@@ -108,7 +108,7 @@ controlSequenceTests = testGroup "Control word"
     ]
   , testCase "Control letter-character with following digit" $ assertSuccessLexEqual "\\a1"
     [ ControlSequenceLexToken (ControlSequence "a")
-    , CharCatLexToken (LexCharCat (CharCode_ '1') Other)
+    , CharCatLexToken (LexCharCat (Chr_ '1') Other)
     ]
   , testCase "Control letter-character with following space" $ assertSuccessLexEqual "\\a "
     [ ControlSequenceLexToken (ControlSequence "a")
@@ -118,7 +118,7 @@ controlSequenceTests = testGroup "Control word"
     ]
   , testCase "Control other-character with following digit" $ assertSuccessLexEqual "\\11"
     [ ControlSequenceLexToken (ControlSequence "1")
-    , CharCatLexToken (LexCharCat (CharCode_ '1') Other)
+    , CharCatLexToken (LexCharCat (Chr_ '1') Other)
     ]
   , testCase "Control other-character with following space" $ assertSuccessLexEqual "\\1 "
     [ ControlSequenceLexToken (ControlSequence "1")

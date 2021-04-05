@@ -3,10 +3,10 @@ module Hex.HexState.Type where
 import Hex.Codes qualified as H.Codes
 import Hex.HexState.Parameters qualified as H.Inter.St.Param
 import Hex.HexState.Scope
-import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface qualified as H.MSt
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Types qualified as H.Sym
 import Hex.TFM.Types qualified as H.TFM
 import Hexlude
 
@@ -79,7 +79,7 @@ stateLocalMostScopeLens = lens getter setter
           nonScopeGroup : restAftGroups ->
             go (befGroups ++ [nonScopeGroup]) restAftGroups
 
-stateLocalResolvedToken :: H.Lex.LexSymbol -> HexState -> Maybe H.Sym.Tok.ResolvedToken
+stateLocalResolvedToken :: H.Sym.ControlSymbol -> HexState -> Maybe H.Sym.Tok.ResolvedToken
 stateLocalResolvedToken p = scopedLookup (view (scopeResolvedTokenLens p))
 
 stateLocalCategory :: H.Codes.CharCode -> HexState -> H.Codes.CatCode

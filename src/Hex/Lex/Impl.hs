@@ -9,7 +9,7 @@ import Hex.MonadHexState.Interface qualified as H.St
 import Hexlude
 
 spaceTok :: LexToken
-spaceTok = CharCatLexToken $ LexCharCat (Code.CharCode_ ' ') Code.Space
+spaceTok = CharCatLexToken $ LexCharCat (Code.Chr_ ' ') Code.Space
 
 -- Take letters until we see end-of-input, or a non-letter. Leave the non-letter in the rest-of-input
 getLetterChars :: H.St.MonadHexState m => ByteString -> m (Seq Code.CharCode, ByteString)

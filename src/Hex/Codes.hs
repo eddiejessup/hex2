@@ -19,11 +19,11 @@ newtype CharCode = CharCode {unCharCode :: Word8}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord, Enum, Bounded, Hashable)
 
-pattern CharCode_ :: Char -> CharCode
-pattern CharCode_ c <-
+pattern Chr_ :: Char -> CharCode
+pattern Chr_ c <-
   (unsafeCodeAsChar -> c)
   where
-    CharCode_ c = unsafeCodeFromChar c
+    Chr_ c = unsafeCodeFromChar c
 
 unsafeCodeAsChar :: CharCode -> Char
 unsafeCodeAsChar (CharCode w) = case ASCII.word8ToCharMaybe w of
@@ -112,13 +112,13 @@ instance HexCode CatCode where
 
 newCatCodes :: Map CharCode CatCode
 newCatCodes = initialiseCharCodeMap $ \case
-  CharCode_ '\\' -> Escape
-  CharCode_ ' ' -> CoreCatCode Space
-  CharCode_ '%' -> Comment
-  CharCode_ '\n' -> EndOfLine -- Non-Standard.
-  CharCode_ '\r' -> EndOfLine
-  CharCode_ '\0' -> Ignored
-  CharCode_ '\DEL' -> Invalid
+  Chr_ '\\' -> Escape
+  Chr_ ' ' -> CoreCatCode Space
+  Chr_ '%' -> Comment
+  Chr_ '\n' -> EndOfLine -- Non-Standard.
+  Chr_ '\r' -> EndOfLine
+  Chr_ '\0' -> Ignored
+  Chr_ '\DEL' -> Invalid
   c | asciiPred ASCII.Pred.isLetter c -> CoreCatCode Letter
   _ -> CoreCatCode Other
 
@@ -127,10 +127,10 @@ usableCatCodes :: Map CharCode CatCode
 usableCatCodes = foldl' (\m (k, v) -> Map.insert k v m) newCatCodes extras
   where
     extras =
-      [ (CharCode_ '^', CoreCatCode Superscript),
-        (CharCode_ '{', CoreCatCode BeginGroup),
-        (CharCode_ '}', CoreCatCode EndGroup),
-        (CharCode_ '#', CoreCatCode Parameter)
+      [ (Chr_ '^', CoreCatCode Superscript),
+        (Chr_ '{', CoreCatCode BeginGroup),
+        (Chr_ '}', CoreCatCode EndGroup),
+        (Chr_ '#', CoreCatCode Parameter)
       ]
 
 catLookup :: Map CharCode CatCode -> CharCode -> CatCode
