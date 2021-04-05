@@ -1,11 +1,12 @@
 module Hex.App where
 
-import Hex.Evaluate.Impl qualified as H.Inter.Eval
-import Hex.HexState.Instances.MonadHexState ()
-import Hex.HexState.Instances.MonadHexState qualified as H.St
-import Hex.HexState.Type qualified as H.St
+import Hex.Evaluate.MonadEvaluated.Impl qualified as H.Inter.Eval
+import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.CommandHandler.AllMode qualified as H.Inter.Comm.AllMode
 import Hex.Lex.Types qualified as H.Lex
+import Hex.MonadHexState.Impls.HexState ()
+import Hex.MonadHexState.Impls.HexState qualified as H.St
+import Hex.MonadHexState.Impls.HexState.Type qualified as H.St
 import Hex.MonadHexState.Interface
 import Hex.Parse.CharSource qualified as H.Par.ChrSrc
 import Hex.Parse.MonadPrimTokenSource.Impls.MonadResolvedTokenSource qualified as H.Par.PTSrc
@@ -13,7 +14,7 @@ import Hex.Parse.MonadPrimTokenSource.Interface qualified as H.Par.PTSrc
 import Hex.Parse.MonadResolvedTokenSource.Impls.CharSource ()
 import Hex.Parse.MonadResolvedTokenSource.Interface qualified as H.Par.TokSrc
 import Hex.Parse.Parsers.Quantity.Number as H.Par.Par
-import Hex.Symbol.Tokens
+import Hex.Symbol.Token.Primitive
 import Hex.TFM.Get qualified as H.TFM
 import Hexlude
 
@@ -74,8 +75,8 @@ unsafeEvalNewApp chrs app = do
 
 testAppLoadSelectFont :: StateT AppState (ExceptT AppError IO) ()
 testAppLoadSelectFont = do
-  (fNr, _name) <- loadFont "cmr10.tfm"
-  selectFont fNr Local
+  fontDef <- loadFont (H.Inter.B.Box.HexFilePath "cmr10.tfm") H.Inter.B.Box.NaturalFont
+  selectFont (fontDef ^. typed @FontNumber) Local
 
 -- testApp :: StateT AppState (ExceptT AppError IO) ()
 -- testApp = do

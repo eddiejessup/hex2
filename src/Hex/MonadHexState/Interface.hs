@@ -1,14 +1,14 @@
 module Hex.MonadHexState.Interface where
 
 import Hex.Codes qualified as H.Codes
+import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
+import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Q
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
+import Hex.Symbol.Token.Resolved qualified as H.Sym.Tok.Res
 import Hex.Symbol.Types qualified as H.Sym
 import Hexlude
-
-newtype FontNumber = FontNumber H.Q.HexInt
-  deriving stock (Show)
-  deriving newtype (Eq, Ord, Enum)
 
 class Monad m => MonadHexState m where
   getIntParameter :: H.Sym.Tok.IntParameter -> m H.Q.HexInt
@@ -23,18 +23,22 @@ class Monad m => MonadHexState m where
 
   getCategory :: H.Codes.CharCode -> m H.Codes.CatCode
 
-  resolveSymbol :: H.Sym.ControlSymbol -> m (Maybe H.Sym.Tok.ResolvedToken)
+  resolveSymbol :: H.Sym.ControlSymbol -> m (Maybe H.Sym.Tok.Res.ResolvedToken)
 
-  loadFont :: FilePath -> m (FontNumber, Text)
+  loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
 
-  selectFont :: FontNumber -> H.Sym.Tok.ScopeFlag -> m ()
+  selectFont :: H.Sym.Tok.FontNumber -> H.Sym.Tok.ScopeFlag -> m ()
 
   currentFontCharacter :: H.Codes.CharCode -> m (Maybe (H.Q.Length, H.Q.Length, H.Q.Length, H.Q.Length))
 
   currentFontSpaceGlue :: m (Maybe H.Q.Glue)
 
+  setAfterAssignmentToken :: Maybe H.Lex.LexToken -> m ()
+
+  setControlSequence :: H.Sym.ControlSymbol -> H.Sym.Tok.Res.ResolvedToken -> H.Sym.Tok.ScopeFlag -> m ()
+
 -- Lifting.
-instance MonadHexState m => MonadHexState (ExceptT e m) where
+instance {-# OVERLAPPABLE #-} MonadHexState m => MonadHexState (ExceptT e m) where
   getIntParameter = lift . getIntParameter
 
   getLengthParameter = lift . getLengthParameter
@@ -49,10 +53,14 @@ instance MonadHexState m => MonadHexState (ExceptT e m) where
 
   resolveSymbol a = lift $ resolveSymbol a
 
-  loadFont = lift . loadFont
+  loadFont p spec = lift $ loadFont p spec
 
   selectFont a b = lift $ selectFont a b
 
   currentFontCharacter = lift . currentFontCharacter
 
   currentFontSpaceGlue = lift currentFontSpaceGlue
+
+instance {-# OVERLAPPABLE #-} MonadHexState m => MonadHexState (StateT H.Inter.B.List.HList m)
+
+instance {-# OVERLAPPABLE #-} MonadHexState m => MonadHexState (StateT H.Inter.B.List.VList m)

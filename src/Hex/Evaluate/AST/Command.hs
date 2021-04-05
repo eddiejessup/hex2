@@ -1,13 +1,16 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Hex.Parse.AST.Command where
+module Hex.Evaluate.AST.Command where
 
 import Hex.Codes qualified as H.Code
+import Hex.Evaluate.AST.Common
+import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST.Common
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
-import Hex.Symbol.Token.SyntaxCommandHead qualified as H.Sym.Tok.Syn
+import Hex.Symbol.Token.Resolved qualified as H.Sym.Tok.Res
+import Hex.Symbol.Token.SyntaxCommandHead qualified as H.Sym.Tok
 import Hex.Symbol.Types qualified as H.Sym
 import Hexlude
 
@@ -17,7 +20,7 @@ data Command
   | ShowLists
   | ShowTheInternalQuantity InternalQuantity
   | ShipOut Box
-  | AddMark H.Sym.Tok.Syn.ExpandedBalancedText
+  | AddMark H.Sym.Tok.ExpandedBalancedText
   | -- -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- -- then can 'migrate' out.
     -- \| AddInsertion HexInt VModeMaterial
@@ -35,8 +38,8 @@ data ModeIndependentCommand
   = Assign Assignment
   | Relax
   | IgnoreSpaces
-  | AddPenalty HexInt
-  | AddKern Length
+  | AddPenalty H.Inter.B.List.Penalty
+  | AddKern H.Inter.B.Box.Kern
   | AddMathKern MathLength
   | RemoveItem H.Sym.Tok.RemovableItem
   | SetAfterAssignmentToken H.Lex.LexToken
@@ -44,7 +47,7 @@ data ModeIndependentCommand
   | WriteMessage MessageWriteCommand
   | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
-  | DoSpecial H.Sym.Tok.Syn.ExpandedBalancedText
+  | DoSpecial H.Sym.Tok.ExpandedBalancedText
   | AddBox BoxPlacement Box
   | ChangeScope H.Q.Sign CommandTrigger
   deriving stock (Show, Eq, Generic)
@@ -53,9 +56,9 @@ data VModeCommand
   = End
   | Dump
   | EnterHMode
-  | AddVGlue Glue
+  | AddVGlue H.Q.Glue
   | AddVLeaders LeadersSpec
-  | AddVRule Rule
+  | AddVRule H.Inter.B.Box.Rule
   | AddUnwrappedFetchedVBox FetchedBoxRef -- \unv{box,copy}
   deriving stock (Show, Eq, Generic)
 
@@ -67,16 +70,16 @@ data HModeCommand
   | AddDiscretionaryText DiscretionaryText
   | AddDiscretionaryHyphen
   | EnterMathMode
-  | AddHGlue Glue
+  | AddHGlue H.Q.Glue
   | AddHLeaders LeadersSpec
-  | AddHRule Rule
+  | AddHRule H.Inter.B.Box.Rule
   | AddUnwrappedFetchedHBox FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
 
 data StreamWriteCommand = StreamWriteCommand HexInt WriteText
   deriving stock (Show, Eq, Generic)
 
-data MessageWriteCommand = MessageWriteCommand H.Sym.Tok.StandardOutputStream H.Sym.Tok.Syn.ExpandedBalancedText
+data MessageWriteCommand = MessageWriteCommand H.Sym.Tok.StandardOutputStream ByteString
   deriving stock (Show, Eq, Generic)
 
 data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction HexInt
@@ -85,19 +88,12 @@ data FileStreamModificationCommand = FileStreamModificationCommand FileStreamTyp
 data Assignment = Assignment {body :: AssignmentBody, scope :: H.Sym.Tok.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
-newtype HexFilePath = HexFilePath FilePath
-  deriving stock (Show, Eq, Generic)
-
 data ControlSequenceTarget
-  = MacroTarget H.Sym.Tok.Syn.MacroDefinition
-  | LetTarget H.Lex.LexToken
-  | FutureLetTarget H.Lex.LexToken H.Lex.LexToken
-  | ShortDefineTarget H.Sym.Tok.CharryQuantityType HexInt
-  | ReadTarget HexInt
+  = NonFontTarget H.Sym.Tok.Res.ResolvedToken
   | FontTarget FontFileSpec
   deriving stock (Show, Eq, Generic)
 
-data FontFileSpec = FontFileSpec FontSpecification HexFilePath
+data FontFileSpec = FontFileSpec H.Inter.B.Box.FontSpecification H.Inter.B.Box.HexFilePath
   deriving stock (Show, Eq, Generic)
 
 data AssignmentBody
@@ -105,22 +101,22 @@ data AssignmentBody
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont H.Sym.Tok.FontNumber
+  | SelectFont H.Q.HexInt
   | SetFamilyMember FamilyMember FontRef
   | SetParShape HexInt [Length]
   | SetBoxRegister HexInt Box
   | -- -- Global assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontChar FontCharRef HexInt
-  | SetHyphenation H.Sym.Tok.Syn.InhibitedBalancedText
-  | SetHyphenationPatterns H.Sym.Tok.Syn.InhibitedBalancedText
+  | SetHyphenation H.Sym.Tok.InhibitedBalancedText
+  | SetHyphenationPatterns H.Sym.Tok.InhibitedBalancedText
   | SetBoxDimension BoxDimensionRef Length
   | SetInteractionMode H.Sym.Tok.InteractionMode
   deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
   = TokenListAssignmentVar (QuantVariableAST 'H.Sym.Tok.TokenListQuantity)
-  | TokenListAssignmentText H.Sym.Tok.Syn.InhibitedBalancedText
+  | TokenListAssignmentText H.Sym.Tok.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data QuantVariableAssignment (q :: H.Sym.Tok.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTarget q)
@@ -165,9 +161,6 @@ data NumericVariable
 data CodeAssignment = CodeAssignment CodeTableRef HexInt
   deriving stock (Show, Eq, Generic)
 
-data FontSpecification = NaturalFont | FontAt Length | FontScaled HexInt
-  deriving stock (Show, Eq, Generic)
-
 -- Box specification.
 data Box
   = FetchedRegisterBox H.Sym.Tok.BoxFetchMode HexInt
@@ -179,10 +172,10 @@ data Box
 data BoxSpecification = Natural | To Length | Spread Length
   deriving stock (Show, Eq, Generic)
 
-data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule H.Q.Axis Rule
+data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule H.Q.Axis H.Inter.B.Box.Rule
   deriving stock (Show, Eq, Generic)
 
-data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: H.Sym.Tok.Syn.ExpandedBalancedText}
+data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: H.Sym.Tok.ExpandedBalancedText}
   deriving stock (Show, Eq, Generic)
 
 data FetchedBoxRef = FetchedBoxRef HexInt H.Sym.Tok.BoxFetchMode
@@ -204,17 +197,14 @@ data InternalQuantity
   deriving stock (Show, Eq, Generic)
 
 data WriteText
-  = ImmediateWriteText H.Sym.Tok.Syn.ExpandedBalancedText
-  | DeferredWriteText H.Sym.Tok.Syn.InhibitedBalancedText
+  = ImmediateWriteText H.Sym.Tok.ExpandedBalancedText
+  | DeferredWriteText H.Sym.Tok.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data WritePolicy = Immediate | Deferred
   deriving stock (Show, Eq, Generic)
 
-newtype Rule = Rule (Seq (H.Q.BoxDim, Length))
-  deriving stock (Show, Eq, Generic)
-
-data FileStreamAction = Open HexFilePath | Close
+data FileStreamAction = Open H.Inter.B.Box.HexFilePath | Close
   deriving stock (Show, Eq, Generic)
 
 data FileStreamType = FileInput | FileOutput WritePolicy

@@ -1,4 +1,4 @@
-module Hex.Symbol.Tokens where
+module Hex.Symbol.Token.Primitive where
 
 import ASCII qualified
 import ASCII.Char qualified
@@ -294,31 +294,6 @@ charCodeToDigit cc = case unsafeCodeAsChar cc of
   '9' -> Just Digit9
   _ -> Nothing
 
-newtype InhibitedBalancedText = InhibitedBalancedText (Seq H.Lex.LexToken)
-  deriving stock (Show, Generic)
-  deriving newtype (Eq, Semigroup, Monoid)
-
-newtype ExpandedBalancedText = ExpandedBalancedText (Seq PrimitiveToken)
-  deriving stock (Show, Generic)
-  deriving newtype (Eq, Semigroup, Monoid)
-
--- Like a balanced-text, except with a proof that it contains no braces.
-newtype ParameterText = ParameterText (Seq H.Lex.LexToken)
-  deriving stock (Show, Generic)
-  deriving newtype (Eq)
-
-data MacroReplacementText
-  = ExpandedReplacementText ExpandedBalancedText
-  | InhibitedReplacementText InhibitedBalancedText
-  deriving stock (Show, Eq, Generic)
-
-data MacroDefinition = MacroDefinition
-  { paramText :: ParameterText,
-    replacementText :: MacroReplacementText,
-    long, outer :: Bool
-  }
-  deriving stock (Show, Eq, Generic)
-
 data RemovableItem
   = PenaltyItem -- \unpenalty
   | KernItem -- \unkern
@@ -334,6 +309,10 @@ data VBoxAlignType
   = DefaultAlign -- \vbox
   | TopAlign -- \vtop
   deriving stock (Show, Eq, Generic)
+
+newtype FontNumber = FontNumber H.Q.HexInt
+  deriving stock (Show)
+  deriving newtype (Eq, Ord, Enum)
 
 data PrimitiveToken
   = SyntaxCommandArg SyntaxCommandArg
@@ -400,7 +379,7 @@ data PrimitiveToken
     LetCharCat H.Lex.LexCharCat
   | -- A control sequence representing a particular font, such as defined through
     -- \font.
-    FontRefToken H.Q.HexInt
+    FontRefToken FontNumber
   | -- Heads of register references.
     RegisterVariableTok QuantityType
   | -- Heads of int-ref definitions.
@@ -445,64 +424,4 @@ data PrimitiveToken
   -- > Setting interaction mode.
   | InteractionModeTok InteractionMode
   | UnresolvedTok H.Lex.LexToken
-  deriving stock (Show, Eq, Generic)
-
-data TokenAttribute
-  = CharCodeAttribute -- \if
-  | CatCodeAttribute -- \ifcat
-  deriving stock (Show, Eq, Generic)
-
-data MarkRegister
-  = TopMark -- \topmark
-  | FirstMark -- \firstmark
-  | BottomMark -- \botmark
-  | SplitFirstMark -- \splitfirstmark
-  deriving stock (Show, Eq, Generic)
-
-data ConditionTok
-  = ConditionHeadTok ConditionHeadTok
-  | ConditionBodyTok ConditionBodyTok
-  deriving stock (Show, Eq, Generic)
-
-data ConditionHeadTok
-  = IfHexIntPairTestTok -- \ifnum
-  | IfLengthPairTestTok -- \ifdim
-  | IfHexIntOddTok -- \ifodd
-  | IfInModeTok ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
-  | IfTokenAttributesEqualTok TokenAttribute
-  | IfTokensEqualTok -- \ifx
-  | IfBoxRegisterIsTok BoxRegisterAttribute -- \ifvoid, \ifhbox, \ifvbox
-  | IfInputEndedTok -- \ifeof
-  | IfConstTok Bool -- \iftrue, \iffalse
-  | CaseTok -- \ifcase
-  deriving stock (Show, Eq, Generic)
-
-data ConditionBodyTok
-  = Else -- \else
-  | Or -- \or
-  | EndIf -- \fi
-  deriving stock (Show, Eq, Generic)
-
-data SyntaxCommandHeadToken
-  = MacroTok MacroDefinition
-  | ConditionTok ConditionTok
-  | NumberTok -- \number
-  | RomanNumeralTok -- \romannumeral
-  | StringTok -- \string
-  | JobNameTok -- \jobname
-  | FontNameTok -- \fontname
-  | MeaningTok -- \meaning
-  | CSNameTok -- \csname
-  | ExpandAfterTok -- \expandafter
-  | NoExpandTok -- \noexpand
-  | MarkRegisterTok MarkRegister
-  | InputTok -- \input
-  | EndInputTok -- \endinput
-  | TheTok -- \the
-  | ChangeCaseTok H.Q.VDirection -- \uppercase, \lowercase
-  deriving stock (Show, Eq, Generic)
-
-data ResolvedToken
-  = SyntaxCommandHeadToken SyntaxCommandHeadToken
-  | PrimitiveToken PrimitiveToken
   deriving stock (Show, Eq, Generic)

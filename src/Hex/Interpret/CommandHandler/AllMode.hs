@@ -1,6 +1,11 @@
 module Hex.Interpret.CommandHandler.AllMode where
 
-import Hex.Parse.AST.Command qualified as H.AST
+import Hex.Evaluate.AST.Command qualified as AST
+import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
+import Hex.MonadHexState.Interface qualified as H.St
+import Hex.Symbol.Token.Primitive qualified as T
+import Hex.Symbol.Token.Resolved qualified as T.Res
 import Hexlude
 
 data InterpretError
@@ -14,20 +19,20 @@ data AllModeCommandResult
   | DidNotSeeEndBox
 
 handleModeIndependentCommand ::
-  ( Monad m
-  ) =>
-  H.AST.ModeIndependentCommand ->
+  (Monad m, MonadIO m, H.St.MonadHexState m) =>
+  (H.Inter.B.List.VListElem -> m ()) ->
+  AST.ModeIndependentCommand ->
   m AllModeCommandResult
-handleModeIndependentCommand = \case
-  -- H.AST.Message stdOutStream eTxt -> do
-  --   let _handle = case stdOutStream of
-  --         H.Sym.Tok.StdOut -> stdout
-  --         H.Sym.Tok.StdErr -> stderr
-  --   liftIO $ hPutStrLn _handle (toS (unsafeCodesAsChars (showExpandedBalancedText eTxt)) :: Text)
-  --   pure DidNotSeeEndBox
-  H.AST.Relax ->
+handleModeIndependentCommand addVElem = \case
+  AST.WriteMessage (AST.MessageWriteCommand stdStream expandedText) -> do
+    let _handle = case stdStream of
+          T.StdOut -> stdout
+          T.StdErr -> stderr
+    liftIO $ hPutStrLn _handle expandedText
     pure DidNotSeeEndBox
-  H.AST.IgnoreSpaces ->
+  AST.Relax ->
+    pure DidNotSeeEndBox
+  AST.IgnoreSpaces ->
     pure DidNotSeeEndBox
   -- Re-insert the ⟨token⟩ into the input just after running the next
   -- assignment command. Later \afterassignment commands override earlier
@@ -35,87 +40,64 @@ handleModeIndependentCommand = \case
   -- \{hbox,vbox,vtop}, insert the ⟨token⟩ just after the '{' in the box
   -- construction (not after the '}'). Insert the ⟨token⟩ just before tokens
   -- inserted by \everyhbox or \everyvbox.
-  -- H.AST.SetAfterAssignmentToken lt -> do
-  --   assign' (typed @Config % #afterAssignmentToken) (Just lt)
-  --   pure DidNotSeeEndBox
-  -- H.AST.AddPenalty n -> do
-  --   addVElem . BL.ListPenalty . BL.Penalty =<< texEvaluate n
-  --   pure DidNotSeeEndBox
-  -- H.AST.AddKern ln -> do
-  --   addVElem . BL.VListBaseElem . B.ElemKern . B.Kern =<< texEvaluate ln
-  --   pure DidNotSeeEndBox
-  -- H.AST.Assign H.AST.Assignment {H.AST.scope, H.AST.body} ->
-  --   do
-  --     case body of
-  --       H.AST.DefineControlSequence cs tgt ->
-  --         do
-  --           newCSTok <- case tgt of
-  --             H.AST.MacroTarget macro ->
-  --               pure (HR.syntaxTok $ H.AST.MacroTok macro)
-  --             -- TODO: If a \let target is an active character, should we
-  --             -- treat it as a control sequence, or a char-cat pair?
-  --             H.AST.LetTarget (Lex.CharCatToken tgtCC) ->
-  --               pure (HR.primTok $ H.AST.LetCharCat tgtCC)
-  --             H.AST.LetTarget (Lex.ControlSequenceToken tgtCS) ->
-  --               do
-  --                 mayCS <- uses (typed @Config) (lookupCSProper tgtCS)
-  --                 let resTok = fromMaybe (H.AST.PrimitiveToken H.AST.RelaxTok) mayCS
-  --                 pure resTok
-  --             H.AST.ShortDefineTarget q n ->
-  --               do
-  --                 en <- texEvaluate n
-  --                 pure (HR.primTok $ H.AST.IntRefTok q en)
-  --             H.AST.FontTarget fontSpec fPath ->
-  --               do
-  --                 fontDef@B.FontDefinition {B.fontNr} <- loadFont fPath fontSpec
-  --                 addVElem $ BL.VListBaseElem $ B.ElemFontDefinition fontDef
-  --                 pure $ HR.primTok $ H.AST.FontRefToken fontNr
-  --             oth ->
-  --               panic $ "Not implemented: DefineControlSequence target " <> show oth
-  --           sLogStampedJSON
-  --             "Defining control sequence"
-  --             [ ("controlSequence", toJSON cs),
-  --               ("token", toJSON newCSTok),
-  --               ("scope", toJSON scope)
-  --             ]
-  --           modifying' (typed @Config) $ setControlSequence cs newCSTok scope
-  --       H.AST.SetVariable ass ->
+  AST.SetAfterAssignmentToken lt -> do
+    H.St.setAfterAssignmentToken (Just lt)
+    pure DidNotSeeEndBox
+  AST.AddPenalty p -> do
+    addVElem $ H.Inter.B.List.ListPenalty p
+    pure DidNotSeeEndBox
+  AST.AddKern k -> do
+    addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemKern k
+    pure DidNotSeeEndBox
+  AST.Assign AST.Assignment {AST.scope, AST.body} -> do
+    case body of
+      AST.DefineControlSequence cs tgt -> do
+        tgtResolvedTok <- case tgt of
+          AST.NonFontTarget rt ->
+            pure rt
+          AST.FontTarget (AST.FontFileSpec fontSpec fontPath) -> do
+            fontDefinition <- H.St.loadFont fontPath fontSpec
+            addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
+            pure $ T.Res.PrimitiveToken $ T.FontRefToken $ fontDefinition ^. typed @T.FontNumber
+        H.St.setControlSequence cs tgtResolvedTok scope
+        pure DidNotSeeEndBox
+  --       AST.SetVariable ass ->
   --         case ass of
-  --           H.AST.TeXIntVariableAssignment v tgt ->
+  --           AST.TeXIntVariableAssignment v tgt ->
   --             Var.setValueFromAST v scope tgt
-  --           H.AST.LengthVariableAssignment v tgt ->
+  --           AST.LengthVariableAssignment v tgt ->
   --             Var.setValueFromAST v scope tgt
-  --           H.AST.GlueVariableAssignment v tgt ->
+  --           AST.GlueVariableAssignment v tgt ->
   --             Var.setValueFromAST v scope tgt
-  --           H.AST.MathGlueVariableAssignment v tgt ->
+  --           AST.MathGlueVariableAssignment v tgt ->
   --             Var.setValueFromAST v scope tgt
-  --           H.AST.TokenListVariableAssignment v tgt ->
+  --           AST.TokenListVariableAssignment v tgt ->
   --             Var.setValueFromAST v scope tgt
-  --           H.AST.SpecialTeXIntVariableAssignment v tgt ->
+  --           AST.SpecialTeXIntVariableAssignment v tgt ->
   --             Var.setValueFromAST v scope tgt
-  --           H.AST.SpecialLengthParameterVariableAssignment v tgt ->
+  --           AST.SpecialLengthParameterVariableAssignment v tgt ->
   --             Var.setValueFromAST v scope tgt
-  --       H.AST.ModifyVariable modCommand ->
+  --       AST.ModifyVariable modCommand ->
   --         case modCommand of
-  --           H.AST.AdvanceTeXIntVariable var plusVal ->
+  --           AST.AdvanceTeXIntVariable var plusVal ->
   --             Var.advanceValueFromAST var scope plusVal
-  --           H.AST.AdvanceLengthVariable var plusVal ->
+  --           AST.AdvanceLengthVariable var plusVal ->
   --             Var.advanceValueFromAST var scope plusVal
-  --           H.AST.AdvanceGlueVariable var plusVal ->
+  --           AST.AdvanceGlueVariable var plusVal ->
   --             Var.advanceValueFromAST var scope plusVal
-  --           H.AST.AdvanceMathGlueVariable var plusVal ->
+  --           AST.AdvanceMathGlueVariable var plusVal ->
   --             Var.advanceValueFromAST var scope plusVal
-  --           H.AST.ScaleVariable vDir numVar scaleVal ->
+  --           AST.ScaleVariable vDir numVar scaleVal ->
   --             case numVar of
-  --               H.AST.TeXIntNumericVariable var ->
+  --               AST.TeXIntNumericVariable var ->
   --                 Var.scaleValueFromAST var scope vDir scaleVal
-  --               H.AST.LengthNumericVariable var ->
+  --               AST.LengthNumericVariable var ->
   --                 Var.scaleValueFromAST var scope vDir scaleVal
-  --               H.AST.GlueNumericVariable var ->
+  --               AST.GlueNumericVariable var ->
   --                 Var.scaleValueFromAST var scope vDir scaleVal
-  --               H.AST.MathGlueNumericVariable var ->
+  --               AST.MathGlueNumericVariable var ->
   --                 Var.scaleValueFromAST var scope vDir scaleVal
-  --       H.AST.AssignCode (H.AST.CodeAssignment (H.AST.CodeTableRef codeType idx) val) ->
+  --       AST.AssignCode (AST.CodeAssignment (AST.CodeTableRef codeType idx) val) ->
   --         do
   --           eIdx <- texEvaluate idx
   --           eVal <- texEvaluate val
@@ -131,40 +113,40 @@ handleModeIndependentCommand = \case
   --               ("scope", toJSON scope)
   --             ]
   --           updateCharCodeMap codeType idxChar eVal scope
-  --       H.AST.SelectFont fNr ->
+  --       AST.SelectFont fNr ->
   --         do
   --           selectFont fNr scope
-  --           addVElem $ BL.VListBaseElem $ B.ElemFontSelection $ B.FontSelection fNr
-  --       H.AST.SetFamilyMember fm fontRef ->
+  --           addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
+  --       AST.SetFamilyMember fm fontRef ->
   --         do
   --           eFm <- texEvaluate fm
   --           fNr <- texEvaluate fontRef
   --           modifying' (typed @Config) $ setFamilyMemberFont eFm fNr scope
   --       -- Start a new level of grouping. Enter inner mode.
-  --       H.AST.SetBoxRegister lhsIdx box ->
+  --       AST.SetBoxRegister lhsIdx box ->
   --         do
   --           eLhsIdx <- texEvaluate lhsIdx
   --           case box of
-  --             H.AST.FetchedRegisterBox fetchMode rhsIdx ->
+  --             AST.FetchedRegisterBox fetchMode rhsIdx ->
   --               do
   --                 fetchedMaybeBox <- fetchBox fetchMode rhsIdx
   --                 modifying' (typed @Config) $ setBoxRegisterNullable eLhsIdx scope fetchedMaybeBox
-  --             H.AST.LastBox ->
+  --             AST.LastBox ->
   --               panic "Not implemented: SetBoxRegister to LastBox"
-  --             H.AST.VSplitBox _ _ ->
+  --             AST.VSplitBox _ _ ->
   --               panic "Not implemented: SetBoxRegister to VSplitBox"
-  --             H.AST.ExplicitBox spec boxType -> do
+  --             AST.ExplicitBox spec boxType -> do
   --               eSpec <- texEvaluate spec
   --               modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
   --               extractedBox <- extractExplicitBox eSpec boxType
   --               modifying' (typed @Config) $ setBoxRegister eLhsIdx extractedBox scope
-  --       H.AST.SetFontChar (H.AST.FontCharRef fontChar fontRef) charRef ->
+  --       AST.SetFontChar (AST.FontCharRef fontChar fontRef) charRef ->
   --         do
   --           fNr <- texEvaluate fontRef
   --           eCharRef <- texEvaluate charRef
   --           let updateFontChar f = case fontChar of
-  --                 H.AST.SkewChar -> f {skewChar = eCharRef}
-  --                 H.AST.HyphenChar -> f {hyphenChar = eCharRef}
+  --                 AST.SkewChar -> f {skewChar = eCharRef}
+  --                 AST.HyphenChar -> f {hyphenChar = eCharRef}
   --           modifyFont fNr updateFontChar
   --       oth ->
   --         panic $ show oth
@@ -176,7 +158,7 @@ handleModeIndependentCommand = \case
   --           insertLexToken lt
   --           assign' (typed @Config % #afterAssignmentToken) Nothing
   --     pure DidNotSeeEndBox
-  -- H.AST.WriteToStream n (H.AST.ImmediateWriteText eTxt) -> do
+  -- AST.WriteToStream n (AST.ImmediateWriteText eTxt) -> do
   --   en <- texEvaluate n
   --   fStreams <- use $ typed @Config % #outFileStreams
   --   let txtTxt = Codes.unsafeCodesAsChars (showExpandedBalancedText eTxt)
@@ -198,14 +180,14 @@ handleModeIndependentCommand = \case
   --         liftIO $ hPutStrLn logHandle txtTxt
   --   pure DidNotSeeEndBox
   -- -- Start a new level of grouping.
-  -- H.AST.ChangeScope H.AST.Positive entryTrig ->
+  -- AST.ChangeScope AST.Positive entryTrig ->
   --   do
   --     modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope (LocalStructureGroup entryTrig))
   --     pure DidNotSeeEndBox
   -- -- Do the appropriate finishing actions, undo the
   -- -- effects of non-global assignments, and leave the
   -- -- group. Maybe leave the current mode.
-  -- H.AST.ChangeScope H.AST.Negative exitTrig -> do
+  -- AST.ChangeScope AST.Negative exitTrig -> do
   --   prePopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
   --   (group, poppedConfig) <- uses (typed @Config) popGroup >>= \case
   --     Nothing ->
@@ -221,7 +203,7 @@ handleModeIndependentCommand = \case
   --         ("fontNrPostPop", toJSON postPopCurrentFontNr),
   --         ("groupType", toJSON (renderGroupType group))
   --       ]
-  --     addVElem $ BL.VListBaseElem $ B.ElemFontSelection $ B.FontSelection (fromMaybe 0 postPopCurrentFontNr)
+  --     addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection (fromMaybe 0 postPopCurrentFontNr)
   --   case group of
   --     -- Undo the effects of non-global
   --     -- assignments without leaving the
@@ -243,20 +225,20 @@ handleModeIndependentCommand = \case
   --       pure SawEndBox
   --     NonScopeGroup ->
   --       pure DidNotSeeEndBox
-  -- H.AST.AddBox H.AST.NaturalPlacement boxSource -> do
+  -- AST.AddBox AST.NaturalPlacement boxSource -> do
   --   case boxSource of
-  --     H.AST.FetchedRegisterBox fetchMode idx ->
+  --     AST.FetchedRegisterBox fetchMode idx ->
   --       fetchBox fetchMode idx >>= \case
   --         Nothing ->
   --           pure ()
   --         Just b ->
-  --           addVElem $ BL.VListBaseElem $ B.ElemBox b
-  --     H.AST.ExplicitBox spec boxType -> do
+  --           addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox b
+  --     AST.ExplicitBox spec boxType -> do
   --       -- Start a new level of grouping. Enter inner mode.
   --       eSpec <- texEvaluate spec
   --       modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
   --       b <- extractExplicitBox eSpec boxType
-  --       addVElem $ BL.VListBaseElem $ B.ElemBox b
+  --       addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox b
   --   pure DidNotSeeEndBox
   oth ->
     panic $ show oth

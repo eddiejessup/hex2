@@ -1,8 +1,9 @@
-module Hex.HexState.Parameters where
+module Hex.MonadHexState.Impls.HexState.Parameters where
 
 import Data.Map.Strict qualified as Map
 import Hex.Quantity qualified as H.Q
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
+import Hex.Symbol.Token.SyntaxCommandHead qualified as H.Sym.Tok.Syn
 import Hexlude
 
 newIntParameters :: Map H.Sym.Tok.IntParameter H.Q.HexInt
@@ -29,7 +30,7 @@ newGlueParameters = mempty
 newMathGlueParameters :: Map H.Sym.Tok.MathGlueParameter H.Q.MathGlue
 newMathGlueParameters = mempty
 
-newTokenListParameters :: Map H.Sym.Tok.TokenListParameter H.Sym.Tok.InhibitedBalancedText
+newTokenListParameters :: Map H.Sym.Tok.TokenListParameter H.Sym.Tok.Syn.InhibitedBalancedText
 newTokenListParameters = mempty
 
 newSpecialIntParameters :: Map H.Sym.Tok.SpecialIntParameter H.Q.HexInt

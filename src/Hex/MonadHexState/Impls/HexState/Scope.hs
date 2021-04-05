@@ -1,19 +1,19 @@
-module Hex.HexState.Scope where
+module Hex.MonadHexState.Impls.HexState.Scope where
 
 import Hex.Codes qualified as H.Codes
-import Hex.HexState.Parameters qualified as H.Inter.St.Param
-import Hex.MonadHexState.Interface qualified as H.MSt
+import Hex.MonadHexState.Impls.HexState.Parameters qualified as H.Inter.St.Param
 import Hex.Parse.AST.Command qualified as H.Par.AST
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Initial qualified as H.Sym
 import Hex.Symbol.Resolve qualified as H.Sym
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
+import Hex.Symbol.Token.Resolved qualified as H.Sym.Tok
 import Hex.Symbol.Types qualified as H.Sym
 import Hexlude
 
 data Scope = Scope
   { -- Fonts.
-    currentFontNr :: Maybe H.MSt.FontNumber,
+    currentFontNr :: Maybe H.Sym.Tok.FontNumber,
     -- familyMemberFonts :: Map (FontRange, HexInt) HexInt,
     -- Control sequences.
     csMap :: H.Sym.CSMap,

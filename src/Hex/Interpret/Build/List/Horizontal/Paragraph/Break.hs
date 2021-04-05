@@ -65,9 +65,9 @@ finaliseHList (H.Inter.B.List.HList elems@(elemInit :|> lastElem)) =
     finishingElems :: Seq H.Inter.B.List.HListElem
     finishingElems =
       Empty
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty H.Q.tenK)
+        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ H.Q.HexInt H.Q.tenK)
         :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue (H.Q.filStretchGlue H.Q.onePt))
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ - H.Q.tenK)
+        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ H.Q.HexInt $ - H.Q.tenK)
 
 newtype Line = Line {unLine :: Seq H.Inter.B.List.HListElem}
   deriving stock (Show, Generic)

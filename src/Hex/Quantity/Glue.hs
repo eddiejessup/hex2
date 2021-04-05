@@ -6,7 +6,7 @@ import Hex.Quantity.Number
 import Hexlude
 
 data Glue = Glue {gDimen :: Length, gStretch, gShrink :: PureFlex}
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 fmtGlue :: Fmt Glue r
 fmtGlue =
@@ -50,7 +50,7 @@ shrinkGlue i (Glue dim str shr) =
 -- PureFlex
 
 data PureFlex = FinitePureFlex Length | InfPureFlex InfLengthOfOrder
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 zeroFlex :: PureFlex
 zeroFlex = FinitePureFlex zeroLength
@@ -143,7 +143,7 @@ fmtInfLengthOrder = F.later $ \case
   Fil3 -> "filll"
 
 data InfLengthOfOrder = InfLengthOfOrder InfLengthOrder Length
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 scaleInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
 scaleInfLengthOfOrder i (InfLengthOfOrder order infLen) = InfLengthOfOrder order (scaleLength i infLen)

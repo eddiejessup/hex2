@@ -12,7 +12,7 @@ import Hex.Parse.Parsers.Quantity.Glue qualified as Par
 import Hex.Parse.Parsers.Quantity.Length qualified as Par
 import Hex.Parse.Parsers.Quantity.Number qualified as Par
 -- import Hex.Parse.Parsers.Quantity.MathGlue qualified as Par
-import Hex.Symbol.Tokens qualified as T
+import Hex.Symbol.Token.Primitive qualified as T
 import Hexlude
 
 headToParseNonMacroAssignmentBody ::

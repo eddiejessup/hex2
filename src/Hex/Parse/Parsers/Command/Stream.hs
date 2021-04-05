@@ -10,7 +10,7 @@ import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.BalancedText qualified as Par
 import Hex.Parse.Parsers.Combinators qualified as Par
 import Hex.Parse.Parsers.Quantity.Number qualified as Par
-import Hex.Symbol.Tokens qualified as T
+import Hex.Symbol.Token.Primitive qualified as T
 import Hexlude
 
 parseOpenFileStream :: MonadPrimTokenSource m => AST.FileStreamType -> m AST.FileStreamModificationCommand

@@ -1,4 +1,4 @@
-module Hex.Evaluate.Impl where
+module Hex.Evaluate.MonadEvaluated.Impl where
 
 import Hex.Codes qualified as H.Codes
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box

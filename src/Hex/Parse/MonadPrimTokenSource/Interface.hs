@@ -1,6 +1,6 @@
 module Hex.Parse.MonadPrimTokenSource.Interface where
 
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
 import Hexlude
 
 data ParsingError

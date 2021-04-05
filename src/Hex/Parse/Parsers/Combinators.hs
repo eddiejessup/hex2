@@ -5,8 +5,8 @@ import Hex.Ascii qualified as H.Ascii
 import Hex.Codes qualified as H.C
 import Hex.Lex.Types qualified as H.Lex
 import Hex.Parse.MonadPrimTokenSource.Interface
-import Hex.Symbol.Tokens (PrimitiveToken)
-import Hex.Symbol.Tokens qualified as T
+import Hex.Symbol.Token.Primitive (PrimitiveToken)
+import Hex.Symbol.Token.Primitive qualified as T
 import Hex.Symbol.Types qualified as H.Sym
 import Hexlude
 

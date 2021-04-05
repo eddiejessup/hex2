@@ -1,15 +1,17 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Hex.HexState.Instances.MonadHexState where
+module Hex.MonadHexState.Impls.HexState where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Codes qualified as H.Codes
-import Hex.HexState.Type
+import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.MonadHexState.Impls.HexState.Type
 import Hex.MonadHexState.Interface
 import Hex.Quantity qualified as H.Q
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
+import Hex.Symbol.Token.Resolved qualified as H.Sym.Tok
 import Hex.Symbol.Types qualified as H.Sym
 import Hex.TFM.Get qualified as H.TFM
 import Hex.TFM.Types qualified as H.TFM
@@ -22,7 +24,7 @@ data HexStateError
   | CharacterCodeNotFound
   deriving stock (Show, Generic)
 
-instance (Monad m, MonadIO m, MonadState st m, HasType HexState st, MonadError e m, AsType HexStateError e, AsType H.TFM.TFMError e) => MonadHexState m where
+instance {-# OVERLAPPING #-} (Monad m, MonadIO m, MonadState st m, HasType HexState st, MonadError e m, AsType HexStateError e, AsType H.TFM.TFMError e) => MonadHexState m where
   getIntParameter :: H.Sym.Tok.IntParameter -> m H.Q.HexInt
   getIntParameter p = use $ typed @HexState % to (stateLocalIntParam p)
 
@@ -66,19 +68,32 @@ instance (Monad m, MonadIO m, MonadState st m, HasType HexState st, MonadError e
             toLen = H.TFM.fontLengthScaledPointsInt fontMetrics
         pure $ Just (tfmChar ^. #width % to toLen, tfmChar ^. #height % to toLen, tfmChar ^. #depth % to toLen, tfmChar ^. #italicCorrection % to toLen)
 
-  loadFont :: FilePath -> m (FontNumber, Text)
-  loadFont path = do
-    fontInfo <- readFontInfo path
+  loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
+  loadFont path spec = do
+    let filePath = path ^. typed @FilePath
+    fontInfo <- readFontInfo filePath
+    case spec of
+      H.Inter.B.Box.NaturalFont -> pure ()
+      H.Inter.B.Box.FontAt _ -> panic "not implemented: font-at"
+      H.Inter.B.Box.FontScaled _ -> panic "not implemented: font-scaled"
     mayLastKey <- use $ typed @HexState % #fontInfos % to Map.lookupMax
     let newKey = case mayLastKey of
-          Nothing -> FontNumber $ H.Q.HexInt 0
+          Nothing -> H.Sym.Tok.FontNumber $ H.Q.HexInt 0
           Just (i, _) -> succ i
     assign' (typed @HexState % #fontInfos % at' newKey) (Just fontInfo)
 
-    let fontName = Tx.pack $ FilePath.takeBaseName path
-    pure (newKey, fontName)
+    let fontName = Tx.pack $ FilePath.takeBaseName filePath
+    pure
+      H.Inter.B.Box.FontDefinition
+        { H.Inter.B.Box.fontDefChecksum = undefined,
+          H.Inter.B.Box.fontDefDesignSize = undefined,
+          H.Inter.B.Box.fontDefDesignScale = undefined,
+          H.Inter.B.Box.fontNr = newKey,
+          H.Inter.B.Box.fontPath = path,
+          H.Inter.B.Box.fontName = fontName
+        }
 
-  selectFont :: FontNumber -> H.Sym.Tok.ScopeFlag -> m ()
+  selectFont :: H.Sym.Tok.FontNumber -> H.Sym.Tok.ScopeFlag -> m ()
   selectFont fNr scopeFlag = modifying' (typed @HexState) (selectFontNr fNr scopeFlag)
 
 currentFontInfo ::

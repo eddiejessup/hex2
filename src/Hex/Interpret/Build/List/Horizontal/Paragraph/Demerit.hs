@@ -28,6 +28,6 @@ demerit linePenalty badness_ breakItem =
    in Demerit $ breakDemerit + listDemerit
   where
     breakPenalty :: BreakItem -> Int
-    breakPenalty (PenaltyBreak (H.Inter.B.List.Penalty p)) = p
+    breakPenalty (PenaltyBreak (H.Inter.B.List.Penalty (H.Q.HexInt p))) = p
     breakPenalty (GlueBreak _) = 0
     breakPenalty (KernBreak _) = 0

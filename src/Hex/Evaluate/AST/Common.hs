@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Hex.Parse.AST.Common where
+module Hex.Evaluate.AST.Common where
 
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
@@ -188,7 +188,7 @@ data FontCharRef = FontCharRef H.Sym.Tok.FontChar FontRef
   deriving stock (Show, Eq, Generic)
 
 data FontRef
-  = FontTokenRef H.Sym.Tok.FontNumber
+  = FontTokenRef H.Q.HexInt
   | CurrentFontRef
   | FamilyMemberFontRef FamilyMember
   deriving stock (Show, Eq, Generic)

@@ -6,7 +6,7 @@ import Hex.Parse.AST.Common
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Quantity.Number
 import Hex.Quantity qualified as H.Q
-import Hex.Symbol.Tokens
+import Hex.Symbol.Token.Primitive
 import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit

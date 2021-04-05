@@ -9,8 +9,8 @@ import Hex.Parse.AST.Common qualified as AST
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
 import Hex.Quantity qualified as H.Q
-import Hex.Symbol.Tokens (PrimitiveToken)
-import Hex.Symbol.Tokens qualified as T
+import Hex.Symbol.Token.Primitive (PrimitiveToken)
+import Hex.Symbol.Token.Primitive qualified as T
 import Hexlude
 
 parseSigned :: forall m a. MonadPrimTokenSource m => m a -> m (AST.Signed a)
@@ -150,7 +150,7 @@ headToParseFontRef =
       fmap AST.FamilyMemberFontRef <$> headToParseFamilyMember
     ]
 
-headToParseFontRefToken :: MonadPrimTokenSource m => T.PrimitiveToken -> m H.Q.HexInt
+headToParseFontRefToken :: MonadPrimTokenSource m => T.PrimitiveToken -> m T.FontNumber
 headToParseFontRefToken = \case
   T.FontRefToken n -> pure n
   _ -> empty

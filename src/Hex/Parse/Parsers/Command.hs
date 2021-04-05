@@ -16,8 +16,8 @@ import Hex.Parse.Parsers.Quantity.Length qualified as Par
 import Hex.Parse.Parsers.Quantity.MathLength qualified as Par
 import Hex.Parse.Parsers.Quantity.Number qualified as Par
 import Hex.Quantity qualified as H.Q
-import Hex.Symbol.Tokens qualified as H.Tok
-import Hex.Symbol.Tokens qualified as T
+import Hex.Symbol.Token.Primitive qualified as H.Tok
+import Hex.Symbol.Token.Primitive qualified as T
 import Hexlude
 
 parseCommand :: MonadPrimTokenSource m => m AST.Command

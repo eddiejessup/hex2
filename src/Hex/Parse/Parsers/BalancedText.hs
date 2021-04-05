@@ -6,7 +6,7 @@ import Hex.Codes qualified as H.C
 import Hex.Lex.Types qualified as H.Lex
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
-import Hex.Symbol.Tokens qualified as T
+import Hex.Symbol.Token.SyntaxCommandHead qualified as T
 import Hexlude
 
 parseGeneralText :: MonadPrimTokenSource m => m a -> m a

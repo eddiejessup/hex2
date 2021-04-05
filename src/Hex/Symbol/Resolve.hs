@@ -6,7 +6,8 @@ import Hex.Codes qualified as Code
 import Hex.Lex.Impl qualified as H.Lex
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Interface qualified as H.St
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
+import Hex.Symbol.Token.Resolved qualified as H.Sym.Tok
 import Hex.Symbol.Types qualified as H.Sym.Ty
 import Hexlude
 

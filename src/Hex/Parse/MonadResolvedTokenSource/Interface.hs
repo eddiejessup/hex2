@@ -5,7 +5,7 @@ module Hex.Parse.MonadResolvedTokenSource.Interface where
 import Hex.Lex.Types qualified as Lex
 import Hex.Parse.CharSource
 import Hex.Symbol.Resolve as Sym.Res
-import Hex.Symbol.Tokens qualified as Sym.Tok
+import Hex.Symbol.Token.Resolved qualified as Sym.Tok
 import Hexlude
 
 data ResolutionError = ResolutionError

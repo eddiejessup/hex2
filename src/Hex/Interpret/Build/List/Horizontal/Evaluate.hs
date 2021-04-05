@@ -24,7 +24,7 @@ hListElemNaturalWidth = \case
   H.Inter.B.List.HVListElem (H.Inter.B.List.VListBaseElem (H.Inter.B.Box.ElemFontSelection _)) ->
     H.Q.zeroLength
   H.Inter.B.List.HVListElem (H.Inter.B.List.VListBaseElem (H.Inter.B.Box.ElemKern kern)) ->
-    kern ^. #unKern
+    kern ^. typed @H.Q.Length
   H.Inter.B.List.HListHBaseElem (H.Inter.B.Box.ElemCharacter character) ->
     character ^. #unCharacter % #boxWidth
 

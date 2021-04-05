@@ -14,6 +14,9 @@ data VListElem
   | ListPenalty Penalty
   deriving stock (Show, Generic)
 
+newtype Penalty = Penalty {unPenalty :: H.Q.HexInt}
+  deriving stock (Show, Eq, Generic)
+
 -- Horizontal list.
 -- TODO: WhatsIt, Leaders, Mark, Insertion
 -- TODO: Ligature, DiscretionaryBreak, Math on/off, V-adust
@@ -71,9 +74,6 @@ data VBoxAlignType
   = DefaultAlign -- \vbox
   | TopAlign -- \vtop
   deriving stock (Show, Eq, Generic)
-
-newtype Penalty = Penalty {unPenalty :: Int}
-  deriving stock (Show, Generic)
 
 data DesiredLength = Natural | Spread H.Q.Length | To H.Q.Length
   deriving stock (Show)

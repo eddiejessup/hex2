@@ -3,7 +3,7 @@ module Hex.MonadHexState.Helpers where
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.MonadHexState.Interface
-import Hex.Symbol.Tokens qualified as H.Sym.Tok
+import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
 import Hexlude
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem

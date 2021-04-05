@@ -6,7 +6,9 @@ import Hex.Codes qualified as Code
 import Hex.Lex.Types qualified as H.Lex
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Resolve
-import Hex.Symbol.Tokens
+import Hex.Symbol.Token.Primitive
+import Hex.Symbol.Token.Resolved
+import Hex.Symbol.Token.SyntaxCommandHead
 import Hex.Symbol.Types qualified as H.Sym
 import Hexlude
 
