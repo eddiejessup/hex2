@@ -5,41 +5,41 @@ module Hex.Parse.Parsers.Quantity.Length where
 import Control.Monad.Combinators qualified as PC
 import Hex.Codes (pattern Chr_)
 import Hex.Codes qualified as H.C
-import Hex.Parse.AST.Common qualified as AST
+import Hex.Parse.Syntax.Quantity qualified as Syn
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators qualified as Par
 import Hex.Parse.Parsers.Quantity.Number qualified as Par
 import Hex.Quantity qualified as H.Q
 import Hexlude
 
-parseLength :: MonadPrimTokenSource m => m AST.Length
+parseLength :: MonadPrimTokenSource m => m Syn.Length
 parseLength = Par.parseSigned parseUnsignedLength
 
-parseUnsignedLength :: MonadPrimTokenSource m => m AST.UnsignedLength
+parseUnsignedLength :: MonadPrimTokenSource m => m Syn.UnsignedLength
 parseUnsignedLength =
   PC.choice
-    [ AST.NormalLengthAsULength <$> parseNormalLength,
-      AST.CoercedLength . AST.InternalGlueAsLength <$> Par.parseHeaded Par.headToParseInternalGlue
+    [ Syn.NormalLengthAsULength <$> parseNormalLength,
+      Syn.CoercedLength . Syn.InternalGlueAsLength <$> Par.parseHeaded Par.headToParseInternalGlue
     ]
 
-parseNormalLength :: MonadPrimTokenSource m => m AST.NormalLength
+parseNormalLength :: MonadPrimTokenSource m => m Syn.NormalLength
 parseNormalLength =
   PC.choice
-    [ AST.LengthSemiConstant <$> parseFactor <*> parseUnit,
-      AST.InternalLength <$> Par.parseHeaded Par.headToParseInternalLength
+    [ Syn.LengthSemiConstant <$> parseFactor <*> parseUnit,
+      Syn.InternalLength <$> Par.parseHeaded Par.headToParseInternalLength
     ]
 
 -- NOTE: The parser order matters because TeX's grammar is ambiguous: '2.2'
 -- could be parsed as an integer constant, '2', followed by '.2'. We break the
 -- ambiguity by prioritising the rational constant parser.
-parseFactor :: MonadPrimTokenSource m => m AST.Factor
+parseFactor :: MonadPrimTokenSource m => m Syn.Factor
 parseFactor =
   PC.choice
-    [ AST.DecimalFractionFactor <$> parseRationalConstant,
-      AST.NormalIntFactor <$> Par.parseHeaded Par.headToParseNormalInt
+    [ Syn.DecimalFractionFactor <$> parseRationalConstant,
+      Syn.NormalIntFactor <$> Par.parseHeaded Par.headToParseNormalInt
     ]
 
-parseRationalConstant :: MonadPrimTokenSource m => m AST.DecimalFraction
+parseRationalConstant :: MonadPrimTokenSource m => m Syn.DecimalFraction
 parseRationalConstant = do
   wholeDigits <- PC.many (satisfyThen Par.decCharToWord)
   Par.skipSatisfied $ \t -> case t ^? Par.primTokCharCat of
@@ -48,33 +48,33 @@ parseRationalConstant = do
        in (cc ^. typed @H.C.CoreCatCode == H.C.Other) && (chrCode == H.C.Chr_ ',' || chrCode == H.C.Chr_ '.')
     Nothing -> False
   fracDigits <- PC.many (satisfyThen Par.decCharToWord)
-  pure $ AST.DecimalFraction {AST.wholeDigits, AST.fracDigits}
+  pure $ Syn.DecimalFraction {Syn.wholeDigits, Syn.fracDigits}
 
-parseUnit :: MonadPrimTokenSource m => m AST.Unit
+parseUnit :: MonadPrimTokenSource m => m Syn.Unit
 parseUnit =
   PC.choice
-    [ Par.skipOptionalSpaces *> (AST.InternalUnit <$> parseInternalUnit),
-      (AST.PhysicalUnit <$> parseFrame <*> parsePhysicalUnitLit) <* Par.skipOneOptionalSpace
+    [ Par.skipOptionalSpaces *> (Syn.InternalUnit <$> parseInternalUnit),
+      (Syn.PhysicalUnit <$> parseFrame <*> parsePhysicalUnitLit) <* Par.skipOneOptionalSpace
     ]
   where
     parseInternalUnit =
       PC.choice
         [ parseInternalUnitLit <* Par.skipOneOptionalSpace,
-          AST.InternalIntUnit <$> Par.parseHeaded Par.headToParseInternalInt,
-          AST.InternalLengthUnit <$> Par.parseHeaded Par.headToParseInternalLength,
-          AST.InternalGlueUnit <$> Par.parseHeaded Par.headToParseInternalGlue
+          Syn.InternalIntUnit <$> Par.parseHeaded Par.headToParseInternalInt,
+          Syn.InternalLengthUnit <$> Par.parseHeaded Par.headToParseInternalLength,
+          Syn.InternalGlueUnit <$> Par.parseHeaded Par.headToParseInternalGlue
         ]
 
     parseInternalUnitLit =
       PC.choice
-        [ Par.skipKeyword [Chr_ 'e', Chr_ 'm'] $> AST.Em,
-          Par.skipKeyword [Chr_ 'e', Chr_ 'x'] $> AST.Ex
+        [ Par.skipKeyword [Chr_ 'e', Chr_ 'm'] $> Syn.Em,
+          Par.skipKeyword [Chr_ 'e', Chr_ 'x'] $> Syn.Ex
         ]
 
     parseFrame =
       Par.parseOptionalKeyword [Chr_ 't', Chr_ 'r', Chr_ 'u', Chr_ 'e'] <&> \case
-        True -> AST.TrueFrame
-        False -> AST.MagnifiedFrame
+        True -> Syn.TrueFrame
+        False -> Syn.MagnifiedFrame
 
     -- TODO: Use 'try' because keywords with common prefixes lead the parser
     -- down a blind alley. Could refactor to avoid, but it would be ugly.

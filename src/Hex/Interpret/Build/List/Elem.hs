@@ -12,7 +12,7 @@ data VListElem
   = VListBaseElem H.Inter.B.Box.BaseElem
   | ListGlue H.Q.Glue
   | ListPenalty Penalty
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 newtype Penalty = Penalty {unPenalty :: H.Q.HexInt}
   deriving stock (Show, Eq, Generic)
@@ -23,12 +23,12 @@ newtype Penalty = Penalty {unPenalty :: H.Q.HexInt}
 data HListElem
   = HVListElem VListElem
   | HListHBaseElem H.Inter.B.Box.HBaseElem
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 -- Lists.
 
 newtype HList = HList {unHList :: Seq HListElem}
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 hListElemTraversal :: Traversal' HList HListElem
 hListElemTraversal = #unHList % traversed
@@ -48,7 +48,7 @@ fmtHListElem = F.later $ \case
   HListHBaseElem e -> bformat H.Inter.B.Box.fmtHBaseElem e
 
 newtype VList = VList {unVList :: Seq VListElem}
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 vListElemTraversal :: Traversal' VList VListElem
 vListElemTraversal = #unVList % traversed
@@ -73,7 +73,7 @@ fmtVListElem = F.later $ \case
 data VBoxAlignType
   = DefaultAlign -- \vbox
   | TopAlign -- \vtop
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Generic)
 
 data DesiredLength = Natural | Spread H.Q.Length | To H.Q.Length
   deriving stock (Show)

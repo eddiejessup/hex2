@@ -5,7 +5,9 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Ascii qualified as H.Ascii
 import Hex.Codes qualified as H.C
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST.Command qualified as AST
+import Hex.Syntax.Command qualified as H.Syn
+import Hex.Syntax.Common qualified as H.Syn
+import Hex.Parse.Syntax.Command qualified as H.Par.Syn ()
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.BalancedText qualified as Par
 import Hex.Parse.Parsers.Combinators qualified as Par
@@ -13,40 +15,40 @@ import Hex.Parse.Parsers.Quantity.Number qualified as Par
 import Hex.Symbol.Token.Primitive qualified as T
 import Hexlude
 
-parseOpenFileStream :: MonadPrimTokenSource m => AST.FileStreamType -> m AST.FileStreamModificationCommand
+parseOpenFileStream :: MonadPrimTokenSource m => H.Syn.FileStreamType -> m (H.Syn.FileStreamModificationCommand 'H.Syn.Parsed)
 parseOpenFileStream fileStreamType =
   do
     (n, fileName) <- Par.parseXEqualsY Par.parseInt parseFileName
-    pure $ AST.FileStreamModificationCommand fileStreamType (AST.Open fileName) n
+    pure $ H.Syn.FileStreamModificationCommand fileStreamType (H.Syn.Open fileName) n
 
-headToParseOpenOutput :: MonadPrimTokenSource m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
+headToParseOpenOutput :: MonadPrimTokenSource m => H.Syn.WritePolicy -> T.PrimitiveToken -> m (H.Syn.FileStreamModificationCommand 'H.Syn.Parsed)
 headToParseOpenOutput writePolicy = \case
   T.OpenOutputTok ->
-    parseOpenFileStream (AST.FileOutput writePolicy)
+    parseOpenFileStream (H.Syn.FileOutput writePolicy)
   _ ->
     empty
 
-headToParseCloseOutput :: MonadPrimTokenSource m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
+headToParseCloseOutput :: MonadPrimTokenSource m => H.Syn.WritePolicy -> T.PrimitiveToken -> m (H.Syn.FileStreamModificationCommand 'H.Syn.Parsed)
 headToParseCloseOutput writePolicy = \case
   T.CloseOutputTok ->
-    AST.FileStreamModificationCommand (AST.FileOutput writePolicy) AST.Close <$> Par.parseInt
+    H.Syn.FileStreamModificationCommand (H.Syn.FileOutput writePolicy) H.Syn.Close <$> Par.parseInt
   _ ->
     empty
 
-headToParseWriteToStream :: MonadPrimTokenSource m => AST.WritePolicy -> T.PrimitiveToken -> m AST.StreamWriteCommand
+headToParseWriteToStream :: MonadPrimTokenSource m => H.Syn.WritePolicy -> T.PrimitiveToken -> m (H.Syn.StreamWriteCommand 'H.Syn.Parsed)
 headToParseWriteToStream writePolicy = \case
   T.WriteTok ->
     do
       n <- Par.parseInt
       txt <- case writePolicy of
-        AST.Immediate -> AST.ImmediateWriteText <$> Par.parseExpandedGeneralText
-        AST.Deferred -> AST.DeferredWriteText <$> Par.parseInhibitedGeneralText
-      pure $ AST.StreamWriteCommand n txt
+        H.Syn.Immediate -> H.Syn.ImmediateWriteText <$> Par.parseExpandedGeneralText
+        H.Syn.Deferred -> H.Syn.DeferredWriteText <$> Par.parseInhibitedGeneralText
+      pure $ H.Syn.StreamWriteCommand n txt
   _ ->
     empty
 
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
-parseFileName :: MonadPrimTokenSource m => m AST.HexFilePath
+parseFileName :: MonadPrimTokenSource m => m H.Syn.HexFilePath
 parseFileName = do
   Par.skipOptionalSpaces
   fileNameAsciiChars <-
@@ -63,7 +65,7 @@ parseFileName = do
               Nothing
         code ^. typed @Word8 % to ASCII.word8ToCharMaybe
   Par.skipSatisfied Par.isSpace
-  pure $ AST.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
+  pure $ H.Syn.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where
     isValidOther = \case
       -- Not in the spec, but let's say these are OK.

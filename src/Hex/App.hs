@@ -1,7 +1,6 @@
 module Hex.App where
 
 import Hex.Evaluate.MonadEvaluated.Impl qualified as H.Inter.Eval
-import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.CommandHandler.AllMode qualified as H.Inter.Comm.AllMode
 import Hex.Lex.Types qualified as H.Lex
 import Hex.MonadHexState.Impls.HexState ()
@@ -17,6 +16,8 @@ import Hex.Parse.Parsers.Quantity.Number as H.Par.Par
 import Hex.Symbol.Token.Primitive
 import Hex.TFM.Get qualified as H.TFM
 import Hexlude
+import qualified Hex.Syntax.Common as H.Syn
+import qualified Hex.Syntax.Font as H.Syn
 
 data AppState = AppState H.St.HexState H.Par.ChrSrc.CharSource
   deriving stock (Generic)
@@ -75,7 +76,7 @@ unsafeEvalNewApp chrs app = do
 
 testAppLoadSelectFont :: StateT AppState (ExceptT AppError IO) ()
 testAppLoadSelectFont = do
-  fontDef <- loadFont (H.Inter.B.Box.HexFilePath "cmr10.tfm") H.Inter.B.Box.NaturalFont
+  fontDef <- loadFont (H.Syn.HexFilePath "cmr10.tfm") H.Syn.NaturalFont
   selectFont (fontDef ^. typed @FontNumber) Local
 
 -- testApp :: StateT AppState (ExceptT AppError IO) ()
@@ -154,5 +155,5 @@ testParsing = do
       -- H.Par.Par.skipOptionalSpaces
       -- void $ H.Par.Par.skipManySatisfied $ H.Par.Par.primTokHasCategory H.Codes.Letter
       H.Par.Par.parseInt
-  liftIO $ putText $ "got: " <> show r
+  -- liftIO $ putText $ "got: " <> show r
   H.Par.TokSrc.getSource

@@ -5,13 +5,14 @@ import Hex.Codes qualified as H.Codes
 import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
 import Hexlude
+import qualified Hex.Syntax.Common as H.Syn
 
 -- Box elements.
 
 data HBoxElem
   = HVBoxElem VBoxElem
   | HBoxHBaseElem HBaseElem
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 fmtHBoxElem :: Fmt HBoxElem r
 fmtHBoxElem = F.later $ \case
@@ -30,7 +31,7 @@ fmtHBaseElem = F.later $ \case
 data VBoxElem
   = VBoxBaseElem BaseElem
   | BoxGlue SetGlue
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 fmtVBoxElemOneLine :: Fmt VBoxElem r
 fmtVBoxElemOneLine = F.later $ \case
@@ -42,7 +43,7 @@ data BaseElem
   | ElemFontDefinition FontDefinition
   | ElemFontSelection FontSelection
   | ElemKern Kern
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 fmtBaseElemOneLine :: Fmt BaseElem r
 fmtBaseElemOneLine = F.later $ \case
@@ -81,7 +82,7 @@ data BaseBoxContents
   = HBoxContents HBoxElemSeq
   | VBoxContents VBoxElemSeq
   | RuleContents
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 fmtBaseBoxContents :: Fmt BaseBoxContents r
 fmtBaseBoxContents = F.later $ \case
@@ -93,10 +94,10 @@ fmtBaseBox :: Fmt (Box BaseBoxContents) r
 fmtBaseBox = fmtBoxDimens <> fmtViewed #contents fmtBaseBoxContents
 
 newtype HBoxElemSeq = HBoxElemSeq {unHBoxElemSeq :: Seq HBoxElem}
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 newtype VBoxElemSeq = VBoxElemSeq {unVBoxElemSeq :: Seq VBoxElem}
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 newtype Rule = Rule {unRule :: Box ()}
   deriving stock (Show, Eq, Generic)
@@ -120,14 +121,8 @@ data FontDefinition = FontDefinition
   { fontDefChecksum :: Int,
     fontDefDesignSize :: H.Q.Length,
     fontDefDesignScale :: H.Q.Length,
-    fontPath :: HexFilePath,
+    fontPath :: H.Syn.HexFilePath,
     fontName :: Text,
     fontNr :: H.Sym.Tok.FontNumber
   }
-  deriving stock (Show, Generic)
-
-data FontSpecification = NaturalFont | FontAt H.Q.Length | FontScaled H.Q.HexInt
-  deriving stock (Show, Eq, Generic)
-
-newtype HexFilePath = HexFilePath FilePath
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Generic)

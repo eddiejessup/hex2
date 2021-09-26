@@ -1,8 +1,8 @@
 module Hex.Interpret.CommandHandler.ParaMode where
 
 import Hex.Codes qualified as H.Codes
-import Hex.Evaluate.AST.Command qualified as H.AST
-import Hex.Evaluate.MonadEvaluated.Impl qualified as H.Inter.Eval
+import Hex.Syntax.Command qualified as H.Syn
+import Hex.Syntax.Common qualified as H.Syn
 import Hex.Evaluate.MonadEvaluated.Interface qualified as H.Eval
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
@@ -29,8 +29,7 @@ buildParaList ::
     H.St.MonadHexState m,
     MonadError e m,
     MonadIO m,
-    AsType H.AllMode.InterpretError e,
-    AsType H.Inter.Eval.EvaluationError e
+    AsType H.AllMode.InterpretError e
   ) =>
   H.Sym.Tok.IndentFlag ->
   m (EndParaReason, H.Inter.B.List.HList)
@@ -45,7 +44,6 @@ buildParaList indentFlag = do
     go = do
       sPreParse <- lift H.Eval.getStream
       command <- lift H.Eval.parseCommand
-      traceM $ "In para-mode, saw command: " <> show command
       handleCommandInParaMode sPreParse command >>= \case
         EndPara endReason -> pure endReason
         ContinuePara -> go
@@ -56,49 +54,48 @@ handleCommandInParaMode ::
     H.St.MonadHexState m,
     MonadError e m,
     MonadIO m,
-    AsType H.AllMode.InterpretError e,
-    AsType H.Inter.Eval.EvaluationError e
+    AsType H.AllMode.InterpretError e
   ) =>
   H.Par.ChrSrc.CharSource ->
-  H.AST.Command ->
+  H.Syn.Command 'H.Syn.Evaluated ->
   StateT H.Inter.B.List.HList m ParaModeCommandResult
 handleCommandInParaMode oldSrc = \case
-  H.AST.VModeCommand _ -> do
+  H.Syn.VModeCommand _ -> do
     -- Insert the control sequence "\par" into the input. The control
     -- sequence's current meaning will be used, which might no longer be the \par
     -- primitive.
     lift $ H.Eval.putStream oldSrc
     lift $ H.Eval.insertLexTokenToStream H.Lex.parToken
     pure ContinuePara
-  H.AST.HModeCommand (H.AST.AddHGlue g) -> do
+  H.Syn.HModeCommand (H.Syn.AddHGlue g) -> do
     extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue g
     pure ContinuePara
-  -- H.AST.HModeCommand (H.AST.AddCharacter c) -> do
+  -- H.Syn.HModeCommand (H.Syn.AddCharacter c) -> do
   --   evalChar <- H.Inter.Eval.evalASTChar c
   --   charBox <- lift $ charAsBox evalChar
   --   extendHListStateT $ H.Inter.B.List.HListHBaseElem $ H.Inter.B.Box.ElemCharacter charBox
   --   pure ContinuePara
-  H.AST.HModeCommand (H.AST.AddHRule rule) -> do
+  H.Syn.HModeCommand (H.Syn.AddHRule rule) -> do
     extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
     pure ContinuePara
-  H.AST.AddSpace -> do
+  H.Syn.AddSpace -> do
     spaceGlue <- lift $ H.St.currentFontSpaceGlue >>= note (injectTyped H.AllMode.NoFontSelected)
     extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue spaceGlue
     pure ContinuePara
-  H.AST.StartParagraph indentFlag -> do
+  H.Syn.StartParagraph indentFlag -> do
     hModeStartParagraph indentFlag
     pure ContinuePara
   -- \par: Restricted: does nothing. Unrestricted (this mode): ends mode.
-  H.AST.EndParagraph ->
+  H.Syn.EndParagraph ->
     pure $ EndPara EndParaSawEndParaCommand
-  H.AST.ModeIndependentCommand modeIndependentCommand -> do
+  H.Syn.ModeIndependentCommand modeIndependentCommand -> do
     H.AllMode.handleModeIndependentCommand extendHListVElemStateT modeIndependentCommand <&> \case
       H.AllMode.SawEndBox ->
         EndPara EndParaSawEndParaCommand
       H.AllMode.DidNotSeeEndBox ->
         ContinuePara
-  oth ->
-    panic $ show oth
+  _oth ->
+    panic "Not implemented: v-mode command"
 
 charAsBox ::
   ( H.St.MonadHexState m,

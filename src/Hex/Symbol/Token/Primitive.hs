@@ -243,7 +243,7 @@ data CharryQuantityType
 
 data QuantityType
   = IntQuantity -- \count, \countdef
-  | LenQuantity -- \dimen, \dimendef
+  | LengthQuantity -- \dimen, \dimendef
   | GlueQuantity -- \skip, \skipdef
   | MathGlueQuantity -- \muskip, \muskipdef
   | TokenListQuantity -- \toks, \toksdef
@@ -364,7 +364,7 @@ data PrimitiveToken
     DefineMacroTok ScopeFlag ExpandDefFlag
   | -- > Setting variable values.
     IntParamVarTok IntParameter
-  | LenParamVarTok LengthParameter
+  | LengthParamVarTok LengthParameter
   | GlueParamVarTok GlueParameter
   | MathGlueParamVarTok MathGlueParameter
   | TokenListParamVarTok TokenListParameter

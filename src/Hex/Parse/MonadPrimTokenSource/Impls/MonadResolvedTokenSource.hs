@@ -10,7 +10,6 @@ import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.MonadResolvedTokenSource.Interface qualified as H.Par.TokSrc
 import Hex.Symbol.Resolve qualified as H.Sym.Res
 import Hex.Symbol.Token.Primitive (PrimitiveToken)
-import Hex.Symbol.Token.Primitive qualified as T
 import Hex.Symbol.Token.Resolved qualified as T
 import Hex.Symbol.Token.SyntaxCommandHead qualified as T.Syn
 import Hexlude

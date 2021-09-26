@@ -1,7 +1,8 @@
 module Hex.Interpret.CommandHandler.MainVMode where
 
-import Hex.Evaluate.AST.Command qualified as H.Eval.AST
-import Hex.Evaluate.MonadEvaluated.Impl qualified as H.Inter.Eval
+import Hex.Syntax.Command qualified as H.Syn
+import Hex.Syntax.Common qualified as H.Syn
+import Hex.Syntax.Quantity qualified as H.Syn
 import Hex.Evaluate.MonadEvaluated.Interface qualified as H.Eval
 import Hex.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Interpret.Build.List.Elem qualified as H.Inter.B.List
@@ -24,8 +25,7 @@ buildMainVList ::
     H.Inter.St.MonadHexState m,
     MonadError e m,
     MonadIO m,
-    AsType H.AllMode.InterpretError e,
-    AsType H.Inter.Eval.EvaluationError e
+    AsType H.AllMode.InterpretError e
   ) =>
   m H.Inter.B.List.VList
 buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
@@ -33,7 +33,6 @@ buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
     go = do
       streamPreParse <- lift H.Eval.getStream
       command <- lift H.Eval.parseCommand
-      traceM $ show command
       handleCommandInMainVMode streamPreParse command >>= \case
         EndMainVMode -> pure ()
         ContinueMainVMode -> go
@@ -44,40 +43,39 @@ handleCommandInMainVMode ::
     H.Eval.MonadEvaluated m,
     H.Inter.St.MonadHexState m,
     MonadError e m,
-    AsType H.AllMode.InterpretError e,
-    AsType H.Inter.Eval.EvaluationError e
+    AsType H.AllMode.InterpretError e
   ) =>
   H.Par.ChrSrc.CharSource ->
-  H.Eval.AST.Command ->
+  H.Syn.Command 'H.Syn.Evaluated ->
   StateT H.Inter.B.List.VList m VModeCommandResult
 handleCommandInMainVMode oldSrc = \case
-  H.Eval.AST.VModeCommand H.Eval.AST.End ->
+  H.Syn.VModeCommand H.Syn.End ->
     pure EndMainVMode
-  -- H.Eval.AST.VModeCommand (H.Eval.AST.AddVGlue g) -> do
+  -- H.Syn.VModeCommand (H.Syn.AddVGlue g) -> do
   --   H.Inter.Eval.evalASTGlue g >>= extendVListStateT . H.Inter.B.List.ListGlue
   --   pure ContinueMainVMode
-  -- H.Eval.AST.VModeCommand (H.Eval.AST.AddVRule astRule) -> do
+  -- H.Syn.VModeCommand (H.Syn.AddVRule astRule) -> do
   --   rule <- H.Inter.Eval.evalASTVModeRule astRule
   --   extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
   --   pure ContinueMainVMode
-  H.Eval.AST.HModeCommand _ -> do
+  H.Syn.HModeCommand _ -> do
     addPara H.Sym.Tok.Indent
-  H.Eval.AST.StartParagraph indentFlag -> do
+  H.Syn.StartParagraph indentFlag -> do
     addPara indentFlag
   -- -- \par does nothing in vertical mode.
-  -- H.Eval.AST.EndParagraph ->
+  -- H.Syn.EndParagraph ->
   --   pure ContinueMainVMode
   -- -- <space token> has no effect in vertical modes.
-  -- H.Eval.AST.AddSpace ->
+  -- H.Syn.AddSpace ->
   --   pure ContinueMainVMode
-  H.Eval.AST.ModeIndependentCommand modeIndependentCommand -> do
+  H.Syn.ModeIndependentCommand modeIndependentCommand -> do
     H.AllMode.handleModeIndependentCommand extendVListStateT modeIndependentCommand >>= \case
       H.AllMode.SawEndBox ->
         lift $ throwError $ injectTyped H.AllMode.SawEndBoxInMainVMode
       H.AllMode.DidNotSeeEndBox ->
         pure ContinueMainVMode
-  oth ->
-    panic $ "Not implemented, outer V mode: " <> show oth
+  _othVModeCmd ->
+    panic "Not implemented, outer V mode command"
   where
     addPara indentFlag = do
       -- If the command shifts to horizontal mode, run '\indent', and re-read
@@ -147,9 +145,9 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
     --    \lineskip
     -- Then set \prevdepth to the depth of the new box.
     prevDepth <- H.Inter.St.getSpecialLengthParameter H.Sym.Tok.PrevDepth
-    blineGlue <- H.Inter.St.getGlueParameter H.Sym.Tok.BaselineSkip
-    skipLimit <- H.Inter.St.getLengthParameter H.Sym.Tok.LineSkipLimit
-    skip <- H.Inter.St.getGlueParameter H.Sym.Tok.LineSkip
+    blineGlue <- H.Inter.St.getGlueVariable (H.Syn.ParamVar H.Sym.Tok.BaselineSkip)
+    skipLimit <- H.Inter.St.getLengthVariable (H.Syn.ParamVar H.Sym.Tok.LineSkipLimit)
+    skip <- H.Inter.St.getGlueVariable (H.Syn.ParamVar H.Sym.Tok.LineSkip)
     H.Inter.St.setSpecialLengthParameter H.Sym.Tok.PrevDepth (H.Inter.B.Box.boxDepth b)
     pure $
       H.Inter.B.List.VList $

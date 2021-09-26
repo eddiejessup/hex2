@@ -24,9 +24,9 @@ resolveToken ::
 resolveToken NotResolving t = pure $ Just $ H.Sym.Tok.PrimitiveToken $ H.Sym.Tok.UnresolvedTok t
 resolveToken Resolving t = case t of
   H.Lex.ControlSequenceLexToken cs -> do
-    H.St.resolveSymbol $ H.Sym.Ty.ControlSequenceSymbol cs
+    H.St.getSymbol $ H.Sym.Ty.ControlSequenceSymbol cs
   H.Lex.CharCatLexToken (H.Lex.LexCharCat c Code.Active) ->
-    H.St.resolveSymbol $ H.Sym.Ty.ActiveCharacterSymbol c
+    H.St.getSymbol $ H.Sym.Ty.ActiveCharacterSymbol c
   _ ->
     pure $ Just $ H.Sym.Tok.PrimitiveToken $ H.Sym.Tok.UnresolvedTok t
 

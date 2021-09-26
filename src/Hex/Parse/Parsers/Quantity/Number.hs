@@ -5,7 +5,9 @@ import Data.ByteString qualified as BS
 import Hex.Ascii qualified as H.Ascii
 import Hex.Codes qualified as H.C
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST.Common qualified as AST
+import Hex.Parse.Syntax.Quantity qualified as H.Par.Syn
+import Hex.Syntax.Common qualified as H.Syn
+import Hex.Syntax.Quantity qualified as H.Syn
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
 import Hex.Quantity qualified as H.Q
@@ -13,8 +15,8 @@ import Hex.Symbol.Token.Primitive (PrimitiveToken)
 import Hex.Symbol.Token.Primitive qualified as T
 import Hexlude
 
-parseSigned :: forall m a. MonadPrimTokenSource m => m a -> m (AST.Signed a)
-parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
+parseSigned :: forall m a. MonadPrimTokenSource m => m a -> m (H.Par.Syn.Signed a)
+parseSigned parseQuantity = H.Par.Syn.Signed <$> parseOptionalSigns <*> parseQuantity
   where
     parseOptionalSigns :: m [H.Q.Sign]
     parseOptionalSigns = do
@@ -26,36 +28,36 @@ parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
           | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '-') t = Just H.Q.Negative
           | otherwise = Nothing
 
-parseInt :: MonadPrimTokenSource m => m AST.HexInt
-parseInt = AST.HexInt <$> parseSigned (parseHeaded headToParseUnsignedInt)
+parseInt :: MonadPrimTokenSource m => m H.Par.Syn.HexInt
+parseInt = H.Par.Syn.HexInt <$> parseSigned (parseHeaded headToParseUnsignedInt)
 
-headToParseUnsignedInt :: MonadPrimTokenSource m => PrimitiveToken -> m AST.UnsignedInt
+headToParseUnsignedInt :: MonadPrimTokenSource m => PrimitiveToken -> m H.Par.Syn.UnsignedInt
 headToParseUnsignedInt =
   choiceFlap
-    [ fmap AST.NormalUnsignedInt <$> headToParseNormalInt,
-      fmap AST.CoercedUnsignedInt <$> headToParseCoercedInt
+    [ fmap H.Par.Syn.NormalUnsignedInt <$> headToParseNormalInt,
+      fmap H.Par.Syn.CoercedUnsignedInt <$> headToParseCoercedInt
     ]
 
-headToParseNormalInt :: forall m. MonadPrimTokenSource m => PrimitiveToken -> m AST.NormalInt
+headToParseNormalInt :: forall m. MonadPrimTokenSource m => PrimitiveToken -> m H.Par.Syn.NormalInt
 headToParseNormalInt =
   choiceFlap
     [ \t -> headToParseConstantInt t <* skipOneOptionalSpace,
-      fmap AST.InternalInt <$> headToParseInternalInt
+      fmap H.Par.Syn.InternalInt <$> headToParseInternalInt
     ]
   where
-    headToParseConstantInt :: PrimitiveToken -> m AST.NormalInt
+    headToParseConstantInt :: PrimitiveToken -> m H.Par.Syn.NormalInt
     headToParseConstantInt t
       | Just w1 <- decCharToWord t = do
         remainingWs <- PC.many (satisfyThen decCharToWord)
-        pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base10 (w1 : remainingWs)
+        pure $ H.Par.Syn.IntConstant $ H.Par.Syn.IntConstantDigits H.Par.Syn.Base10 (w1 : remainingWs)
       | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '"') t = do
         hexDigits <- PC.some (satisfyThen hexCharToWord)
-        pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base16 hexDigits
+        pure $ H.Par.Syn.IntConstant $ H.Par.Syn.IntConstantDigits H.Par.Syn.Base16 hexDigits
       | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '\'') t = do
         octDigits <- PC.some (satisfyThen octCharToWord)
-        pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base8 octDigits
+        pure $ H.Par.Syn.IntConstant $ H.Par.Syn.IntConstantDigits H.Par.Syn.Base8 octDigits
       | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '`') t = do
-        AST.CharLikeCode <$> parseCharLikeCodeInt
+        H.Par.Syn.CharLikeCode <$> parseCharLikeCodeInt
       | otherwise =
         empty
 
@@ -88,34 +90,34 @@ octCharToWord = fromCatChar H.C.Other H.Ascii.fromOctDigit
 fromCatChar :: H.C.CoreCatCode -> (Word8 -> Maybe a) -> PrimitiveToken -> Maybe a
 fromCatChar cat fromWord pt = (pt ^? primTokCatChar cat % typed @Word8) >>= fromWord
 
-headToParseInternalInt :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.InternalInt
+headToParseInternalInt :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.InternalInt 'H.Syn.Parsed)
 headToParseInternalInt =
   choiceFlap
     [ \case
-        T.LastPenaltyTok -> pure AST.LastPenalty
-        T.ParagraphShapeTok -> pure AST.ParShape
-        T.InputLineNrTok -> pure AST.InputLineNr
-        T.BadnessTok -> pure AST.Badness
+        T.LastPenaltyTok -> pure H.Syn.LastPenalty
+        T.ParagraphShapeTok -> pure H.Syn.ParShape
+        T.InputLineNrTok -> pure H.Syn.InputLineNr
+        T.BadnessTok -> pure H.Syn.Badness
         _ -> empty,
-      fmap AST.InternalIntVariable <$> headToParseIntVariable,
-      fmap AST.InternalSpecialIntParameter <$> headToParseSpecialInt,
-      fmap AST.InternalCodeTableRef <$> headToParseCodeTableRef,
-      fmap AST.InternalCharToken <$> headToParseCharToken,
-      fmap AST.InternalMathCharToken <$> headToParseMathCharToken,
-      fmap AST.InternalFontCharRef <$> headToParseFontCharRef
+      fmap H.Syn.InternalIntVariable <$> headToParseIntVariable,
+      fmap H.Syn.InternalSpecialIntParameter <$> headToParseSpecialInt,
+      fmap H.Syn.InternalCodeTableRef <$> headToParseCodeTableRef,
+      fmap H.Syn.InternalCharToken <$> headToParseCharToken,
+      fmap H.Syn.InternalMathCharToken <$> headToParseMathCharToken,
+      fmap H.Syn.InternalFontCharRef <$> headToParseFontCharRef
     ]
 
-headToParseCoercedInt :: MonadPrimTokenSource m => PrimitiveToken -> m AST.CoercedInt
+headToParseCoercedInt :: MonadPrimTokenSource m => PrimitiveToken -> m H.Par.Syn.CoercedInt
 headToParseCoercedInt =
   choiceFlap
-    [ fmap AST.InternalLengthAsInt <$> headToParseInternalLength,
-      fmap AST.InternalGlueAsInt <$> headToParseInternalGlue
+    [ fmap H.Par.Syn.InternalLengthAsInt <$> headToParseInternalLength,
+      fmap H.Par.Syn.InternalGlueAsInt <$> headToParseInternalGlue
     ]
 
-headToParseCodeTableRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.CodeTableRef
+headToParseCodeTableRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.CodeTableRef 'H.Syn.Parsed)
 headToParseCodeTableRef = \case
   T.CodeTypeTok c ->
-    AST.CodeTableRef c <$> parseInt
+    H.Syn.CodeTableRef c <$> parseInt
   t ->
     parseError $ SawUnexpectedToken $ UnexpectedToken {saw = t, expected = "CodeTypeTok"}
 
@@ -133,21 +135,21 @@ headToParseMathCharToken = \case
   _ ->
     empty
 
-headToParseFontCharRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.FontCharRef
+headToParseFontCharRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.FontCharRef 'H.Syn.Parsed)
 headToParseFontCharRef = \case
   T.FontCharTok c ->
-    AST.FontCharRef c <$> parseHeaded headToParseFontRef
+    H.Syn.FontCharRef c <$> parseHeaded headToParseFontRef
   _ ->
     empty
 
-headToParseFontRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.FontRef
+headToParseFontRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.FontRef 'H.Syn.Parsed)
 headToParseFontRef =
   choiceFlap
     [ \case
-        T.FontTok -> pure AST.CurrentFontRef
+        T.FontTok -> pure H.Syn.CurrentFontRef
         _ -> empty,
-      fmap AST.FontTokenRef <$> headToParseFontRefToken,
-      fmap AST.FamilyMemberFontRef <$> headToParseFamilyMember
+      fmap H.Syn.FontTokenRef <$> headToParseFontRefToken,
+      fmap H.Syn.FamilyMemberFontRef <$> headToParseFamilyMember
     ]
 
 headToParseFontRefToken :: MonadPrimTokenSource m => T.PrimitiveToken -> m T.FontNumber
@@ -155,9 +157,9 @@ headToParseFontRefToken = \case
   T.FontRefToken n -> pure n
   _ -> empty
 
-headToParseFamilyMember :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.FamilyMember
+headToParseFamilyMember :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.FamilyMember 'H.Syn.Parsed)
 headToParseFamilyMember = \case
-  T.FontRangeTok r -> AST.FamilyMember r <$> parseInt
+  T.FontRangeTok r -> H.Syn.FamilyMember r <$> parseInt
   _ -> empty
 
 -- ======================
@@ -167,42 +169,42 @@ headToParseFamilyMember = \case
 
 -- Length.
 
-headToParseInternalLength :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.InternalLength
+headToParseInternalLength :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.InternalLength 'H.Syn.Parsed)
 headToParseInternalLength =
   choiceFlap
     [ \case
-        T.LastKernTok -> pure AST.LastKern
+        T.LastKernTok -> pure H.Syn.LastKern
         _ -> empty,
-      fmap AST.InternalLengthVariable <$> headToParseLengthVariable,
-      fmap AST.InternalSpecialLengthParameter <$> headToParseSpecialLength,
-      fmap AST.InternalFontDimensionRef <$> headToParseFontDimensionRef,
-      fmap AST.InternalBoxDimensionRef <$> headToParseBoxDimensionRef
+      fmap H.Syn.InternalLengthVariable <$> headToParseLengthVariable,
+      fmap H.Syn.InternalSpecialLengthParameter <$> headToParseSpecialLength,
+      fmap H.Syn.InternalFontDimensionRef <$> headToParseFontDimensionRef,
+      fmap H.Syn.InternalBoxDimensionRef <$> headToParseBoxDimensionRef
     ]
 
-headToParseFontDimensionRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.FontDimensionRef
+headToParseFontDimensionRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.FontDimensionRef 'H.Syn.Parsed)
 headToParseFontDimensionRef = \case
   T.FontDimensionTok ->
-    AST.FontDimensionRef <$> parseInt <*> parseHeaded headToParseFontRef
+    H.Syn.FontDimensionRef <$> parseInt <*> parseHeaded headToParseFontRef
   _ ->
     empty
 
-headToParseBoxDimensionRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.BoxDimensionRef
+headToParseBoxDimensionRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.BoxDimensionRef 'H.Syn.Parsed)
 headToParseBoxDimensionRef = \case
   T.BoxDimensionTok dim ->
     do
       boxNr <- parseInt
-      pure $ AST.BoxDimensionRef boxNr dim
+      pure $ H.Syn.BoxDimensionRef boxNr dim
   _ ->
     empty
 
 -- Glue.
 
-headToParseInternalGlue :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.InternalGlue
+headToParseInternalGlue :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.InternalGlue 'H.Syn.Parsed)
 headToParseInternalGlue =
   choiceFlap
-    [ fmap AST.InternalGlueVariable <$> headToParseGlueVariable,
+    [ fmap H.Syn.InternalGlueVariable <$> headToParseGlueVariable,
       \case
-        T.LastGlueTok -> pure AST.LastGlue
+        T.LastGlueTok -> pure H.Syn.LastGlue
         _ -> empty
     ]
 
@@ -212,58 +214,58 @@ headToParseInternalGlue =
 -- (Also, 'special' quantities are kept here too, because they are similar to
 -- variables.)
 
-headToParseIntVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.IntQuantity)
+headToParseIntVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.QuantVariable 'H.Syn.Parsed 'T.IntQuantity)
 headToParseIntVariable = \case
   T.IntParamVarTok p ->
-    pure (AST.ParamVar p)
+    pure (H.Syn.ParamVar p)
   T.IntRefTok (T.QuantityType T.IntQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
+    pure $ H.Syn.RegisterVar $ H.Par.Syn.InternalRegisterIndex n
   T.RegisterVariableTok T.IntQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
+    H.Syn.RegisterVar . H.Par.Syn.ExplicitRegisterIndex <$> parseInt
   _ ->
     empty
 
-headToParseLengthVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.LenQuantity)
+headToParseLengthVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.QuantVariable 'H.Syn.Parsed 'T.LengthQuantity)
 headToParseLengthVariable = \case
-  T.LenParamVarTok p ->
-    pure (AST.ParamVar p)
-  T.IntRefTok (T.QuantityType T.LenQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-  T.RegisterVariableTok T.LenQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
+  T.LengthParamVarTok p ->
+    pure (H.Syn.ParamVar p)
+  T.IntRefTok (T.QuantityType T.LengthQuantity) n ->
+    pure $ H.Syn.RegisterVar $ H.Par.Syn.InternalRegisterIndex n
+  T.RegisterVariableTok T.LengthQuantity ->
+    H.Syn.RegisterVar . H.Par.Syn.ExplicitRegisterIndex <$> parseInt
   _ ->
     empty
 
-headToParseGlueVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.GlueQuantity)
+headToParseGlueVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.QuantVariable 'H.Syn.Parsed 'T.GlueQuantity)
 headToParseGlueVariable = \case
   T.GlueParamVarTok p ->
-    pure (AST.ParamVar p)
+    pure (H.Syn.ParamVar p)
   T.IntRefTok (T.QuantityType T.GlueQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
+    pure $ H.Syn.RegisterVar $ H.Par.Syn.InternalRegisterIndex n
   T.RegisterVariableTok T.GlueQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
+    H.Syn.RegisterVar . H.Par.Syn.ExplicitRegisterIndex <$> parseInt
   _ ->
     empty
 
-headToParseMathGlueVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.MathGlueQuantity)
+headToParseMathGlueVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.QuantVariable 'H.Syn.Parsed 'T.MathGlueQuantity)
 headToParseMathGlueVariable = \case
   T.MathGlueParamVarTok p ->
-    pure (AST.ParamVar p)
+    pure (H.Syn.ParamVar p)
   T.IntRefTok (T.QuantityType T.MathGlueQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
+    pure $ H.Syn.RegisterVar $ H.Par.Syn.InternalRegisterIndex n
   T.RegisterVariableTok T.MathGlueQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
+    H.Syn.RegisterVar . H.Par.Syn.ExplicitRegisterIndex <$> parseInt
   _ ->
     empty
 
-headToParseTokenListVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.TokenListQuantity)
+headToParseTokenListVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (H.Syn.QuantVariable 'H.Syn.Parsed 'T.TokenListQuantity)
 headToParseTokenListVariable = \case
   T.TokenListParamVarTok p ->
-    pure (AST.ParamVar p)
+    pure (H.Syn.ParamVar p)
   T.IntRefTok (T.QuantityType T.TokenListQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
+    pure $ H.Syn.RegisterVar $ H.Par.Syn.InternalRegisterIndex n
   T.RegisterVariableTok T.TokenListQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
+    H.Syn.RegisterVar . H.Par.Syn.ExplicitRegisterIndex <$> parseInt
   _ ->
     empty
 

@@ -11,7 +11,7 @@ import Hexlude
 data ChunkedHListElem
   = HListChunk (Seq H.Inter.B.List.HListElem)
   | HListBreakItem H.Inter.B.List.HListElem BreakItem
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 fmtChunkedHListElem :: Fmt ChunkedHListElem r
 fmtChunkedHListElem = F.later $ \case
@@ -70,10 +70,10 @@ finaliseHList (H.Inter.B.List.HList elems@(elemInit :|> lastElem)) =
         :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ H.Q.HexInt $ - H.Q.tenK)
 
 newtype Line = Line {unLine :: Seq H.Inter.B.List.HListElem}
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 newtype LineSequence = LineSequence {unLineSequence :: Seq Line}
-  deriving stock (Show, Generic)
+  deriving stock (Generic)
 
 -- allBreakSequences :: Seq HListElem -> Seq LineSequence
 -- allBreakSequences = go (Empty, Empty)
@@ -144,11 +144,8 @@ breakGreedy dw (H.Inter.B.List.HList allEs) =
               Nothing ->
                 go (lnSeq, Line (lnEs :|> e), NotDiscarding) rEs
               Just bI ->
-                let (spec, b) = listFlexSpec (H.Inter.B.List.HList lnEs) dw
-                 in trace @Text ("HList: " <> sformat H.Inter.B.List.fmtHListElemsOneLine lnEs) $
-                      trace @Text ("Badness: " <> show b) $
-                        trace @Text ("Spec: " <> show spec <> "\n\n") $
-                          if b < infBadness
+                let (_spec, b) = listFlexSpec (H.Inter.B.List.HList lnEs) dw
+                 in if b < infBadness
                             then
                               let newLnSeq = lns :|> ln
                                   newEs = case bI of

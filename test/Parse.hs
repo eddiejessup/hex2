@@ -2,7 +2,7 @@ module Parse where
 
 import Hex.Codes
 import Hex.Lex.Types
-import Hex.Parse.AST.Common
+import Hex.Syntax.Common
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Quantity.Number
 import Hex.Quantity qualified as H.Q
@@ -155,14 +155,14 @@ intTests =
               [ IntRefTok (QuantityType IntQuantity) 1
               ]
               parseInt
-              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ RegisterVar $ InternalRegisterLocation 1),
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ RegisterVar $ InternalRegisterIndex 1),
           testCase "Internal, variable, register, explicit location" $
             assertParseSuccess
               [ RegisterVariableTok IntQuantity,
                 UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other))
               ]
               parseInt
-              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ RegisterVar $ ExplicitRegisterLocation nr1ConstAST),
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalIntVariable $ RegisterVar $ ExplicitRegisterIndex nr1ConstAST),
           testCase "Internal, special" $
             assertParseSuccess
               [ SpecialIntParameterTok SpaceFactorHexInt

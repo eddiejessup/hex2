@@ -1,7 +1,7 @@
-module Hex.Parse.AST.Condition where
+module Hex.Parse.Syntax.Condition where
 
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST.Common
+import Hex.Parse.Syntax.Quantity
 import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
 import Hex.Symbol.Token.SyntaxCommandHead qualified as H.Sym.Tok.Syn
 import Hexlude
@@ -16,7 +16,7 @@ data IfConditionHead
   | IfBoxRegisterIs H.Sym.Tok.BoxRegisterAttribute HexInt -- \ifvoid, \ifhbox, \ifvbox
   | IfInputEnded HexInt -- \ifeof
   | IfConst Bool -- \iftrue, \iffalse
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Generic)
 
 data ConditionHead = IfConditionHead IfConditionHead | CaseConditionHead HexInt
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Generic)

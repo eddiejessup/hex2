@@ -8,14 +8,27 @@ import Hex.Quantity qualified as H.Q
 import Hex.Symbol.Token.Primitive qualified as H.Sym.Tok
 import Hex.Symbol.Token.Resolved qualified as H.Sym.Tok.Res
 import Hex.Symbol.Types qualified as H.Sym
+import Hex.Syntax.Font qualified as H.Syn
+import Hex.Syntax.Quantity qualified as H.Syn
+import Hex.Syntax.Common qualified as H.Syn
 import Hexlude
 
 class Monad m => MonadHexState m where
-  getIntParameter :: H.Sym.Tok.IntParameter -> m H.Q.HexInt
+  getIntVariable :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.IntQuantity -> m H.Q.HexInt
 
-  getLengthParameter :: H.Sym.Tok.LengthParameter -> m H.Q.Length
+  setIntVariable :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.IntQuantity -> H.Sym.Tok.ScopeFlag -> H.Q.HexInt -> m ()
 
-  getGlueParameter :: H.Sym.Tok.GlueParameter -> m H.Q.Glue
+  getLengthVariable :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.LengthQuantity -> m H.Q.Length
+
+  setLengthVariable :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.LengthQuantity -> H.Sym.Tok.ScopeFlag -> H.Q.Length -> m ()
+
+  getGlueVariable :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.GlueQuantity -> m H.Q.Glue
+
+  setGlueVariable :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.GlueQuantity -> H.Sym.Tok.ScopeFlag -> H.Q.Glue -> m ()
+
+  getSpecialIntParameter :: H.Sym.Tok.SpecialIntParameter -> m H.Q.HexInt
+
+  setSpecialIntParameter :: H.Sym.Tok.SpecialIntParameter -> H.Q.HexInt -> m ()
 
   getSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> m H.Q.Length
 
@@ -23,9 +36,11 @@ class Monad m => MonadHexState m where
 
   getCategory :: H.Codes.CharCode -> m H.Codes.CatCode
 
-  resolveSymbol :: H.Sym.ControlSymbol -> m (Maybe H.Sym.Tok.Res.ResolvedToken)
+  getSymbol :: H.Sym.ControlSymbol -> m (Maybe H.Sym.Tok.Res.ResolvedToken)
 
-  loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
+  setSymbol :: H.Sym.ControlSymbol -> H.Sym.Tok.ScopeFlag -> H.Sym.Tok.Res.ResolvedToken -> m ()
+
+  loadFont :: H.Syn.HexFilePath -> H.Syn.FontSpecification 'H.Syn.Evaluated -> m H.Inter.B.Box.FontDefinition
 
   selectFont :: H.Sym.Tok.FontNumber -> H.Sym.Tok.ScopeFlag -> m ()
 
@@ -35,15 +50,13 @@ class Monad m => MonadHexState m where
 
   setAfterAssignmentToken :: Maybe H.Lex.LexToken -> m ()
 
-  setControlSequence :: H.Sym.ControlSymbol -> H.Sym.Tok.Res.ResolvedToken -> H.Sym.Tok.ScopeFlag -> m ()
-
 -- Lifting.
 instance {-# OVERLAPPABLE #-} MonadHexState m => MonadHexState (ExceptT e m) where
-  getIntParameter = lift . getIntParameter
+  getIntVariable = lift . getIntVariable
 
-  getLengthParameter = lift . getLengthParameter
+  getLengthVariable = lift . getLengthVariable
 
-  getGlueParameter = lift . getGlueParameter
+  getGlueVariable = lift . getGlueVariable
 
   getSpecialLengthParameter = lift . getSpecialLengthParameter
 
@@ -51,7 +64,7 @@ instance {-# OVERLAPPABLE #-} MonadHexState m => MonadHexState (ExceptT e m) whe
 
   getCategory p = lift $ getCategory p
 
-  resolveSymbol a = lift $ resolveSymbol a
+  getSymbol a = lift $ getSymbol a
 
   loadFont p spec = lift $ loadFont p spec
 

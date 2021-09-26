@@ -4,7 +4,9 @@ import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
 import Hex.Codes qualified as H.C
 import Hex.Lex.Types qualified as H.Lex
-import Hex.Parse.AST.Command qualified as AST
+import Hex.Syntax.Command qualified as H.Syn
+import Hex.Syntax.Common qualified as H.Syn
+import Hex.Parse.Syntax.Command qualified as H.Par.Syn
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.BalancedText qualified as Par
 import Hex.Parse.Parsers.Combinators qualified as Par
@@ -12,11 +14,11 @@ import Hex.Symbol.Token.Primitive qualified as T
 import Hex.Symbol.Token.SyntaxCommandHead qualified as T.Syn
 import Hexlude
 
-parseMacroBody :: MonadPrimTokenSource m => T.ExpandDefFlag -> Seq T.AssignPrefixTok -> m AST.AssignmentBody
+parseMacroBody :: MonadPrimTokenSource m => T.ExpandDefFlag -> Seq T.AssignPrefixTok -> m (H.Syn.AssignmentBody 'H.Syn.Parsed)
 parseMacroBody defExpandType prefixes = do
   cs <- Par.parseCSName
   tgt <- parseMacroDefinition defExpandType prefixes
-  pure $ AST.DefineControlSequence cs (AST.MacroTarget tgt)
+  pure $ H.Syn.DefineControlSequence cs (H.Par.Syn.MacroTarget tgt)
 
 inhibParseParamText :: MonadPrimTokenSource m => Par.InhibitionToken -> m T.Syn.ParameterText
 inhibParseParamText inhibToken = do

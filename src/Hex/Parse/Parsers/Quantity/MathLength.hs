@@ -4,30 +4,30 @@ module Hex.Parse.Parsers.Quantity.MathLength where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Codes (pattern Chr_)
-import Hex.Parse.AST.Common qualified as AST
+import Hex.Parse.Syntax.Quantity qualified as Syn
 import Hex.Parse.MonadPrimTokenSource.Interface
 import Hex.Parse.Parsers.Combinators
 import Hex.Parse.Parsers.Quantity.Length qualified as Par
 import Hex.Parse.Parsers.Quantity.Number qualified as Par
 import Hexlude
 
-parseMathLength :: MonadPrimTokenSource m => m AST.MathLength
+parseMathLength :: MonadPrimTokenSource m => m Syn.MathLength
 parseMathLength = Par.parseSigned parseUnsignedMathLength
 
-parseUnsignedMathLength :: MonadPrimTokenSource m => m AST.UnsignedMathLength
+parseUnsignedMathLength :: MonadPrimTokenSource m => m Syn.UnsignedMathLength
 parseUnsignedMathLength =
   PC.choice
-    [ AST.NormalMathLengthAsUMathLength <$> parseNormalMathLength
-    -- , AST.CoercedMathLength . AST.InternalMathGlueAsMathLength <$> parseHeaded headToParseInternalMathGlue
+    [ Syn.NormalMathLengthAsUMathLength <$> parseNormalMathLength
+    -- , Syn.CoercedMathLength . Syn.InternalMathGlueAsMathLength <$> parseHeaded headToParseInternalMathGlue
     ]
 
-parseNormalMathLength :: MonadPrimTokenSource m => m AST.NormalMathLength
+parseNormalMathLength :: MonadPrimTokenSource m => m Syn.NormalMathLength
 parseNormalMathLength =
-  AST.MathLengthSemiConstant <$> Par.parseFactor <*> parseMathUnit
+  Syn.MathLengthSemiConstant <$> Par.parseFactor <*> parseMathUnit
 
-parseMathUnit :: MonadPrimTokenSource m => m AST.MathUnit
+parseMathUnit :: MonadPrimTokenSource m => m Syn.MathUnit
 parseMathUnit =
   PC.choice
-    [ skipKeyword [Chr_ 'm', Chr_ 'u'] >> skipOneOptionalSpace $> AST.Mu
-    -- , skipOptionalSpaces *> (AST.InternalMathGlueAsUnit <$> parseHeaded headToParseInternalMathGlue)
+    [ skipKeyword [Chr_ 'm', Chr_ 'u'] >> skipOneOptionalSpace $> Syn.Mu
+    -- , skipOptionalSpaces *> (Syn.InternalMathGlueAsUnit <$> parseHeaded headToParseInternalMathGlue)
     ]

@@ -9,6 +9,9 @@ import Hex.Symbol.Token.Resolved qualified as H.Sym.Tok
 import Hex.Symbol.Types qualified as H.Sym
 import Hex.TFM.Types qualified as H.TFM
 import Hexlude
+import qualified Hex.Syntax.Quantity as H.Syn
+import qualified Hex.Syntax.Common as H.Syn
+import qualified Hex.Lex.Types as H.Lex
 
 data HexState = HexState
   { fontInfos :: Map H.Sym.Tok.FontNumber FontInfo,
@@ -21,7 +24,7 @@ data HexState = HexState
     -- Global parameters.
     specialInts :: Map H.Sym.Tok.SpecialIntParameter H.Q.HexInt,
     specialLengths :: Map H.Sym.Tok.SpecialLengthParameter H.Q.Length,
-    -- afterAssignmentToken :: Maybe Lex.Token,
+    afterAssignmentToken :: Maybe H.Lex.LexToken,
     -- Scopes and groups.
     globalScope :: H.Inter.St.Scope.Scope,
     groups :: [H.Inter.St.Scope.HexGroup]
@@ -36,7 +39,7 @@ newHexState =
       specialLengths = H.Inter.St.Param.newSpecialLengthParameters,
       -- , logStream = logHandle
       -- , outFileStreams = mempty
-      -- , afterAssignmentToken = Nothing
+      afterAssignmentToken = Nothing,
       globalScope = H.Inter.St.Scope.newGlobalScope,
       groups = []
       -- , internalLoggerSet
@@ -51,8 +54,8 @@ stateLocalScopesTraversal = #groups % H.Inter.St.Scope.groupListScopeTraversal
 stateScopes :: HexState -> [H.Inter.St.Scope.Scope]
 stateScopes HexState {globalScope, groups} = globalScope : toListOf H.Inter.St.Scope.groupListScopeTraversal groups
 
-scopedLookup :: (H.Inter.St.Scope.Scope -> Maybe v) -> HexState -> Maybe v
-scopedLookup f c = asum $ f <$> stateScopes c
+scopedLookup :: Lens' H.Inter.St.Scope.Scope (Maybe v) -> HexState -> Maybe v
+scopedLookup f c = asum $ c ^.. to stateScopes % traversed % f
 
 stateLocalMostScopeLens :: Lens' HexState H.Inter.St.Scope.Scope
 stateLocalMostScopeLens = lens getter setter
@@ -80,25 +83,28 @@ stateLocalMostScopeLens = lens getter setter
             go (befGroups ++ [nonScopeGroup]) restAftGroups
 
 stateLocalResolvedToken :: H.Sym.ControlSymbol -> HexState -> Maybe H.Sym.Tok.ResolvedToken
-stateLocalResolvedToken p = scopedLookup (view (H.Inter.St.Scope.scopeResolvedTokenLens p))
+stateLocalResolvedToken p = scopedLookup (H.Inter.St.Scope.scopeSymbolLens p)
 
 stateLocalCategory :: H.Codes.CharCode -> HexState -> H.Codes.CatCode
-stateLocalCategory p = fromMaybe H.Codes.Invalid . scopedLookup (view (H.Inter.St.Scope.scopeCategoryLens p))
+stateLocalCategory p = fromMaybe H.Codes.Invalid . scopedLookup (H.Inter.St.Scope.scopeCategoryLens p)
 
-stateLocalIntParam :: H.Sym.Tok.IntParameter -> HexState -> H.Q.HexInt
-stateLocalIntParam p = fromMaybe H.Q.zeroInt . scopedLookup (view (H.Inter.St.Scope.scopeIntParamLens p))
+stateLocalIntVar :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.IntQuantity -> HexState -> H.Q.HexInt
+stateLocalIntVar v = fromMaybe H.Q.zeroInt . scopedLookup (H.Inter.St.Scope.scopeIntVarLens v)
 
-stateLocalLengthParam :: H.Sym.Tok.LengthParameter -> HexState -> H.Q.Length
-stateLocalLengthParam p = fromMaybe H.Q.zeroLength . scopedLookup (view (H.Inter.St.Scope.scopeLengthParamLens p))
+stateLocalLengthVar :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.LengthQuantity -> HexState -> H.Q.Length
+stateLocalLengthVar v = fromMaybe H.Q.zeroLength . scopedLookup (H.Inter.St.Scope.scopeLengthVarLens v)
 
-stateLocalGlueParam :: H.Sym.Tok.GlueParameter -> HexState -> H.Q.Glue
-stateLocalGlueParam p = fromMaybe H.Q.zeroGlue . scopedLookup (view (H.Inter.St.Scope.scopeGlueParamLens p))
+stateLocalGlueVar :: H.Syn.QuantVariable 'H.Syn.Evaluated 'H.Sym.Tok.GlueQuantity -> HexState -> H.Q.Glue
+stateLocalGlueVar v = fromMaybe H.Q.zeroGlue . scopedLookup (H.Inter.St.Scope.scopeGlueVarLens v)
+
+stateSpecialIntParamLens :: H.Sym.Tok.SpecialIntParameter -> Lens' HexState H.Q.HexInt
+stateSpecialIntParamLens p = #specialInts % at' p % non (H.Q.HexInt 0)
 
 stateSpecialLengthParamLens :: H.Sym.Tok.SpecialLengthParameter -> Lens' HexState H.Q.Length
 stateSpecialLengthParamLens p = #specialLengths % at' p % non (H.Q.Length 0)
 
 stateCurrentFontNr :: HexState -> Maybe H.Sym.Tok.FontNumber
-stateCurrentFontNr = scopedLookup (getField @"currentFontNr")
+stateCurrentFontNr = scopedLookup (field @"currentFontNr")
 
 stateFontInfoLens :: H.Sym.Tok.FontNumber -> Lens' HexState (Maybe FontInfo)
 stateFontInfoLens fNr = #fontInfos % at' fNr
