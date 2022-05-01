@@ -1,21 +1,20 @@
-module Hex.Stage.Expand.Impl.Parsing where
+-- In order to expand syntax-commands into primitive tokens,
+-- we need to be able to parse primitive-token streams.
+-- This might seem circular, and it is! But because syntax-commands
+-- can need to be expanded recursively, this is needed.
+module Hex.Stage.Expand.Impl.Parse where
 
 import Control.Monad.Trans (MonadTrans (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
+import Hex.Common.Parse
 
-data ParsingError
-  = ParseFailure Text
-  | ParseEndOfInput
-  | ParseExplicitFailure
-  | SawUnexpectedToken UnexpectedToken
-  deriving stock (Show, Eq, Generic)
-
-data UnexpectedToken = UnexpectedToken {saw :: PT.PrimitiveToken, expected :: Text}
-  deriving stock (Show, Eq, Generic)
-
+-- This is the monad we will do our parsing in.
+-- The main thing a parser does is implement choice: we can do `a <|> b`,
+-- and if `a` fails we should try `b`, and the overall expression shouldn't fail.
+-- That is why we have the extra `ExceptT ParsingError` layer.
 newtype ParseT m a = ParseT {unParseT :: ExceptT ParsingError m a}
   deriving newtype (Functor, Applicative, Monad)
 
@@ -25,6 +24,9 @@ mkParseT = ParseT . ExceptT
 runParseT :: ParseT m a -> m (Either ParsingError a)
 runParseT = runExceptT . unParseT
 
+-- Run a parser, but backtrack the char-source if the parse fails.
+-- (This is why we need the MonadLexTokenSource instance:
+-- it lets us get at the underlying stream.)
 runParseTWithTry :: Lex.MonadLexTokenSource m => ParseT m a -> m (Either ParsingError a)
 runParseTWithTry a = do
   -- Get the initial state.
@@ -51,7 +53,7 @@ instance MonadTrans ParseT where
 -- therefore specialised to the particular Hex case.
 -- (We are implementing a backtracking parser.)
 instance Lex.MonadLexTokenSource m => Alternative (ParseT m) where
-  empty = ParseT $ throwE $ ParseExplicitFailure
+  empty = ParseT $ throwE $ ParseUnexpectedError ParseExplicitFailure
 
   (<|>) :: ParseT m a -> ParseT m a -> ParseT m a
   a <|> b = do
@@ -69,8 +71,12 @@ instance Lex.MonadLexTokenSource m => Alternative (ParseT m) where
 
 instance Lex.MonadLexTokenSource m => MonadPlus (ParseT m)
 
-parseErrorImpl :: Monad m => ParsingError -> ParseT m a
-parseErrorImpl = ParseT . throwE
+parseErrorEndOfInput :: Monad m => ParseT m a
+parseErrorEndOfInput = ParseT $ throwE ParseEndOfInput
+
+-- The most common case, applies to all failures except end-of-input.
+parseErrorImpl :: Monad m => ParseUnexpectedError -> ParseT m a
+parseErrorImpl = ParseT . throwE . ParseUnexpectedError
 
 -- - We need MonadLexTokenSource because it lets us get at the underlying char-source, for resetting state.
 -- - We need MonadPrimTokenSource to get primitive-tokens to inspect.
@@ -81,7 +87,7 @@ satisfyThenImpl f = do
   -- This might cause some expansion, i.e. some stateful changes to the input.
   lift getPrimitiveToken >>= \case
     -- If we find nothing else in the input, then the parse fails.
-    Nothing -> parseErrorImpl $ ParseEndOfInput
+    Nothing -> parseErrorEndOfInput
     -- If we get a primitive token, apply our quasi-predicate to it.
     Just (_lt, _rt, pt) -> case f pt of
       -- If our predicate fails, reset the source to its original state, i.e. before any expansion happens,
@@ -93,28 +99,6 @@ satisfyThenImpl f = do
       Just v ->
         pure v
 
--- I want a single class to require when I write my parsers that consume primitive tokens.
--- For this I need more than just MonadPrimTokenSource, because I want to write a backtracking parser.
--- For this, I need to be able to get at the underlying char-source, so I can reset the state.
--- So I introduce this class, which I will implement for 'ParseT m', so long as `m` has the necessary
--- instances to:
--- - Get primitive tokens (i.e. MonadPrimTokenSource)
--- - Get the underlying stream (i.e. MonadLexTokenSource)
-
--- This class implements a method to get an individual primitive token,
--- but it is *different* from the 'MonadPrimTokenSource' implementation:
--- Because we need this alternative/monadplus monoid behaviour, to try different parsers,
--- we need end-of-input to raise an error. The '..source' implementation returns a maybe, so we would have to do lots of work to cast that back as an error.
--- In the 'parser' case, we want to raise an error on end-of-input.
--- We just add the 'Monad m, Alternative m' constraints because I know any reasonable use is going to require this,
--- and it saves typing an extra constraint at the use-site in such cases.
-class (Monad m, Alternative m, MonadPlus m) => MonadPrimTokenParse m where
-  getAnyPrimitiveToken :: m PT.PrimitiveToken
-
-  satisfyThen :: (PT.PrimitiveToken -> Maybe a) -> m a
-
-  parseError :: ParsingError -> m a
-
 -- I want to write my parsers in 'MonadPrimTokenParse m => m'.
 -- I could write them in 'Lex.MonadLexTokenSource m, MonadPrimTokenSource m => ParseT m',
 -- but this would be a lot of typing for each parser.
@@ -123,7 +107,7 @@ class (Monad m, Alternative m, MonadPlus m) => MonadPrimTokenParse m where
 instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m) => MonadPrimTokenParse (ParseT m) where
   getAnyPrimitiveToken =
     lift getPrimitiveToken >>= \case
-      Nothing -> parseError $ ParseEndOfInput
+      Nothing -> parseErrorEndOfInput
       Just (_lt, _rt, pt) -> pure pt
 
   satisfyThen = satisfyThenImpl

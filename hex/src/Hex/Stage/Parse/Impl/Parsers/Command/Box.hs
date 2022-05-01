@@ -12,7 +12,7 @@ import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
+import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 headToParseLeadersSpec :: MonadPrimTokenParse m => H.Q.Axis -> T.PrimitiveToken -> m AST.LeadersSpec
 headToParseLeadersSpec axis = \case

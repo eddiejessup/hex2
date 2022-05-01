@@ -7,7 +7,7 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hexlude
-import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
+import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 parseMathLength :: MonadPrimTokenParse m => m AST.MathLength
 parseMathLength = Par.parseSigned parseUnsignedMathLength

@@ -13,7 +13,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 -- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
+import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 headToParseNonMacroAssignmentBody ::
   MonadPrimTokenParse m =>

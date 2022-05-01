@@ -6,6 +6,7 @@ import Hex.Run.Categorise qualified as Run.Cat
 import Hex.Run.Lex qualified as Run.Lex
 import Hex.Run.Resolve qualified as Run.Resolve
 import Hex.Run.Expand qualified as Run.Expand
+import Hex.Run.Parse qualified as Run.Parse
 import Hexlude
 import Options.Applicative
 import Hex.Stage.Resolve.Interface (ResolutionMode(..))
@@ -43,7 +44,7 @@ data RunMode
   | LexMode
   | ResolveMode ResolutionMode
   | ExpandMode
-  | CommandMode
+  | RawCommandMode
   | ParaListMode
   | ParaSetMode
   | PageListMode
@@ -73,6 +74,7 @@ runModeParser =
         <> command "resolve" (info (pure (ResolveMode Resolving)) (progDesc ""))
         <> command "resolve_not" (info (pure (ResolveMode NotResolving)) (progDesc ""))
         <> command "expand" (info (pure ExpandMode) (progDesc ""))
+        <> command "raw_command" (info (pure RawCommandMode) (progDesc ""))
     )
 
 appOptionsParser :: Parser AppOptions
@@ -116,6 +118,9 @@ main = do
     ExpandMode -> do
       resultList <- Run.unsafeEvalApp input Run.Expand.expandAll
       putText $ sformat Run.Expand.fmtExpandResult resultList
+    RawCommandMode -> do
+      commandList <- Run.unsafeEvalApp input Run.Parse.parseAll
+      putText $ sformat Run.Parse.fmtCommandList commandList
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
   pure ()

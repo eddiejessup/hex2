@@ -2,7 +2,7 @@ module Hex.Stage.Parse.Impl.Parsers.BalancedText where
 
 import Hex.Common.Codes qualified as H.C
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as T
-import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse (..))
+import Hex.Common.Parse (MonadPrimTokenParse (..))
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hexlude

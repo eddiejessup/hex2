@@ -46,7 +46,7 @@
   - Implementation:
     - Uses MonadResolvedTokenSource
 - *Parse*: Generate ASTTokens like 'Command's
-  - Interface: MonadParse
+  - Interface: MonadCommandSource
   - Implementation:
     - Uses MonadPrimTokenSource
 - *Evaluate*: Evaluate ASTTokens into EvaluatedTokens, like evaluated 'Command's

@@ -1,9 +1,10 @@
 module Hex.Stage.Parse.Interface where
 
 import Hex.Stage.Parse.Interface.AST.Command (Command)
+import Hexlude
 
-class MonadParse m where
-  parseCommand :: m Command
+class MonadCommandSource m where
+  getCommand :: m (Maybe Command)
 
   -- insertLexTokenToSource :: Lex.LexToken -> m ()
 

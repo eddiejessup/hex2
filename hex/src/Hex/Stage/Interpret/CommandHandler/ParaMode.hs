@@ -41,7 +41,7 @@ buildParaList indentFlag = do
   where
     go = do
       sPreParse <- lift H.Eval.getSource
-      command <- lift H.Eval.parseCommand
+      command <- lift H.Eval.getCommand
       traceM $ "In para-mode, saw command: " <> show command
       handleCommandInParaMode sPreParse command >>= \case
         EndPara endReason -> pure endReason

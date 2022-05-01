@@ -11,7 +11,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
+import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 parseOpenFileStream :: MonadPrimTokenParse m => AST.FileStreamType -> m AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =

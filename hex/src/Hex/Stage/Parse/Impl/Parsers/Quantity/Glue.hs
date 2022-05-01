@@ -10,7 +10,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
+import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 headToParseModedAddGlue :: MonadPrimTokenParse m => H.Q.Axis -> T.PrimitiveToken -> m AST.Glue
 headToParseModedAddGlue axis = \case

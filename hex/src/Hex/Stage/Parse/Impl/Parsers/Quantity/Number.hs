@@ -11,7 +11,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Stage.Expand.Impl.Parsing (UnexpectedToken(..), ParsingError (..), MonadPrimTokenParse (..))
+import Hex.Common.Parse (UnexpectedToken(..), MonadPrimTokenParse (..), ParseUnexpectedError (..))
 
 parseSigned :: forall m a. MonadPrimTokenParse m => m a -> m (AST.Signed a)
 parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity

@@ -8,7 +8,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..))
-import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
+import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 -- <optional spaces> = <zero or more spaces>.
 skipOptionalSpaces :: MonadPrimTokenParse m => m ()

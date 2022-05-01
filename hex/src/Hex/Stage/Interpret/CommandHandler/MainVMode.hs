@@ -30,7 +30,7 @@ buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
   where
     go = do
       streamPreParse <- lift H.Eval.getSource
-      command <- lift H.Eval.parseCommand
+      command <- lift H.Eval.getCommand
       traceM $ show command
       handleCommandInMainVMode streamPreParse command >>= \case
         EndMainVMode -> pure ()

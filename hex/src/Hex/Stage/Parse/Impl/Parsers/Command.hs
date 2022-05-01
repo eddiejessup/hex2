@@ -18,7 +18,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Tok
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
+import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
