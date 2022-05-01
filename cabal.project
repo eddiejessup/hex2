@@ -1,0 +1,8 @@
+packages:
+  hex/
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/protolude
+  -- Replace this with the commit you want to check out:
+  tag: 3e24972

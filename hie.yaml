@@ -1,13 +1,13 @@
 cradle:
   cabal:
-    - path: "src"
+    - path: "hex/src"
       component: "lib:hex"
 
-    - path: "hexc/Hexc.hs"
+    - path: "hex/hexc/Hexc.hs"
       component: "hex:exe:hexc"
 
-    - path: "hexc/Paths_hex.hs"
+    - path: "hex/hexc/Paths_hex.hs"
       component: "hex:exe:hexc"
 
-    - path: "test"
+    - path: "hex/test"
       component: "hex:test:hex-test"
