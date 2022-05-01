@@ -1,7 +1,6 @@
 module Main where
 
 import Data.ByteString qualified as BS
-import Formatting qualified as F
 import Hex.Run.App qualified as Run
 import Hex.Run.Categorise qualified as Run.Cat
 import Hex.Run.Lex qualified as Run.Lex
@@ -41,7 +40,7 @@ inputParser = fileInputParser <|> stdInputParser
 data RunMode
   = CatMode
   | LexMode
-  | ResolveMode
+  | ResolveMode ResolutionMode
   | ExpandMode
   | CommandMode
   | ParaListMode
@@ -70,7 +69,8 @@ runModeParser =
   subparser
     ( command "cat" (info (pure CatMode) (progDesc ""))
         <> command "lex" (info (pure LexMode) (progDesc ""))
-        <> command "resolve" (info (pure ResolveMode) (progDesc ""))
+        <> command "resolve" (info (pure (ResolveMode Resolving)) (progDesc ""))
+        <> command "resolve_not" (info (pure (ResolveMode NotResolving)) (progDesc ""))
     )
 
 appOptionsParser :: Parser AppOptions
@@ -108,8 +108,8 @@ main = do
     LexMode -> do
       lts <- Run.unsafeEvalApp input Run.Lex.lexAll
       putText $ sformat Run.Lex.fmtLexResult lts
-    ResolveMode -> do
-      resultList <- Run.unsafeEvalApp input (Run.Resolve.resolveAll Resolving)
+    ResolveMode resMode -> do
+      resultList <- Run.unsafeEvalApp input (Run.Resolve.resolveAll resMode)
       putText $ sformat Run.Resolve.fmtResolveResult resultList
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
