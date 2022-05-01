@@ -13,8 +13,8 @@ import Hex.Stage.Categorise.Types
 import Hexlude
 
 extractCharCat ::
-  HSt.MonadHexState m => ByteString -> MaybeT m (RawCharCat, ByteString)
-extractCharCat xs = do
+  HSt.MonadHexState m => ByteString -> m (Maybe (RawCharCat, ByteString))
+extractCharCat xs = runMaybeT $ do
   (n1, rest1) <- MaybeT $ pure $ BS.uncons xs
   -- Next two characters must be identical, and have category
   -- 'Superscript', and triod character mustn't have category 'EndOfLine'.
@@ -50,7 +50,7 @@ instance
   -- Lift 'extractCharCat' into a stateful context.
   getCharCat = do
     bs <- use (typed @ByteString)
-    runMaybeT (extractCharCat bs) >>= \case
+    extractCharCat bs >>= \case
       Nothing -> pure Nothing
       Just (c, bs') -> do
         assign' (typed @ByteString) bs'

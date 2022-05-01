@@ -4,7 +4,6 @@ import Hex.Stage.Categorise.Impl qualified as H.Cat
 import Hex.Stage.Categorise.Types qualified as H.Cat
 import Hex.Common.Codes qualified as Code
 import Hexlude
-import Control.Monad.Trans.Maybe
 import Hex.Stage.Lex.Interface.Extract (LexToken (..), LexError (..), LexState (..), parToken, mkControlSequence, LexCharCat (..))
 import qualified Hex.Common.HexState.Interface as HSt
 
@@ -16,7 +15,7 @@ getLetterChars :: HSt.MonadHexState m => ByteString -> m (Seq Code.CharCode, Byt
 getLetterChars = go Empty
   where
     go acc cs =
-      runMaybeT (H.Cat.extractCharCat cs) >>= \case
+      H.Cat.extractCharCat cs >>= \case
         -- No input left: Return our accumulation, and an empty rest-of-input.
         Nothing ->
           pure (acc, mempty)
@@ -30,7 +29,7 @@ getLetterChars = go Empty
 
 dropTilEndOfLine :: HSt.MonadHexState m => ByteString -> m ByteString
 dropTilEndOfLine xs = do
-  runMaybeT (H.Cat.extractCharCat xs) >>= \case
+  H.Cat.extractCharCat xs >>= \case
     Nothing ->
       pure mempty
     Just (H.Cat.RawCharCat _ Code.EndOfLine, xsRest) ->
@@ -48,13 +47,13 @@ extractToken = go
   where
     go :: LexState -> ByteString -> ExceptT e m (Maybe (LexToken, LexState, ByteString))
     go _state cs = do
-      lift (runMaybeT (H.Cat.extractCharCat cs)) >>= \case
+      lift (H.Cat.extractCharCat cs) >>= \case
         Nothing -> pure Nothing
         Just (H.Cat.RawCharCat n1 cat1, rest) ->
           case (cat1, _state) of
             -- Control sequence: Grab it.
             (Code.Escape, _) -> do
-              lift (runMaybeT (H.Cat.extractCharCat rest)) >>= \case
+              lift (H.Cat.extractCharCat rest) >>= \case
                 Nothing ->
                   throwE $ injectTyped TerminalEscapeCharacter
                 Just (H.Cat.RawCharCat csChar1 ctrlSeqCat1, restPostEscape) -> do

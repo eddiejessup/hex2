@@ -24,11 +24,23 @@ class Monad m => MonadResolvedTokenSource m where
 
   putSource :: CharSource -> m ()
 
+getMayResolvedToken :: MonadResolvedTokenSource m => ResolutionMode -> m (Maybe (Lex.LexToken, Either ResolutionError ResolvedToken))
+getMayResolvedToken resMode = do
+  -- Get a lex token.
+  getLexToken >>= \case
+    -- If no lex token, return nothing.
+    Nothing -> pure Nothing
+    -- If there is a lex token, try to resolve it.
+    Just lt -> do
+      errOrResolvedTok <- resolveLexToken resMode lt
+      pure $ Just (lt, errOrResolvedTok)
+
+-- Like getMayResolvedToken, but just return nothing if resolution fails.
 getResolvedToken :: MonadResolvedTokenSource m => ResolutionMode -> m (Maybe (Lex.LexToken, ResolvedToken))
 getResolvedToken resMode = do
-  getLexToken >>= \case
-    Nothing -> pure Nothing
-    Just lt ->
-      resolveLexToken resMode lt >>= \case
-        Left _ -> pure Nothing
-        Right rt -> pure $ Just (lt, rt)
+  getMayResolvedToken resMode <&> \case
+    Nothing -> Nothing
+    Just (lt, errOrResolvedTok) ->
+      case rightToMaybe errOrResolvedTok of
+        Nothing -> Nothing
+        Just rt -> Just (lt, rt)

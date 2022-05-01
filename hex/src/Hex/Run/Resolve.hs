@@ -1,26 +1,32 @@
 module Hex.Run.Resolve where
 
 import Hexlude
-import qualified Hex.Stage.Lex.Impl.Extract as Lex
-import qualified Hex.Common.HexState.Interface.Resolve as H.Res
-import qualified Hex.Stage.Resolve.Interface as H.Stage.Res
-import qualified Hex.Common.HexState.Interface as HSt
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Stage.Resolve.Impl (resolveToken)
+import Hex.Stage.Resolve.Interface
+import Hex.Run.App (App)
+import Hex.Common.HexState.Interface.Resolve (ResolvedToken)
+import Hex.Common.HexState.Impl ()
+import Hex.Stage.Categorise.Impl ()
+import Hex.Stage.Lex.Impl ()
+import Hex.Stage.Resolve.Impl ()
+import qualified Formatting as F
+import Hex.Stage.Lex.Interface.Extract (fmtLexToken)
 
--- Helper to resolve a whole string at once.
-codesToResolvedTokens ::
-  HSt.MonadHexState m =>
-  H.Stage.Res.ResolutionMode ->
-  ByteString ->
-  ExceptT Lex.LexError m [(Lex.LexToken, Maybe H.Res.ResolvedToken)]
-codesToResolvedTokens resMode xs0 = withExceptT runIdentity $ go Lex.LineBegin xs0
+-- Resolution mode will remain constant over the operation.
+resolveAll :: ResolutionMode -> App [(Lex.LexToken, Either ResolutionError ResolvedToken)]
+resolveAll mode = go
   where
-    go lexState xs =
-      Lex.extractToken @(Identity Lex.LexError) lexState xs >>= \case
+    go =
+      getMayResolvedToken mode >>= \case
         Nothing ->
           pure []
-        Just (tok, lexState1, xs1) -> do
-          rt <- lift $ resolveToken resMode tok
-          v <- go lexState1 xs1
-          pure $ (tok, rt) : v
+        Just r -> do
+          v <- go
+          pure $ r : v
+
+fmtResolveResult :: Fmt [(Lex.LexToken, Either ResolutionError ResolvedToken)] r
+fmtResolveResult = F.unlined fmtOneResult
+  where
+    fmtOneResult = F.accessed fst fmtLexToken <> F.fconst " --> " <> F.accessed snd fmtErrOrRT
+
+    fmtErrOrRT = F.eithered F.shown F.shown
