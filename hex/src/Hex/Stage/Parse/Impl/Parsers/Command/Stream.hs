@@ -10,30 +10,30 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
-parseOpenFileStream :: MonadPrimTokenSource m => AST.FileStreamType -> m AST.FileStreamModificationCommand
+parseOpenFileStream :: MonadPrimTokenParse m => AST.FileStreamType -> m AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =
   do
     (n, fileName) <- Par.parseXEqualsY Par.parseInt parseFileName
     pure $ AST.FileStreamModificationCommand fileStreamType (AST.Open fileName) n
 
-headToParseOpenOutput :: MonadPrimTokenSource m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
+headToParseOpenOutput :: MonadPrimTokenParse m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
 headToParseOpenOutput writePolicy = \case
   T.OpenOutputTok ->
     parseOpenFileStream (AST.FileOutput writePolicy)
   _ ->
     empty
 
-headToParseCloseOutput :: MonadPrimTokenSource m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
+headToParseCloseOutput :: MonadPrimTokenParse m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
 headToParseCloseOutput writePolicy = \case
   T.CloseOutputTok ->
     AST.FileStreamModificationCommand (AST.FileOutput writePolicy) AST.Close <$> Par.parseInt
   _ ->
     empty
 
-headToParseWriteToStream :: MonadPrimTokenSource m => AST.WritePolicy -> T.PrimitiveToken -> m AST.StreamWriteCommand
+headToParseWriteToStream :: MonadPrimTokenParse m => AST.WritePolicy -> T.PrimitiveToken -> m AST.StreamWriteCommand
 headToParseWriteToStream writePolicy = \case
   T.WriteTok ->
     do
@@ -46,7 +46,7 @@ headToParseWriteToStream writePolicy = \case
     empty
 
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
-parseFileName :: MonadPrimTokenSource m => m AST.HexFilePath
+parseFileName :: MonadPrimTokenParse m => m AST.HexFilePath
 parseFileName = do
   Par.skipOptionalSpaces
   fileNameAsciiChars <-

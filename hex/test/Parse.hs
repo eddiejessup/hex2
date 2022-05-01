@@ -43,7 +43,7 @@ instance Alternative Parse where
 instance MonadPlus Parse
 
 instance MonadPrimTokenSource Parse where
-  fetchPT = do
+  getPrimitiveToken = do
     get >>= \case
       [] -> throwError EOI
       x : xs -> do
@@ -53,7 +53,7 @@ instance MonadPrimTokenSource Parse where
   satisfyThen :: (PrimitiveToken -> Maybe a) -> Parse a
   satisfyThen f = do
     src0 <- get
-    t <- fetchPT
+    t <- getPrimitiveToken
     case f t of
       Nothing -> do
         put src0

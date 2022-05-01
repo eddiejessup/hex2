@@ -5,6 +5,7 @@ import Hex.Run.App qualified as Run
 import Hex.Run.Categorise qualified as Run.Cat
 import Hex.Run.Lex qualified as Run.Lex
 import Hex.Run.Resolve qualified as Run.Resolve
+import Hex.Run.Expand qualified as Run.Expand
 import Hexlude
 import Options.Applicative
 import Hex.Stage.Resolve.Interface (ResolutionMode(..))
@@ -71,6 +72,7 @@ runModeParser =
         <> command "lex" (info (pure LexMode) (progDesc ""))
         <> command "resolve" (info (pure (ResolveMode Resolving)) (progDesc ""))
         <> command "resolve_not" (info (pure (ResolveMode NotResolving)) (progDesc ""))
+        <> command "expand" (info (pure ExpandMode) (progDesc ""))
     )
 
 appOptionsParser :: Parser AppOptions
@@ -111,6 +113,9 @@ main = do
     ResolveMode resMode -> do
       resultList <- Run.unsafeEvalApp input (Run.Resolve.resolveAll resMode)
       putText $ sformat Run.Resolve.fmtResolveResult resultList
+    ExpandMode -> do
+      resultList <- Run.unsafeEvalApp input Run.Expand.expandAll
+      putText $ sformat Run.Expand.fmtExpandResult resultList
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
   pure ()

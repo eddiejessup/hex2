@@ -6,6 +6,7 @@ import Hex.Common.HexState.Interface.Resolve.SyntaxToken
 import qualified Hex.Common.Codes as H.Codes
 import qualified Data.HashMap.Strict as HMap
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
+import qualified Formatting as F
 
 -- Symbol to be resolved.
 data ControlSymbol
@@ -19,5 +20,8 @@ data ResolvedToken
   = SyntaxCommandHeadToken SyntaxCommandHeadToken
   | PrimitiveToken PrimitiveToken
   deriving stock (Show, Eq, Generic)
+
+fmtResolvedToken :: Fmt ResolvedToken r
+fmtResolvedToken = F.shown
 
 type CSMap = HMap.HashMap ControlSymbol ResolvedToken

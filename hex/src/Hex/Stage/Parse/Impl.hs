@@ -3,14 +3,14 @@
 
 module Hex.Stage.Parse.Impl where
 
-import Hex.Stage.Parse.Interface
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse (..))
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
-import Hexlude
-import Hex.Stage.Expand.Interface qualified as Expand
+import Hex.Stage.Parse.Interface
 
-instance (Expand.MonadPrimTokenSource m) => MonadParse m where
+instance (MonadPrimTokenParse m) => MonadParse m where
   parseCommand = Parsers.Command.parseCommand
-  -- getSource = Expand.getSource
-  -- putSource = Expand.putSource
-  -- insertLexTokenToSource = Expand.insertLexTokenToSource
-  -- insertLexTokensToSource = Expand.insertLexTokensToSource
+
+-- getSource = Expand.getSource
+-- putSource = Expand.putSource
+-- insertLexTokenToSource = Expand.insertLexTokenToSource
+-- insertLexTokensToSource = Expand.insertLexTokensToSource

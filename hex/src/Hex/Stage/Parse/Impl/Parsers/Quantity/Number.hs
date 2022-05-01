@@ -10,10 +10,10 @@ import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..), UnexpectedToken (..), ParsingError (..))
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
+import Hex.Stage.Expand.Impl.Parsing (UnexpectedToken(..), ParsingError (..), MonadPrimTokenParse (..))
 
-parseSigned :: forall m a. MonadPrimTokenSource m => m a -> m (AST.Signed a)
+parseSigned :: forall m a. MonadPrimTokenParse m => m a -> m (AST.Signed a)
 parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
   where
     parseOptionalSigns :: m [H.Q.Sign]
@@ -26,17 +26,17 @@ parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
           | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '-') t = Just H.Q.Negative
           | otherwise = Nothing
 
-parseInt :: MonadPrimTokenSource m => m AST.HexInt
+parseInt :: MonadPrimTokenParse m => m AST.HexInt
 parseInt = AST.HexInt <$> parseSigned (parseHeaded headToParseUnsignedInt)
 
-headToParseUnsignedInt :: MonadPrimTokenSource m => PrimitiveToken -> m AST.UnsignedInt
+headToParseUnsignedInt :: MonadPrimTokenParse m => PrimitiveToken -> m AST.UnsignedInt
 headToParseUnsignedInt =
   choiceFlap
     [ fmap AST.NormalUnsignedInt <$> headToParseNormalInt,
       fmap AST.CoercedUnsignedInt <$> headToParseCoercedInt
     ]
 
-headToParseNormalInt :: forall m. MonadPrimTokenSource m => PrimitiveToken -> m AST.NormalInt
+headToParseNormalInt :: forall m. MonadPrimTokenParse m => PrimitiveToken -> m AST.NormalInt
 headToParseNormalInt =
   choiceFlap
     [ \t -> headToParseConstantInt t <* skipOneOptionalSpace,
@@ -88,7 +88,7 @@ octCharToWord = fromCatChar H.C.Other H.Ascii.fromOctDigit
 fromCatChar :: H.C.CoreCatCode -> (Word8 -> Maybe a) -> PrimitiveToken -> Maybe a
 fromCatChar cat fromWord pt = (pt ^? primTokCatChar cat % typed @Word8) >>= fromWord
 
-headToParseInternalInt :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.InternalInt
+headToParseInternalInt :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.InternalInt
 headToParseInternalInt =
   choiceFlap
     [ \case
@@ -105,42 +105,42 @@ headToParseInternalInt =
       fmap AST.InternalFontCharRef <$> headToParseFontCharRef
     ]
 
-headToParseCoercedInt :: MonadPrimTokenSource m => PrimitiveToken -> m AST.CoercedInt
+headToParseCoercedInt :: MonadPrimTokenParse m => PrimitiveToken -> m AST.CoercedInt
 headToParseCoercedInt =
   choiceFlap
     [ fmap AST.InternalLengthAsInt <$> headToParseInternalLength,
       fmap AST.InternalGlueAsInt <$> headToParseInternalGlue
     ]
 
-headToParseCodeTableRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.CodeTableRef
+headToParseCodeTableRef :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.CodeTableRef
 headToParseCodeTableRef = \case
   T.CodeTypeTok c ->
     AST.CodeTableRef c <$> parseInt
   t ->
     parseError $ SawUnexpectedToken $ UnexpectedToken {saw = t, expected = "CodeTypeTok"}
 
-headToParseCharToken :: MonadPrimTokenSource m => T.PrimitiveToken -> m H.Q.HexInt
+headToParseCharToken :: MonadPrimTokenParse m => T.PrimitiveToken -> m H.Q.HexInt
 headToParseCharToken = \case
   T.IntRefTok T.CharQuantity c ->
     pure c
   t ->
     parseError $ SawUnexpectedToken $ UnexpectedToken {saw = t, expected = "IntRefTok CharQuantity"}
 
-headToParseMathCharToken :: MonadPrimTokenSource m => T.PrimitiveToken -> m H.Q.HexInt
+headToParseMathCharToken :: MonadPrimTokenParse m => T.PrimitiveToken -> m H.Q.HexInt
 headToParseMathCharToken = \case
   T.IntRefTok T.MathCharQuantity c ->
     pure c
   _ ->
     empty
 
-headToParseFontCharRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.FontCharRef
+headToParseFontCharRef :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.FontCharRef
 headToParseFontCharRef = \case
   T.FontCharTok c ->
     AST.FontCharRef c <$> parseHeaded headToParseFontRef
   _ ->
     empty
 
-headToParseFontRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.FontRef
+headToParseFontRef :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.FontRef
 headToParseFontRef =
   choiceFlap
     [ \case
@@ -150,12 +150,12 @@ headToParseFontRef =
       fmap AST.FamilyMemberFontRef <$> headToParseFamilyMember
     ]
 
-headToParseFontRefToken :: MonadPrimTokenSource m => T.PrimitiveToken -> m T.FontNumber
+headToParseFontRefToken :: MonadPrimTokenParse m => T.PrimitiveToken -> m T.FontNumber
 headToParseFontRefToken = \case
   T.FontRefToken n -> pure n
   _ -> empty
 
-headToParseFamilyMember :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.FamilyMember
+headToParseFamilyMember :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.FamilyMember
 headToParseFamilyMember = \case
   T.FontRangeTok r -> AST.FamilyMember r <$> parseInt
   _ -> empty
@@ -167,7 +167,7 @@ headToParseFamilyMember = \case
 
 -- Length.
 
-headToParseInternalLength :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.InternalLength
+headToParseInternalLength :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.InternalLength
 headToParseInternalLength =
   choiceFlap
     [ \case
@@ -179,14 +179,14 @@ headToParseInternalLength =
       fmap AST.InternalBoxDimensionRef <$> headToParseBoxDimensionRef
     ]
 
-headToParseFontDimensionRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.FontDimensionRef
+headToParseFontDimensionRef :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.FontDimensionRef
 headToParseFontDimensionRef = \case
   T.FontDimensionTok ->
     AST.FontDimensionRef <$> parseInt <*> parseHeaded headToParseFontRef
   _ ->
     empty
 
-headToParseBoxDimensionRef :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.BoxDimensionRef
+headToParseBoxDimensionRef :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.BoxDimensionRef
 headToParseBoxDimensionRef = \case
   T.BoxDimensionTok dim ->
     do
@@ -197,7 +197,7 @@ headToParseBoxDimensionRef = \case
 
 -- Glue.
 
-headToParseInternalGlue :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.InternalGlue
+headToParseInternalGlue :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.InternalGlue
 headToParseInternalGlue =
   choiceFlap
     [ fmap AST.InternalGlueVariable <$> headToParseGlueVariable,
@@ -212,7 +212,7 @@ headToParseInternalGlue =
 -- (Also, 'special' quantities are kept here too, because they are similar to
 -- variables.)
 
-headToParseIntVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.IntQuantity)
+headToParseIntVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.IntQuantity)
 headToParseIntVariable = \case
   T.IntParamVarTok p ->
     pure (AST.ParamVar p)
@@ -223,7 +223,7 @@ headToParseIntVariable = \case
   _ ->
     empty
 
-headToParseLengthVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.LenQuantity)
+headToParseLengthVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.LenQuantity)
 headToParseLengthVariable = \case
   T.LenParamVarTok p ->
     pure (AST.ParamVar p)
@@ -234,7 +234,7 @@ headToParseLengthVariable = \case
   _ ->
     empty
 
-headToParseGlueVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.GlueQuantity)
+headToParseGlueVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.GlueQuantity)
 headToParseGlueVariable = \case
   T.GlueParamVarTok p ->
     pure (AST.ParamVar p)
@@ -245,7 +245,7 @@ headToParseGlueVariable = \case
   _ ->
     empty
 
-headToParseMathGlueVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.MathGlueQuantity)
+headToParseMathGlueVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.MathGlueQuantity)
 headToParseMathGlueVariable = \case
   T.MathGlueParamVarTok p ->
     pure (AST.ParamVar p)
@@ -256,7 +256,7 @@ headToParseMathGlueVariable = \case
   _ ->
     empty
 
-headToParseTokenListVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.TokenListQuantity)
+headToParseTokenListVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.TokenListQuantity)
 headToParseTokenListVariable = \case
   T.TokenListParamVarTok p ->
     pure (AST.ParamVar p)
@@ -267,14 +267,14 @@ headToParseTokenListVariable = \case
   _ ->
     empty
 
-headToParseSpecialInt :: MonadPrimTokenSource m => T.PrimitiveToken -> m T.SpecialIntParameter
+headToParseSpecialInt :: MonadPrimTokenParse m => T.PrimitiveToken -> m T.SpecialIntParameter
 headToParseSpecialInt = \case
   T.SpecialIntParameterTok p ->
     pure p
   _ ->
     empty
 
-headToParseSpecialLength :: MonadPrimTokenSource m => T.PrimitiveToken -> m T.SpecialLengthParameter
+headToParseSpecialLength :: MonadPrimTokenParse m => T.PrimitiveToken -> m T.SpecialLengthParameter
 headToParseSpecialLength = \case
   T.SpecialLengthParameterTok p ->
     pure p

@@ -3,87 +3,60 @@
 
 module Hex.Stage.Expand.Impl where
 
-import Control.Monad.Trans (MonadTrans (..))
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Syn
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..), ParsingError (..))
+import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Resolve.Interface (ResolutionMode (..))
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
+import Hex.Stage.Lex.Interface.Extract (LexToken)
+import qualified Hex.Stage.Lex.Interface as Lex
 
 data ExpansionError
-  = UnexpectedEndOfInputExpansionError
-  | ResolutionExpansionError Res.ResolutionError
+  = ResolutionExpansionError Res.ResolutionError
   deriving stock (Generic, Show)
 
-newtype ParseT m a = ParseT {unParseT :: ExceptT ParsingError m a}
-  deriving newtype (Functor, Applicative, Monad)
+instance (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e) => MonadPrimTokenSource m where
+  getPrimitiveToken = fetchPrimitiveToken
 
-instance MonadTrans ParseT where
-  lift ma = ParseT $ ExceptT $ Right <$> ma
-
-instance Res.MonadResolvedTokenSource m => Alternative (ParseT m) where
-  empty = ParseT $ throwE ParseFailure
-
-  (<|>) :: ParseT m a -> ParseT m a -> ParseT m a
-  a <|> b = do
-    errOrV <- lift $ runExceptT (unParseT (parseTry a))
-    case errOrV of
-      Left _ -> do
-        parseTry b
-      Right v ->
-        pure v
-
-parseTry :: forall m a. (Monad m, Res.MonadResolvedTokenSource m) => ParseT m a -> ParseT m a
-parseTry a = ParseT $ ExceptT go
-  where
-    go :: m (Either ParsingError a)
-    go = do
-      src0 <- Res.getSource
-      errOrV <- runExceptT (unParseT a)
-      case errOrV of
-        Left _ -> do
-          Res.putSource src0
-        _ ->
-          pure ()
-      pure errOrV
-
-instance (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e) => MonadPrimTokenSource (ParseT m) where
-  fetchPT = lift fetchPrimitiveToken
-
-  satisfyThen :: (PrimitiveToken -> Maybe a) -> ParseT m a
-  satisfyThen f = do
-    src0 <- lift Res.getSource
-    t <- fetchPT
-    case f t of
-      Nothing -> do
-        lift $ Res.putSource src0
-        empty
-      Just v ->
-        pure v
-
-  parseError e = ParseT $ throwE e
-
-fetchPrimitiveToken :: (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e) => m PrimitiveToken
+-- Note that the lex-tokens and resolved-tokens are just returned for debugging really.
+-- They are passed through unchanged from the resolved-token-source.
+fetchPrimitiveToken
+  :: (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e)
+  => m (Maybe (LexToken, ResolvedToken, PrimitiveToken))
 fetchPrimitiveToken = do
-  Res.getLexToken >>= \case
-    Nothing -> throwError $ injectTyped UnexpectedEndOfInputExpansionError
-    Just lt ->
-      Res.resolveLexToken Resolving lt >>= \case
-        Left e ->
-          throwError $ injectTyped $ ResolutionExpansionError e
-        Right rt ->
-          case rt of
-            PrimitiveToken pt ->
-              pure pt
-            SyntaxCommandHeadToken headTok -> do
-              lts <- expandSyntaxCommand headTok
-              Res.insertLexTokensToSource lts
-              fetchPrimitiveToken
-
-instance Res.MonadResolvedTokenSource m => MonadPlus (ParseT m)
+  -- Get the next lex-token from the input, and resolve it.
+  Res.getMayResolvedToken Resolving >>= \case
+    -- If nothing left in the input, return nothing.
+    Nothing -> pure Nothing
+    -- If we get a token, we only care about the resolved version.
+    -- Check if resolution succeeded.
+    Just (lt, errOrResolvedTok) -> case errOrResolvedTok of
+      -- If resolution failed, throw an error.
+      Left e ->
+        throwError $ injectTyped $ ResolutionExpansionError e
+      -- Otherwise, look at the result of resolution.
+      -- Is it a primitive token, or does it need expansion?
+      Right rt ->
+        case rt of
+          -- If it's a primitive token, we are done, just return that.
+          PrimitiveToken pt ->
+            pure $ Just (lt, rt, pt)
+          -- Otherwise, the token is the head of a syntax-command.
+          SyntaxCommandHeadToken headTok -> do
+            -- Expand the rest of the command into lex-tokens.
+            lts <- expandSyntaxCommand headTok
+            -- Insert those resulting lex-tokens back into the input.
+            -- (It's not this function's concern,
+            -- but recall they will be put on the lex-token-buffer).
+            Lex.insertLexTokensToSource lts
+            -- Try to read a primitive token again.
+            -- Note that the new lex tokens might
+            -- themselves introduce a syntax command,
+            -- so we might need to expand again.
+            fetchPrimitiveToken
 
 expandSyntaxCommand ::
   ( Res.MonadResolvedTokenSource m

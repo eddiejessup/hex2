@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedRecordDot #-}
-
 module Hex.Run.Font where
 
 import Hex.Common.HexState.Interface

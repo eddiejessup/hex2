@@ -29,4 +29,4 @@ fmtResolveResult = F.unlined fmtOneResult
   where
     fmtOneResult = F.accessed fst fmtLexToken <> F.fconst " --> " <> F.accessed snd fmtErrOrRT
 
-    fmtErrOrRT = F.eithered F.shown F.shown
+    fmtErrOrRT = F.eithered fmtResolutionError F.shown

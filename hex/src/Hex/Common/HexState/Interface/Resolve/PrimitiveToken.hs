@@ -6,6 +6,7 @@ import Hex.Common.Codes
 import Hex.Common.Quantity qualified as H.Q
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
+import qualified Formatting as F
 
 data IntParameter
   = PreTolerance -- Badness tolerance before hyphenation
@@ -425,3 +426,6 @@ data PrimitiveToken
   | InteractionModeTok InteractionMode
   | UnresolvedTok Lex.LexToken
   deriving stock (Show, Eq, Generic)
+
+fmtPrimitiveToken :: Fmt PrimitiveToken r
+fmtPrimitiveToken = F.shown

@@ -17,12 +17,12 @@ import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Tok
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
-parseCommand :: MonadPrimTokenSource m => m AST.Command
+parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
-  fetchPT >>= \case
+  getAnyPrimitiveToken >>= \case
     H.Tok.ShowTokenTok ->
       AST.ShowToken <$> Par.fetchInhibitedLexToken
     H.Tok.ShowBoxTok ->
@@ -128,7 +128,7 @@ parseCommand =
           AST.VModeCommand . AST.AddUnwrappedFetchedVBox <$> Par.headToParseFetchedBoxRef H.Q.Vertical t
         ]
 
-headToParseInternalQuantity :: MonadPrimTokenSource m => H.Tok.PrimitiveToken -> m AST.InternalQuantity
+headToParseInternalQuantity :: MonadPrimTokenParse m => H.Tok.PrimitiveToken -> m AST.InternalQuantity
 headToParseInternalQuantity =
   choiceFlap
     [ fmap AST.InternalIntQuantity <$> Par.headToParseInternalInt,
@@ -139,7 +139,7 @@ headToParseInternalQuantity =
       fmap AST.TokenListVariableQuantity <$> Par.headToParseTokenListVariable
     ]
 
-headToParseCharCodeRef :: MonadPrimTokenSource m => H.Tok.PrimitiveToken -> m AST.CharCodeRef
+headToParseCharCodeRef :: MonadPrimTokenParse m => H.Tok.PrimitiveToken -> m AST.CharCodeRef
 headToParseCharCodeRef = \case
   T.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c H.C.Letter)) ->
     pure $ AST.CharRef c

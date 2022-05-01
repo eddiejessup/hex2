@@ -6,14 +6,14 @@ import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.Macro qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
-headToParseAssignment :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.Assignment
+headToParseAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.Assignment
 headToParseAssignment = go mempty
   where
     go prefixes = \case
       T.AssignPrefixTok prefix ->
-        fetchPT >>= go (prefixes :|> prefix)
+        getAnyPrimitiveToken >>= go (prefixes :|> prefix)
       T.DefineMacroTok defGlobalType defExpandType -> do
         body <- Par.parseMacroBody defExpandType prefixes
         pure $
@@ -37,7 +37,7 @@ headToParseAssignment = go mempty
 
 -- ⟨optional assignments⟩ stands for zero or more ⟨assignment⟩ commands
 -- other than \setbox.
-parseNonSetBoxAssignment :: MonadPrimTokenSource m => m AST.Assignment
+parseNonSetBoxAssignment :: MonadPrimTokenParse m => m AST.Assignment
 parseNonSetBoxAssignment =
   Par.parseHeaded headToParseAssignment >>= \case
     AST.Assignment (AST.SetBoxRegister _ _) _ ->

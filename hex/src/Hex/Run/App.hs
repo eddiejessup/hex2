@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedRecordDot #-}
-
 module Hex.Run.App where
 
 import Hex.Common.HexState.Impl (HexStateError)
@@ -7,7 +5,7 @@ import Hex.Common.HexState.Impl.Type qualified as H.St
 import Hex.Common.TFM.Get qualified as H.TFM
 import Hex.Stage.Evaluate.Impl (EvaluationError)
 import Hex.Stage.Expand.Impl (ExpansionError)
-import Hex.Stage.Expand.Interface (ParsingError)
+import Hex.Stage.Expand.Impl.Parsing (ParsingError)
 import Hex.Stage.Interpret.CommandHandler.AllMode (InterpretError)
 import Hex.Stage.Lex.Interface.CharSource (CharSource, newCharSource)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex

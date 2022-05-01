@@ -13,10 +13,10 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 -- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
 headToParseNonMacroAssignmentBody ::
-  MonadPrimTokenSource m =>
+  MonadPrimTokenParse m =>
   T.PrimitiveToken ->
   m AST.AssignmentBody
 headToParseNonMacroAssignmentBody = \case
@@ -71,7 +71,7 @@ headToParseNonMacroAssignmentBody = \case
       ]
       t
 
-parseFontTarget :: MonadPrimTokenSource m => m AST.FontFileSpec
+parseFontTarget :: MonadPrimTokenParse m => m AST.FontFileSpec
 parseFontTarget = do
   fname <- Par.parseFileName
   fontSpec <-
@@ -88,12 +88,12 @@ parseFontTarget = do
       ]
   pure $ AST.FontFileSpec fontSpec fname
 
-headToParseCodeAssignment :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.AssignmentBody
+headToParseCodeAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseCodeAssignment t = do
   (ref, tgt) <- Par.parseXEqualsY (Par.headToParseCodeTableRef t) Par.parseInt
   pure $ AST.AssignCode $ AST.CodeAssignment ref tgt
 
-headToParseModifyVariable :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.VariableModification
+headToParseModifyVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.VariableModification
 headToParseModifyVariable = \case
   T.AdvanceVarTok ->
     PC.choice
@@ -121,7 +121,7 @@ headToParseModifyVariable = \case
   _ ->
     empty
 
-parseNumericVariable :: MonadPrimTokenSource m => m AST.NumericVariable
+parseNumericVariable :: MonadPrimTokenParse m => m AST.NumericVariable
 parseNumericVariable =
   PC.choice
     [ AST.IntNumericVariable <$> Par.parseHeaded Par.headToParseIntVariable,
@@ -130,14 +130,14 @@ parseNumericVariable =
       AST.MathGlueNumericVariable <$> Par.parseHeaded Par.headToParseMathGlueVariable
     ]
 
-skipOptionalBy :: MonadPrimTokenSource m => m ()
+skipOptionalBy :: MonadPrimTokenParse m => m ()
 skipOptionalBy =
   PC.choice
     [ void $ Par.parseOptionalKeyword [H.C.Chr_ 'b', H.C.Chr_ 'y'],
       Par.skipOptionalSpaces
     ]
 
-headToParseVariableAssignment :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.VariableAssignment
+headToParseVariableAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.VariableAssignment
 headToParseVariableAssignment t =
   PC.choice
     [ do
@@ -165,7 +165,7 @@ headToParseVariableAssignment t =
         pure $ AST.SpecialLengthParameterVariableAssignment var tgt
     ]
 
-parseTokenListTarget :: MonadPrimTokenSource m => m AST.TokenListAssignmentTarget
+parseTokenListTarget :: MonadPrimTokenParse m => m AST.TokenListAssignmentTarget
 parseTokenListTarget =
   PC.choice
     [ AST.TokenListAssignmentText <$> Par.parseInhibitedGeneralText,
@@ -174,22 +174,22 @@ parseTokenListTarget =
         AST.TokenListAssignmentVar <$> Par.parseHeaded Par.headToParseTokenListVariable
     ]
 
-headToParseSetFamilyMember :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.AssignmentBody
+headToParseSetFamilyMember :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseSetFamilyMember t = do
   (var, val) <- Par.parseXEqualsY (Par.headToParseFamilyMember t) (Par.parseHeaded Par.headToParseFontRef)
   pure $ AST.SetFamilyMember var val
 
-headToParseSetFontDimension :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.AssignmentBody
+headToParseSetFontDimension :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseSetFontDimension t = do
   (var, val) <- Par.parseXEqualsY (Par.headToParseFontDimensionRef t) Par.parseLength
   pure $ AST.SetFontDimension var val
 
-headToParseSetFontChar :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.AssignmentBody
+headToParseSetFontChar :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseSetFontChar t = do
   (var, val) <- Par.parseXEqualsY (Par.headToParseFontCharRef t) Par.parseInt
   pure $ AST.SetFontChar var val
 
-headToParseSetBoxDimension :: MonadPrimTokenSource m => T.PrimitiveToken -> m AST.AssignmentBody
+headToParseSetBoxDimension :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseSetBoxDimension t = do
   (var, val) <- Par.parseXEqualsY (Par.headToParseBoxDimensionRef t) Par.parseLength
   pure $ AST.SetBoxDimension var val

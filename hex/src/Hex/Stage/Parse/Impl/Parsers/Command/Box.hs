@@ -12,16 +12,16 @@ import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
-headToParseLeadersSpec :: MonadPrimTokenSource m => H.Q.Axis -> T.PrimitiveToken -> m AST.LeadersSpec
+headToParseLeadersSpec :: MonadPrimTokenParse m => H.Q.Axis -> T.PrimitiveToken -> m AST.LeadersSpec
 headToParseLeadersSpec axis = \case
   T.LeadersTok leaders ->
     AST.LeadersSpec leaders <$> parseBoxOrRule <*> parseHeaded (Par.headToParseModedAddGlue axis)
   _ ->
     empty
 
-headToParseBox :: MonadPrimTokenSource m => PrimitiveToken -> m AST.Box
+headToParseBox :: MonadPrimTokenParse m => PrimitiveToken -> m AST.Box
 headToParseBox = \case
   T.FetchedBoxTok fetchMode ->
     AST.FetchedRegisterBox fetchMode <$> Par.parseInt
@@ -48,7 +48,7 @@ headToParseBox = \case
       skipFiller
       pure spec
 
-parseBoxOrRule :: MonadPrimTokenSource m => m AST.BoxOrRule
+parseBoxOrRule :: MonadPrimTokenParse m => m AST.BoxOrRule
 parseBoxOrRule =
   PC.choice
     [ AST.BoxOrRuleBox <$> parseHeaded headToParseBox,
@@ -57,7 +57,7 @@ parseBoxOrRule =
     ]
 
 -- \hrule and such.
-headToParseModedRule :: MonadPrimTokenSource m => H.Q.Axis -> T.PrimitiveToken -> m AST.Rule
+headToParseModedRule :: MonadPrimTokenParse m => H.Q.Axis -> T.PrimitiveToken -> m AST.Rule
 headToParseModedRule axis = \case
   T.ModedCommand tokenAxis T.RuleTok
     | axis == tokenAxis ->
@@ -83,7 +83,7 @@ headToParseModedRule axis = \case
       ln <- Par.parseLength
       pure (dimType, ln)
 
-headToParseFetchedBoxRef :: MonadPrimTokenSource m => H.Q.Axis -> T.PrimitiveToken -> m AST.FetchedBoxRef
+headToParseFetchedBoxRef :: MonadPrimTokenParse m => H.Q.Axis -> T.PrimitiveToken -> m AST.FetchedBoxRef
 headToParseFetchedBoxRef tgtAxis = \case
   T.ModedCommand tokenAxis (T.UnwrappedFetchedBoxTok fetchMode) | tgtAxis == tokenAxis -> do
     n <- Par.parseInt

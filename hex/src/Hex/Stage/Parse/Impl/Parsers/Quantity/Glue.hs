@@ -10,9 +10,9 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
-headToParseModedAddGlue :: MonadPrimTokenSource m => H.Q.Axis -> T.PrimitiveToken -> m AST.Glue
+headToParseModedAddGlue :: MonadPrimTokenParse m => H.Q.Axis -> T.PrimitiveToken -> m AST.Glue
 headToParseModedAddGlue axis = \case
   T.ModedCommand tokenAxis modedTok | tokenAxis == axis ->
     case modedTok of
@@ -41,21 +41,21 @@ headToParseModedAddGlue axis = \case
   where
     noLengthGlueSpec = AST.ExplicitGlueSpec AST.zeroLength
 
-parseGlue :: MonadPrimTokenSource m => m AST.Glue
+parseGlue :: MonadPrimTokenParse m => m AST.Glue
 parseGlue =
   PC.choice
     [ AST.ExplicitGlue <$> parseExplicitGlueSpec,
       AST.InternalGlue <$> Par.parseSigned (Par.parseHeaded Par.headToParseInternalGlue)
     ]
 
-parseExplicitGlueSpec :: MonadPrimTokenSource m => m AST.ExplicitGlueSpec
+parseExplicitGlueSpec :: MonadPrimTokenParse m => m AST.ExplicitGlueSpec
 parseExplicitGlueSpec = do
   len <- Par.parseLength
   stretch <- parseFlex [Chr_ 'p', Chr_ 'l', Chr_ 'u', Chr_ 's']
   shrink <- parseFlex [Chr_ 'm', Chr_ 'i', Chr_ 'n', Chr_ 'u', Chr_ 's']
   pure $ AST.ExplicitGlueSpec len stretch shrink
 
-parseFlex :: MonadPrimTokenSource m => [H.C.CharCode] -> m (Maybe AST.Flex)
+parseFlex :: MonadPrimTokenParse m => [H.C.CharCode] -> m (Maybe AST.Flex)
 parseFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
@@ -69,7 +69,7 @@ parseFlex s =
           AST.FilFlex <$> parseFilLength
         ]
 
-parseFilLength :: MonadPrimTokenSource m => m AST.FilLength
+parseFilLength :: MonadPrimTokenParse m => m AST.FilLength
 parseFilLength = do
   factor <- Par.parseSigned Par.parseFactor
   Par.skipKeyword [Chr_ 'f', Chr_ 'i']

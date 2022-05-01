@@ -14,6 +14,8 @@
     - If we are resolving, we pass through all lex-tokens as 'unresolved-tokens' containing the lex-tokens. No lookup of any symbols
     - If we are not-resolving, we look up control-symbols in the internal-state. Non-control-symbols like normal letters and stuff, are treated the same as when resolving.
 - Expansion takes 'resolved tokens', and produces 'primitive tokens'
+  - Expansion in fact does some parsing, so it might turn out that this gets quite intermingled with the 'Parsing' stage. That isn't worked out quite yet as I have the code now.
+- Parsing takes 'primitive tokens' and produces 'commands'.
 
 ## What order does stuff happen in?
 
@@ -26,6 +28,7 @@
       - ByteString state
 - *Lex*: Generate Lexed tokens
   - Interface: MonadLexTokenSource
+    - This interface also lets us access and modify the char-source that contains the input.
   - Implementation:
     - Main function: `extractToken`
     - Uses:

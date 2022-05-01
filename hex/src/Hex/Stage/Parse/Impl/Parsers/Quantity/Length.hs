@@ -8,19 +8,19 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Common.Quantity qualified as H.Q
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
-parseLength :: MonadPrimTokenSource m => m AST.Length
+parseLength :: MonadPrimTokenParse m => m AST.Length
 parseLength = Par.parseSigned parseUnsignedLength
 
-parseUnsignedLength :: MonadPrimTokenSource m => m AST.UnsignedLength
+parseUnsignedLength :: MonadPrimTokenParse m => m AST.UnsignedLength
 parseUnsignedLength =
   PC.choice
     [ AST.NormalLengthAsULength <$> parseNormalLength,
       AST.CoercedLength . AST.InternalGlueAsLength <$> Par.parseHeaded Par.headToParseInternalGlue
     ]
 
-parseNormalLength :: MonadPrimTokenSource m => m AST.NormalLength
+parseNormalLength :: MonadPrimTokenParse m => m AST.NormalLength
 parseNormalLength =
   PC.choice
     [ AST.LengthSemiConstant <$> parseFactor <*> parseUnit,
@@ -30,14 +30,14 @@ parseNormalLength =
 -- NOTE: The parser order matters because TeX's grammar is ambiguous: '2.2'
 -- could be parsed as an integer constant, '2', followed by '.2'. We break the
 -- ambiguity by prioritising the rational constant parser.
-parseFactor :: MonadPrimTokenSource m => m AST.Factor
+parseFactor :: MonadPrimTokenParse m => m AST.Factor
 parseFactor =
   PC.choice
     [ AST.DecimalFractionFactor <$> parseRationalConstant,
       AST.NormalIntFactor <$> Par.parseHeaded Par.headToParseNormalInt
     ]
 
-parseRationalConstant :: MonadPrimTokenSource m => m AST.DecimalFraction
+parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
 parseRationalConstant = do
   wholeDigits <- PC.many (satisfyThen Par.decCharToWord)
   Par.skipSatisfied $ \t -> case t ^? Par.primTokCharCat of
@@ -48,7 +48,7 @@ parseRationalConstant = do
   fracDigits <- PC.many (satisfyThen Par.decCharToWord)
   pure $ AST.DecimalFraction {AST.wholeDigits, AST.fracDigits}
 
-parseUnit :: MonadPrimTokenSource m => m AST.Unit
+parseUnit :: MonadPrimTokenParse m => m AST.Unit
 parseUnit =
   PC.choice
     [ Par.skipOptionalSpaces *> (AST.InternalUnit <$> parseInternalUnit),

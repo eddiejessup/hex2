@@ -20,19 +20,9 @@ instance
   ) =>
   MonadResolvedTokenSource m
   where
-  getLexToken = Lex.getLexToken
-
-  insertLexTokensToSource = Lex.insertLexTokensToSource
-
-  insertLexTokenToSource = Lex.insertLexTokenToSource
-
-  getSource = Lex.getSource
-
-  putSource = Lex.putSource
-
   resolveLexToken resMode lt = do
     resolveToken resMode lt <&> \case
-      Nothing -> Left ResolutionError
+      Nothing -> Left $ ResolutionError lt
       Just rt -> Right rt
 
 resolveToken ::

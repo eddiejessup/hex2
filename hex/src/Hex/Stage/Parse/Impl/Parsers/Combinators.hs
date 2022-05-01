@@ -6,24 +6,24 @@ import Hex.Common.Codes qualified as H.C
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..))
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
 -- <optional spaces> = <zero or more spaces>.
-skipOptionalSpaces :: MonadPrimTokenSource m => m ()
+skipOptionalSpaces :: MonadPrimTokenParse m => m ()
 skipOptionalSpaces = skipManySatisfied isSpace
 
-skipManySatisfied :: MonadPrimTokenSource m => (PrimitiveToken -> Bool) -> m ()
+skipManySatisfied :: MonadPrimTokenParse m => (PrimitiveToken -> Bool) -> m ()
 skipManySatisfied chk = PC.skipMany $ satisfyIf chk
 
-skipOptional :: MonadPrimTokenSource m => (PrimitiveToken -> Bool) -> m ()
+skipOptional :: MonadPrimTokenParse m => (PrimitiveToken -> Bool) -> m ()
 skipOptional = void . optional . satisfyIf
 
-skipSatisfied :: MonadPrimTokenSource m => (PrimitiveToken -> Bool) -> m ()
+skipSatisfied :: MonadPrimTokenParse m => (PrimitiveToken -> Bool) -> m ()
 skipSatisfied = void . satisfyIf
 
-satisfyIf :: MonadPrimTokenSource m => (PrimitiveToken -> Bool) -> m PrimitiveToken
+satisfyIf :: MonadPrimTokenParse m => (PrimitiveToken -> Bool) -> m PrimitiveToken
 satisfyIf f = satisfyThen (\x -> if f x then Just x else Nothing)
 
 isOnly :: forall k is s a. (Eq a, Is k An_AffineFold) => Optic' k is s a -> a -> s -> Bool
@@ -42,12 +42,12 @@ choiceFlap :: Alternative m => [t -> m a] -> t -> m a
 choiceFlap headToParsers t =
   PC.choice (flap headToParsers t)
 
-parseHeaded :: MonadPrimTokenSource m => (PrimitiveToken -> m a) -> m a
-parseHeaded = (fetchPT >>=)
+parseHeaded :: MonadPrimTokenParse m => (PrimitiveToken -> m a) -> m a
+parseHeaded = (getAnyPrimitiveToken >>=)
 
 -- Bit more domainy.
 
-inhibSatisfyLexThen :: MonadPrimTokenSource m => InhibitionToken -> (Lex.LexToken -> Maybe a) -> m a
+inhibSatisfyLexThen :: MonadPrimTokenParse m => InhibitionToken -> (Lex.LexToken -> Maybe a) -> m a
 inhibSatisfyLexThen inhibToken f = do
   lt <- inhibFetchLexToken inhibToken
   maybe empty pure (f lt)
@@ -66,7 +66,7 @@ primTokCatChar cat = primTokCharCat % filtered (isOnly (typed @H.C.CoreCatCode) 
 
 -- More domainy.
 
-skipOneOptionalSpace :: MonadPrimTokenSource m => m ()
+skipOneOptionalSpace :: MonadPrimTokenParse m => m ()
 skipOneOptionalSpace = skipOptional isSpace
 
 -- <space token> = character token of category [space], or a control sequence
@@ -74,13 +74,13 @@ skipOneOptionalSpace = skipOptional isSpace
 isSpace :: PrimitiveToken -> Bool
 isSpace = primTokHasCategory H.C.Space
 
-inhibFetchLexToken :: MonadPrimTokenSource m => InhibitionToken -> m Lex.LexToken
+inhibFetchLexToken :: MonadPrimTokenParse m => InhibitionToken -> m Lex.LexToken
 inhibFetchLexToken _ = do
-  fetchPT >>= \case
+  getAnyPrimitiveToken >>= \case
     T.UnresolvedTok t -> pure t
     _ -> panic "impossible"
 
-fetchInhibitedLexToken :: MonadPrimTokenSource m => m Lex.LexToken
+fetchInhibitedLexToken :: MonadPrimTokenParse m => m Lex.LexToken
 fetchInhibitedLexToken = withInhibition inhibFetchLexToken
 
 matchNonActiveCharacterUncased :: H.C.CharCode -> PrimitiveToken -> Bool
@@ -93,15 +93,15 @@ matchNonActiveCharacterUncased a pt =
     _ ->
       False
 
-skipKeyword :: MonadPrimTokenSource m => [H.C.CharCode] -> m ()
+skipKeyword :: MonadPrimTokenParse m => [H.C.CharCode] -> m ()
 skipKeyword s = do
   skipOptionalSpaces
   mapM_ (skipSatisfied . matchNonActiveCharacterUncased) s
 
-parseOptionalKeyword :: MonadPrimTokenSource m => [H.C.CharCode] -> m Bool
+parseOptionalKeyword :: MonadPrimTokenParse m => [H.C.CharCode] -> m Bool
 parseOptionalKeyword s = isJust <$> optional (skipKeyword s)
 
-skipFiller :: MonadPrimTokenSource m => m ()
+skipFiller :: MonadPrimTokenParse m => m ()
 skipFiller = skipManySatisfied isFillerItem
   where
     isFillerItem :: PrimitiveToken -> Bool
@@ -109,12 +109,12 @@ skipFiller = skipManySatisfied isFillerItem
       T.RelaxTok -> True
       t -> primTokHasCategory H.C.Space t
 
-skipOptionalEquals :: MonadPrimTokenSource m => m ()
+skipOptionalEquals :: MonadPrimTokenParse m => m ()
 skipOptionalEquals = do
   skipOptionalSpaces
   skipOptional $ isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '=')
 
-parseCSName :: forall m. MonadPrimTokenSource m => m ControlSymbol
+parseCSName :: forall m. MonadPrimTokenParse m => m ControlSymbol
 parseCSName = withInhibition unsafeParseCSName
   where
     unsafeParseCSName :: InhibitionToken -> m ControlSymbol
@@ -128,7 +128,7 @@ parseCSName = withInhibition unsafeParseCSName
           _ ->
             Nothing
 
-parseXEqualsY :: MonadPrimTokenSource m => m a -> m b -> m (a, b)
+parseXEqualsY :: MonadPrimTokenParse m => m a -> m b -> m (a, b)
 parseXEqualsY parseX parseY = do
   x <- parseX
   skipOptionalEquals

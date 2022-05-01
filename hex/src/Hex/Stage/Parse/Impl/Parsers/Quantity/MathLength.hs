@@ -7,23 +7,23 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
+import Hex.Stage.Expand.Impl.Parsing (MonadPrimTokenParse(..))
 
-parseMathLength :: MonadPrimTokenSource m => m AST.MathLength
+parseMathLength :: MonadPrimTokenParse m => m AST.MathLength
 parseMathLength = Par.parseSigned parseUnsignedMathLength
 
-parseUnsignedMathLength :: MonadPrimTokenSource m => m AST.UnsignedMathLength
+parseUnsignedMathLength :: MonadPrimTokenParse m => m AST.UnsignedMathLength
 parseUnsignedMathLength =
   PC.choice
     [ AST.NormalMathLengthAsUMathLength <$> parseNormalMathLength
     -- , AST.CoercedMathLength . AST.InternalMathGlueAsMathLength <$> parseHeaded headToParseInternalMathGlue
     ]
 
-parseNormalMathLength :: MonadPrimTokenSource m => m AST.NormalMathLength
+parseNormalMathLength :: MonadPrimTokenParse m => m AST.NormalMathLength
 parseNormalMathLength =
   AST.MathLengthSemiConstant <$> Par.parseFactor <*> parseMathUnit
 
-parseMathUnit :: MonadPrimTokenSource m => m AST.MathUnit
+parseMathUnit :: MonadPrimTokenParse m => m AST.MathUnit
 parseMathUnit =
   PC.choice
     [ skipKeyword [Chr_ 'm', Chr_ 'u'] >> skipOneOptionalSpace $> AST.Mu

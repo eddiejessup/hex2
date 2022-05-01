@@ -2,27 +2,28 @@ module Hex.Stage.Resolve.Interface where
 
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Stage.Lex.Interface.CharSource (CharSource)
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken)
+import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
+import qualified Formatting as F
+import Hex.Stage.Lex.Interface.Extract (LexToken)
 
-data ResolutionError = ResolutionError
+data ResolutionError = ResolutionError LexToken
   deriving stock (Show, Generic)
+
+fmtResolutionError :: Fmt ResolutionError r
+fmtResolutionError = F.shown
 
 data ResolutionMode = Resolving | NotResolving
   deriving stock (Show, Eq)
 
-class Monad m => MonadResolvedTokenSource m where
+-- We require 'MonadLexTokenSource' because this class would otherwise
+-- just repeat the same methods:
+-- We need users of this class to be able to:
+-- - Get a lex-token
+-- - Get and put a char-source
+-- - Insert lex-tokens to the char-source
+class (Monad m, MonadLexTokenSource m) => MonadResolvedTokenSource m where
   resolveLexToken :: ResolutionMode -> Lex.LexToken -> m (Either ResolutionError ResolvedToken)
-
-  getLexToken :: m (Maybe Lex.LexToken)
-
-  insertLexTokenToSource :: Lex.LexToken -> m ()
-
-  insertLexTokensToSource :: Seq Lex.LexToken -> m ()
-
-  getSource :: m CharSource
-
-  putSource :: CharSource -> m ()
 
 getMayResolvedToken :: MonadResolvedTokenSource m => ResolutionMode -> m (Maybe (Lex.LexToken, Either ResolutionError ResolvedToken))
 getMayResolvedToken resMode = do
