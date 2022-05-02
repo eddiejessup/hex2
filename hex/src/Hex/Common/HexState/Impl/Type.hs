@@ -8,7 +8,8 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.TFM.Types qualified as H.TFM
 import Hexlude
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
+import qualified Hex.Stage.Lex.Interface.Extract as Lex
+import qualified Hex.Stage.Resolve.Interface as Res
 
 data HexState = HexState
   { fontInfos :: Map PT.FontNumber FontInfo,
@@ -25,8 +26,12 @@ data HexState = HexState
     -- Scopes and groups.
     globalScope :: H.Inter.St.Scope.Scope,
     groups :: [H.Inter.St.Scope.HexGroup],
+    -- Whether when we fetch the next lex token, we should resolve it or not.
+    -- This effectively determines whether we expand it, because
+    -- unresolved-primitive-tokens aren't affected by expansion.
+    resolutionMode :: Res.ResolutionMode,
     -- Just for parsing support help.
-    lastFetchedPrimTok :: Maybe PrimitiveToken
+    lastFetchedLexTok :: Maybe Lex.LexToken
   }
   deriving stock (Generic)
 
@@ -42,7 +47,8 @@ newHexState =
       globalScope = H.Inter.St.Scope.newGlobalScope,
       groups = [],
       -- , internalLoggerSet
-      lastFetchedPrimTok = Nothing
+      resolutionMode = Res.Resolving,
+      lastFetchedLexTok = Nothing
     }
 
 data FontInfo = FontInfo {fontMetrics :: H.TFM.Font, hyphenChar :: H.Q.HexInt, skewChar :: H.Q.HexInt}

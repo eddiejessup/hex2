@@ -1,8 +1,8 @@
 -- Interface for parsing primitive-token streams.
 module Hex.Common.Parse where
 
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
 data ParsingError
@@ -10,7 +10,7 @@ data ParsingError
   | UnexpectedParsingError ParseUnexpectedError
   deriving stock (Show, Eq, Generic)
 
-data ParseUnexpectedError = ParseUnexpectedError {lastSeenTok :: Maybe PrimitiveToken, err :: ParseUnexpectedErrorCause}
+data ParseUnexpectedError = ParseUnexpectedError {lastSeenTok :: Maybe Lex.LexToken, err :: ParseUnexpectedErrorCause}
   deriving stock (Show, Eq, Generic)
 
 data ParseUnexpectedErrorCause

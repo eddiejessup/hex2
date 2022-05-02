@@ -13,11 +13,11 @@ import Hex.Stage.Resolve.Interface
 import Hexlude
 
 -- Resolution mode will remain constant over the operation.
-resolveAll :: ResolutionMode -> App [(Lex.LexToken, Either ResolutionError ResolvedToken)]
-resolveAll mode = go
+resolveAll :: App [(Lex.LexToken, Either ResolutionError ResolvedToken)]
+resolveAll = go
   where
     go =
-      getMayResolvedToken mode >>= \case
+      getMayResolvedToken >>= \case
         Nothing ->
           pure []
         Just r -> do

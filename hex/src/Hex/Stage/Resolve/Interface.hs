@@ -16,32 +16,18 @@ fmtResolutionError = F.shown
 data ResolutionMode = Resolving | NotResolving
   deriving stock (Show, Eq)
 
--- We require 'MonadLexTokenSource' because this class would otherwise
--- just repeat the same methods:
--- We need users of this class to be able to:
--- - Get a lex-token
--- - Get and put a char-source
--- - Insert lex-tokens to the char-source
-class (Monad m, MonadLexTokenSource m) => MonadResolvedTokenSource m where
-  resolveLexToken :: ResolutionMode -> Lex.LexToken -> m (Either ResolutionError ResolvedToken)
+class (Monad m) => MonadResolve m where
+  resolveLexToken :: Lex.LexToken -> m (Either ResolutionError ResolvedToken)
 
-getMayResolvedToken :: MonadResolvedTokenSource m => ResolutionMode -> m (Maybe (Lex.LexToken, Either ResolutionError ResolvedToken))
-getMayResolvedToken resMode = do
+-- If we can resolve lex-tokens, and we have a source of lex-tokens, we can
+-- provide a stream of resolved-tokens.
+getMayResolvedToken :: (MonadResolve m, MonadLexTokenSource m) => m (Maybe (Lex.LexToken, Either ResolutionError ResolvedToken))
+getMayResolvedToken = do
   -- Get a lex token.
   getLexToken >>= \case
     -- If no lex token, return nothing.
     Nothing -> pure Nothing
     -- If there is a lex token, try to resolve it.
     Just lt -> do
-      errOrResolvedTok <- resolveLexToken resMode lt
+      errOrResolvedTok <- resolveLexToken lt
       pure $ Just (lt, errOrResolvedTok)
-
--- Like getMayResolvedToken, but just return nothing if resolution fails.
-getResolvedToken :: MonadResolvedTokenSource m => ResolutionMode -> m (Maybe (Lex.LexToken, ResolvedToken))
-getResolvedToken resMode = do
-  getMayResolvedToken resMode <&> \case
-    Nothing -> Nothing
-    Just (lt, errOrResolvedTok) ->
-      case rightToMaybe errOrResolvedTok of
-        Nothing -> Nothing
-        Just rt -> Just (lt, rt)

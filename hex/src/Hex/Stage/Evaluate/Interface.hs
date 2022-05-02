@@ -18,7 +18,4 @@ getEvalCommand = do
 
 -- A helper that's like `getEvalCommand`, but throws an error on end-of-input instead of returning `Nothing`.
 getEvalCommandErrorEOF :: (MonadCommandSource m, MonadEvaluate m, MonadError e m) => e -> m Eval.Command
-getEvalCommandErrorEOF eofError = do
-  getEvalCommand >>= \case
-    Nothing -> throwError eofError
-    Just v -> pure v
+getEvalCommandErrorEOF = maybeToError getEvalCommand

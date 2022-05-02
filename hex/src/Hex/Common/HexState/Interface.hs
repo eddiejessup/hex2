@@ -8,7 +8,7 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
+import qualified Hex.Stage.Resolve.Interface as Res
 
 class Monad m => MonadHexState m where
   getIntParameter :: H.Sym.Tok.IntParameter -> m H.Q.HexInt
@@ -38,9 +38,13 @@ class Monad m => MonadHexState m where
   setControlSequence :: ControlSymbol -> ResolvedToken -> H.Sym.Tok.ScopeFlag -> m ()
 
   -- Support stuff for parsing.
-  setLastFetchedPrimTok :: PrimitiveToken -> m ()
+  setLastFetchedLexTok :: Lex.LexToken -> m ()
 
-  getLastFetchedPrimTok :: m (Maybe PrimitiveToken)
+  getLastFetchedLexTok :: m (Maybe Lex.LexToken)
+
+  getResolutionMode :: m Res.ResolutionMode
+
+  setResolutionMode :: Res.ResolutionMode -> m ()
 
 -- Lifting.
 -- instance {-# OVERLAPPABLE #-} MonadHexState m => MonadHexState (ExceptT e m) where

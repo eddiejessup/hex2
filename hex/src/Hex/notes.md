@@ -45,16 +45,16 @@
       - MonadHexState
       - CharSource state
 - *Resolve*: Generate resolved tokens
-  - Interface: MonadResolvedTokenSource
+  - Interface: MonadResolve
+    - This interface isn't actually a stream interface, the interface is about resolving tokens.
+    Paired with a source of unresolved tokens, ie MonadLexTokenSource, we can build a resolved-token-source.
   - Implementation:
     - Uses:
-      - MonadState st m,
-      - HasType H.Par.ChrSrc.CharSource st,
       - HSt.MonadHexState m
 - *Expand*: Generate PrimTokens
   - Interface: MonadPrimTokenSource
   - Implementation:
-    - Uses MonadResolvedTokenSource
+    - Uses MonadResolve
 - *Parse*: Generate ASTTokens like 'Command's
   - Interface: MonadCommandSource
   - Implementation:

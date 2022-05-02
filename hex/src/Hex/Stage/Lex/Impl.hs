@@ -20,7 +20,12 @@ instance
   ) =>
   MonadLexTokenSource m
   where
-  getLexToken = Impl.extractLexToken
+  getLexToken = do
+    Impl.extractLexToken >>= \case
+      Nothing -> pure Nothing
+      Just lt -> do
+        HSt.setLastFetchedLexTok lt
+        pure $ Just lt
 
   insertLexTokensToSource = Impl.insertLexTokensToSource
 

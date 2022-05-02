@@ -11,7 +11,6 @@ import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Resolve.Interface (ResolutionMode (..))
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
 
@@ -19,19 +18,20 @@ data ExpansionError
   = ResolutionExpansionError Res.ResolutionError
   deriving stock (Generic, Show)
 
-instance (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e, MonadHexState m) => MonadPrimTokenSource m where
-  getPrimitiveToken = fetchPrimitiveToken
+instance (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, Lex.MonadLexTokenSource m, MonadHexState m) => MonadPrimTokenSource m where
+  getTokenResolving = getTokenResolvingImpl
 
-  getLastPrimitiveToken = getLastFetchedPrimTok
+  getTokenNotResolving = Lex.getLexToken
 
--- Note that the lex-tokens and resolved-tokens are just returned for debugging really.
--- They are passed through unchanged from the resolved-token-source.
-fetchPrimitiveToken ::
-  (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e, MonadHexState m) =>
-  m (Maybe (LexToken, ResolvedToken, PrimitiveToken))
-fetchPrimitiveToken = do
-  -- Get the next lex-token from the input, and resolve it.
-  Res.getMayResolvedToken Resolving >>= \case
+-- These '[...]Internal functions are so-called because they aren't meant to be used externally.
+-- This is because they don't set the 'last-fetched-primitive-token', which we use for debugging.
+
+-- Get the next lex-token from the input, and resolve it.
+-- Note that the lex-token is just returned for debugging really.
+-- It is passed through unchanged from the resolved-token-source.
+getTokenResolvingImpl :: (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, MonadHexState m, Lex.MonadLexTokenSource m) => m (Maybe (LexToken, PrimitiveToken))
+getTokenResolvingImpl =
+  Res.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
     Nothing -> pure Nothing
     -- If we get a token, we only care about the resolved version.
@@ -46,21 +46,21 @@ fetchPrimitiveToken = do
         case rt of
           -- If it's a primitive token, we are done, just return that.
           PrimitiveToken pt -> do
-            setLastFetchedPrimTok pt
-            pure $ Just (lt, rt, pt)
+            pure $ Just (lt, pt)
           -- Otherwise, the token is the head of a syntax-command.
-          SyntaxCommandHeadToken headTok -> do
-            -- Expand the rest of the command into lex-tokens.
-            lts <- expandSyntaxCommand headTok
-            -- Insert those resulting lex-tokens back into the input.
-            -- (It's not this function's concern,
-            -- but recall they will be put on the lex-token-buffer).
-            Lex.insertLexTokensToSource lts
-            -- Try to read a primitive token again.
-            -- Note that the new lex tokens might
-            -- themselves introduce a syntax command,
-            -- so we might need to expand again.
-            fetchPrimitiveToken
+          SyntaxCommandHeadToken headTok ->
+            do
+              -- Expand the rest of the command into lex-tokens.
+              lts <- expandSyntaxCommand headTok
+              -- Insert those resulting lex-tokens back into the input.
+              -- (It's not this function's concern,
+              -- but recall they will be put on the lex-token-buffer).
+              Lex.insertLexTokensToSource lts
+              -- Try to read a primitive token again.
+              -- Note that the new lex tokens might
+              -- themselves introduce a syntax command,
+              -- so we might need to expand again.
+              getTokenResolvingImpl
 
 expandSyntaxCommand ::
   Syn.SyntaxCommandHeadToken ->

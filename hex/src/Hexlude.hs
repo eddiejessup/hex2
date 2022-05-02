@@ -10,9 +10,12 @@ module Hexlude
     module Formatting,
     (|%|),
     (|<>|),
+    traceShowIdM,
+    traceResultM,
     fmtViewed,
     Fmt,
     flap,
+    maybeToError,
   )
 where
 
@@ -31,6 +34,18 @@ import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)
 import Protolude hiding (isDigit, isLower, isSpace, isUpper, to, uncons, unsnoc, words, (%))
+
+traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
+traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a
+
+traceResultM :: (Show a, Monad m) => Text -> m a -> m a
+traceResultM prefix prog = prog >>= traceShowIdM prefix
+
+maybeToError :: MonadError e m => m (Maybe a) -> e -> m a
+maybeToError prog eofError = do
+  prog >>= \case
+    Nothing -> throwError eofError
+    Just v -> pure v
 
 (|%|) :: Format r a -> Format r' r -> Format r' a
 (|%|) = (F.%)

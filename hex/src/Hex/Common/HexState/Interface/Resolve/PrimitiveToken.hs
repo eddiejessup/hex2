@@ -428,4 +428,6 @@ data PrimitiveToken
   deriving stock (Show, Eq, Generic)
 
 fmtPrimitiveToken :: Fmt PrimitiveToken r
-fmtPrimitiveToken = F.shown
+fmtPrimitiveToken = F.later $ \case
+  UnresolvedTok lt -> F.bformat ("LexToken" |%| F.parenthesised Lex.fmtLexToken) lt
+  t -> F.bformat F.shown t

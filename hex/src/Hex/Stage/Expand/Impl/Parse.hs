@@ -8,7 +8,7 @@ import Control.Monad.Trans (MonadTrans (..))
 import Hex.Common.HexState.Interface (MonadHexState (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parse
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
+import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..), getPrimitiveToken)
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
 
@@ -17,7 +17,7 @@ import Hexlude
 -- and if `a` fails we should try `b`, and the overall expression shouldn't fail.
 -- That is why we have the extra `ExceptT ParsingError` layer.
 newtype ParseT m a = ParseT {unParseT :: ExceptT ParsingError m a}
-  deriving newtype (Functor, Applicative, Monad)
+  deriving newtype (Functor, Applicative, Monad, MonadError ParsingError)
 
 mkParseT :: m (Either ParsingError a) -> ParseT m a
 mkParseT = ParseT . ExceptT
@@ -78,8 +78,8 @@ parseErrorEndOfInput = ParseT $ throwE EndOfInputParsingError
 -- The most common case, applies to all failures except end-of-input.
 parseErrorImpl :: (MonadHexState m) => ParseUnexpectedErrorCause -> ParseT m a
 parseErrorImpl e = do
-  lastPrimTok <- lift getLastFetchedPrimTok
-  ParseT $ throwE $ UnexpectedParsingError $ ParseUnexpectedError lastPrimTok e
+  lastLexTok <- lift getLastFetchedLexTok
+  ParseT $ throwE $ UnexpectedParsingError $ ParseUnexpectedError lastLexTok e
 
 -- - We need MonadLexTokenSource because it lets us get at the underlying char-source, for resetting state.
 -- - We need MonadPrimTokenSource to get primitive-tokens to inspect.
@@ -88,19 +88,30 @@ satisfyThenImpl f = do
   src0 <- lift Lex.getSource
   -- Fetch the new primitive-token.
   -- This might cause some expansion, i.e. some stateful changes to the input.
-  lift getPrimitiveToken >>= \case
-    -- If we find nothing else in the input, then the parse fails.
-    Nothing -> parseErrorEndOfInput
-    -- If we get a primitive token, apply our quasi-predicate to it.
-    Just (_lt, _rt, pt) -> case f pt of
-      -- If our predicate fails, reset the source to its original state, i.e. before any expansion happens,
-      -- and declare that we failed.
-      Nothing -> do
-        lift $ Lex.putSource src0
-        parseErrorImpl $ SawUnexpectedToken (UnexpectedToken {saw = pt, expected = "Unknown"})
-      -- If our predicate succeeds, then return the value.
-      Just v ->
-        pure v
+  pt <- getAnyPrimitiveTokenErrImpl
+  -- Apply our quasi-predicate to the next primitive-token.
+  case f pt of
+    -- If our predicate fails, reset the source to its original state, i.e. before any expansion happens,
+    -- and declare that we failed.
+    Nothing -> do
+      lift $ Lex.putSource src0
+      parseErrorImpl $ SawUnexpectedToken (UnexpectedToken {saw = pt, expected = "Unknown"})
+    -- If our predicate succeeds, then return the value.
+    Just v ->
+      pure v
+
+getAnyPrimitiveTokenImpl :: (MonadHexState m, MonadPrimTokenSource m) => m (Maybe PT.PrimitiveToken)
+getAnyPrimitiveTokenImpl =
+  -- Find out whether we're currently resolving, and get a primitive-token according to that mode.
+  -- Then take just the primitive token from the result.
+  getResolutionMode >>= getPrimitiveToken <&> \case
+    Nothing -> Nothing
+    Just (_lt, pt) -> Just pt
+
+-- Like `getAnyPrimitiveTokenImpl`, but on end-of-input raise an error so the parse fails.
+getAnyPrimitiveTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m PT.PrimitiveToken
+getAnyPrimitiveTokenErrImpl =
+  maybeToError (lift getAnyPrimitiveTokenImpl) EndOfInputParsingError
 
 -- I want to write my parsers in 'MonadPrimTokenParse m => m'.
 -- I could write them in 'Lex.MonadLexTokenSource m, MonadPrimTokenSource m => ParseT m',
@@ -108,10 +119,7 @@ satisfyThenImpl f = do
 -- So instead, I will implement 'MonadPrimTokenParse' for 'ParseT m'.
 
 instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => MonadPrimTokenParse (ParseT m) where
-  getAnyPrimitiveToken =
-    lift getPrimitiveToken >>= \case
-      Nothing -> parseErrorEndOfInput
-      Just (_lt, _rt, pt) -> pure pt
+  getAnyPrimitiveToken = getAnyPrimitiveTokenErrImpl
 
   satisfyThen = satisfyThenImpl
 

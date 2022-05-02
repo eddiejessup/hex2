@@ -16,7 +16,7 @@ import Hex.Common.TFM.Types qualified as H.TFM
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hexlude
 import System.FilePath qualified as FilePath
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
+import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 data HexStateError
   = FontNotFound
@@ -103,14 +103,17 @@ instance (Monad m
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
   selectFont fNr scopeFlag = modifying' (typed @HexState) (selectFontNr fNr scopeFlag)
 
-  setLastFetchedPrimTok :: PrimitiveToken -> m ()
-  setLastFetchedPrimTok pt = do
-    assign' (typed @HexState % #lastFetchedPrimTok) (Just pt)
+  setLastFetchedLexTok :: Lex.LexToken -> m ()
+  setLastFetchedLexTok t =
+    assign' (typed @HexState % #lastFetchedLexTok) (Just t)
 
+  getLastFetchedLexTok :: m (Maybe Lex.LexToken)
+  getLastFetchedLexTok =
+    use (typed @HexState % #lastFetchedLexTok)
 
-  getLastFetchedPrimTok :: m (Maybe PrimitiveToken)
-  getLastFetchedPrimTok = do
-    use (typed @HexState % #lastFetchedPrimTok)
+  getResolutionMode = use (typed @HexState % #resolutionMode)
+
+  setResolutionMode = assign' (typed @HexState % #resolutionMode)
 
 currentFontInfo ::
   ( MonadState st m,
