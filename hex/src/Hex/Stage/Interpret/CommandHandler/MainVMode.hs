@@ -16,6 +16,7 @@ import Hex.Stage.Lex.Interface (MonadLexTokenSource(..))
 import qualified Hex.Stage.Evaluate.Interface as Eval
 import qualified Hex.Stage.Evaluate.Interface.AST.Command as Eval
 import Hex.Stage.Parse.Interface (MonadCommandSource)
+import qualified Hex.Stage.Parse.Interface.AST.Command as Uneval
 
 data VModeCommandResult
   = ContinueMainVMode
@@ -57,7 +58,7 @@ handleCommandInMainVMode ::
   Eval.Command ->
   StateT H.Inter.B.List.VList m VModeCommandResult
 handleCommandInMainVMode oldSrc = \case
-  Eval.VModeCommand Eval.End ->
+  Eval.VModeCommand Uneval.End ->
     pure EndMainVMode
   -- Eval.VModeCommand (Eval.AddVGlue g) -> do
   --   H.Inter.Eval.evalASTGlue g >>= extendVListStateT . H.Inter.B.List.ListGlue

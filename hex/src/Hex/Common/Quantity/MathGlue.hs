@@ -5,4 +5,4 @@ import Hex.Common.Quantity.MathLength
 import Hexlude
 
 data MathGlue = MathGlue {mgDimen :: MathLength, mgStretch :: PureFlex, mgShrink :: PureFlex}
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)

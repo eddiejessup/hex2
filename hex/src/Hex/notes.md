@@ -63,7 +63,6 @@
   - Interface: MonadEvaluate
     - This interface isn't actually a stream interface, the interface is about evaluating tokens. Paired with a source of unevaluated tokens, eg MonadCommandSource, we can build an evaluated-token-source.
   - Implementation: (None)
-
 - *Build*: Interpret evaluated 'Command's
   - Interface: functions `buildMainVList`, `buildParaList`, `handleModeIndependentCommand`
 

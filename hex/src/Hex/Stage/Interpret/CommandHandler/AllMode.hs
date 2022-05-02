@@ -5,6 +5,7 @@ import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as AST
+import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hexlude
@@ -26,15 +27,15 @@ handleModeIndependentCommand ::
   AST.ModeIndependentCommand ->
   m AllModeCommandResult
 handleModeIndependentCommand addVElem = \case
-  AST.WriteMessage (AST.MessageWriteCommand stdStream expandedText) -> do
+  Eval.WriteMessage (Eval.MessageWriteCommand stdStream expandedText) -> do
     let _handle = case stdStream of
           T.StdOut -> stdout
           T.StdErr -> stderr
     liftIO $ hPutStrLn _handle expandedText
     pure DidNotSeeEndBox
-  AST.Relax ->
+  Eval.Relax ->
     pure DidNotSeeEndBox
-  AST.IgnoreSpaces ->
+  Eval.IgnoreSpaces ->
     pure DidNotSeeEndBox
   -- Re-insert the ⟨token⟩ into the input just after running the next
   -- assignment command. Later \afterassignment commands override earlier
@@ -42,22 +43,22 @@ handleModeIndependentCommand addVElem = \case
   -- \{hbox,vbox,vtop}, insert the ⟨token⟩ just after the '{' in the box
   -- construction (not after the '}'). Insert the ⟨token⟩ just before tokens
   -- inserted by \everyhbox or \everyvbox.
-  AST.SetAfterAssignmentToken lt -> do
+  Eval.SetAfterAssignmentToken lt -> do
     H.St.setAfterAssignmentToken (Just lt)
     pure DidNotSeeEndBox
-  AST.AddPenalty p -> do
+  Eval.AddPenalty p -> do
     addVElem $ H.Inter.B.List.ListPenalty p
     pure DidNotSeeEndBox
-  AST.AddKern k -> do
+  Eval.AddKern k -> do
     addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemKern k
     pure DidNotSeeEndBox
-  AST.Assign AST.Assignment {AST.scope, AST.body} -> do
+  Eval.Assign Eval.Assignment {Eval.scope, Eval.body} -> do
     case body of
-      AST.DefineControlSequence cs tgt -> do
+      Eval.DefineControlSequence cs tgt -> do
         tgtResolvedTok <- case tgt of
-          AST.NonFontTarget rt ->
+          Eval.NonFontTarget rt ->
             pure rt
-          AST.FontTarget (AST.FontFileSpec fontSpec fontPath) -> do
+          Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
             fontDefinition <- H.St.loadFont fontPath fontSpec
             addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
             pure $ Res.PrimitiveToken $ T.FontRefToken $ fontDefinition ^. typed @T.FontNumber

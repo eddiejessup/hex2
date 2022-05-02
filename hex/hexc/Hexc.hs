@@ -11,6 +11,8 @@ import Hexlude
 import Options.Applicative
 import Hex.Stage.Resolve.Interface (ResolutionMode(..))
 import qualified Hex.Run.Evaluate as Run.Evaluate
+import Hex.Stage.Interpret.Build.List.Elem (fmtVList)
+import qualified Hex.Run.Interpret as Run.Interpret
 
 data Input = FileInput FilePath | StdInput
 
@@ -49,7 +51,7 @@ data RunMode
   | EvalCommandMode
   | ParaListMode
   | ParaSetMode
-  | PageListMode
+  | VListMode
   | PageMode
   | SemanticDVIInstructionsMode
   | RawDVIInstructionsMode
@@ -78,6 +80,7 @@ runModeParser =
         <> command "expand" (info (pure ExpandMode) (progDesc ""))
         <> command "raw-command" (info (pure RawCommandMode) (progDesc ""))
         <> command "eval-command" (info (pure EvalCommandMode) (progDesc ""))
+        <> command "vlist" (info (pure VListMode) (progDesc ""))
     )
 
 appOptionsParser :: Parser AppOptions
@@ -127,6 +130,9 @@ main = do
     EvalCommandMode -> do
       commandList <- Run.unsafeEvalApp input Run.Evaluate.evaluateAll
       putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
+    VListMode -> do
+      vList <- Run.unsafeEvalApp input Run.Interpret.interpretAll
+      putText $ sformat fmtVList vList
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
   pure ()
