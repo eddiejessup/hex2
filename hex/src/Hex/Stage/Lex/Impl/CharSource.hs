@@ -36,7 +36,7 @@ extractLexToken = do
           pure Nothing
         Right (Just (lt, newLexState, newChars)) -> do
           modifying' (typed @CharSource) $
-            \src -> src & #sourceChars .~ newChars & #sourceLexState .~ newLexState
+            \src -> src & #sourceChars !~ newChars & #sourceLexState !~ newLexState
           pure $ Just lt
 
   -- Insert in reverse order, so, we insert the "r" of "relax" last, so we pop "r" next.

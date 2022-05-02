@@ -2,14 +2,6 @@
 
 ## Scratch
 
-- wondering how to handle end-of-input.
-  - currently interfaces return 'maybe x', where nothing means end-of-input.
-  - I think this interface might be fine, and I can provide a helper function using the interface to merge it into an error.
-  - For testing it's nice to just finish
-  - but in the code it's easier to treat is as an error then not have to handle it.
-  - How easy is it to catch the error in testing code? I think not v hard.
-  - Decision: I think I will treat it as an error.
-
 ## Glossary
 
 - Categorise has an explicit implementation, and also a monad interface and implementation, MonadCharCatSource.
@@ -29,14 +21,14 @@
 
 ## What order does stuff happen in?
 
-- *Categorise*: Generate Categorised tokens
+- _Categorise_: Generate Categorised tokens
   - Interface: MonadCharCatSource
   - Implementation:
     - Main function: `extractCharCat`
     - Uses:
       - MonadHexState
       - ByteString state
-- *Lex*: Generate Lexed tokens
+- _Lex_: Generate Lexed tokens
   - Interface: MonadLexTokenSource
     - This interface also lets us access and modify the char-source that contains the input.
   - Implementation:
@@ -44,27 +36,28 @@
     - Uses:
       - MonadHexState
       - CharSource state
-- *Resolve*: Generate resolved tokens
+- _Resolve_: Generate resolved tokens
   - Interface: MonadResolve
     - This interface isn't actually a stream interface, the interface is about resolving tokens.
-    Paired with a source of unresolved tokens, ie MonadLexTokenSource, we can build a resolved-token-source.
+      Paired with a source of unresolved tokens, ie MonadLexTokenSource, we can build a resolved-token-source.
   - Implementation:
     - Uses:
       - HSt.MonadHexState m
-- *Expand*: Generate PrimTokens
+- _Expand_: Generate PrimTokens
   - Interface: MonadPrimTokenSource
   - Implementation:
     - Uses MonadResolve
-- *Parse*: Generate ASTTokens like 'Command's
+- _Parse_: Generate ASTTokens like 'Command's
   - Interface: MonadCommandSource
   - Implementation:
     - Uses MonadPrimTokenSource
-- *Evaluate*: Evaluate ASTTokens into EvaluatedTokens, like evaluated 'Command's
+- _Evaluate_: Evaluate ASTTokens into EvaluatedTokens, like evaluated 'Command's
   - Interface: MonadEvaluate
     - This interface isn't actually a stream interface, the interface is about evaluating tokens. Paired with a source of unevaluated tokens, eg MonadCommandSource, we can build an evaluated-token-source.
   - Implementation: (None)
-- *Build*: Interpret evaluated 'Command's
+- _Interpret_: Interpret evaluated 'Command's
   - Interface: functions `buildMainVList`, `buildParaList`, `handleModeIndependentCommand`
+  - I call this 'Interpret' because we do more than 'build', we also modify the internal state, with things like assignments.
 
 ## Overarching concerns
 

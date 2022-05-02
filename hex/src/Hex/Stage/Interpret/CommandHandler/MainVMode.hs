@@ -4,7 +4,6 @@ import Hex.Common.HexState.Interface qualified as H.Inter.St
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
 import Hex.Common.Quantity qualified as H.Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
-import Hex.Stage.Evaluate.Interface qualified as H.Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
@@ -24,7 +23,7 @@ data VModeCommandResult
 
 buildMainVList ::
   forall e m.
-  ( H.Eval.MonadEvaluate m,
+  ( Eval.MonadEvaluate m,
     -- We need this because we modify the underlying charsource.
     MonadLexTokenSource m,
     MonadCommandSource m,
@@ -49,7 +48,7 @@ handleCommandInMainVMode ::
   ( Monad m,
     MonadIO m,
     MonadCommandSource m,
-    H.Eval.MonadEvaluate m,
+    Eval.MonadEvaluate m,
     H.Inter.St.MonadHexState m,
     MonadError e m,
     AsType H.AllMode.InterpretError e
@@ -71,12 +70,12 @@ handleCommandInMainVMode oldSrc = \case
     addPara H.Sym.Tok.Indent
   Eval.StartParagraph indentFlag -> do
     addPara indentFlag
-  -- -- \par does nothing in vertical mode.
-  -- Eval.EndParagraph ->
-  --   pure ContinueMainVMode
-  -- -- <space token> has no effect in vertical modes.
-  -- Eval.AddSpace ->
-  --   pure ContinueMainVMode
+  -- \par does nothing in vertical mode.
+  Eval.EndParagraph ->
+    pure ContinueMainVMode
+  -- <space token> has no effect in vertical modes.
+  Eval.AddSpace ->
+    pure ContinueMainVMode
   Eval.ModeIndependentCommand modeIndependentCommand -> do
     H.AllMode.handleModeIndependentCommand extendVListStateT modeIndependentCommand >>= \case
       H.AllMode.SawEndBox ->
@@ -173,7 +172,7 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
                 glue =
                   H.Inter.B.List.ListGlue $
                     if proposedBaselineLength >= skipLimit
-                      then blineGlue & #gDimen .~ proposedBaselineLength
+                      then blineGlue & #gDimen !~ proposedBaselineLength
                       else skip
              in (accSeq :|> glue) :|> e
   _ ->

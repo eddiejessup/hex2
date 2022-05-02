@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.HexState.Interface.Resolve qualified as Res
@@ -12,6 +10,7 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Common qualified as Uneval
 import Hexlude
+import qualified Hex.Stage.Evaluate.Interface.AST.Common as Eval
 
 -- What's the plan here?
 -- I want to do as much evaluation as possible in this stage, but I'm not sure
@@ -34,17 +33,33 @@ data Command
   | ShowTheInternalQuantity Uneval.InternalQuantity
   | ShipOut Uneval.Box
   | AddMark Res.ST.ExpandedBalancedText
-  | -- -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
-    -- -- then can 'migrate' out.
-    -- \| AddInsertion H.Q.HexInt VModeMaterial
-    -- \| AddAdjustment VModeMaterial
-    AddSpace
+  | -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
+    -- then can 'migrate' out.
+    AddInsertion H.Q.HexInt VModeMaterial
+  | AddAdjustment VModeMaterial
+  | AddSpace
   | StartParagraph Res.PT.IndentFlag
   | EndParagraph
-  | -- \| AddAlignedMaterial DesiredLength AlignmentMaterial
-    HModeCommand HModeCommand
+  | AddAlignedMaterial
+      DesiredLength
+      AlignmentMaterial
+      HModeCommand
+      HModeCommand
+  | HModeCommand HModeCommand
   | VModeCommand Uneval.VModeCommand
   | ModeIndependentCommand ModeIndependentCommand
+  deriving stock (Show, Eq, Generic)
+
+-- Not implemented.
+data VModeMaterial
+  deriving stock (Show, Eq, Generic)
+
+-- Not implemented.
+data AlignmentMaterial
+  deriving stock (Show, Eq, Generic)
+
+-- Not implemented.
+data DesiredLength
   deriving stock (Show, Eq, Generic)
 
 data Assignment = Assignment {body :: AssignmentBody, scope :: Res.PT.ScopeFlag}
@@ -86,7 +101,7 @@ data AssignmentBody
   = DefineControlSequence Res.ControlSymbol ControlSequenceTarget
   | SetVariable Uneval.VariableAssignment
   | ModifyVariable Uneval.VariableModification
-  | AssignCode Uneval.CodeAssignment
+  | AssignCode CodeAssignment
   | SelectFont Res.PT.FontNumber
   | SetFamilyMember Uneval.FamilyMember Uneval.FontRef
   | SetParShape Uneval.HexInt [Uneval.Length]
@@ -98,6 +113,9 @@ data AssignmentBody
   | SetHyphenationPatterns Res.ST.InhibitedBalancedText
   | SetBoxDimension Uneval.BoxDimensionRef Uneval.Length
   | SetInteractionMode Res.PT.InteractionMode
+  deriving stock (Show, Eq, Generic)
+
+data CodeAssignment = CodeAssignment Eval.CodeTableRef H.Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 data MessageWriteCommand = MessageWriteCommand Res.PT.StandardOutputSource Text

@@ -10,9 +10,9 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parse
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..), getPrimitiveToken)
 import Hex.Stage.Lex.Interface qualified as Lex
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
-import qualified Hex.Stage.Resolve.Interface as Res
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 -- This is the monad we will do our parsing in.
 -- The main thing a parser does is implement choice: we can do `a <|> b`,

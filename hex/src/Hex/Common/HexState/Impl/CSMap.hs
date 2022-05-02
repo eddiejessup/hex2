@@ -3,13 +3,13 @@ module Hex.Common.HexState.Impl.CSMap where
 import Data.HashMap.Strict qualified as HMap
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
+import Hex.Common.HexState.Interface.Resolve qualified as H.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken
+import Hex.Common.Quantity qualified as H.Q
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import Hex.Common.HexState.Interface.Resolve (ResolvedToken(..))
-import qualified Hex.Common.HexState.Interface.Resolve as H.Res
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 _cs :: [Char] -> H.Res.ControlSymbol
 _cs =
@@ -346,12 +346,6 @@ initialCSMap =
       (_cs "nonstopmode", primTok $ InteractionModeTok NonStopMode),
       (_cs "batchmode", primTok $ InteractionModeTok BatchMode)
     ]
-
-initialLookupCS :: H.Res.ControlSymbol -> Maybe ResolvedToken
-initialLookupCS cs = HMap.lookup cs initialCSMap
-
--- usableCodesToResolvedTokens :: ResolutionMode -> ByteString -> Either Lex.LexError [(Lex.LexToken, Maybe ResolvedToken)]
--- usableCodesToResolvedTokens = codesToResolvedTokens Code.usableCatLookup initialCSMap
 
 renderUsableCodesToResolvedTokens :: [(Lex.LexToken, Maybe ResolvedToken)] -> Text
 renderUsableCodesToResolvedTokens xs = Tx.intercalate "\n\n" $ renderPair <$> xs

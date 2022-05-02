@@ -1,11 +1,13 @@
-{-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Hex.Common.HexState.Impl where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as H.Codes
+import Hex.Common.HexState.Impl.GroupScopes (GroupScopes)
+import Hex.Common.HexState.Impl.GroupScopes qualified as GroupScopes
 import Hex.Common.HexState.Impl.Type
 import Hex.Common.HexState.Interface
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
@@ -14,9 +16,9 @@ import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.TFM.Get qualified as H.TFM
 import Hex.Common.TFM.Types qualified as H.TFM
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 import System.FilePath qualified as FilePath
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 data HexStateError
   = FontNotFound
@@ -24,22 +26,30 @@ data HexStateError
   | CharacterCodeNotFound
   deriving stock (Show, Generic)
 
-instance (Monad m
-         , MonadIO m
-         , MonadState st m
-         , HasType HexState st
-         , MonadError e m
-         , AsType HexStateError e
-         , AsType H.TFM.TFMError e
-         ) => MonadHexState m where
+getGroupScopesProperty ::
+  (MonadState st m, HasType HexState st) => (GroupScopes -> a) -> m a
+getGroupScopesProperty groupScopesGetter =
+  use $ typed @HexState % #groupScopes % to groupScopesGetter
+
+instance
+  ( Monad m,
+    MonadIO m,
+    MonadState st m,
+    HasType HexState st,
+    MonadError e m,
+    AsType HexStateError e,
+    AsType H.TFM.TFMError e
+  ) =>
+  MonadHexState m
+  where
   getIntParameter :: PT.IntParameter -> m H.Q.HexInt
-  getIntParameter p = use $ typed @HexState % to (stateLocalIntParam p)
+  getIntParameter p = getGroupScopesProperty (GroupScopes.localIntParam p)
 
   getLengthParameter :: PT.LengthParameter -> m H.Q.Length
-  getLengthParameter p = use $ typed @HexState % to (stateLocalLengthParam p)
+  getLengthParameter p = getGroupScopesProperty (GroupScopes.localLengthParam p)
 
   getGlueParameter :: PT.GlueParameter -> m H.Q.Glue
-  getGlueParameter p = use $ typed @HexState % to (stateLocalGlueParam p)
+  getGlueParameter p = getGroupScopesProperty (GroupScopes.localGlueParam p)
 
   getSpecialLengthParameter :: PT.SpecialLengthParameter -> m H.Q.Length
   getSpecialLengthParameter p = use $ typed @HexState % stateSpecialLengthParamLens p
@@ -48,10 +58,10 @@ instance (Monad m
   setSpecialLengthParameter p v = assign' (typed @HexState % stateSpecialLengthParamLens p) v
 
   getCategory :: H.Codes.CharCode -> m H.Codes.CatCode
-  getCategory p = use $ typed @HexState % to (stateLocalCategory p)
+  getCategory p = getGroupScopesProperty (GroupScopes.localCategory p)
 
   resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
-  resolveSymbol p = use $ typed @HexState % to (stateLocalResolvedToken p)
+  resolveSymbol p = getGroupScopesProperty (GroupScopes.localResolvedToken p)
 
   currentFontSpaceGlue :: m (Maybe H.Q.Glue)
   currentFontSpaceGlue = do
@@ -101,7 +111,8 @@ instance (Monad m
         }
 
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
-  selectFont fNr scopeFlag = modifying' (typed @HexState) (selectFontNr fNr scopeFlag)
+  selectFont fNr scopeFlag =
+    modifying' (typed @HexState % #groupScopes) (GroupScopes.setCurrentFontNr fNr scopeFlag)
 
   setLastFetchedLexTok :: Lex.LexToken -> m ()
   setLastFetchedLexTok t =
@@ -126,7 +137,7 @@ currentFontInfo ::
   ) =>
   m (Maybe FontInfo)
 currentFontInfo = do
-  use (typed @HexState % to stateCurrentFontNr) >>= \case
+  getGroupScopesProperty GroupScopes.localCurrentFontNr >>= \case
     -- No set font number is a Nothing.
     Nothing -> pure Nothing
     Just fNr -> do
