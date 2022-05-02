@@ -11,6 +11,8 @@ import Hex.Common.Parse
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..), getPrimitiveToken)
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
+import qualified Hex.Stage.Resolve.Interface as Res
+import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 -- This is the monad we will do our parsing in.
 -- The main thing a parser does is implement choice: we can do `a <|> b`,
@@ -108,10 +110,19 @@ getAnyPrimitiveTokenImpl =
     Nothing -> Nothing
     Just (_lt, pt) -> Just pt
 
+-- Take a program that returns a 'Maybe a', with `Nothing` representing end-of-input, and
+-- map that `Nothing` into an end-of-input error.
+endOfInputToError :: Monad m => m (Maybe a) -> ParseT m a
+endOfInputToError prog =
+  nothingToError (lift prog) EndOfInputParsingError
+
 -- Like `getAnyPrimitiveTokenImpl`, but on end-of-input raise an error so the parse fails.
 getAnyPrimitiveTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m PT.PrimitiveToken
-getAnyPrimitiveTokenErrImpl =
-  maybeToError (lift getAnyPrimitiveTokenImpl) EndOfInputParsingError
+getAnyPrimitiveTokenErrImpl = endOfInputToError getAnyPrimitiveTokenImpl
+
+getAnyLexTokenImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m Lex.LexToken
+getAnyLexTokenImpl =
+  endOfInputToError getTokenNotResolving
 
 -- I want to write my parsers in 'MonadPrimTokenParse m => m'.
 -- I could write them in 'Lex.MonadLexTokenSource m, MonadPrimTokenSource m => ParseT m',
@@ -121,6 +132,20 @@ getAnyPrimitiveTokenErrImpl =
 instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => MonadPrimTokenParse (ParseT m) where
   getAnyPrimitiveToken = getAnyPrimitiveTokenErrImpl
 
+  getAnyLexToken = getAnyLexTokenImpl
+
   satisfyThen = satisfyThenImpl
+
+  withInhibition :: (InhibitionToken -> ParseT m a) -> ParseT m a
+  withInhibition p = do
+    -- Save previous resolution-mode.
+    prevResMode <- lift getResolutionMode
+    -- Set resolution-mode to 'not-resolving', i.e. inhibited.
+    lift $ setResolutionMode Res.NotResolving
+    -- Run the parser, providing the inhibition-token that proves we have stopped resolution.
+    res <- p InhibitionToken
+    -- Restore the resolution-mode to its previous state.
+    lift $ setResolutionMode prevResMode
+    pure res
 
   parseError = parseErrorImpl

@@ -65,8 +65,8 @@ getTokenResolvingImpl =
 expandSyntaxCommand ::
   Syn.SyntaxCommandHeadToken ->
   m (Seq Lex.LexToken)
-expandSyntaxCommand = \case {}
-
+expandSyntaxCommand = \case
+  _ -> panic "Not implemented"
 -- MacroTok m -> do
 --   args <- parseMacroArgs m
 --   expandMacro m args

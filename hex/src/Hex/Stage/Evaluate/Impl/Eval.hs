@@ -11,25 +11,23 @@ data EvaluationError
   = CharCodeNotInRange
   deriving stock (Show, Generic)
 
-evalInt :: Monad m => AST.HexInt -> m H.Q.HexInt
-evalInt = undefined
+evalInt :: AST.HexInt -> m H.Q.HexInt
+evalInt = panic "Not implemented"
 
-evalLength :: Monad m => AST.Length -> m H.Q.Length
-evalLength = undefined
+evalLength :: AST.Length -> m H.Q.Length
+evalLength = panic "Not implemented"
 
-evalGlue :: Monad m => AST.Glue -> m H.Q.Glue
-evalGlue = undefined
+evalGlue :: AST.Glue -> m H.Q.Glue
+evalGlue = panic "Not implemented"
 
 evalRule ::
-  ( Monad m
-  ) =>
   AST.Rule ->
   m H.Q.Length ->
   m H.Q.Length ->
   m H.Q.Length ->
   m H.Inter.B.Box.Rule
-evalRule (AST.Rule dims) defaultW defaultH defaultD =
-  undefined
+evalRule (AST.Rule _dims) _defaultW _defaultH _defaultD =
+  panic "Not implemented"
 
 -- H.Inter.B.Box.Rule
 --   <$> ( H.Inter.B.Box.Box ()
@@ -39,13 +37,11 @@ evalRule (AST.Rule dims) defaultW defaultH defaultD =
 --       )
 
 evalVModeRule ::
-  ( Monad m
-  ) =>
   AST.Rule ->
   m H.Inter.B.Box.Rule
-evalVModeRule rule =
+evalVModeRule _rule =
   -- ruleToElem rule defaultWidth defaultHeight defaultDepth
-  undefined
+  panic "Not implemented"
 
 -- where
 --   defaultWidth = use $ typed @Config % to (lookupLengthParameter HP.HSize)
@@ -53,11 +49,10 @@ evalVModeRule rule =
 --   defaultDepth = pure 0
 
 evalHModeRule ::
-  Monad m =>
   AST.Rule ->
   m H.Inter.B.Box.Rule
-evalHModeRule rule =
-  undefined
+evalHModeRule _rule =
+  panic "Not implemented"
 
 -- ruleToElem rule defaultWidth defaultHeight defaultDepth
 -- where

@@ -30,11 +30,11 @@ parseInt :: MonadPrimTokenParse m => m AST.HexInt
 parseInt = AST.HexInt <$> parseSigned (parseHeaded headToParseUnsignedInt)
 
 headToParseUnsignedInt :: MonadPrimTokenParse m => PrimitiveToken -> m AST.UnsignedInt
-headToParseUnsignedInt =
+headToParseUnsignedInt headTok =
   choiceFlap
     [ fmap AST.NormalUnsignedInt <$> headToParseNormalInt,
       fmap AST.CoercedUnsignedInt <$> headToParseCoercedInt
-    ]
+    ] headTok
 
 headToParseNormalInt :: forall m. MonadPrimTokenParse m => PrimitiveToken -> m AST.NormalInt
 headToParseNormalInt =
@@ -54,7 +54,7 @@ headToParseNormalInt =
       | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '\'') t = do
           octDigits <- PC.some (satisfyThen octCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base8 octDigits
-      | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '`') t = do
+      | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '`') t =
           AST.CharLikeCode <$> parseCharLikeCodeInt
       | otherwise =
           empty
@@ -62,7 +62,7 @@ headToParseNormalInt =
     -- Case 10, character constant like "`c".
     parseCharLikeCodeInt :: m Word8
     parseCharLikeCodeInt =
-      fetchInhibitedLexToken >>= \case
+      getAnyLexToken >>= \case
         Lex.CharCatLexToken cc ->
           pure $ cc ^. typed @H.C.CharCode % typed @Word8
         Lex.ControlSequenceLexToken cs -> do

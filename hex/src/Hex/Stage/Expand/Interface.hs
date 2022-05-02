@@ -10,6 +10,8 @@ class MonadPrimTokenSource m where
 
   getTokenResolving :: m (Maybe (Lex.LexToken, PT.PrimitiveToken))
 
+-- Pick the correct token-fetcher based on resolution mode, and wrap the
+-- lex-token as a primitive token if we are not resolving.
 getPrimitiveToken :: (Monad m, MonadPrimTokenSource m) => Res.ResolutionMode -> m (Maybe (Lex.LexToken, PT.PrimitiveToken))
 getPrimitiveToken = \case
   Res.Resolving -> do

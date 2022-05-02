@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Wno-deprecations #-}
 module Hexlude
   ( module Protolude,
     module Optics.Core,
@@ -15,7 +16,7 @@ module Hexlude
     fmtViewed,
     Fmt,
     flap,
-    maybeToError,
+    nothingToError,
   )
 where
 
@@ -41,8 +42,8 @@ traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a
 traceResultM :: (Show a, Monad m) => Text -> m a -> m a
 traceResultM prefix prog = prog >>= traceShowIdM prefix
 
-maybeToError :: MonadError e m => m (Maybe a) -> e -> m a
-maybeToError prog eofError = do
+nothingToError :: MonadError e m => m (Maybe a) -> e -> m a
+nothingToError prog eofError = do
   prog >>= \case
     Nothing -> throwError eofError
     Just v -> pure v

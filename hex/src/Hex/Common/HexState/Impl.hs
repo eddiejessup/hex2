@@ -92,9 +92,9 @@ instance (Monad m
     let fontName = Tx.pack $ FilePath.takeBaseName filePath
     pure
       H.Inter.B.Box.FontDefinition
-        { H.Inter.B.Box.fontDefChecksum = undefined,
-          H.Inter.B.Box.fontDefDesignSize = undefined,
-          H.Inter.B.Box.fontDefDesignScale = undefined,
+        { H.Inter.B.Box.fontDefChecksum = panic "Not implemented",
+          H.Inter.B.Box.fontDefDesignSize = panic "Not implemented",
+          H.Inter.B.Box.fontDefDesignScale = panic "Not implemented",
           H.Inter.B.Box.fontNr = newKey,
           H.Inter.B.Box.fontPath = path,
           H.Inter.B.Box.fontName = fontName
@@ -114,6 +114,9 @@ instance (Monad m
   getResolutionMode = use (typed @HexState % #resolutionMode)
 
   setResolutionMode = assign' (typed @HexState % #resolutionMode)
+
+  setAfterAssignmentToken = panic "Not implemented"
+  setControlSequence = panic "Not implemented"
 
 currentFontInfo ::
   ( MonadState st m,

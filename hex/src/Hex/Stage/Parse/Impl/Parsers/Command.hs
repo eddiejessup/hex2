@@ -24,7 +24,7 @@ parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
   getAnyPrimitiveToken >>= \case
     H.Tok.ShowTokenTok ->
-      AST.ShowToken <$> Par.fetchInhibitedLexToken
+      AST.ShowToken <$> getAnyLexToken
     H.Tok.ShowBoxTok ->
       AST.ShowBox <$> Par.parseInt
     H.Tok.ShowListsTok ->
@@ -60,9 +60,9 @@ parseCommand =
     H.Tok.MathKernTok ->
       AST.ModeIndependentCommand . AST.AddMathKern <$> Par.parseMathLength
     H.Tok.SetAfterAssignmentTokenTok ->
-      AST.ModeIndependentCommand . AST.SetAfterAssignmentToken <$> Par.fetchInhibitedLexToken
+      AST.ModeIndependentCommand . AST.SetAfterAssignmentToken <$> getAnyLexToken
     H.Tok.AddToAfterGroupTokensTok ->
-      AST.ModeIndependentCommand . AST.AddToAfterGroupTokens <$> Par.fetchInhibitedLexToken
+      AST.ModeIndependentCommand . AST.AddToAfterGroupTokens <$> getAnyLexToken
     H.Tok.CloseInputTok ->
       AST.ModeIndependentCommand . AST.ModifyFileStream . AST.FileStreamModificationCommand AST.FileInput AST.Close <$> Par.parseInt
     H.Tok.DoSpecialTok ->

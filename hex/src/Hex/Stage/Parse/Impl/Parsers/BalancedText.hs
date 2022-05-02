@@ -26,10 +26,11 @@ parseExpandedBalancedText = do
 parseInhibitedBalancedText :: MonadPrimTokenParse m => m T.InhibitedBalancedText
 parseInhibitedBalancedText = do
   skipSatisfied $ primTokHasCategory H.C.BeginGroup
-  T.InhibitedBalancedText <$> withInhibition inhibParseNestedExpr
+  T.InhibitedBalancedText <$> parseNestedExprInhibited
   where
-    inhibParseNestedExpr inhibToken =
-      parseNestedExpr $ inhibFetchLexToken inhibToken <&> \lt -> (lt, lt ^? _Typed @Lex.LexCharCat % typed @H.C.CoreCatCode)
+    -- Note that we get lex-tokens, so we parse without resolving.
+    parseNestedExprInhibited =
+      parseNestedExpr $ getAnyLexToken <&> \lt -> (lt, lt ^? _Typed @Lex.LexCharCat % typed @H.C.CoreCatCode)
 
 parseNestedExpr :: MonadPrimTokenParse m => m (a, Maybe H.C.CoreCatCode) -> m (Seq a)
 parseNestedExpr parseNext = go mempty (1 :: Int)

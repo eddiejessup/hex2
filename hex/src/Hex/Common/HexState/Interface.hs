@@ -70,9 +70,43 @@ class Monad m => MonadHexState m where
 
 --   currentFontSpaceGlue = lift currentFontSpaceGlue
 
-instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.HList m)
+instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.HList m) where
+  getIntParameter = panic "Not implemented"
+  getLengthParameter = panic "Not implemented"
+  getGlueParameter = panic "Not implemented"
+  getSpecialLengthParameter = panic "Not implemented"
+  setSpecialLengthParameter = panic "Not implemented"
+  getCategory = panic "Not implemented"
+  resolveSymbol = panic "Not implemented"
+  loadFont = panic "Not implemented"
+  selectFont = panic "Not implemented"
+  currentFontCharacter = panic "Not implemented"
+  currentFontSpaceGlue = panic "Not implemented"
+  setAfterAssignmentToken = panic "Not implemented"
+  setControlSequence = panic "Not implemented"
+  setLastFetchedLexTok = panic "Not implemented"
+  getLastFetchedLexTok = panic "Not implemented"
+  getResolutionMode = panic "Not implemented"
+  setResolutionMode = panic "Not implemented"
 
-instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.VList m)
+instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.VList m) where
+  getIntParameter = panic "Not implemented"
+  getLengthParameter = panic "Not implemented"
+  getGlueParameter = panic "Not implemented"
+  getSpecialLengthParameter = panic "Not implemented"
+  setSpecialLengthParameter = panic "Not implemented"
+  getCategory = panic "Not implemented"
+  resolveSymbol = panic "Not implemented"
+  loadFont = panic "Not implemented"
+  selectFont = panic "Not implemented"
+  currentFontCharacter = panic "Not implemented"
+  currentFontSpaceGlue = panic "Not implemented"
+  setAfterAssignmentToken = panic "Not implemented"
+  setControlSequence = panic "Not implemented"
+  setLastFetchedLexTok = panic "Not implemented"
+  getLastFetchedLexTok = panic "Not implemented"
+  getResolutionMode = panic "Not implemented"
+  setResolutionMode = panic "Not implemented"
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do

@@ -27,12 +27,12 @@ headToParseNonMacroAssignmentBody = \case
   T.InteractionModeTok mode ->
     pure $ AST.SetInteractionMode mode
   T.LetTok -> do
-    (cs, tgt) <- Par.parseXEqualsY Par.parseCSName (Par.skipOneOptionalSpace >> Par.fetchInhibitedLexToken)
+    (cs, tgt) <- Par.parseXEqualsY Par.parseCSName (Par.skipOneOptionalSpace >> getAnyLexToken)
     pure $ AST.DefineControlSequence cs $ AST.LetTarget tgt
   T.FutureLetTok -> do
     cs <- Par.parseCSName
-    lt1 <- Par.fetchInhibitedLexToken
-    lt2 <- Par.fetchInhibitedLexToken
+    lt1 <- getAnyLexToken
+    lt2 <- getAnyLexToken
     pure $ AST.DefineControlSequence cs $ AST.FutureLetTarget lt1 lt2
   T.ShortDefHeadTok quant -> do
     (cs, nr) <- Par.parseXEqualsY Par.parseCSName Par.parseInt

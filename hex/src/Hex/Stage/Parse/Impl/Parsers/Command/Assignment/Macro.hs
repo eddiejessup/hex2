@@ -18,10 +18,10 @@ parseMacroBody defExpandType prefixes = do
   tgt <- parseMacroDefinition defExpandType prefixes
   pure $ AST.DefineControlSequence cs (AST.MacroTarget tgt)
 
-inhibParseParamText :: MonadPrimTokenParse m => Par.InhibitionToken -> m T.Syn.ParameterText
-inhibParseParamText inhibToken = do
+parseParamText :: MonadPrimTokenParse m => m T.Syn.ParameterText
+parseParamText = do
   lts <- PC.many $ do
-    Par.inhibSatisfyLexThen inhibToken $ \lt -> case lt ^? Lex.lexTokCategory of
+    Par.satisfyLexThen $ \lt -> case lt ^? Lex.lexTokCategory of
       Just H.C.BeginGroup -> Nothing
       Just H.C.EndGroup -> Nothing
       _ -> Just lt
@@ -29,7 +29,7 @@ inhibParseParamText inhibToken = do
 
 parseMacroDefinition :: MonadPrimTokenParse m => T.ExpandDefFlag -> Seq T.AssignPrefixTok -> m T.Syn.MacroDefinition
 parseMacroDefinition defExpandType prefixes = do
-  paramText <- Par.withInhibition inhibParseParamText
+  paramText <- parseParamText
   replacementText <- case defExpandType of
     T.ExpandDef ->
       T.Syn.ExpandedReplacementText <$> Par.parseExpandedBalancedText

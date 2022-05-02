@@ -32,12 +32,6 @@ isOnly af x = is (castOptic @An_AffineFold af % castOptic @An_AffineFold (only x
 is :: Is k An_AffineFold => Optic' k is s a -> s -> Bool
 is af s = not $ isn't af s
 
-data InhibitionToken = InhibitionToken
-
--- TODO: Implement me.
-withInhibition :: (InhibitionToken -> m a) -> m a
-withInhibition k = k InhibitionToken
-
 choiceFlap :: Alternative m => [t -> m a] -> t -> m a
 choiceFlap headToParsers t =
   PC.choice (flap headToParsers t)
@@ -47,9 +41,9 @@ parseHeaded = (getAnyPrimitiveToken >>=)
 
 -- Bit more domainy.
 
-inhibSatisfyLexThen :: MonadPrimTokenParse m => InhibitionToken -> (Lex.LexToken -> Maybe a) -> m a
-inhibSatisfyLexThen inhibToken f = do
-  lt <- inhibFetchLexToken inhibToken
+satisfyLexThen :: MonadPrimTokenParse m => (Lex.LexToken -> Maybe a) -> m a
+satisfyLexThen f = do
+  lt <- getAnyLexToken
   maybe empty pure (f lt)
 
 primTokHasCategory :: H.C.CoreCatCode -> PrimitiveToken -> Bool
@@ -73,15 +67,6 @@ skipOneOptionalSpace = skipOptional isSpace
 -- or active character \let equal to such.
 isSpace :: PrimitiveToken -> Bool
 isSpace = primTokHasCategory H.C.Space
-
-inhibFetchLexToken :: MonadPrimTokenParse m => InhibitionToken -> m Lex.LexToken
-inhibFetchLexToken _ = do
-  getAnyPrimitiveToken >>= \case
-    T.UnresolvedTok t -> pure t
-    _ -> panic "impossible"
-
-fetchInhibitedLexToken :: MonadPrimTokenParse m => m Lex.LexToken
-fetchInhibitedLexToken = withInhibition inhibFetchLexToken
 
 matchNonActiveCharacterUncased :: H.C.CharCode -> PrimitiveToken -> Bool
 matchNonActiveCharacterUncased a pt =
@@ -115,18 +100,15 @@ skipOptionalEquals = do
   skipOptional $ isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '=')
 
 parseCSName :: forall m. MonadPrimTokenParse m => m ControlSymbol
-parseCSName = withInhibition unsafeParseCSName
+parseCSName = satisfyLexThen lextokToCSLike
   where
-    unsafeParseCSName :: InhibitionToken -> m ControlSymbol
-    unsafeParseCSName inhibToken = inhibSatisfyLexThen inhibToken lextokToCSLike
-      where
-        lextokToCSLike = \case
-          Lex.CharCatLexToken (Lex.LexCharCat c H.C.Active) ->
-            Just $ ActiveCharacterSymbol c
-          Lex.ControlSequenceLexToken cs ->
-            Just $ ControlSequenceSymbol cs
-          _ ->
-            Nothing
+    lextokToCSLike = \case
+      Lex.CharCatLexToken (Lex.LexCharCat c H.C.Active) ->
+        Just $ ActiveCharacterSymbol c
+      Lex.ControlSequenceLexToken cs ->
+        Just $ ControlSequenceSymbol cs
+      _ ->
+        Nothing
 
 parseXEqualsY :: MonadPrimTokenParse m => m a -> m b -> m (a, b)
 parseXEqualsY parseX parseY = do

@@ -22,6 +22,8 @@ data ParseUnexpectedErrorCause
 data UnexpectedToken = UnexpectedToken {saw :: PT.PrimitiveToken, expected :: Text}
   deriving stock (Show, Eq, Generic)
 
+data InhibitionToken = InhibitionToken
+
 -- I want a single class to require when I write my parsers that consume primitive tokens.
 -- For this I need more than just MonadPrimTokenSource, because I want to write a backtracking parser.
 -- For this, I need to be able to get at the underlying char-source, so I can reset the state.
@@ -40,6 +42,10 @@ data UnexpectedToken = UnexpectedToken {saw :: PT.PrimitiveToken, expected :: Te
 class (Monad m, Alternative m, MonadPlus m) => MonadPrimTokenParse m where
   getAnyPrimitiveToken :: m PT.PrimitiveToken
 
+  getAnyLexToken :: m Lex.LexToken
+
   satisfyThen :: (PT.PrimitiveToken -> Maybe a) -> m a
+
+  withInhibition :: (InhibitionToken -> m a) -> m a
 
   parseError :: ParseUnexpectedErrorCause -> m a
