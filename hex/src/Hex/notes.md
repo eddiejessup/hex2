@@ -1,5 +1,15 @@
 # Notes
 
+## Scratch
+
+- wondering how to handle end-of-input.
+  - currently interfaces return 'maybe x', where nothing means end-of-input.
+  - I think this interface might be fine, and I can provide a helper function using the interface to merge it into an error.
+  - For testing it's nice to just finish
+  - but in the code it's easier to treat is as an error then not have to handle it.
+  - How easy is it to catch the error in testing code? I think not v hard.
+  - Decision: I think I will treat it as an error.
+
 ## Glossary
 
 - Categorise has an explicit implementation, and also a monad interface and implementation, MonadCharCatSource.
@@ -50,8 +60,10 @@
   - Implementation:
     - Uses MonadPrimTokenSource
 - *Evaluate*: Evaluate ASTTokens into EvaluatedTokens, like evaluated 'Command's
-  - Interface: MonadEvaluated
+  - Interface: MonadEvaluate
+    - This interface isn't actually a stream interface, the interface is about evaluating tokens. Paired with a source of unevaluated tokens, eg MonadCommandSource, we can build an evaluated-token-source.
   - Implementation: (None)
+
 - *Build*: Interpret evaluated 'Command's
   - Interface: functions `buildMainVList`, `buildParaList`, `handleModeIndependentCommand`
 

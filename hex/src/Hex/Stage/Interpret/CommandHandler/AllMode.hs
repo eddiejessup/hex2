@@ -13,6 +13,7 @@ data InterpretError
   = SawEndBoxInMainVMode
   | SawEndBoxInMainVModePara -- "No box to end: in paragraph within main V mode"
   | NoFontSelected
+  | UnexpectedEndOfInput
   deriving stock (Generic, Show)
 
 data AllModeCommandResult

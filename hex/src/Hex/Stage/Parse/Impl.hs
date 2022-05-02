@@ -17,7 +17,7 @@ import qualified Hex.Stage.Expand.Interface as Exp
 -- because that is what we want to run parseCommand in.
 -- The instance for 'PrimTokenParse (ParseT m)' requires the above to be true of `m`.
 -- So we require that here.
-instance (Lex.MonadLexTokenSource m, Exp.MonadPrimTokenSource m, MonadError e m, AsType ParseUnexpectedError e) => MonadCommandSource m where
+instance (Monad m, Lex.MonadLexTokenSource m, Exp.MonadPrimTokenSource m, MonadError e m, AsType ParseUnexpectedError e) => MonadCommandSource m where
   getCommand = do
     -- From the perspective of the parser, ie in a MonadPrimTokenSource context,
     -- we need 'end-of-input' to be an error like any other, so we can make a monoid
@@ -29,8 +29,3 @@ instance (Lex.MonadLexTokenSource m, Exp.MonadPrimTokenSource m, MonadError e m,
       Left ParseEndOfInput -> pure Nothing
       Left (ParseUnexpectedError e) -> throwError $ injectTyped e
       Right cmd -> pure $ Just cmd
-
--- getSource = Expand.getSource
--- putSource = Expand.putSource
--- insertLexTokenToSource = Expand.insertLexTokenToSource
--- insertLexTokensToSource = Expand.insertLexTokensToSource

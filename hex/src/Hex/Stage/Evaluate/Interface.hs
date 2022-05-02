@@ -1,17 +1,24 @@
 module Hex.Stage.Evaluate.Interface where
 
-import Hex.Stage.Evaluate.Interface.AST.Command (Command)
+import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hexlude
-import Hex.Stage.Lex.Interface.CharSource (CharSource)
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
+import qualified Hex.Stage.Parse.Interface.AST.Command as Uneval
+import Hex.Stage.Parse.Interface (MonadCommandSource(..))
 
-class Monad m => MonadEvaluated m where
-  getCommand :: m Command
+class MonadEvaluate m where
+  evalCommand :: Uneval.Command -> m Eval.Command
 
-  getSource :: m CharSource
+getEvalCommand :: (MonadCommandSource m, MonadEvaluate m) => m (Maybe Eval.Command)
+getEvalCommand = do
+  getCommand >>= \case
+    Nothing -> pure Nothing
+    Just c -> do
+      ec <- evalCommand c
+      pure $ Just ec
 
-  putSource :: CharSource -> m ()
-
-  insertLexTokenToSource :: Lex.LexToken -> m ()
-
-  insertLexTokensToSource :: Seq Lex.LexToken -> m ()
+-- A helper that's like `getEvalCommand`, but throws an error on end-of-input instead of returning `Nothing`.
+getEvalCommandErrorEOL :: (MonadCommandSource m, MonadEvaluate m, MonadError e m) => e -> m Eval.Command
+getEvalCommandErrorEOL eolError = do
+  getEvalCommand >>= \case
+    Nothing -> throwError eolError
+    Just v -> pure v

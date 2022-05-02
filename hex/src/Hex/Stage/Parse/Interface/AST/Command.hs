@@ -5,8 +5,8 @@ module Hex.Stage.Parse.Interface.AST.Command where
 import Hex.Common.Codes qualified as H.Code
 import Hex.Stage.Parse.Interface.AST.Common
 import Hex.Common.Quantity qualified as H.Q
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as H.Sym.Tok.Syn
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as Res.PT
+import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Res.ST
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
@@ -17,13 +17,13 @@ data Command
   | ShowLists
   | ShowTheInternalQuantity InternalQuantity
   | ShipOut Box
-  | AddMark H.Sym.Tok.Syn.ExpandedBalancedText
+  | AddMark Res.ST.ExpandedBalancedText
   | -- -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- -- then can 'migrate' out.
     -- \| AddInsertion HexInt VModeMaterial
     -- \| AddAdjustment VModeMaterial
     AddSpace
-  | StartParagraph H.Sym.Tok.IndentFlag
+  | StartParagraph Res.PT.IndentFlag
   | EndParagraph
   | -- \| AddAlignedMaterial DesiredLength AlignmentMaterial
     HModeCommand HModeCommand
@@ -38,13 +38,13 @@ data ModeIndependentCommand
   | AddPenalty HexInt
   | AddKern Length
   | AddMathKern MathLength
-  | RemoveItem H.Sym.Tok.RemovableItem
+  | RemoveItem Res.PT.RemovableItem
   | SetAfterAssignmentToken Lex.LexToken
   | AddToAfterGroupTokens Lex.LexToken
   | WriteMessage MessageWriteCommand
   | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
-  | DoSpecial H.Sym.Tok.Syn.ExpandedBalancedText
+  | DoSpecial Res.ST.ExpandedBalancedText
   | AddBox BoxPlacement Box
   | ChangeScope H.Q.Sign CommandTrigger
   deriving stock (Show, Eq, Generic)
@@ -76,23 +76,23 @@ data HModeCommand
 data StreamWriteCommand = StreamWriteCommand HexInt WriteText
   deriving stock (Show, Eq, Generic)
 
-data MessageWriteCommand = MessageWriteCommand H.Sym.Tok.StandardOutputSource H.Sym.Tok.Syn.ExpandedBalancedText
+data MessageWriteCommand = MessageWriteCommand Res.PT.StandardOutputSource Res.ST.ExpandedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction HexInt
   deriving stock (Show, Eq, Generic)
 
-data Assignment = Assignment {body :: AssignmentBody, scope :: H.Sym.Tok.ScopeFlag}
+data Assignment = Assignment {body :: AssignmentBody, scope :: Res.PT.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
 newtype HexFilePath = HexFilePath FilePath
   deriving stock (Show, Eq, Generic)
 
 data ControlSequenceTarget
-  = MacroTarget H.Sym.Tok.Syn.MacroDefinition
+  = MacroTarget Res.ST.MacroDefinition
   | LetTarget Lex.LexToken
   | FutureLetTarget Lex.LexToken Lex.LexToken
-  | ShortDefineTarget H.Sym.Tok.CharryQuantityType HexInt
+  | ShortDefineTarget Res.PT.CharryQuantityType HexInt
   | ReadTarget HexInt
   | FontTarget FontFileSpec
   deriving stock (Show, Eq, Generic)
@@ -105,25 +105,25 @@ data AssignmentBody
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont H.Sym.Tok.FontNumber
+  | SelectFont Res.PT.FontNumber
   | SetFamilyMember FamilyMember FontRef
   | SetParShape HexInt [Length]
   | SetBoxRegister HexInt Box
   | -- -- Global assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontChar FontCharRef HexInt
-  | SetHyphenation H.Sym.Tok.Syn.InhibitedBalancedText
-  | SetHyphenationPatterns H.Sym.Tok.Syn.InhibitedBalancedText
+  | SetHyphenation Res.ST.InhibitedBalancedText
+  | SetHyphenationPatterns Res.ST.InhibitedBalancedText
   | SetBoxDimension BoxDimensionRef Length
-  | SetInteractionMode H.Sym.Tok.InteractionMode
+  | SetInteractionMode Res.PT.InteractionMode
   deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
-  = TokenListAssignmentVar (QuantVariableAST 'H.Sym.Tok.TokenListQuantity)
-  | TokenListAssignmentText H.Sym.Tok.Syn.InhibitedBalancedText
+  = TokenListAssignmentVar (QuantVariableAST 'Res.PT.TokenListQuantity)
+  | TokenListAssignmentText Res.ST.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
-data QuantVariableAssignment (q :: H.Sym.Tok.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTarget q)
+data QuantVariableAssignment (q :: Res.PT.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTarget q)
   deriving stock (Generic)
 
 deriving stock instance (Show (QuantVariableAST a), Show (QuantVariableTarget a)) => Show (QuantVariableAssignment a)
@@ -131,35 +131,35 @@ deriving stock instance (Show (QuantVariableAST a), Show (QuantVariableTarget a)
 deriving stock instance (Eq (QuantVariableAST a), Eq (QuantVariableTarget a)) => Eq (QuantVariableAssignment a)
 
 type family QuantVariableTarget a where
-  QuantVariableTarget 'H.Sym.Tok.IntQuantity = HexInt
-  QuantVariableTarget 'H.Sym.Tok.LenQuantity = Length
-  QuantVariableTarget 'H.Sym.Tok.GlueQuantity = Glue
-  QuantVariableTarget 'H.Sym.Tok.MathGlueQuantity = MathGlue
-  QuantVariableTarget 'H.Sym.Tok.TokenListQuantity = TokenListAssignmentTarget
+  QuantVariableTarget 'Res.PT.IntQuantity = HexInt
+  QuantVariableTarget 'Res.PT.LenQuantity = Length
+  QuantVariableTarget 'Res.PT.GlueQuantity = Glue
+  QuantVariableTarget 'Res.PT.MathGlueQuantity = MathGlue
+  QuantVariableTarget 'Res.PT.TokenListQuantity = TokenListAssignmentTarget
 
 data VariableAssignment
-  = IntVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.IntQuantity)
-  | LengthVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.LenQuantity)
-  | GlueVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.GlueQuantity)
-  | MathGlueVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.MathGlueQuantity)
-  | TokenListVariableAssignment (QuantVariableAssignment 'H.Sym.Tok.TokenListQuantity)
-  | SpecialIntParameterVariableAssignment H.Sym.Tok.SpecialIntParameter HexInt
-  | SpecialLengthParameterVariableAssignment H.Sym.Tok.SpecialLengthParameter Length
+  = IntVariableAssignment (QuantVariableAssignment 'Res.PT.IntQuantity)
+  | LengthVariableAssignment (QuantVariableAssignment 'Res.PT.LenQuantity)
+  | GlueVariableAssignment (QuantVariableAssignment 'Res.PT.GlueQuantity)
+  | MathGlueVariableAssignment (QuantVariableAssignment 'Res.PT.MathGlueQuantity)
+  | TokenListVariableAssignment (QuantVariableAssignment 'Res.PT.TokenListQuantity)
+  | SpecialIntParameterVariableAssignment Res.PT.SpecialIntParameter HexInt
+  | SpecialLengthParameterVariableAssignment Res.PT.SpecialLengthParameter Length
   deriving stock (Show, Eq, Generic)
 
 data VariableModification
-  = AdvanceIntVariable (QuantVariableAST 'H.Sym.Tok.IntQuantity) (QuantVariableTarget 'H.Sym.Tok.IntQuantity)
-  | AdvanceLengthVariable (QuantVariableAST 'H.Sym.Tok.LenQuantity) (QuantVariableTarget 'H.Sym.Tok.LenQuantity)
-  | AdvanceGlueVariable (QuantVariableAST 'H.Sym.Tok.GlueQuantity) (QuantVariableTarget 'H.Sym.Tok.GlueQuantity)
-  | AdvanceMathGlueVariable (QuantVariableAST 'H.Sym.Tok.MathGlueQuantity) (QuantVariableTarget 'H.Sym.Tok.MathGlueQuantity)
+  = AdvanceIntVariable (QuantVariableAST 'Res.PT.IntQuantity) (QuantVariableTarget 'Res.PT.IntQuantity)
+  | AdvanceLengthVariable (QuantVariableAST 'Res.PT.LenQuantity) (QuantVariableTarget 'Res.PT.LenQuantity)
+  | AdvanceGlueVariable (QuantVariableAST 'Res.PT.GlueQuantity) (QuantVariableTarget 'Res.PT.GlueQuantity)
+  | AdvanceMathGlueVariable (QuantVariableAST 'Res.PT.MathGlueQuantity) (QuantVariableTarget 'Res.PT.MathGlueQuantity)
   | ScaleVariable H.Q.VDirection NumericVariable HexInt
   deriving stock (Show, Eq, Generic)
 
 data NumericVariable
-  = IntNumericVariable (QuantVariableAST 'H.Sym.Tok.IntQuantity)
-  | LengthNumericVariable (QuantVariableAST 'H.Sym.Tok.LenQuantity)
-  | GlueNumericVariable (QuantVariableAST 'H.Sym.Tok.GlueQuantity)
-  | MathGlueNumericVariable (QuantVariableAST 'H.Sym.Tok.MathGlueQuantity)
+  = IntNumericVariable (QuantVariableAST 'Res.PT.IntQuantity)
+  | LengthNumericVariable (QuantVariableAST 'Res.PT.LenQuantity)
+  | GlueNumericVariable (QuantVariableAST 'Res.PT.GlueQuantity)
+  | MathGlueNumericVariable (QuantVariableAST 'Res.PT.MathGlueQuantity)
   deriving stock (Show, Eq, Generic)
 
 data CodeAssignment = CodeAssignment CodeTableRef HexInt
@@ -170,10 +170,10 @@ data FontSpecification = NaturalFont | FontAt Length | FontScaled HexInt
 
 -- Box specification.
 data Box
-  = FetchedRegisterBox H.Sym.Tok.BoxFetchMode HexInt
+  = FetchedRegisterBox Res.PT.BoxFetchMode HexInt
   | LastBox
   | VSplitBox HexInt Length
-  | ExplicitBox BoxSpecification H.Sym.Tok.ExplicitBox
+  | ExplicitBox BoxSpecification Res.PT.ExplicitBox
   deriving stock (Show, Eq, Generic)
 
 data BoxSpecification = Natural | To Length | Spread Length
@@ -182,13 +182,13 @@ data BoxSpecification = Natural | To Length | Spread Length
 data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule H.Q.Axis Rule
   deriving stock (Show, Eq, Generic)
 
-data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: H.Sym.Tok.Syn.ExpandedBalancedText}
+data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: Res.ST.ExpandedBalancedText}
   deriving stock (Show, Eq, Generic)
 
-data FetchedBoxRef = FetchedBoxRef HexInt H.Sym.Tok.BoxFetchMode
+data FetchedBoxRef = FetchedBoxRef HexInt Res.PT.BoxFetchMode
   deriving stock (Show, Eq, Generic)
 
-data LeadersSpec = LeadersSpec H.Sym.Tok.LeadersType BoxOrRule Glue
+data LeadersSpec = LeadersSpec Res.PT.LeadersType BoxOrRule Glue
   deriving stock (Show, Eq, Generic)
 
 data CommandTrigger = CharCommandTrigger | CSCommandTrigger
@@ -200,12 +200,12 @@ data InternalQuantity
   | InternalGlueQuantity InternalGlue
   | InternalMathGlueQuantity InternalMathGlue
   | FontQuantity FontRef
-  | TokenListVariableQuantity (QuantVariableAST 'H.Sym.Tok.TokenListQuantity)
+  | TokenListVariableQuantity (QuantVariableAST 'Res.PT.TokenListQuantity)
   deriving stock (Show, Eq, Generic)
 
 data WriteText
-  = ImmediateWriteText H.Sym.Tok.Syn.ExpandedBalancedText
-  | DeferredWriteText H.Sym.Tok.Syn.InhibitedBalancedText
+  = ImmediateWriteText Res.ST.ExpandedBalancedText
+  | DeferredWriteText Res.ST.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data WritePolicy = Immediate | Deferred

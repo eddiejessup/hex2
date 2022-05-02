@@ -9,21 +9,21 @@ import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as Res.PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Res.SnT
+import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Res.ST
 import Hexlude
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken)
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 data Command
   = ShowToken Lex.LexToken
-  | ShowBox HexInt
+  | ShowBox H.Q.HexInt
   | ShowLists
   | ShowTheInternalQuantity InternalQuantity
   | ShipOut Box
-  | AddMark Res.SnT.ExpandedBalancedText
+  | AddMark Res.ST.ExpandedBalancedText
   | -- -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- -- then can 'migrate' out.
-    -- \| AddInsertion HexInt VModeMaterial
+    -- \| AddInsertion H.Q.HexInt VModeMaterial
     -- \| AddAdjustment VModeMaterial
     AddSpace
   | StartParagraph Res.PT.IndentFlag
@@ -47,7 +47,7 @@ data ModeIndependentCommand
   | WriteMessage MessageWriteCommand
   | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
-  | DoSpecial Res.SnT.ExpandedBalancedText
+  | DoSpecial Res.ST.ExpandedBalancedText
   | AddBox BoxPlacement Box
   | ChangeScope H.Q.Sign CommandTrigger
   deriving stock (Show, Eq, Generic)
@@ -65,7 +65,7 @@ data VModeCommand
 data HModeCommand
   = AddControlSpace
   | AddCharacter CharCodeRef
-  | AddAccentedCharacter HexInt [Assignment] (Maybe CharCodeRef)
+  | AddAccentedCharacter H.Q.HexInt [Assignment] (Maybe CharCodeRef)
   | AddItalicCorrection
   | AddDiscretionaryText DiscretionaryText
   | AddDiscretionaryHyphen
@@ -76,13 +76,13 @@ data HModeCommand
   | AddUnwrappedFetchedHBox FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
 
-data StreamWriteCommand = StreamWriteCommand HexInt WriteText
+data StreamWriteCommand = StreamWriteCommand H.Q.HexInt WriteText
   deriving stock (Show, Eq, Generic)
 
 data MessageWriteCommand = MessageWriteCommand Res.PT.StandardOutputSource ByteString
   deriving stock (Show, Eq, Generic)
 
-data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction HexInt
+data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction H.Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 data Assignment = Assignment {body :: AssignmentBody, scope :: Res.PT.ScopeFlag}
@@ -103,20 +103,20 @@ data AssignmentBody
   | AssignCode CodeAssignment
   | SelectFont H.Q.HexInt
   | SetFamilyMember FamilyMember FontRef
-  | SetParShape HexInt [Length]
-  | SetBoxRegister HexInt Box
+  | SetParShape H.Q.HexInt [Length]
+  | SetBoxRegister H.Q.HexInt Box
   | -- -- Global assignments.
     SetFontDimension FontDimensionRef Length
-  | SetFontChar FontCharRef HexInt
-  | SetHyphenation Res.SnT.InhibitedBalancedText
-  | SetHyphenationPatterns Res.SnT.InhibitedBalancedText
+  | SetFontChar FontCharRef H.Q.HexInt
+  | SetHyphenation Res.ST.InhibitedBalancedText
+  | SetHyphenationPatterns Res.ST.InhibitedBalancedText
   | SetBoxDimension BoxDimensionRef Length
   | SetInteractionMode Res.PT.InteractionMode
   deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
   = TokenListAssignmentVar (QuantVariableAST 'Res.PT.TokenListQuantity)
-  | TokenListAssignmentText Res.SnT.InhibitedBalancedText
+  | TokenListAssignmentText Res.ST.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data QuantVariableAssignment (q :: Res.PT.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTarget q)
@@ -127,7 +127,7 @@ deriving stock instance (Show (QuantVariableAST a), Show (QuantVariableTarget a)
 deriving stock instance (Eq (QuantVariableAST a), Eq (QuantVariableTarget a)) => Eq (QuantVariableAssignment a)
 
 type family QuantVariableTarget a where
-  QuantVariableTarget 'Res.PT.IntQuantity = HexInt
+  QuantVariableTarget 'Res.PT.IntQuantity = H.Q.HexInt
   QuantVariableTarget 'Res.PT.LenQuantity = Length
   QuantVariableTarget 'Res.PT.GlueQuantity = Glue
   QuantVariableTarget 'Res.PT.MathGlueQuantity = MathGlue
@@ -139,7 +139,7 @@ data VariableAssignment
   | GlueVariableAssignment (QuantVariableAssignment 'Res.PT.GlueQuantity)
   | MathGlueVariableAssignment (QuantVariableAssignment 'Res.PT.MathGlueQuantity)
   | TokenListVariableAssignment (QuantVariableAssignment 'Res.PT.TokenListQuantity)
-  | SpecialIntParameterVariableAssignment Res.PT.SpecialIntParameter HexInt
+  | SpecialIntParameterVariableAssignment Res.PT.SpecialIntParameter H.Q.HexInt
   | SpecialLengthParameterVariableAssignment Res.PT.SpecialLengthParameter Length
   deriving stock (Show, Eq, Generic)
 
@@ -148,7 +148,7 @@ data VariableModification
   | AdvanceLengthVariable (QuantVariableAST 'Res.PT.LenQuantity) (QuantVariableTarget 'Res.PT.LenQuantity)
   | AdvanceGlueVariable (QuantVariableAST 'Res.PT.GlueQuantity) (QuantVariableTarget 'Res.PT.GlueQuantity)
   | AdvanceMathGlueVariable (QuantVariableAST 'Res.PT.MathGlueQuantity) (QuantVariableTarget 'Res.PT.MathGlueQuantity)
-  | ScaleVariable H.Q.VDirection NumericVariable HexInt
+  | ScaleVariable H.Q.VDirection NumericVariable H.Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 data NumericVariable
@@ -158,14 +158,14 @@ data NumericVariable
   | MathGlueNumericVariable (QuantVariableAST 'Res.PT.MathGlueQuantity)
   deriving stock (Show, Eq, Generic)
 
-data CodeAssignment = CodeAssignment CodeTableRef HexInt
+data CodeAssignment = CodeAssignment CodeTableRef H.Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 -- Box specification.
 data Box
-  = FetchedRegisterBox Res.PT.BoxFetchMode HexInt
+  = FetchedRegisterBox Res.PT.BoxFetchMode H.Q.HexInt
   | LastBox
-  | VSplitBox HexInt Length
+  | VSplitBox H.Q.HexInt Length
   | ExplicitBox BoxSpecification Res.PT.ExplicitBox
   deriving stock (Show, Eq, Generic)
 
@@ -175,10 +175,10 @@ data BoxSpecification = Natural | To Length | Spread Length
 data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule H.Q.Axis H.Inter.B.Box.Rule
   deriving stock (Show, Eq, Generic)
 
-data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: Res.SnT.ExpandedBalancedText}
+data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: Res.ST.ExpandedBalancedText}
   deriving stock (Show, Eq, Generic)
 
-data FetchedBoxRef = FetchedBoxRef HexInt Res.PT.BoxFetchMode
+data FetchedBoxRef = FetchedBoxRef H.Q.HexInt Res.PT.BoxFetchMode
   deriving stock (Show, Eq, Generic)
 
 data LeadersSpec = LeadersSpec Res.PT.LeadersType BoxOrRule Glue
@@ -197,8 +197,8 @@ data InternalQuantity
   deriving stock (Show, Eq, Generic)
 
 data WriteText
-  = ImmediateWriteText Res.SnT.ExpandedBalancedText
-  | DeferredWriteText Res.SnT.InhibitedBalancedText
+  = ImmediateWriteText Res.ST.ExpandedBalancedText
+  | DeferredWriteText Res.ST.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data WritePolicy = Immediate | Deferred
@@ -216,5 +216,5 @@ data BoxPlacement = NaturalPlacement | ShiftedPlacement H.Q.Axis H.Q.Direction L
 data CharCodeRef
   = CharRef H.Code.CharCode
   | CharTokenRef H.Q.HexInt
-  | CharCodeNrRef HexInt
+  | CharCodeNrRef H.Q.HexInt
   deriving stock (Show, Eq, Generic)

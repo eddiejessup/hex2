@@ -4,13 +4,16 @@ import Hex.Common.Codes qualified as H.Codes
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
 import Hex.Common.Quantity qualified as H.Q
-import Hex.Stage.Evaluate.Interface qualified as H.Eval
-import Hex.Stage.Evaluate.Interface.AST.Command qualified as H.AST
+import Hex.Stage.Evaluate.Interface qualified as Eval
+import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
+import Hex.Stage.Interpret.CommandHandler.AllMode (InterpretError (..))
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as H.AllMode
+import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
 import Hex.Stage.Lex.Interface.CharSource (CharSource)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
 
 data ParaModeCommandResult
@@ -23,7 +26,10 @@ data EndParaReason
   deriving stock (Show)
 
 buildParaList ::
-  ( H.Eval.MonadEvaluated m,
+  forall m e.
+  ( Eval.MonadEvaluate m,
+    MonadLexTokenSource m,
+    MonadCommandSource m,
     HSt.MonadHexState m,
     MonadError e m,
     MonadIO m,
@@ -39,55 +45,59 @@ buildParaList indentFlag = do
       pure mempty
   runStateT go (H.Inter.B.List.HList initList)
   where
+    go :: StateT H.Inter.B.List.HList m EndParaReason
     go = do
-      sPreParse <- lift H.Eval.getSource
-      command <- lift H.Eval.getCommand
-      traceM $ "In para-mode, saw command: " <> show command
+      -- Get the state before reading the command,
+      -- in case we need to revert to before the command.
+      sPreParse <- lift getSource
+      -- Read the next command.
+      command <- lift $ Eval.getEvalCommandErrorEOL $ injectTyped UnexpectedEndOfInput
+      -- Handle the next command, passing the old state in case we need to revert.
       handleCommandInParaMode sPreParse command >>= \case
         EndPara endReason -> pure endReason
         ContinuePara -> go
 
 handleCommandInParaMode ::
   ( Monad m,
-    H.Eval.MonadEvaluated m,
     HSt.MonadHexState m,
+    MonadLexTokenSource m,
     MonadError e m,
     MonadIO m,
     AsType H.AllMode.InterpretError e
   ) =>
   CharSource ->
-  H.AST.Command ->
+  Eval.Command ->
   StateT H.Inter.B.List.HList m ParaModeCommandResult
 handleCommandInParaMode oldSrc = \case
-  H.AST.VModeCommand _ -> do
+  Eval.VModeCommand _ -> do
     -- Insert the control sequence "\par" into the input. The control
     -- sequence's current meaning will be used, which might no longer be the \par
     -- primitive.
-    lift $ H.Eval.putSource oldSrc
-    lift $ H.Eval.insertLexTokenToSource Lex.parToken
+    lift $ putSource oldSrc
+    lift $ insertLexTokenToSource Lex.parToken
     pure ContinuePara
-  H.AST.HModeCommand (H.AST.AddHGlue g) -> do
+  Eval.HModeCommand (Eval.AddHGlue g) -> do
     extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue g
     pure ContinuePara
-  -- H.AST.HModeCommand (H.AST.AddCharacter c) -> do
+  -- Eval.HModeCommand (Eval.AddCharacter c) -> do
   --   evalChar <- H.Inter.Eval.evalASTChar c
   --   charBox <- lift $ charAsBox evalChar
   --   extendHListStateT $ H.Inter.B.List.HListHBaseElem $ H.Inter.B.Box.ElemCharacter charBox
   --   pure ContinuePara
-  H.AST.HModeCommand (H.AST.AddHRule rule) -> do
+  Eval.HModeCommand (Eval.AddHRule rule) -> do
     extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
     pure ContinuePara
-  H.AST.AddSpace -> do
+  Eval.AddSpace -> do
     spaceGlue <- lift $ HSt.currentFontSpaceGlue >>= note (injectTyped H.AllMode.NoFontSelected)
     extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue spaceGlue
     pure ContinuePara
-  H.AST.StartParagraph indentFlag -> do
+  Eval.StartParagraph indentFlag -> do
     hModeStartParagraph indentFlag
     pure ContinuePara
   -- \par: Restricted: does nothing. Unrestricted (this mode): ends mode.
-  H.AST.EndParagraph ->
+  Eval.EndParagraph ->
     pure $ EndPara EndParaSawEndParaCommand
-  H.AST.ModeIndependentCommand modeIndependentCommand -> do
+  Eval.ModeIndependentCommand modeIndependentCommand -> do
     H.AllMode.handleModeIndependentCommand extendHListVElemStateT modeIndependentCommand <&> \case
       H.AllMode.SawEndBox ->
         EndPara EndParaSawEndParaCommand

@@ -4,7 +4,6 @@ import Hex.Common.HexState.Interface qualified as H.Inter.St
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
 import Hex.Common.Quantity qualified as H.Q
 import Hex.Stage.Evaluate.Interface qualified as H.Eval
-import Hex.Stage.Evaluate.Interface.AST.Command qualified as H.Eval.AST
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Break qualified as H.Inter.B.List.H.Para
@@ -13,61 +12,71 @@ import Hex.Stage.Interpret.CommandHandler.AllMode qualified as H.AllMode
 import Hex.Stage.Interpret.CommandHandler.ParaMode qualified as H.Para
 import Hex.Stage.Lex.Interface.CharSource (CharSource)
 import Hexlude
+import Hex.Stage.Lex.Interface (MonadLexTokenSource(..))
+import qualified Hex.Stage.Evaluate.Interface as Eval
+import qualified Hex.Stage.Evaluate.Interface.AST.Command as Eval
+import Hex.Stage.Parse.Interface (MonadCommandSource)
 
 data VModeCommandResult
   = ContinueMainVMode
   | EndMainVMode
 
 buildMainVList ::
-  ( H.Eval.MonadEvaluated m,
+  forall e m.
+  ( H.Eval.MonadEvaluate m,
+    -- We need this because we modify the underlying charsource.
+    MonadLexTokenSource m,
+    MonadCommandSource m,
     H.Inter.St.MonadHexState m,
     MonadError e m,
-    MonadIO m,
-    AsType H.AllMode.InterpretError e
+    AsType H.AllMode.InterpretError e,
+    MonadIO m
   ) =>
   m H.Inter.B.List.VList
 buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
   where
+    go :: StateT H.Inter.B.List.VList m ()
     go = do
-      streamPreParse <- lift H.Eval.getSource
-      command <- lift H.Eval.getCommand
-      traceM $ show command
+      streamPreParse <- lift getSource
+      command <- lift $ Eval.getEvalCommandErrorEOL $ injectTyped H.AllMode.UnexpectedEndOfInput
       handleCommandInMainVMode streamPreParse command >>= \case
         EndMainVMode -> pure ()
         ContinueMainVMode -> go
 
 handleCommandInMainVMode ::
+  forall m e.
   ( Monad m,
     MonadIO m,
-    H.Eval.MonadEvaluated m,
+    MonadCommandSource m,
+    H.Eval.MonadEvaluate m,
     H.Inter.St.MonadHexState m,
     MonadError e m,
     AsType H.AllMode.InterpretError e
   ) =>
   CharSource ->
-  H.Eval.AST.Command ->
+  Eval.Command ->
   StateT H.Inter.B.List.VList m VModeCommandResult
 handleCommandInMainVMode oldSrc = \case
-  H.Eval.AST.VModeCommand H.Eval.AST.End ->
+  Eval.VModeCommand Eval.End ->
     pure EndMainVMode
-  -- H.Eval.AST.VModeCommand (H.Eval.AST.AddVGlue g) -> do
+  -- Eval.VModeCommand (Eval.AddVGlue g) -> do
   --   H.Inter.Eval.evalASTGlue g >>= extendVListStateT . H.Inter.B.List.ListGlue
   --   pure ContinueMainVMode
-  -- H.Eval.AST.VModeCommand (H.Eval.AST.AddVRule astRule) -> do
+  -- Eval.VModeCommand (Eval.AddVRule astRule) -> do
   --   rule <- H.Inter.Eval.evalASTVModeRule astRule
   --   extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
   --   pure ContinueMainVMode
-  H.Eval.AST.HModeCommand _ -> do
+  Eval.HModeCommand _ -> do
     addPara H.Sym.Tok.Indent
-  H.Eval.AST.StartParagraph indentFlag -> do
+  Eval.StartParagraph indentFlag -> do
     addPara indentFlag
   -- -- \par does nothing in vertical mode.
-  -- H.Eval.AST.EndParagraph ->
+  -- Eval.EndParagraph ->
   --   pure ContinueMainVMode
   -- -- <space token> has no effect in vertical modes.
-  -- H.Eval.AST.AddSpace ->
+  -- Eval.AddSpace ->
   --   pure ContinueMainVMode
-  H.Eval.AST.ModeIndependentCommand modeIndependentCommand -> do
+  Eval.ModeIndependentCommand modeIndependentCommand -> do
     H.AllMode.handleModeIndependentCommand extendVListStateT modeIndependentCommand >>= \case
       H.AllMode.SawEndBox ->
         lift $ throwError $ injectTyped H.AllMode.SawEndBoxInMainVMode
@@ -76,10 +85,12 @@ handleCommandInMainVMode oldSrc = \case
   oth ->
     panic $ "Not implemented, outer V mode: " <> show oth
   where
+    addPara :: (H.Sym.Tok.IndentFlag
+                  -> StateT H.Inter.B.List.VList m VModeCommandResult)
     addPara indentFlag = do
       -- If the command shifts to horizontal mode, run '\indent', and re-read
       -- the stream as if the command hadn't been read.
-      lift $ H.Eval.putSource oldSrc
+      lift $ putSource oldSrc
       (endParaReason, paraHList) <- lift $ H.Para.buildParaList indentFlag
       extendVListWithParagraphStateT paraHList
       case endParaReason of
