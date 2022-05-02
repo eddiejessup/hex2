@@ -1,15 +1,16 @@
 -- Interface for parsing primitive-token streams.
 module Hex.Common.Parse where
 
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 
 data ParsingError
   = ParseEndOfInput
   | ParseUnexpectedError ParseUnexpectedError
   deriving stock (Show, Eq, Generic)
 
-data ParseUnexpectedError = ParseFailure Text
+data ParseUnexpectedError
+  = ParseFailure Text
   | ParseExplicitFailure
   | SawUnexpectedToken UnexpectedToken
   deriving stock (Show, Eq, Generic)

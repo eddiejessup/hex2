@@ -11,7 +11,7 @@ import Hexlude
 import Options.Applicative
 import Hex.Stage.Resolve.Interface (ResolutionMode(..))
 import qualified Hex.Run.Evaluate as Run.Evaluate
-import Hex.Stage.Interpret.Build.List.Elem (fmtVList)
+import Hex.Stage.Interpret.Build.List.Elem (fmtVList, fmtHListMultiLine)
 import qualified Hex.Run.Interpret as Run.Interpret
 
 data Input = FileInput FilePath | StdInput
@@ -81,6 +81,7 @@ runModeParser =
         <> command "raw-command" (info (pure RawCommandMode) (progDesc ""))
         <> command "eval-command" (info (pure EvalCommandMode) (progDesc ""))
         <> command "vlist" (info (pure VListMode) (progDesc ""))
+        <> command "paralist" (info (pure ParaListMode) (progDesc ""))
     )
 
 appOptionsParser :: Parser AppOptions
@@ -131,8 +132,12 @@ main = do
       commandList <- Run.unsafeEvalApp input Run.Evaluate.evaluateAll
       putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
     VListMode -> do
-      vList <- Run.unsafeEvalApp input Run.Interpret.interpretAll
+      vList <- Run.unsafeEvalApp input Run.Interpret.interpretInMainVMode
       putText $ sformat fmtVList vList
+    ParaListMode -> do
+      (endReason, paraList) <- Run.unsafeEvalApp input Run.Interpret.interpretInParaMode
+      putText $ "End reason: " <> show endReason
+      putText $ sformat fmtHListMultiLine paraList
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
   pure ()
