@@ -3,44 +3,55 @@ module Main where
 import Data.ByteString qualified as BS
 import Hex.Run.App qualified as Run
 import Hex.Run.Categorise qualified as Run.Cat
-import Hex.Run.Lex qualified as Run.Lex
-import Hex.Run.Resolve qualified as Run.Resolve
+import Hex.Run.Evaluate qualified as Run.Evaluate
 import Hex.Run.Expand qualified as Run.Expand
+import Hex.Run.Interpret qualified as Run.Interpret
+import Hex.Run.Lex qualified as Run.Lex
 import Hex.Run.Parse qualified as Run.Parse
+import Hex.Run.Resolve qualified as Run.Resolve
+import Hex.Stage.Interpret.Build.List.Elem (fmtHListMultiLine, fmtVList)
+import Hex.Stage.Resolve.Interface (ResolutionMode (..))
 import Hexlude
+import Hexlude qualified as Tx
 import Options.Applicative
-import Hex.Stage.Resolve.Interface (ResolutionMode(..))
-import qualified Hex.Run.Evaluate as Run.Evaluate
-import Hex.Stage.Interpret.Build.List.Elem (fmtVList, fmtHListMultiLine)
-import qualified Hex.Run.Interpret as Run.Interpret
 
-data Input = FileInput FilePath | StdInput
+data Input = FileInput FilePath | StdInput | ExpressionInput Text
 
-fileInputParser :: Parser Input
-fileInputParser =
-  FileInput
-    <$> strOption
-      ( long "file"
-          <> short 'f'
-          <> metavar "FILENAME"
-          <> help "Input file"
-      )
+inputParser :: Parser Input
+inputParser = fileInputParser <|> stdInputParser <|> expressionParser
+  where
+    fileInputParser :: Parser Input
+    fileInputParser =
+      FileInput
+        <$> strOption
+          ( long "file"
+              <> short 'f'
+              <> metavar "FILENAME"
+              <> help "Input file"
+          )
+
+    stdInputParser :: Parser Input
+    stdInputParser =
+      flag'
+        StdInput
+        ( long "stdin"
+            <> help "Read input from stdin"
+        )
+
+    expressionParser :: Parser Input
+    expressionParser =
+      ExpressionInput
+        <$> strOption
+          ( long "expr"
+              <> short 'e'
+              <> metavar "EXPRESSION"
+              <> help "Input expression"
+          )
 
 dviRunParser :: Parser DVIWriteOptions
 dviRunParser =
   DVIWriteOptions
     <$> strOption (long "file" <> short 'f' <> metavar "FILENAME" <> help "Output file")
-
-stdInputParser :: Parser Input
-stdInputParser =
-  flag'
-    StdInput
-    ( long "stdin"
-        <> help "Read from stdin"
-    )
-
-inputParser :: Parser Input
-inputParser = fileInputParser <|> stdInputParser
 
 data RunMode
   = CatMode
@@ -108,6 +119,9 @@ main = do
     case input opts of
       StdInput -> do
         cs <- liftIO BS.getContents
+        pure (cs, Nothing)
+      ExpressionInput csText -> do
+        let cs = Tx.encodeUtf8 csText
         pure (cs, Nothing)
       FileInput inPathStr -> do
         cs <- BS.readFile inPathStr

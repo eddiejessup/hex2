@@ -22,6 +22,8 @@ data ResolvedToken
   deriving stock (Show, Eq, Generic)
 
 fmtResolvedToken :: Fmt ResolvedToken r
-fmtResolvedToken = F.shown
+fmtResolvedToken = F.later $ \case
+  SyntaxCommandHeadToken st -> F.bformat F.shown st
+  PrimitiveToken pt -> F.bformat fmtPrimitiveToken pt
 
 type CSMap = HMap.HashMap ControlSymbol ResolvedToken

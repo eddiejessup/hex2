@@ -26,11 +26,11 @@ expandAll = go
           pure $ r : v
 
 fmtExpandResult :: Fmt [(Lex.LexToken, ResolvedToken, PrimitiveToken)] r
-fmtExpandResult = F.unlined fmtOneResult
+fmtExpandResult = F.intercalated "\n\n" fmtOneResult
   where
     fmtOneResult =
       F.accessed (\(x, _, _) -> x) fmtLexToken <> F.fconst "\n"
       <> F.indented 4
-        (F.fconst "-r> " <> F.accessed (\(_, x, _) -> x) fmtResolvedToken <> F.fconst "\n")
+        (F.fconst "--r--> " <> F.accessed (\(_, x, _) -> x) fmtResolvedToken <> F.fconst "\n")
       <> F.indented 4
-        (F.fconst "-e> " <> F.accessed (\(_, _, x) -> x) fmtPrimitiveToken <> F.fconst "\n")
+        (F.fconst "--e--> " <> F.accessed (\(_, _, x) -> x) fmtPrimitiveToken <> F.fconst "\n")
