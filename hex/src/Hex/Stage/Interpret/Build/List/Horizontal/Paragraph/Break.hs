@@ -1,11 +1,11 @@
 module Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Break where
 
 import Formatting qualified as F
+import Hex.Common.Quantity qualified as H.Q
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Interpret.Build.List.Horizontal.Badness
 import Hex.Stage.Interpret.Build.List.Horizontal.Evaluate
 import Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Types
-import Hex.Common.Quantity qualified as H.Q
 import Hexlude
 
 data ChunkedHListElem
@@ -67,7 +67,7 @@ finaliseHList (H.Inter.B.List.HList elems@(elemInit :|> lastElem)) =
       Empty
         :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ H.Q.HexInt H.Q.tenK)
         :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue (H.Q.filStretchGlue H.Q.onePt))
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ H.Q.HexInt $ - H.Q.tenK)
+        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ H.Q.HexInt $ -H.Q.tenK)
 
 newtype Line = Line {unLine :: Seq H.Inter.B.List.HListElem}
   deriving stock (Show, Generic)
@@ -138,22 +138,19 @@ breakGreedy dw (H.Inter.B.List.HList allEs) =
         case discarding of
           Discarding
             | hListElemisDiscardable e ->
-              go st rEs
+                go st rEs
           _ ->
             case mayBI of
               Nothing ->
                 go (lnSeq, Line (lnEs :|> e), NotDiscarding) rEs
               Just bI ->
-                let (spec, b) = listFlexSpec (H.Inter.B.List.HList lnEs) dw
-                 in trace @Text ("HList: " <> sformat H.Inter.B.List.fmtHListElemsOneLine lnEs) $
-                      trace @Text ("Badness: " <> show b) $
-                        trace @Text ("Spec: " <> show spec <> "\n\n") $
-                          if b < infBadness
-                            then
-                              let newLnSeq = lns :|> ln
-                                  newEs = case bI of
-                                    GlueBreak _ -> aEs
-                                    KernBreak _ -> aEs
-                                    PenaltyBreak _ -> rEs
-                               in go (LineSequence newLnSeq, Line Empty, Discarding) newEs
-                            else go (lnSeq, Line (lnEs :|> e), NotDiscarding) rEs
+                let (_spec, b) = listFlexSpec (H.Inter.B.List.HList lnEs) dw
+                 in if b < infBadness
+                      then
+                        let newLnSeq = lns :|> ln
+                            newEs = case bI of
+                              GlueBreak _ -> aEs
+                              KernBreak _ -> aEs
+                              PenaltyBreak _ -> rEs
+                         in go (LineSequence newLnSeq, Line Empty, Discarding) newEs
+                      else go (lnSeq, Line (lnEs :|> e), NotDiscarding) rEs

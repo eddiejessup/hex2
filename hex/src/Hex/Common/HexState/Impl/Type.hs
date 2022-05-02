@@ -8,6 +8,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.TFM.Types qualified as H.TFM
 import Hexlude
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 
 data HexState = HexState
   { fontInfos :: Map PT.FontNumber FontInfo,
@@ -23,7 +24,9 @@ data HexState = HexState
     -- afterAssignmentToken :: Maybe Lex.Token,
     -- Scopes and groups.
     globalScope :: H.Inter.St.Scope.Scope,
-    groups :: [H.Inter.St.Scope.HexGroup]
+    groups :: [H.Inter.St.Scope.HexGroup],
+    -- Just for parsing support help.
+    lastFetchedPrimTok :: Maybe PrimitiveToken
   }
   deriving stock (Generic)
 
@@ -37,8 +40,9 @@ newHexState =
       -- , outFileStreams = mempty
       -- , afterAssignmentToken = Nothing
       globalScope = H.Inter.St.Scope.newGlobalScope,
-      groups = []
+      groups = [],
       -- , internalLoggerSet
+      lastFetchedPrimTok = Nothing
     }
 
 data FontInfo = FontInfo {fontMetrics :: H.TFM.Font, hyphenChar :: H.Q.HexInt, skewChar :: H.Q.HexInt}

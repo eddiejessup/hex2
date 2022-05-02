@@ -3,20 +3,20 @@ module Hex.Stage.Interpret.CommandHandler.MainVMode where
 import Hex.Common.HexState.Interface qualified as H.Inter.St
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
 import Hex.Common.Quantity qualified as H.Q
+import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface qualified as H.Eval
+import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Break qualified as H.Inter.B.List.H.Para
 import Hex.Stage.Interpret.Build.List.Horizontal.Set qualified as H.Inter.B.List.H
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as H.AllMode
 import Hex.Stage.Interpret.CommandHandler.ParaMode qualified as H.Para
+import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
 import Hex.Stage.Lex.Interface.CharSource (CharSource)
-import Hexlude
-import Hex.Stage.Lex.Interface (MonadLexTokenSource(..))
-import qualified Hex.Stage.Evaluate.Interface as Eval
-import qualified Hex.Stage.Evaluate.Interface.AST.Command as Eval
 import Hex.Stage.Parse.Interface (MonadCommandSource)
-import qualified Hex.Stage.Parse.Interface.AST.Command as Uneval
+import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
+import Hexlude
 
 data VModeCommandResult
   = ContinueMainVMode
@@ -39,7 +39,7 @@ buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
     go :: StateT H.Inter.B.List.VList m ()
     go = do
       streamPreParse <- lift getSource
-      command <- lift $ Eval.getEvalCommandErrorEOL $ injectTyped H.AllMode.UnexpectedEndOfInput
+      command <- lift $ Eval.getEvalCommandErrorEOF $ injectTyped H.AllMode.UnexpectedEndOfInput
       handleCommandInMainVMode streamPreParse command >>= \case
         EndMainVMode -> pure ()
         ContinueMainVMode -> go
@@ -86,8 +86,10 @@ handleCommandInMainVMode oldSrc = \case
   oth ->
     panic $ "Not implemented, outer V mode: " <> show oth
   where
-    addPara :: (H.Sym.Tok.IndentFlag
-                  -> StateT H.Inter.B.List.VList m VModeCommandResult)
+    addPara ::
+      ( H.Sym.Tok.IndentFlag ->
+        StateT H.Inter.B.List.VList m VModeCommandResult
+      )
     addPara indentFlag = do
       -- If the command shifts to horizontal mode, run '\indent', and re-read
       -- the stream as if the command hadn't been read.
@@ -118,7 +120,6 @@ setAndBreakHListToHBoxes ::
 setAndBreakHListToHBoxes hList =
   do
     -- hSize <- H.Inter.St.getLengthParameter H.Sym.Tok.HSize
-    -- traceM $ "hSize: " <> H.Q.renderLengthWithUnit hSize
 
     let hSize = H.Q.pt 200
     -- lineTol <- H.Inter.St.getIntParameter H.Sym.Tok.Tolerance

@@ -1,8 +1,8 @@
 module Hex.Stage.Lex.Interface where
 
+import Hex.Stage.Lex.Interface.CharSource qualified as Lex
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import qualified Hex.Stage.Lex.Interface.CharSource as Lex
 
 class Monad m => MonadLexTokenSource m where
   getLexToken :: m (Maybe Lex.LexToken)

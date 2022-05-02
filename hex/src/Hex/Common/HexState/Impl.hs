@@ -16,6 +16,7 @@ import Hex.Common.TFM.Types qualified as H.TFM
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hexlude
 import System.FilePath qualified as FilePath
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 
 data HexStateError
   = FontNotFound
@@ -101,6 +102,15 @@ instance (Monad m
 
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
   selectFont fNr scopeFlag = modifying' (typed @HexState) (selectFontNr fNr scopeFlag)
+
+  setLastFetchedPrimTok :: PrimitiveToken -> m ()
+  setLastFetchedPrimTok pt = do
+    assign' (typed @HexState % #lastFetchedPrimTok) (Just pt)
+
+
+  getLastFetchedPrimTok :: m (Maybe PrimitiveToken)
+  getLastFetchedPrimTok = do
+    use (typed @HexState % #lastFetchedPrimTok)
 
 currentFontInfo ::
   ( MonadState st m,

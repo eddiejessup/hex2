@@ -2,11 +2,11 @@ module Hex.Common.HexState.Interface.Resolve.PrimitiveToken where
 
 import ASCII qualified
 import ASCII.Char qualified
+import Formatting qualified as F
 import Hex.Common.Codes
 import Hex.Common.Quantity qualified as H.Q
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import qualified Formatting as F
 
 data IntParameter
   = PreTolerance -- Badness tolerance before hyphenation

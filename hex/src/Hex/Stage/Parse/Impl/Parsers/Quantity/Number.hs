@@ -4,14 +4,14 @@ import Control.Monad.Combinators qualified as PC
 import Data.ByteString qualified as BS
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as H.C
-import Hex.Stage.Parse.Interface.AST.Common qualified as AST
-import Hex.Stage.Parse.Impl.Parsers.Combinators
-import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Parse (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..), UnexpectedToken (..))
+import Hex.Common.Quantity qualified as H.Q
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Parse.Impl.Parsers.Combinators
+import Hex.Stage.Parse.Interface.AST.Common qualified as AST
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Common.Parse (UnexpectedToken(..), MonadPrimTokenParse (..), ParseUnexpectedError (..))
 
 parseSigned :: forall m a. MonadPrimTokenParse m => m a -> m (AST.Signed a)
 parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
@@ -46,18 +46,18 @@ headToParseNormalInt =
     headToParseConstantInt :: PrimitiveToken -> m AST.NormalInt
     headToParseConstantInt t
       | Just w1 <- decCharToWord t = do
-        remainingWs <- PC.many (satisfyThen decCharToWord)
-        pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base10 (w1 : remainingWs)
+          remainingWs <- PC.many (satisfyThen decCharToWord)
+          pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base10 (w1 : remainingWs)
       | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '"') t = do
-        hexDigits <- PC.some (satisfyThen hexCharToWord)
-        pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base16 hexDigits
+          hexDigits <- PC.some (satisfyThen hexCharToWord)
+          pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base16 hexDigits
       | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '\'') t = do
-        octDigits <- PC.some (satisfyThen octCharToWord)
-        pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base8 octDigits
+          octDigits <- PC.some (satisfyThen octCharToWord)
+          pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base8 octDigits
       | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '`') t = do
-        AST.CharLikeCode <$> parseCharLikeCodeInt
+          AST.CharLikeCode <$> parseCharLikeCodeInt
       | otherwise =
-        empty
+          empty
 
     -- Case 10, character constant like "`c".
     parseCharLikeCodeInt :: m Word8

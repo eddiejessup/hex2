@@ -51,7 +51,7 @@ buildParaList indentFlag = do
       -- in case we need to revert to before the command.
       sPreParse <- lift getSource
       -- Read the next command.
-      command <- lift $ Eval.getEvalCommandErrorEOL $ injectTyped UnexpectedEndOfInput
+      command <- lift $ Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
       -- Handle the next command, passing the old state in case we need to revert.
       handleCommandInParaMode sPreParse command >>= \case
         EndPara endReason -> pure endReason

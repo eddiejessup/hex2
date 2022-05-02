@@ -1,15 +1,19 @@
 -- Interface for parsing primitive-token streams.
 module Hex.Common.Parse where
 
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hexlude
 
 data ParsingError
-  = ParseEndOfInput
-  | ParseUnexpectedError ParseUnexpectedError
+  = EndOfInputParsingError
+  | UnexpectedParsingError ParseUnexpectedError
   deriving stock (Show, Eq, Generic)
 
-data ParseUnexpectedError
+data ParseUnexpectedError = ParseUnexpectedError {lastSeenTok :: Maybe PrimitiveToken, err :: ParseUnexpectedErrorCause}
+  deriving stock (Show, Eq, Generic)
+
+data ParseUnexpectedErrorCause
   = ParseFailure Text
   | ParseExplicitFailure
   | SawUnexpectedToken UnexpectedToken
@@ -38,4 +42,4 @@ class (Monad m, Alternative m, MonadPlus m) => MonadPrimTokenParse m where
 
   satisfyThen :: (PT.PrimitiveToken -> Maybe a) -> m a
 
-  parseError :: ParseUnexpectedError -> m a
+  parseError :: ParseUnexpectedErrorCause -> m a

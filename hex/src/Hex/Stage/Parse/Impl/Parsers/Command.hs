@@ -2,7 +2,11 @@ module Hex.Stage.Parse.Impl.Parsers.Command where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes qualified as H.C
-import Hex.Stage.Parse.Interface.AST.Command qualified as AST
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Tok
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Common.Quantity qualified as H.Q
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
@@ -13,12 +17,8 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
-import Hex.Common.Quantity qualified as H.Q
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Tok
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
@@ -41,13 +41,13 @@ parseCommand =
       pure AST.EndParagraph
     t
       | Par.primTokHasCategory H.C.Space t ->
-        pure AST.AddSpace
+          pure AST.AddSpace
       | Par.primTokHasCategory H.C.BeginGroup t ->
-        pure $ AST.ModeIndependentCommand $ AST.ChangeScope H.Q.Positive AST.CharCommandTrigger
+          pure $ AST.ModeIndependentCommand $ AST.ChangeScope H.Q.Positive AST.CharCommandTrigger
       | Par.primTokHasCategory H.C.EndGroup t ->
-        pure $ AST.ModeIndependentCommand $ AST.ChangeScope H.Q.Negative AST.CharCommandTrigger
+          pure $ AST.ModeIndependentCommand $ AST.ChangeScope H.Q.Negative AST.CharCommandTrigger
       | Par.primTokHasCategory H.C.MathShift t ->
-        pure $ AST.HModeCommand AST.EnterMathMode
+          pure $ AST.HModeCommand AST.EnterMathMode
     H.Tok.RelaxTok ->
       pure $ AST.ModeIndependentCommand AST.Relax
     H.Tok.IgnoreSpacesTok -> do

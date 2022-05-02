@@ -5,11 +5,12 @@
 module Hex.Stage.Expand.Impl.Parse where
 
 import Control.Monad.Trans (MonadTrans (..))
+import Hex.Common.HexState.Interface (MonadHexState (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Parse
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
-import Hex.Common.Parse
 
 -- This is the monad we will do our parsing in.
 -- The main thing a parser does is implement choice: we can do `a <|> b`,
@@ -52,8 +53,8 @@ instance MonadTrans ParseT where
 -- We could make this get-the-source ability abstract, but let's keep it concrete, and
 -- therefore specialised to the particular Hex case.
 -- (We are implementing a backtracking parser.)
-instance Lex.MonadLexTokenSource m => Alternative (ParseT m) where
-  empty = ParseT $ throwE $ ParseUnexpectedError ParseExplicitFailure
+instance (Lex.MonadLexTokenSource m, MonadHexState m) => Alternative (ParseT m) where
+  empty = parseErrorImpl ParseExplicitFailure
 
   (<|>) :: ParseT m a -> ParseT m a -> ParseT m a
   a <|> b = do
@@ -69,18 +70,20 @@ instance Lex.MonadLexTokenSource m => Alternative (ParseT m) where
       Right v ->
         pure v
 
-instance Lex.MonadLexTokenSource m => MonadPlus (ParseT m)
+instance (Lex.MonadLexTokenSource m, MonadHexState m) => MonadPlus (ParseT m)
 
 parseErrorEndOfInput :: Monad m => ParseT m a
-parseErrorEndOfInput = ParseT $ throwE ParseEndOfInput
+parseErrorEndOfInput = ParseT $ throwE EndOfInputParsingError
 
 -- The most common case, applies to all failures except end-of-input.
-parseErrorImpl :: Monad m => ParseUnexpectedError -> ParseT m a
-parseErrorImpl = ParseT . throwE . ParseUnexpectedError
+parseErrorImpl :: (MonadHexState m) => ParseUnexpectedErrorCause -> ParseT m a
+parseErrorImpl e = do
+  lastPrimTok <- lift getLastFetchedPrimTok
+  ParseT $ throwE $ UnexpectedParsingError $ ParseUnexpectedError lastPrimTok e
 
 -- - We need MonadLexTokenSource because it lets us get at the underlying char-source, for resetting state.
 -- - We need MonadPrimTokenSource to get primitive-tokens to inspect.
-satisfyThenImpl :: (Lex.MonadLexTokenSource m, MonadPrimTokenSource m) => (PT.PrimitiveToken -> Maybe a) -> ParseT m a
+satisfyThenImpl :: (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => (PT.PrimitiveToken -> Maybe a) -> ParseT m a
 satisfyThenImpl f = do
   src0 <- lift Lex.getSource
   -- Fetch the new primitive-token.
@@ -104,7 +107,7 @@ satisfyThenImpl f = do
 -- but this would be a lot of typing for each parser.
 -- So instead, I will implement 'MonadPrimTokenParse' for 'ParseT m'.
 
-instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m) => MonadPrimTokenParse (ParseT m) where
+instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => MonadPrimTokenParse (ParseT m) where
   getAnyPrimitiveToken =
     lift getPrimitiveToken >>= \case
       Nothing -> parseErrorEndOfInput

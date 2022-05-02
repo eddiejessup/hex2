@@ -17,8 +17,8 @@ getEvalCommand = do
       pure $ Just ec
 
 -- A helper that's like `getEvalCommand`, but throws an error on end-of-input instead of returning `Nothing`.
-getEvalCommandErrorEOL :: (MonadCommandSource m, MonadEvaluate m, MonadError e m) => e -> m Eval.Command
-getEvalCommandErrorEOL eolError = do
+getEvalCommandErrorEOF :: (MonadCommandSource m, MonadEvaluate m, MonadError e m) => e -> m Eval.Command
+getEvalCommandErrorEOF eofError = do
   getEvalCommand >>= \case
-    Nothing -> throwError eolError
+    Nothing -> throwError eofError
     Just v -> pure v

@@ -3,29 +3,32 @@
 
 module Hex.Stage.Expand.Impl where
 
+import Hex.Common.HexState.Interface (MonadHexState (..))
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Syn
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
+import Hex.Stage.Lex.Interface qualified as Lex
+import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Resolve.Interface (ResolutionMode (..))
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
-import Hex.Stage.Lex.Interface.Extract (LexToken)
-import qualified Hex.Stage.Lex.Interface as Lex
 
 data ExpansionError
   = ResolutionExpansionError Res.ResolutionError
   deriving stock (Generic, Show)
 
-instance (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e) => MonadPrimTokenSource m where
+instance (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e, MonadHexState m) => MonadPrimTokenSource m where
   getPrimitiveToken = fetchPrimitiveToken
+
+  getLastPrimitiveToken = getLastFetchedPrimTok
 
 -- Note that the lex-tokens and resolved-tokens are just returned for debugging really.
 -- They are passed through unchanged from the resolved-token-source.
-fetchPrimitiveToken
-  :: (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e)
-  => m (Maybe (LexToken, ResolvedToken, PrimitiveToken))
+fetchPrimitiveToken ::
+  (Res.MonadResolvedTokenSource m, MonadError e m, AsType ExpansionError e, MonadHexState m) =>
+  m (Maybe (LexToken, ResolvedToken, PrimitiveToken))
 fetchPrimitiveToken = do
   -- Get the next lex-token from the input, and resolve it.
   Res.getMayResolvedToken Resolving >>= \case
@@ -42,7 +45,8 @@ fetchPrimitiveToken = do
       Right rt ->
         case rt of
           -- If it's a primitive token, we are done, just return that.
-          PrimitiveToken pt ->
+          PrimitiveToken pt -> do
+            setLastFetchedPrimTok pt
             pure $ Just (lt, rt, pt)
           -- Otherwise, the token is the head of a syntax-command.
           SyntaxCommandHeadToken headTok -> do
@@ -59,8 +63,6 @@ fetchPrimitiveToken = do
             fetchPrimitiveToken
 
 expandSyntaxCommand ::
-  ( Res.MonadResolvedTokenSource m
-  ) =>
   Syn.SyntaxCommandHeadToken ->
   m (Seq Lex.LexToken)
 expandSyntaxCommand = \case {}
