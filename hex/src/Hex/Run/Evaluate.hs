@@ -1,17 +1,10 @@
 module Hex.Run.Evaluate where
 
-import Hexlude
+import Formatting qualified as F
 import Hex.Run.App (App)
-import Hex.Common.HexState.Impl ()
-import Hex.Stage.Categorise.Impl ()
-import Hex.Stage.Lex.Impl ()
-import Hex.Stage.Resolve.Impl ()
-import Hex.Stage.Expand.Impl ()
-import Hex.Stage.Parse.Impl ()
-import Hex.Stage.Evaluate.Impl ()
-import qualified Formatting as F
-import Hex.Stage.Evaluate.Interface.AST.Command (Command)
 import Hex.Stage.Evaluate.Interface (getEvalCommand)
+import Hex.Stage.Evaluate.Interface.AST.Command (Command)
+import Hexlude
 
 evaluateAll :: App [Command]
 evaluateAll = go

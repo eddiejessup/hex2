@@ -3,18 +3,21 @@
 
 module Hex.Stage.Evaluate.Impl where
 
+import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Evaluate.Impl.Eval qualified as Eval
 import Hex.Stage.Evaluate.Interface (MonadEvaluate (..))
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
+import Hex.Stage.Evaluate.Interface.AST.Common qualified as Eval
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
+import Hex.Stage.Parse.Interface.AST.Common qualified as Uneval
 import Hexlude
-import qualified Hex.Stage.Evaluate.Interface.AST.Common as Eval
-import qualified Hex.Stage.Parse.Interface.AST.Common as Uneval
-import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
-import qualified Hex.Common.Codes as Code
 
-instance (MonadError e m, AsType Eval.EvaluationError e) => MonadEvaluate m where
-  evalCommand :: Uneval.Command -> m Eval.Command
+newtype MonadEvaluateT m a = MonadEvaluateT {unMonadEvaluateT :: m a}
+  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e)
+
+instance (MonadError e (MonadEvaluateT m), AsType Eval.EvaluationError e) => MonadEvaluate (MonadEvaluateT m) where
+  evalCommand :: Uneval.Command -> MonadEvaluateT m Eval.Command
   evalCommand = \case
     Uneval.ShowToken lt -> pure $ Eval.ShowToken lt
     Uneval.ShowBox n -> Eval.ShowBox <$> Eval.evalInt n
@@ -90,5 +93,5 @@ evalCodeAssignment codeAssignment = do
 evalCodeTableRef :: (MonadError e m, AsType Eval.EvaluationError e) => Uneval.CodeTableRef -> m Eval.CodeTableRef
 evalCodeTableRef codeTableRef =
   Eval.CodeTableRef
-  <$> pure codeTableRef.codeType
-  <*> Eval.evalCharCodeInt codeTableRef.codeIndex
+    <$> pure codeTableRef.codeType
+    <*> Eval.evalCharCodeInt codeTableRef.codeIndex

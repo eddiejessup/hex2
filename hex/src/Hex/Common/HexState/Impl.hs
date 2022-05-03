@@ -33,39 +33,42 @@ getGroupScopesProperty ::
 getGroupScopesProperty groupScopesGetter =
   use $ typed @HexState % #groupScopes % to groupScopesGetter
 
+newtype MonadHexStateImplT m a = MonadHexStateImplT {unMonadHexStateImplT :: m a}
+  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e)
+
 instance
-  ( Monad m,
-    MonadIO m,
-    MonadState st m,
+  ( Monad (MonadHexStateImplT m),
+    MonadIO (MonadHexStateImplT m),
+    MonadState st (MonadHexStateImplT m),
     HasType HexState st,
-    MonadError e m,
+    MonadError e (MonadHexStateImplT m),
     AsType HexStateError e,
     AsType H.TFM.TFMError e
   ) =>
-  MonadHexState m
+  MonadHexState (MonadHexStateImplT m)
   where
-  getIntParameter :: PT.IntParameter -> m Q.HexInt
+  getIntParameter :: PT.IntParameter -> (MonadHexStateImplT m) Q.HexInt
   getIntParameter p = getGroupScopesProperty (GroupScopes.localIntParam p)
 
-  getLengthParameter :: PT.LengthParameter -> m Q.Length
+  getLengthParameter :: PT.LengthParameter -> (MonadHexStateImplT m) Q.Length
   getLengthParameter p = getGroupScopesProperty (GroupScopes.localLengthParam p)
 
-  getGlueParameter :: PT.GlueParameter -> m Q.Glue
+  getGlueParameter :: PT.GlueParameter -> (MonadHexStateImplT m) Q.Glue
   getGlueParameter p = getGroupScopesProperty (GroupScopes.localGlueParam p)
 
-  getSpecialLengthParameter :: PT.SpecialLengthParameter -> m Q.Length
+  getSpecialLengthParameter :: PT.SpecialLengthParameter -> (MonadHexStateImplT m) Q.Length
   getSpecialLengthParameter p = use $ typed @HexState % stateSpecialLengthParamLens p
 
-  setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> m ()
+  setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> (MonadHexStateImplT m) ()
   setSpecialLengthParameter p v = assign' (typed @HexState % stateSpecialLengthParamLens p) v
 
-  getCategory :: Codes.CharCode -> m Codes.CatCode
+  getCategory :: Codes.CharCode -> (MonadHexStateImplT m) Codes.CatCode
   getCategory p = getGroupScopesProperty (GroupScopes.localCategory p)
 
-  resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
+  resolveSymbol :: ControlSymbol -> (MonadHexStateImplT m) (Maybe ResolvedToken)
   resolveSymbol p = getGroupScopesProperty (GroupScopes.localResolvedToken p)
 
-  currentFontSpaceGlue :: m (Maybe Q.Glue)
+  currentFontSpaceGlue :: (MonadHexStateImplT m) (Maybe Q.Glue)
   currentFontSpaceGlue = do
     currentFontInfo >>= \case
       Nothing -> pure Nothing
@@ -76,7 +79,7 @@ instance
         let gShrink = Q.FinitePureFlex $ H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spaceShrink . H.TFM.params)
         pure $ Just $ Q.Glue {Q.gDimen = spacing, Q.gStretch, Q.gShrink}
 
-  currentFontCharacter :: Codes.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
+  currentFontCharacter :: Codes.CharCode -> MonadHexStateImplT m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
   currentFontCharacter chrCode = do
     currentFontInfo >>= \case
       Nothing -> pure Nothing
@@ -87,7 +90,7 @@ instance
             toLen = H.TFM.fontLengthScaledPointsInt fontMetrics
         pure $ Just (tfmChar ^. #width % to toLen, tfmChar ^. #height % to toLen, tfmChar ^. #depth % to toLen, tfmChar ^. #italicCorrection % to toLen)
 
-  loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
+  loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> MonadHexStateImplT m H.Inter.B.Box.FontDefinition
   loadFont path spec = do
     let filePath = path ^. typed @FilePath
     fontInfo <- readFontInfo filePath
@@ -112,35 +115,35 @@ instance
           H.Inter.B.Box.fontName = fontName
         }
 
-  selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
+  selectFont :: PT.FontNumber -> PT.ScopeFlag -> MonadHexStateImplT m ()
   selectFont fNr scopeFlag =
     modifyGroupScopes $ GroupScopes.setCurrentFontNr fNr scopeFlag
 
-  setCategory :: Code.CharCode -> Code.CatCode -> PT.ScopeFlag -> m ()
+  setCategory :: Code.CharCode -> Code.CatCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setCategory idxCode cat scopeFlag =
     modifyGroupScopes $ GroupScopes.setCategory idxCode cat scopeFlag
 
-  setMathCode :: Code.CharCode -> Code.MathCode -> PT.ScopeFlag -> m ()
+  setMathCode :: Code.CharCode -> Code.MathCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setMathCode idxCode mathCode scopeFlag =
     modifyGroupScopes $ GroupScopes.setMathCode idxCode mathCode scopeFlag
 
-  setChangeCaseCode :: ASCII.Case -> Code.CharCode -> Code.CaseChangeCode -> PT.ScopeFlag -> m ()
+  setChangeCaseCode :: ASCII.Case -> Code.CharCode -> Code.CaseChangeCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setChangeCaseCode letterCase idxCode val scopeFlag =
     modifyGroupScopes $ GroupScopes.setChangeCaseCode letterCase idxCode val scopeFlag
 
-  setSpaceFactor :: Code.CharCode -> Code.SpaceFactorCode -> PT.ScopeFlag -> m ()
+  setSpaceFactor :: Code.CharCode -> Code.SpaceFactorCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setSpaceFactor idxCode spaceFactor scopeFlag =
     modifyGroupScopes $ GroupScopes.setSpaceFactor idxCode spaceFactor scopeFlag
 
-  setDelimiterCode :: Code.CharCode -> Code.DelimiterCode -> PT.ScopeFlag -> m ()
+  setDelimiterCode :: Code.CharCode -> Code.DelimiterCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setDelimiterCode idxCode delimiterCode scopeFlag =
     modifyGroupScopes $ GroupScopes.setDelimiterCode idxCode delimiterCode scopeFlag
 
-  setLastFetchedLexTok :: Lex.LexToken -> m ()
+  setLastFetchedLexTok :: Lex.LexToken -> MonadHexStateImplT m ()
   setLastFetchedLexTok t =
     assign' (typed @HexState % #lastFetchedLexTok) (Just t)
 
-  getLastFetchedLexTok :: m (Maybe Lex.LexToken)
+  getLastFetchedLexTok :: MonadHexStateImplT m (Maybe Lex.LexToken)
   getLastFetchedLexTok =
     use (typed @HexState % #lastFetchedLexTok)
 

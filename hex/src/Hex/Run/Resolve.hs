@@ -1,14 +1,10 @@
 module Hex.Run.Resolve where
 
 import Formatting qualified as F
-import Hex.Common.HexState.Impl ()
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken, fmtResolvedToken)
 import Hex.Run.App (App)
-import Hex.Stage.Categorise.Impl ()
-import Hex.Stage.Lex.Impl ()
 import Hex.Stage.Lex.Interface.Extract (fmtLexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Resolve.Impl ()
 import Hex.Stage.Resolve.Interface
 import Hexlude
 

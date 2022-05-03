@@ -1,16 +1,10 @@
 module Hex.Run.Parse where
 
-import Hexlude
+import Formatting qualified as F
 import Hex.Run.App (App)
-import Hex.Common.HexState.Impl ()
-import Hex.Stage.Categorise.Impl ()
-import Hex.Stage.Lex.Impl ()
-import Hex.Stage.Resolve.Impl ()
-import Hex.Stage.Expand.Impl ()
-import Hex.Stage.Parse.Impl ()
-import qualified Formatting as F
+import Hex.Stage.Parse.Interface (MonadCommandSource (..))
 import Hex.Stage.Parse.Interface.AST.Command (Command)
-import Hex.Stage.Parse.Interface (MonadCommandSource(..))
+import Hexlude
 
 parseAll :: App [Command]
 parseAll = go

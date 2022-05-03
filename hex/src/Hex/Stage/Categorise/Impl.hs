@@ -39,13 +39,16 @@ extractCharCat xs = runMaybeT $ do
     _ ->
       pure normal
 
+newtype MonadCharCatSourceT m a = MonadCharCatSourceT {unMonadCharCatSourceT :: m a}
+  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, HSt.MonadHexState)
+
 instance
-  ( Monad m,
-    MonadState st m,
+  ( Monad (MonadCharCatSourceT m),
+    MonadState st (MonadCharCatSourceT m),
     HasType ByteString st,
-    HSt.MonadHexState m
+    HSt.MonadHexState (MonadCharCatSourceT m)
   ) =>
-  MonadCharCatSource m
+  MonadCharCatSource (MonadCharCatSourceT m)
   where
   -- Lift 'extractCharCat' into a stateful context.
   getCharCat = do

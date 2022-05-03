@@ -1,12 +1,10 @@
 module Hex.Run.Categorise where
 
+import Formatting qualified as F
+import Hex.Run.App
+import Hex.Stage.Categorise.Interface (MonadCharCatSource (..))
 import Hex.Stage.Categorise.Types (RawCharCat (..), fmtRawCharCat)
 import Hexlude
-import Hex.Run.App
-import Hex.Stage.Categorise.Interface (MonadCharCatSource(..))
-import Hex.Common.HexState.Impl ()
-import Hex.Stage.Categorise.Impl ()
-import qualified Formatting as F
 
 categoriseAll :: App [RawCharCat]
 categoriseAll = go

@@ -10,15 +10,18 @@ import Hex.Stage.Lex.Interface.CharSource
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
+newtype MonadLexTokenSourceT m a = MonadLexTokenSourceT {unMonadLexTokenSourceT :: m a}
+  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, HSt.MonadHexState)
+
 instance
-  ( Monad m,
-    MonadState st m,
+  ( Monad (MonadLexTokenSourceT m),
+    MonadState st (MonadLexTokenSourceT m),
     HasType CharSource st,
-    MonadError e m,
+    MonadError e (MonadLexTokenSourceT m),
     AsType Lex.LexError e,
-    HSt.MonadHexState m
+    HSt.MonadHexState (MonadLexTokenSourceT m)
   ) =>
-  MonadLexTokenSource m
+  MonadLexTokenSource (MonadLexTokenSourceT m)
   where
   getLexToken = do
     Impl.extractLexToken >>= \case

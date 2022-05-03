@@ -3,20 +3,23 @@
 
 module Hex.Stage.Resolve.Impl where
 
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as H.St
-import Hexlude
-import qualified Hex.Common.HexState.Interface as HSt
+import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..), ResolvedToken (..))
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken (..))
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Resolve.Interface (MonadResolve (..), ResolutionError (..))
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..), ControlSymbol (..))
-import qualified Hex.Common.Codes as Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken(..))
+import Hexlude
+
+newtype MonadResolveT m a = MonadResolveT {unMonadResolveT :: m a}
+  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, HSt.MonadHexState)
 
 instance
-  ( Monad m,
-    HSt.MonadHexState m
+  ( Monad (MonadResolveT m),
+    HSt.MonadHexState (MonadResolveT m)
   ) =>
-  MonadResolve m
+  MonadResolve (MonadResolveT m)
   where
   resolveLexToken lt = do
     resolveToken lt <&> \case
