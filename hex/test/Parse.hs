@@ -5,7 +5,7 @@ import Hex.Stage.Lex.Interface
 import Hex.Stage.Parse.Interface.AST.Common
 import Hex.Stage.Parse.Interface
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hexlude
 import Test.Tasty
@@ -104,7 +104,7 @@ intTests =
                 UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '3') Other))
               ]
               parseInt
-              (HexInt $ Signed [H.Q.Negative, H.Q.Positive, H.Q.Positive] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base10 [1, 2, 3]),
+              (HexInt $ Signed [Q.Negative, Q.Positive, Q.Positive] $ NormalUnsignedInt $ IntConstant $ IntConstantDigits Base10 [1, 2, 3]),
           testCase "Octal digit constant" $
             assertParseSuccess
               [ UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '\'') Other)),

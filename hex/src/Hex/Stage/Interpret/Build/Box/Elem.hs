@@ -1,9 +1,9 @@
 module Hex.Stage.Interpret.Build.Box.Elem where
 
 import Formatting qualified as F
-import Hex.Common.Codes qualified as H.Codes
-import Hex.Common.Quantity qualified as H.Q
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
+import Hex.Common.Codes qualified as Codes
+import Hex.Common.Quantity qualified as Q
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hexlude
 
 -- Box elements.
@@ -54,28 +54,28 @@ fmtBaseElemOneLine = F.later $ \case
   ElemKern _ ->
     "kern"
 
-newtype Kern = Kern {unKern :: H.Q.Length}
+newtype Kern = Kern {unKern :: Q.Length}
   deriving stock (Show, Eq, Generic)
 
 -- Boxes.
 
-data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: H.Q.Length}
+data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: Q.Length}
   deriving stock (Show, Eq, Generic, Functor, Foldable)
 
 fmtBoxDimens :: Fmt (Box a) r
 fmtBoxDimens =
-  let fmtWidth = fmtViewed #boxWidth H.Q.fmtLengthMagnitude
-      fmtHeight = fmtViewed #boxHeight H.Q.fmtLengthMagnitude
-      fmtDepth = fmtViewed #boxDepth H.Q.fmtLengthMagnitude
+  let fmtWidth = fmtViewed #boxWidth Q.fmtLengthMagnitude
+      fmtHeight = fmtViewed #boxHeight Q.fmtLengthMagnitude
+      fmtDepth = fmtViewed #boxDepth Q.fmtLengthMagnitude
    in F.squared $ F.fconst "⇿" <> fmtWidth <> F.fconst "↥" <> fmtHeight <> F.fconst "↧" <> fmtDepth
 
 -- Element constituents.
 
-newtype SetGlue = SetGlue {sgDimen :: H.Q.Length}
+newtype SetGlue = SetGlue {sgDimen :: Q.Length}
   deriving stock (Show, Generic)
 
 fmtSetGlue :: Fmt SetGlue r
-fmtSetGlue = F.fconst "\\setglue " <> fmtViewed #sgDimen H.Q.fmtLengthWithUnit
+fmtSetGlue = F.fconst "\\setglue " <> fmtViewed #sgDimen Q.fmtLengthWithUnit
 
 data BaseBoxContents
   = HBoxContents HBoxElemSeq
@@ -101,7 +101,7 @@ newtype VBoxElemSeq = VBoxElemSeq {unVBoxElemSeq :: Seq VBoxElem}
 newtype Rule = Rule {unRule :: Box ()}
   deriving stock (Show, Eq, Generic)
 
-newtype CharBox = CharBox {unCharacter :: Box H.Codes.CharCode}
+newtype CharBox = CharBox {unCharacter :: Box Codes.CharCode}
   deriving stock (Show, Generic)
 
 fmtCharBox :: Fmt CharBox r
@@ -111,22 +111,22 @@ fmtCharBoxWithDimens :: Fmt CharBox r
 fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> F.prefixed "\\c" fmtCharBox
 
 charBoxChar :: CharBox -> Char
-charBoxChar = view $ #unCharacter % #contents % to H.Codes.unsafeCodeAsChar
+charBoxChar = view $ #unCharacter % #contents % to Codes.unsafeCodeAsChar
 
-newtype FontSelection = FontSelection H.Sym.Tok.FontNumber
+newtype FontSelection = FontSelection PT.FontNumber
   deriving stock (Show, Generic)
 
 data FontDefinition = FontDefinition
   { fontDefChecksum :: Int,
-    fontDefDesignSize :: H.Q.Length,
-    fontDefDesignScale :: H.Q.Length,
+    fontDefDesignSize :: Q.Length,
+    fontDefDesignScale :: Q.Length,
     fontPath :: HexFilePath,
     fontName :: Text,
-    fontNr :: H.Sym.Tok.FontNumber
+    fontNr :: PT.FontNumber
   }
   deriving stock (Show, Generic)
 
-data FontSpecification = NaturalFont | FontAt H.Q.Length | FontScaled H.Q.HexInt
+data FontSpecification = NaturalFont | FontAt Q.Length | FontScaled Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 newtype HexFilePath = HexFilePath FilePath

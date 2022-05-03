@@ -1,8 +1,8 @@
 module Hex.Stage.Interpret.CommandHandler.MainVMode where
 
 import Hex.Common.HexState.Interface qualified as H.Inter.St
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
@@ -67,7 +67,7 @@ handleCommandInMainVMode oldSrc = \case
   --   extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
   --   pure ContinueMainVMode
   Eval.HModeCommand _ -> do
-    addPara H.Sym.Tok.Indent
+    addPara PT.Indent
   Eval.StartParagraph indentFlag -> do
     addPara indentFlag
   -- \par does nothing in vertical mode.
@@ -86,7 +86,7 @@ handleCommandInMainVMode oldSrc = \case
     panic $ "Not implemented, outer V mode: " <> show oth
   where
     addPara ::
-      ( H.Sym.Tok.IndentFlag ->
+      ( PT.IndentFlag ->
         StateT H.Inter.B.List.VList m VModeCommandResult
       )
     addPara indentFlag = do
@@ -118,17 +118,17 @@ setAndBreakHListToHBoxes ::
   m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBoxElemSeq))
 setAndBreakHListToHBoxes hList =
   do
-    -- hSize <- H.Inter.St.getLengthParameter H.Sym.Tok.HSize
+    -- hSize <- H.Inter.St.getLengthParameter PT.HSize
 
-    let hSize = H.Q.pt 200
-    -- lineTol <- H.Inter.St.getIntParameter H.Sym.Tok.Tolerance
-    -- linePen <- H.Inter.St.getIntParameter H.Sym.Tok.LinePenalty
+    let hSize = Q.pt 200
+    -- lineTol <- H.Inter.St.getIntParameter PT.Tolerance
+    -- linePen <- H.Inter.St.getIntParameter PT.LinePenalty
     let lineHLists = H.Inter.B.List.H.Para.breakGreedy hSize hList
     -- H.Inter.B.List.H.Paragraph.breakGreedy hSize lineTol linePen hList
 
     -- TODO: Get these.
-    let boxHeight = H.Q.pt 20
-    let boxDepth = H.Q.pt 0
+    let boxHeight = Q.pt 20
+    let boxDepth = Q.pt 0
 
     pure $
       lineHLists <&> \lineHList ->
@@ -155,14 +155,14 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
     -- Otherwise:
     --    \lineskip
     -- Then set \prevdepth to the depth of the new box.
-    prevDepth <- H.Inter.St.getSpecialLengthParameter H.Sym.Tok.PrevDepth
-    blineGlue <- H.Inter.St.getGlueParameter H.Sym.Tok.BaselineSkip
-    skipLimit <- H.Inter.St.getLengthParameter H.Sym.Tok.LineSkipLimit
-    skip <- H.Inter.St.getGlueParameter H.Sym.Tok.LineSkip
-    H.Inter.St.setSpecialLengthParameter H.Sym.Tok.PrevDepth (H.Inter.B.Box.boxDepth b)
+    prevDepth <- H.Inter.St.getSpecialLengthParameter PT.PrevDepth
+    blineGlue <- H.Inter.St.getGlueParameter PT.BaselineSkip
+    skipLimit <- H.Inter.St.getLengthParameter PT.LineSkipLimit
+    skip <- H.Inter.St.getGlueParameter PT.LineSkip
+    H.Inter.St.setSpecialLengthParameter PT.PrevDepth (H.Inter.B.Box.boxDepth b)
     pure $
       H.Inter.B.List.VList $
-        if (prevDepth ^. typed @Int) <= -(H.Q.oneKPt ^. typed @Int)
+        if (prevDepth ^. typed @Int) <= -(Q.oneKPt ^. typed @Int)
           then accSeq :|> e
           else
             let proposedBaselineLength = (blineGlue ^. #gDimen) ~~ prevDepth ~~ H.Inter.B.Box.boxHeight b

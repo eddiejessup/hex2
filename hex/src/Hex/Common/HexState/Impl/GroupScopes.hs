@@ -1,14 +1,16 @@
 module Hex.Common.HexState.Impl.GroupScopes where
 
+import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Group
 import Hex.Common.HexState.Impl.Scope (Scope, newGlobalScope)
 import Hex.Common.HexState.Impl.Scope qualified as Scope
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 import Optics.Core qualified as O
+import qualified ASCII
 
 -- | Collection of relevant scopes and groups.
 -- We always have a global scope,
@@ -49,11 +51,8 @@ scopedLookup f c =
 localMostScopeLens :: Lens' GroupScopes Scope
 localMostScopeLens = lens getter setter
   where
-    -- Traversal of the localmost scope.
-    -- In reality this is a lens, but I can't pro
-
     getter :: GroupScopes -> Scope
-    getter grpScopes = case headOf localScopesTraversal grpScopes of
+    getter grpScopes = case headOf scopesTraversal grpScopes of
       Nothing -> panic "Impossible!"
       Just v -> v
 
@@ -76,21 +75,21 @@ localCategory p =
     . scopedLookup
       (view (Scope.scopeCategoryLens p))
 
-localIntParam :: PT.IntParameter -> GroupScopes -> H.Q.HexInt
+localIntParam :: PT.IntParameter -> GroupScopes -> Q.HexInt
 localIntParam p =
-  fromMaybe H.Q.zeroInt
+  fromMaybe Q.zeroInt
     . scopedLookup
       (view (Scope.scopeIntParamLens p))
 
-localLengthParam :: PT.LengthParameter -> GroupScopes -> H.Q.Length
+localLengthParam :: PT.LengthParameter -> GroupScopes -> Q.Length
 localLengthParam p =
-  fromMaybe H.Q.zeroLength
+  fromMaybe Q.zeroLength
     . scopedLookup
       (view (Scope.scopeLengthParamLens p))
 
-localGlueParam :: PT.GlueParameter -> GroupScopes -> H.Q.Glue
+localGlueParam :: PT.GlueParameter -> GroupScopes -> Q.Glue
 localGlueParam p =
-  fromMaybe H.Q.zeroGlue
+  fromMaybe Q.zeroGlue
     . scopedLookup (view (Scope.scopeGlueParamLens p))
 
 localCurrentFontNr :: GroupScopes -> Maybe PT.FontNumber
@@ -99,7 +98,31 @@ localCurrentFontNr = scopedLookup (view #currentFontNr)
 setCurrentFontNr :: PT.FontNumber -> PT.ScopeFlag -> GroupScopes -> GroupScopes
 setCurrentFontNr = setScopedProperty (castOptic #currentFontNr)
 
-setScopedProperty :: (Setter' Scope (Maybe a)) -> a -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setCategory :: Code.CharCode -> Code.CatCode -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setCategory = setScopedMapValue #catCodes
+
+setMathCode :: Code.CharCode -> Code.MathCode -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setMathCode = setScopedMapValue #mathCodes
+
+setChangeCaseCode :: ASCII.Case -> Code.CharCode -> Code.CaseChangeCode -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setChangeCaseCode = \case
+  ASCII.LowerCase -> setScopedMapValue #lowercaseCodes
+  ASCII.UpperCase -> setScopedMapValue #uppercaseCodes
+
+setSpaceFactor :: Code.CharCode -> Code.SpaceFactorCode -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setSpaceFactor = setScopedMapValue #spaceFactors
+
+setDelimiterCode :: Code.CharCode -> Code.DelimiterCode -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setDelimiterCode = setScopedMapValue #delimiterCodes
+
+-- | Set a scoped property which is contained in a map, indexed by some key.
+setScopedMapValue :: Ord k => (Lens' Scope (Map k v)) -> k -> v -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setScopedMapValue mapLens c = setScopedProperty (mapLens % O.at' c)
+
+-- | From a lens from a scope to a property, which might be empty, set that
+-- value. (Actually we could weaken 'Lens' to 'Setter', but that would require a
+-- bunch of `castOptic` calls.)
+setScopedProperty :: (Lens' Scope (Maybe a)) -> a -> PT.ScopeFlag -> GroupScopes -> GroupScopes
 setScopedProperty scopeValueLens newValue scopeFlag groupScopes =
   case scopeFlag of
     -- If doing a global assignment.

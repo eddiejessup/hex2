@@ -50,9 +50,9 @@ handleModeIndependentCommand addVElem = \case
   Eval.AddKern k -> do
     addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemKern k
     pure DidNotSeeEndBox
-  -- Eval.Assign Eval.Assignment {Eval.scope, Eval.body} -> do
-  --   case body of
-  --     Eval.DefineControlSequence cs tgt -> do
+  Eval.Assign Eval.Assignment {Eval.scope, Eval.body} -> do
+    case body of
+      -- Eval.DefineControlSequence cs tgt -> do
   --       tgtResolvedTok <- case tgt of
   --         Eval.NonFontTarget rt ->
   --           pure rt
@@ -62,90 +62,99 @@ handleModeIndependentCommand addVElem = \case
   --           pure $ Res.PrimitiveToken $ T.FontRefToken $ fontDefinition ^. typed @T.FontNumber
   --       H.St.setControlSequence cs tgtResolvedTok scope
   --       pure DidNotSeeEndBox
-  --     Eval.AssignCode (Eval.CodeAssignment (Eval.CodeTableRef codeType idxChar) val) ->
-  --       do
-  --         updateCharCodeMap codeType idxChar eVal scope
-  --       Eval.SetVariable ass ->
-  --         case ass of
-  --           Eval.TeXIntVariableAssignment v tgt ->
-  --             Var.setValueFromAST v scope tgt
-  --           Eval.LengthVariableAssignment v tgt ->
-  --             Var.setValueFromAST v scope tgt
-  --           Eval.GlueVariableAssignment v tgt ->
-  --             Var.setValueFromAST v scope tgt
-  --           Eval.MathGlueVariableAssignment v tgt ->
-  --             Var.setValueFromAST v scope tgt
-  --           Eval.TokenListVariableAssignment v tgt ->
-  --             Var.setValueFromAST v scope tgt
-  --           Eval.SpecialTeXIntVariableAssignment v tgt ->
-  --             Var.setValueFromAST v scope tgt
-  --           Eval.SpecialLengthParameterVariableAssignment v tgt ->
-  --             Var.setValueFromAST v scope tgt
-  --       Eval.ModifyVariable modCommand ->
-  --         case modCommand of
-  --           Eval.AdvanceTeXIntVariable var plusVal ->
-  --             Var.advanceValueFromAST var scope plusVal
-  --           Eval.AdvanceLengthVariable var plusVal ->
-  --             Var.advanceValueFromAST var scope plusVal
-  --           Eval.AdvanceGlueVariable var plusVal ->
-  --             Var.advanceValueFromAST var scope plusVal
-  --           Eval.AdvanceMathGlueVariable var plusVal ->
-  --             Var.advanceValueFromAST var scope plusVal
-  --           Eval.ScaleVariable vDir numVar scaleVal ->
-  --             case numVar of
-  --               Eval.TeXIntNumericVariable var ->
-  --                 Var.scaleValueFromAST var scope vDir scaleVal
-  --               Eval.LengthNumericVariable var ->
-  --                 Var.scaleValueFromAST var scope vDir scaleVal
-  --               Eval.GlueNumericVariable var ->
-  --                 Var.scaleValueFromAST var scope vDir scaleVal
-  --               Eval.MathGlueNumericVariable var ->
-  --                 Var.scaleValueFromAST var scope vDir scaleVal
-  --       Eval.SelectFont fNr ->
-  --         do
-  --           selectFont fNr scope
-  --           addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
-  --       Eval.SetFamilyMember fm fontRef ->
-  --         do
-  --           eFm <- texEvaluate fm
-  --           fNr <- texEvaluate fontRef
-  --           modifying' (typed @Config) $ setFamilyMemberFont eFm fNr scope
-  --       -- Start a new level of grouping. Enter inner mode.
-  --       Eval.SetBoxRegister lhsIdx box ->
-  --         do
-  --           eLhsIdx <- texEvaluate lhsIdx
-  --           case box of
-  --             Eval.FetchedRegisterBox fetchMode rhsIdx ->
-  --               do
-  --                 fetchedMaybeBox <- fetchBox fetchMode rhsIdx
-  --                 modifying' (typed @Config) $ setBoxRegisterNullable eLhsIdx scope fetchedMaybeBox
-  --             Eval.LastBox ->
-  --               panic "Not implemented: SetBoxRegister to LastBox"
-  --             Eval.VSplitBox _ _ ->
-  --               panic "Not implemented: SetBoxRegister to VSplitBox"
-  --             Eval.ExplicitBox spec boxType -> do
-  --               eSpec <- texEvaluate spec
-  --               modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
-  --               extractedBox <- extractExplicitBox eSpec boxType
-  --               modifying' (typed @Config) $ setBoxRegister eLhsIdx extractedBox scope
-  --       Eval.SetFontChar (Eval.FontCharRef fontChar fontRef) charRef ->
-  --         do
-  --           fNr <- texEvaluate fontRef
-  --           eCharRef <- texEvaluate charRef
-  --           let updateFontChar f = case fontChar of
-  --                 Eval.SkewChar -> f {skewChar = eCharRef}
-  --                 Eval.HyphenChar -> f {hyphenChar = eCharRef}
-  --           modifyFont fNr updateFontChar
-  --       oth ->
-  --         panic $ show oth
-  --     use (typed @Config % #afterAssignmentToken) >>= \case
-  --       Nothing ->
-  --         pure ()
-  --       Just lt ->
-  --         do
-  --           insertLexToken lt
-  --           assign' (typed @Config % #afterAssignmentToken) Nothing
-  --     pure DidNotSeeEndBox
+      Eval.AssignCode (Eval.CodeAssignment idxChar codeVal) ->
+        case codeVal of
+          Eval.CatCodeValue catCode ->
+            HSt.setCategory idxChar catCode scope
+          Eval.MathCodeValue mathCode ->
+            HSt.setMathCode idxChar mathCode scope
+          Eval.ChangeCaseCodeValue letterCase caseChangeCode ->
+            HSt.setChangeCaseCode letterCase idxChar caseChangeCode scope
+          Eval.SpaceFactorCodeValue spaceFactorCode ->
+            HSt.setSpaceFactor idxChar spaceFactorCode scope
+          Eval.DelimiterCodeValue delimiterCode ->
+            HSt.setDelimiterCode idxChar delimiterCode scope
+    --   Eval.SetVariable ass ->
+    --     case ass of
+    --       Eval.TeXIntVariableAssignment v tgt ->
+    --         Var.setValueFromAST v scope tgt
+    --       Eval.LengthVariableAssignment v tgt ->
+    --         Var.setValueFromAST v scope tgt
+    --       Eval.GlueVariableAssignment v tgt ->
+    --         Var.setValueFromAST v scope tgt
+    --       Eval.MathGlueVariableAssignment v tgt ->
+    --         Var.setValueFromAST v scope tgt
+    --       Eval.TokenListVariableAssignment v tgt ->
+    --         Var.setValueFromAST v scope tgt
+    --       Eval.SpecialTeXIntVariableAssignment v tgt ->
+    --         Var.setValueFromAST v scope tgt
+    --       Eval.SpecialLengthParameterVariableAssignment v tgt ->
+    --         Var.setValueFromAST v scope tgt
+    --   Eval.ModifyVariable modCommand ->
+    --     case modCommand of
+    --       Eval.AdvanceTeXIntVariable var plusVal ->
+    --         Var.advanceValueFromAST var scope plusVal
+    --       Eval.AdvanceLengthVariable var plusVal ->
+    --         Var.advanceValueFromAST var scope plusVal
+    --       Eval.AdvanceGlueVariable var plusVal ->
+    --         Var.advanceValueFromAST var scope plusVal
+    --       Eval.AdvanceMathGlueVariable var plusVal ->
+    --         Var.advanceValueFromAST var scope plusVal
+    --       Eval.ScaleVariable vDir numVar scaleVal ->
+    --         case numVar of
+    --           Eval.TeXIntNumericVariable var ->
+    --             Var.scaleValueFromAST var scope vDir scaleVal
+    --           Eval.LengthNumericVariable var ->
+    --             Var.scaleValueFromAST var scope vDir scaleVal
+    --           Eval.GlueNumericVariable var ->
+    --             Var.scaleValueFromAST var scope vDir scaleVal
+    --           Eval.MathGlueNumericVariable var ->
+    --             Var.scaleValueFromAST var scope vDir scaleVal
+    --   Eval.SelectFont fNr ->
+    --     do
+    --       selectFont fNr scope
+    --       addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
+    --   Eval.SetFamilyMember fm fontRef ->
+    --     do
+    --       eFm <- texEvaluate fm
+    --       fNr <- texEvaluate fontRef
+    --       modifying' (typed @Config) $ setFamilyMemberFont eFm fNr scope
+    --   -- Start a new level of grouping. Enter inner mode.
+    --   Eval.SetBoxRegister lhsIdx box ->
+    --     do
+    --       eLhsIdx <- texEvaluate lhsIdx
+    --       case box of
+    --         Eval.FetchedRegisterBox fetchMode rhsIdx ->
+    --           do
+    --             fetchedMaybeBox <- fetchBox fetchMode rhsIdx
+    --             modifying' (typed @Config) $ setBoxRegisterNullable eLhsIdx scope fetchedMaybeBox
+    --         Eval.LastBox ->
+    --           notImplemented "SetBoxRegister to LastBox"
+    --         Eval.VSplitBox _ _ ->
+    --           notImplemented "SetBoxRegister to VSplitBox"
+    --         Eval.ExplicitBox spec boxType -> do
+    --           eSpec <- texEvaluate spec
+    --           modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
+    --           extractedBox <- extractExplicitBox eSpec boxType
+    --           modifying' (typed @Config) $ setBoxRegister eLhsIdx extractedBox scope
+    --   Eval.SetFontChar (Eval.FontCharRef fontChar fontRef) charRef ->
+    --     do
+    --       fNr <- texEvaluate fontRef
+    --       eCharRef <- texEvaluate charRef
+    --       let updateFontChar f = case fontChar of
+    --             Eval.SkewChar -> f {skewChar = eCharRef}
+    --             Eval.HyphenChar -> f {hyphenChar = eCharRef}
+    --       modifyFont fNr updateFontChar
+      assignment ->
+        notImplemented $ "Assignment body: " <> show assignment
+    -- use (typed @Config % #afterAssignmentToken) >>= \case
+    --   Nothing ->
+    --     pure ()
+    --   Just lt ->
+    --     do
+    --       insertLexToken lt
+    --       assign' (typed @Config % #afterAssignmentToken) Nothing
+    pure DidNotSeeEndBox
   -- Eval.WriteToStream n (Eval.ImmediateWriteText eTxt) -> do
   --   en <- texEvaluate n
   --   fStreams <- use $ typed @Config % #outFileStreams
@@ -229,4 +238,4 @@ handleModeIndependentCommand addVElem = \case
   --       addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox b
   --   pure DidNotSeeEndBox
   oth ->
-    panic $ show oth
+    notImplemented $ "command " <> show oth

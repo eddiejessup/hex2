@@ -4,7 +4,7 @@ module Hex.Stage.Parse.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as H.Code
 import Hex.Stage.Parse.Interface.AST.Common
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as Res.PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Res.ST
 import Hexlude
@@ -46,7 +46,7 @@ data ModeIndependentCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial Res.ST.ExpandedBalancedText
   | AddBox BoxPlacement Box
-  | ChangeScope H.Q.Sign CommandTrigger
+  | ChangeScope Q.Sign CommandTrigger
   deriving stock (Show, Eq, Generic)
 
 data VModeCommand
@@ -152,7 +152,7 @@ data VariableModification
   | AdvanceLengthVariable (QuantVariableAST 'Res.PT.LenQuantity) (QuantVariableTarget 'Res.PT.LenQuantity)
   | AdvanceGlueVariable (QuantVariableAST 'Res.PT.GlueQuantity) (QuantVariableTarget 'Res.PT.GlueQuantity)
   | AdvanceMathGlueVariable (QuantVariableAST 'Res.PT.MathGlueQuantity) (QuantVariableTarget 'Res.PT.MathGlueQuantity)
-  | ScaleVariable H.Q.VDirection NumericVariable HexInt
+  | ScaleVariable Q.VDirection NumericVariable HexInt
   deriving stock (Show, Eq, Generic)
 
 data NumericVariable
@@ -179,7 +179,7 @@ data Box
 data BoxSpecification = Natural | To Length | Spread Length
   deriving stock (Show, Eq, Generic)
 
-data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule H.Q.Axis Rule
+data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule Q.Axis Rule
   deriving stock (Show, Eq, Generic)
 
 data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: Res.ST.ExpandedBalancedText}
@@ -211,7 +211,7 @@ data WriteText
 data WritePolicy = Immediate | Deferred
   deriving stock (Show, Eq, Generic)
 
-newtype Rule = Rule (Seq (H.Q.BoxDim, Length))
+newtype Rule = Rule (Seq (Q.BoxDim, Length))
   deriving stock (Show, Eq, Generic)
 
 data FileStreamAction = Open HexFilePath | Close
@@ -220,11 +220,11 @@ data FileStreamAction = Open HexFilePath | Close
 data FileStreamType = FileInput | FileOutput WritePolicy
   deriving stock (Show, Eq, Generic)
 
-data BoxPlacement = NaturalPlacement | ShiftedPlacement H.Q.Axis H.Q.Direction Length
+data BoxPlacement = NaturalPlacement | ShiftedPlacement Q.Axis Q.Direction Length
   deriving stock (Show, Eq, Generic)
 
 data CharCodeRef
   = CharRef H.Code.CharCode
-  | CharTokenRef H.Q.HexInt
+  | CharTokenRef Q.HexInt
   | CharCodeNrRef CharCodeInt
   deriving stock (Show, Eq, Generic)

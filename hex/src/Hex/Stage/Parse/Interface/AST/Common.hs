@@ -2,11 +2,11 @@
 
 module Hex.Stage.Parse.Interface.AST.Common where
 
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 
-data Signed a = Signed [H.Q.Sign] a
+data Signed a = Signed [Q.Sign] a
   deriving stock (Show, Eq, Generic)
 
 newtype HexInt = HexInt {unInt :: Signed UnsignedInt}
@@ -46,7 +46,7 @@ type Length = Signed UnsignedLength
 
 zeroLength :: Length
 zeroLength =
-  Signed [H.Q.Positive] $
+  Signed [Q.Positive] $
     NormalLengthAsULength $
       LengthSemiConstant zeroFactor scaledPointUnit
 
@@ -78,12 +78,12 @@ data DecimalFraction = DecimalFraction {wholeDigits :: [Word8], fracDigits :: [W
   deriving stock (Show, Eq, Generic)
 
 data Unit
-  = PhysicalUnit PhysicalUnitFrame H.Q.PhysicalUnit
+  = PhysicalUnit PhysicalUnitFrame Q.PhysicalUnit
   | InternalUnit InternalUnit
   deriving stock (Show, Eq, Generic)
 
 scaledPointUnit :: Unit
-scaledPointUnit = PhysicalUnit MagnifiedFrame H.Q.ScaledPoint
+scaledPointUnit = PhysicalUnit MagnifiedFrame Q.ScaledPoint
 
 data InternalUnit
   = Em
@@ -136,13 +136,13 @@ oneFilFlex = FilFlex oneFil
 minusOneFilFlex = FilFlex minusOneFil
 oneFillFlex = FilFlex oneFill
 
-data FilLength = FilLength (Signed Factor) H.Q.InfLengthOrder
+data FilLength = FilLength (Signed Factor) Q.InfLengthOrder
   deriving stock (Show, Eq, Generic)
 
 oneFil, minusOneFil, oneFill :: FilLength
-oneFil = FilLength (Signed [H.Q.Positive] oneFactor) H.Q.Fil1
-minusOneFil = FilLength (Signed [H.Q.Negative] oneFactor) H.Q.Fil1
-oneFill = FilLength (Signed [H.Q.Positive] oneFactor) H.Q.Fil2
+oneFil = FilLength (Signed [Q.Positive] oneFactor) Q.Fil1
+minusOneFil = FilLength (Signed [Q.Negative] oneFactor) Q.Fil1
+oneFill = FilLength (Signed [Q.Positive] oneFactor) Q.Fil2
 
 -- Math glue.
 data MathGlue
@@ -153,30 +153,30 @@ data MathGlue
 data MathFlex = FiniteMathFlex MathLength | FilMathFlex FilLength
   deriving stock (Show, Eq, Generic)
 
-type family QuantParam (a :: H.Sym.Tok.QuantityType) where
-  QuantParam 'H.Sym.Tok.IntQuantity = H.Sym.Tok.IntParameter
-  QuantParam 'H.Sym.Tok.LenQuantity = H.Sym.Tok.LengthParameter
-  QuantParam 'H.Sym.Tok.GlueQuantity = H.Sym.Tok.GlueParameter
-  QuantParam 'H.Sym.Tok.MathGlueQuantity = H.Sym.Tok.MathGlueParameter
-  QuantParam 'H.Sym.Tok.TokenListQuantity = H.Sym.Tok.TokenListParameter
+type family QuantParam (a :: PT.QuantityType) where
+  QuantParam 'PT.IntQuantity = PT.IntParameter
+  QuantParam 'PT.LenQuantity = PT.LengthParameter
+  QuantParam 'PT.GlueQuantity = PT.GlueParameter
+  QuantParam 'PT.MathGlueQuantity = PT.MathGlueParameter
+  QuantParam 'PT.TokenListQuantity = PT.TokenListParameter
 
 -- Internal quantities.
-data QuantVariableAST (a :: H.Sym.Tok.QuantityType) = ParamVar (QuantParam a) | RegisterVar RegisterLocation
+data QuantVariableAST (a :: PT.QuantityType) = ParamVar (QuantParam a) | RegisterVar RegisterLocation
   deriving stock (Generic)
 
 deriving stock instance Show (QuantParam a) => Show (QuantVariableAST a)
 
 deriving stock instance Eq (QuantParam a) => Eq (QuantVariableAST a)
 
-data RegisterLocation = ExplicitRegisterLocation HexInt | InternalRegisterLocation H.Q.HexInt
+data RegisterLocation = ExplicitRegisterLocation HexInt | InternalRegisterLocation Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 data InternalInt
-  = InternalIntVariable (QuantVariableAST 'H.Sym.Tok.IntQuantity)
-  | InternalSpecialIntParameter H.Sym.Tok.SpecialIntParameter
+  = InternalIntVariable (QuantVariableAST 'PT.IntQuantity)
+  | InternalSpecialIntParameter PT.SpecialIntParameter
   | InternalCodeTableRef CodeTableRef
-  | InternalCharToken H.Q.HexInt
-  | InternalMathCharToken H.Q.HexInt
+  | InternalCharToken Q.HexInt
+  | InternalMathCharToken Q.HexInt
   | InternalFontCharRef FontCharRef
   | LastPenalty
   | ParShape
@@ -184,43 +184,43 @@ data InternalInt
   | Badness
   deriving stock (Show, Eq, Generic)
 
-data CodeTableRef = CodeTableRef {codeType :: H.Sym.Tok.CodeType, codeIndex :: CharCodeInt}
+data CodeTableRef = CodeTableRef {codeType :: PT.CodeType, codeIndex :: CharCodeInt}
   deriving stock (Show, Eq, Generic)
 
 -- | Newtype wrapper to represent HexInts that represent a char-code.
 newtype CharCodeInt = CharCodeInt {unCharCodeInt :: HexInt}
   deriving stock (Show, Eq, Generic)
 
-data FontCharRef = FontCharRef H.Sym.Tok.FontChar FontRef
+data FontCharRef = FontCharRef PT.FontChar FontRef
   deriving stock (Show, Eq, Generic)
 
 data FontRef
-  = FontTokenRef H.Sym.Tok.FontNumber
+  = FontTokenRef PT.FontNumber
   | CurrentFontRef
   | FamilyMemberFontRef FamilyMember
   deriving stock (Show, Eq, Generic)
 
-data FamilyMember = FamilyMember H.Sym.Tok.FontRange HexInt
+data FamilyMember = FamilyMember PT.FontRange HexInt
   deriving stock (Show, Eq, Generic)
 
-data BoxDimensionRef = BoxDimensionRef HexInt H.Q.BoxDim
+data BoxDimensionRef = BoxDimensionRef HexInt Q.BoxDim
   deriving stock (Show, Eq, Generic)
 
 data FontDimensionRef = FontDimensionRef HexInt FontRef
   deriving stock (Show, Eq, Generic)
 
 data InternalLength
-  = InternalLengthVariable (QuantVariableAST 'H.Sym.Tok.LenQuantity)
-  | InternalSpecialLengthParameter H.Sym.Tok.SpecialLengthParameter
+  = InternalLengthVariable (QuantVariableAST 'PT.LenQuantity)
+  | InternalSpecialLengthParameter PT.SpecialLengthParameter
   | InternalFontDimensionRef FontDimensionRef
   | InternalBoxDimensionRef BoxDimensionRef
   | LastKern
   deriving stock (Show, Eq, Generic)
 
-data InternalGlue = InternalGlueVariable (QuantVariableAST 'H.Sym.Tok.GlueQuantity) | LastGlue
+data InternalGlue = InternalGlueVariable (QuantVariableAST 'PT.GlueQuantity) | LastGlue
   deriving stock (Show, Eq, Generic)
 
 data InternalMathGlue
-  = InternalMathGlueVariable (QuantVariableAST 'H.Sym.Tok.MathGlueQuantity)
+  = InternalMathGlueVariable (QuantVariableAST 'PT.MathGlueQuantity)
   | LastMathGlue
   deriving stock (Show, Eq, Generic)

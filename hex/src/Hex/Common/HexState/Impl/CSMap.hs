@@ -1,5 +1,6 @@
 module Hex.Common.HexState.Impl.CSMap where
 
+import ASCII qualified
 import Data.HashMap.Strict qualified as HMap
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
@@ -7,7 +8,7 @@ import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
@@ -27,10 +28,10 @@ condTok :: ConditionHeadTok -> ResolvedToken
 condTok e = syntaxTok $ ConditionTok $ ConditionHeadTok e
 
 vModeTok :: ModedCommandPrimitiveToken -> ResolvedToken
-vModeTok e = primTok $ ModedCommand H.Q.Vertical e
+vModeTok e = primTok $ ModedCommand Q.Vertical e
 
 hModeTok :: ModedCommandPrimitiveToken -> ResolvedToken
-hModeTok e = primTok $ ModedCommand H.Q.Horizontal e
+hModeTok e = primTok $ ModedCommand Q.Horizontal e
 
 initialCSMap :: H.Res.CSMap
 initialCSMap =
@@ -72,14 +73,14 @@ initialCSMap =
       (_cs "input", syntaxTok InputTok),
       (_cs "endinput", syntaxTok EndInputTok),
       (_cs "the", syntaxTok TheTok),
-      (_cs "uppercase", syntaxTok $ ChangeCaseTok H.Q.Upward),
-      (_cs "lowercase", syntaxTok $ ChangeCaseTok H.Q.Downward),
+      (_cs "uppercase", syntaxTok $ ChangeCaseTok Q.Upward),
+      (_cs "lowercase", syntaxTok $ ChangeCaseTok Q.Downward),
       -- Arguments of syntax commands.
       (_cs "endcsname", primTok $ SyntaxCommandArg EndCSNameTok),
       -- Nothing special.
       (_cs "relax", primTok RelaxTok),
-      (_cs "begingroup", primTok $ ChangeScopeCSTok H.Q.Positive),
-      (_cs "endgroup", primTok $ ChangeScopeCSTok H.Q.Negative),
+      (_cs "begingroup", primTok $ ChangeScopeCSTok Q.Positive),
+      (_cs "endgroup", primTok $ ChangeScopeCSTok Q.Negative),
       (_cs "show", primTok ShowTokenTok),
       (_cs "showbox", primTok ShowBoxTok),
       (_cs "showlists", primTok ShowListsTok),
@@ -125,10 +126,10 @@ initialCSMap =
       -- Other moded.
       (_cs "halign", hModeTok AlignedMaterialTok),
       (_cs "valign", vModeTok AlignedMaterialTok),
-      (_cs "moveleft", hModeTok $ ShiftedBoxTok H.Q.Backward),
-      (_cs "moveright", hModeTok $ ShiftedBoxTok H.Q.Forward),
-      (_cs "raise", vModeTok $ ShiftedBoxTok H.Q.Backward),
-      (_cs "lower", vModeTok $ ShiftedBoxTok H.Q.Forward),
+      (_cs "moveleft", hModeTok $ ShiftedBoxTok Q.Backward),
+      (_cs "moveright", hModeTok $ ShiftedBoxTok Q.Forward),
+      (_cs "raise", vModeTok $ ShiftedBoxTok Q.Backward),
+      (_cs "lower", vModeTok $ ShiftedBoxTok Q.Forward),
       (_cs "unvbox", vModeTok $ UnwrappedFetchedBoxTok Pop),
       (_cs "unhbox", hModeTok $ UnwrappedFetchedBoxTok Pop),
       (_cs "unvcopy", vModeTok $ UnwrappedFetchedBoxTok Lookup),
@@ -293,13 +294,13 @@ initialCSMap =
       (_cs "toksdef", primTok $ ShortDefHeadTok $ QuantityType TokenListQuantity),
       -- Modify variables.
       (_cs "advance", primTok AdvanceVarTok),
-      (_cs "multiply", primTok $ ScaleVarTok H.Q.Upward),
-      (_cs "divide", primTok $ ScaleVarTok H.Q.Downward),
+      (_cs "multiply", primTok $ ScaleVarTok Q.Upward),
+      (_cs "divide", primTok $ ScaleVarTok Q.Downward),
       -- Code types.
       (_cs "catcode", primTok $ CodeTypeTok CategoryCodeType),
       (_cs "mathcode", primTok $ CodeTypeTok MathCodeType),
-      (_cs "lccode", primTok $ CodeTypeTok $ ChangeCaseCodeType H.Q.Downward),
-      (_cs "uccode", primTok $ CodeTypeTok $ ChangeCaseCodeType H.Q.Upward),
+      (_cs "lccode", primTok $ CodeTypeTok $ ChangeCaseCodeType ASCII.LowerCase),
+      (_cs "uccode", primTok $ CodeTypeTok $ ChangeCaseCodeType ASCII.UpperCase),
       (_cs "sfcode", primTok $ CodeTypeTok SpaceFactorCodeType),
       (_cs "delcode", primTok $ CodeTypeTok DelimiterCodeType),
       -- Alias tokens.
@@ -317,9 +318,9 @@ initialCSMap =
       -- Internal length.
       (_cs "lastkern", primTok LastKernTok),
       (_cs "fontdimen", primTok FontDimensionTok),
-      (_cs "ht", primTok $ BoxDimensionTok H.Q.BoxHeight),
-      (_cs "wd", primTok $ BoxDimensionTok H.Q.BoxWidth),
-      (_cs "dp", primTok $ BoxDimensionTok H.Q.BoxDepth),
+      (_cs "ht", primTok $ BoxDimensionTok Q.BoxHeight),
+      (_cs "wd", primTok $ BoxDimensionTok Q.BoxWidth),
+      (_cs "dp", primTok $ BoxDimensionTok Q.BoxDepth),
       -- Internal glue.
       (_cs "lastskip", primTok LastGlueTok),
       -- Specifying a box.

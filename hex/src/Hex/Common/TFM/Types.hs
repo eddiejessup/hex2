@@ -1,12 +1,12 @@
 module Hex.Common.TFM.Types where
 
 import ASCII qualified
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 
 data Font = Font
   { checksum :: Word32,
-    designFontSize :: H.Q.LengthScaledPoints Rational,
+    designFontSize :: Q.LengthScaledPoints Rational,
     characterCodingScheme :: Maybe [ASCII.Char],
     family :: Maybe [ASCII.Char],
     params :: FontParams,
@@ -15,18 +15,18 @@ data Font = Font
   }
   deriving stock (Show, Generic)
 
-fontLengthScaledPoints :: Font -> H.Q.LengthDesignSize Rational -> H.Q.LengthScaledPoints Rational
+fontLengthScaledPoints :: Font -> Q.LengthDesignSize Rational -> Q.LengthScaledPoints Rational
 fontLengthScaledPoints font lengthInDS =
-  H.Q.fromDesignSize lengthInDS (designFontSize font)
+  Q.fromDesignSize lengthInDS (designFontSize font)
 
-fontLengthScaledPointsInt :: Font -> H.Q.LengthDesignSize Rational -> H.Q.LengthScaledPoints Int
-fontLengthScaledPointsInt font lengthInDS = H.Q.roundScaledPoints $ fontLengthScaledPoints font lengthInDS
+fontLengthScaledPointsInt :: Font -> Q.LengthDesignSize Rational -> Q.LengthScaledPoints Int
+fontLengthScaledPointsInt font lengthInDS = Q.roundScaledPoints $ fontLengthScaledPoints font lengthInDS
 
-fontLengthParamScaledPoints :: Font -> (Font -> H.Q.LengthDesignSize Rational) -> H.Q.LengthScaledPoints Rational
+fontLengthParamScaledPoints :: Font -> (Font -> Q.LengthDesignSize Rational) -> Q.LengthScaledPoints Rational
 fontLengthParamScaledPoints font getLengthInDS = fontLengthScaledPoints font (getLengthInDS font)
 
-fontLengthParamScaledPointsInt :: Font -> (Font -> H.Q.LengthDesignSize Rational) -> H.Q.LengthScaledPoints Int
-fontLengthParamScaledPointsInt font getLengthInDS = H.Q.roundScaledPoints $ fontLengthParamScaledPoints font getLengthInDS
+fontLengthParamScaledPointsInt :: Font -> (Font -> Q.LengthDesignSize Rational) -> Q.LengthScaledPoints Int
+fontLengthParamScaledPointsInt font getLengthInDS = Q.roundScaledPoints $ fontLengthParamScaledPoints font getLengthInDS
 
 data FontParams = FontParams
   { -- `slant`, the amount of italic slant, which is used to help position
@@ -35,12 +35,12 @@ data FontParams = FontParams
     -- the only `fix_word` other than the design size itself that is not scaled
     -- by the design size.
     slant :: Rational,
-    spacing :: H.Q.LengthDesignSize Rational,
-    spaceStretch :: H.Q.LengthDesignSize Rational,
-    spaceShrink :: H.Q.LengthDesignSize Rational,
-    xHeight :: H.Q.LengthDesignSize Rational,
-    quad :: H.Q.LengthDesignSize Rational,
-    extraSpace :: H.Q.LengthDesignSize Rational,
+    spacing :: Q.LengthDesignSize Rational,
+    spaceStretch :: Q.LengthDesignSize Rational,
+    spaceShrink :: Q.LengthDesignSize Rational,
+    xHeight :: Q.LengthDesignSize Rational,
+    quad :: Q.LengthDesignSize Rational,
+    extraSpace :: Q.LengthDesignSize Rational,
     extraParams :: Maybe ExtraFontParams
   }
   deriving stock (Show)
@@ -51,35 +51,35 @@ data ExtraFontParams
   deriving stock (Show)
 
 data MathSymbolParams = MathSymbolParams
-  { num1 :: H.Q.LengthDesignSize Rational,
-    num2 :: H.Q.LengthDesignSize Rational,
-    num3 :: H.Q.LengthDesignSize Rational,
-    denom1 :: H.Q.LengthDesignSize Rational,
-    denom2 :: H.Q.LengthDesignSize Rational,
-    sup1 :: H.Q.LengthDesignSize Rational,
-    sup2 :: H.Q.LengthDesignSize Rational,
-    sup3 :: H.Q.LengthDesignSize Rational,
-    sub1 :: H.Q.LengthDesignSize Rational,
-    sub2 :: H.Q.LengthDesignSize Rational,
-    supdrop :: H.Q.LengthDesignSize Rational,
-    subdrop :: H.Q.LengthDesignSize Rational,
-    delim1 :: H.Q.LengthDesignSize Rational,
-    delim2 :: H.Q.LengthDesignSize Rational,
-    axisHeight :: H.Q.LengthDesignSize Rational
+  { num1 :: Q.LengthDesignSize Rational,
+    num2 :: Q.LengthDesignSize Rational,
+    num3 :: Q.LengthDesignSize Rational,
+    denom1 :: Q.LengthDesignSize Rational,
+    denom2 :: Q.LengthDesignSize Rational,
+    sup1 :: Q.LengthDesignSize Rational,
+    sup2 :: Q.LengthDesignSize Rational,
+    sup3 :: Q.LengthDesignSize Rational,
+    sub1 :: Q.LengthDesignSize Rational,
+    sub2 :: Q.LengthDesignSize Rational,
+    supdrop :: Q.LengthDesignSize Rational,
+    subdrop :: Q.LengthDesignSize Rational,
+    delim1 :: Q.LengthDesignSize Rational,
+    delim2 :: Q.LengthDesignSize Rational,
+    axisHeight :: Q.LengthDesignSize Rational
   }
   deriving stock (Show)
 
 data MathExtensionParams = MathExtensionParams
-  { defaultRuleThickness :: H.Q.LengthDesignSize Rational,
-    bigOpSpacing1 :: H.Q.LengthDesignSize Rational,
-    bigOpSpacing2 :: H.Q.LengthDesignSize Rational,
-    bigOpSpacing3 :: H.Q.LengthDesignSize Rational,
-    bigOpSpacing4 :: H.Q.LengthDesignSize Rational,
-    bigOpSpacing5 :: H.Q.LengthDesignSize Rational
+  { defaultRuleThickness :: Q.LengthDesignSize Rational,
+    bigOpSpacing1 :: Q.LengthDesignSize Rational,
+    bigOpSpacing2 :: Q.LengthDesignSize Rational,
+    bigOpSpacing3 :: Q.LengthDesignSize Rational,
+    bigOpSpacing4 :: Q.LengthDesignSize Rational,
+    bigOpSpacing5 :: Q.LengthDesignSize Rational
   }
   deriving stock (Show)
 
-newtype KernOp = KernOp (H.Q.LengthDesignSize Rational)
+newtype KernOp = KernOp (Q.LengthDesignSize Rational)
   deriving stock (Show)
 
 data LigatureOp = LigatureOp
@@ -103,10 +103,10 @@ data LigKernInstr = LigKernInstr
   deriving stock (Show)
 
 data Character = Character
-  { width :: H.Q.LengthDesignSize Rational,
-    height :: H.Q.LengthDesignSize Rational,
-    depth :: H.Q.LengthDesignSize Rational,
-    italicCorrection :: H.Q.LengthDesignSize Rational,
+  { width :: Q.LengthDesignSize Rational,
+    height :: Q.LengthDesignSize Rational,
+    depth :: Q.LengthDesignSize Rational,
+    italicCorrection :: Q.LengthDesignSize Rational,
     special :: Maybe CharacterSpecial
   }
   deriving stock (Show, Generic)

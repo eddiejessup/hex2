@@ -7,13 +7,13 @@ import ASCII.Predicates qualified as ASCII.Pred
 import Data.ByteString qualified as BS
 import Data.Map.Strict qualified as Map
 import Formatting qualified as F
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 
 class HexCode a where
-  toHexInt :: a -> H.Q.HexInt
+  toHexInt :: a -> Q.HexInt
 
-  fromHexInt :: H.Q.HexInt -> Maybe a
+  fromHexInt :: Q.HexInt -> Maybe a
 
 newtype CharCode = CharCode {unCharCode :: Word8}
   deriving stock (Show, Generic)
@@ -48,9 +48,9 @@ asciiPred :: (ASCII.Char -> Bool) -> CharCode -> Bool
 asciiPred f (CharCode w) = maybe False f (ASCII.word8ToCharMaybe w)
 
 instance HexCode CharCode where
-  toHexInt charCode = H.Q.HexInt $ charCode ^. #unCharCode % to (fromIntegral @Word8 @Int)
+  toHexInt charCode = Q.HexInt $ charCode ^. #unCharCode % to (fromIntegral @Word8 @Int)
 
-  fromHexInt (H.Q.HexInt n)
+  fromHexInt (Q.HexInt n)
     | n > 256 = Nothing
     | n < 0 = Nothing
     | otherwise = Just $ CharCode $ fromIntegral @Int @Word8 n
@@ -81,7 +81,7 @@ fmtCatCode = F.later $ \case
   x -> F.bformat F.shown x
 
 instance HexCode CatCode where
-  toHexInt catCode = H.Q.HexInt $ case catCode of
+  toHexInt catCode = Q.HexInt $ case catCode of
     Escape -> 0
     CoreCatCode BeginGroup -> 1
     CoreCatCode EndGroup -> 2
@@ -99,7 +99,7 @@ instance HexCode CatCode where
     Comment -> 14
     Invalid -> 15
 
-  fromHexInt (H.Q.HexInt n) = case n of
+  fromHexInt (Q.HexInt n) = case n of
     0 -> Just Escape
     1 -> Just $ CoreCatCode BeginGroup
     2 -> Just $ CoreCatCode EndGroup
@@ -185,55 +185,55 @@ fmtCoreCatCode = F.shown
 -- position "56 of family "4.
 -- If the small or large variant is given as "000, however (position 0 of
 -- family 0), that variant is ignored.
-data DelimiterCode = NotADelimiter H.Q.HexInt | DelimiterSpecCode DelimiterSpec
-  deriving stock (Show)
+data DelimiterCode = NotADelimiter Q.HexInt | DelimiterSpecCode DelimiterSpec
+  deriving stock (Show, Eq)
 
 instance HexCode DelimiterCode where
   toHexInt (NotADelimiter n) = n
   toHexInt (DelimiterSpecCode DelimiterSpec {smallVar, largeVar}) =
-    let (H.Q.HexInt largeVarN) = toHexInt largeVar
-        (H.Q.HexInt smallVarN) = toHexInt smallVar
-     in H.Q.HexInt $ largeVarN `shiftL` 12 + smallVarN
+    let (Q.HexInt largeVarN) = toHexInt largeVar
+        (Q.HexInt smallVarN) = toHexInt smallVar
+     in Q.HexInt $ largeVarN `shiftL` 12 + smallVarN
 
-  fromHexInt (H.Q.HexInt n)
-    | n < 0 = Just $ NotADelimiter $ H.Q.HexInt n
+  fromHexInt (Q.HexInt n)
+    | n < 0 = Just $ NotADelimiter $ Q.HexInt n
     | n > 0xFFFFFF = Nothing
     | otherwise =
         do
-          smallVar <- fromHexInt $ H.Q.HexInt $ n `shiftR` 12
-          largeVar <- fromHexInt $ H.Q.HexInt $ n .&. 0xFFF
+          smallVar <- fromHexInt $ Q.HexInt $ n `shiftR` 12
+          largeVar <- fromHexInt $ Q.HexInt $ n .&. 0xFFF
           Just $ DelimiterSpecCode $ DelimiterSpec smallVar largeVar
 
 data DelimiterSpec = DelimiterSpec {smallVar, largeVar :: DelimiterVar}
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 data DelimiterVar = PresentDelimiterVar FamilyCharRef | NullDelimiterVar
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance HexCode DelimiterVar where
-  toHexInt NullDelimiterVar = H.Q.HexInt 0
+  toHexInt NullDelimiterVar = Q.HexInt 0
   toHexInt (PresentDelimiterVar f) = toHexInt f
 
-  fromHexInt h@(H.Q.HexInt n)
+  fromHexInt h@(Q.HexInt n)
     | n == 0 = Just NullDelimiterVar
     | otherwise = PresentDelimiterVar <$> fromHexInt h
 
-data FamilyCharRef = FamilyCharRef {family :: H.Q.HexInt, position :: CharCode}
-  deriving stock (Show)
+data FamilyCharRef = FamilyCharRef {family :: Q.HexInt, position :: CharCode}
+  deriving stock (Show, Eq, Generic)
 
 instance HexCode FamilyCharRef where
-  toHexInt (FamilyCharRef (H.Q.HexInt famN) pos) = H.Q.HexInt $ (famN `shiftL` 8) + (toHexInt pos ^. typed @Int)
+  toHexInt (FamilyCharRef (Q.HexInt famN) pos) = Q.HexInt $ (famN `shiftL` 8) + (toHexInt pos ^. typed @Int)
 
-  fromHexInt (H.Q.HexInt n)
+  fromHexInt (Q.HexInt n)
     | n < 0 = Nothing
     | n > 0xFFF = Nothing
     | otherwise = do
-        pos <- fromHexInt (H.Q.HexInt (n .&. 0xFF))
-        pure $ FamilyCharRef (H.Q.HexInt $ n `shiftR` 8) pos
+        pos <- fromHexInt (Q.HexInt (n .&. 0xFF))
+        pure $ FamilyCharRef (Q.HexInt $ n `shiftR` 8) pos
 
 -- All delcodes are −1 until they are changed by a \delcode command.
 newDelimiterCodes :: Map CharCode DelimiterCode
-newDelimiterCodes = initialiseCharCodeMap $ const $ NotADelimiter (H.Q.HexInt (-1))
+newDelimiterCodes = initialiseCharCodeMap $ const $ NotADelimiter (Q.HexInt (-1))
 
 -- Math code.
 -- ----------
@@ -246,23 +246,23 @@ newDelimiterCodes = initialiseCharCodeMap $ const $ NotADelimiter (H.Q.HexInt (-
 -- A mathcode can also have the special value "8000, which causes the character
 -- to behave as if it has catcode 13 (active).
 data MathCode = NormalMathCode MathClass FamilyCharRef | ActiveMathCode
-  deriving stock (Show)
+  deriving stock (Show, Eq, Generic)
 
 instance HexCode MathCode where
   toHexInt ActiveMathCode =
-    H.Q.HexInt 0x8000
+    Q.HexInt 0x8000
   toHexInt (NormalMathCode cls famRef) =
-    let (H.Q.HexInt famRefN) = toHexInt famRef
-        (H.Q.HexInt clsN) = toHexInt cls
-     in H.Q.HexInt $ famRefN + (clsN `shiftL` 12)
+    let (Q.HexInt famRefN) = toHexInt famRef
+        (Q.HexInt clsN) = toHexInt cls
+     in Q.HexInt $ famRefN + (clsN `shiftL` 12)
 
-  fromHexInt (H.Q.HexInt n)
+  fromHexInt (Q.HexInt n)
     | n < 0 = Nothing
     | n > 0x8000 = Nothing
     | n == 0x8000 = Just ActiveMathCode
     | otherwise = do
-        cls <- fromHexInt (H.Q.HexInt $ n `shiftR` 12)
-        famRef <- fromHexInt (H.Q.HexInt $ n .&. 0xFFF)
+        cls <- fromHexInt (Q.HexInt $ n `shiftR` 12)
+        famRef <- fromHexInt (Q.HexInt $ n .&. 0xFFF)
         pure $ NormalMathCode cls famRef
 
 data MathClass
@@ -274,12 +274,12 @@ data MathClass
   | Closing -- 5
   | Punctuation -- 6
   | VariableFamily -- 7
-  deriving stock (Show, Enum, Bounded)
+  deriving stock (Show, Eq, Enum, Bounded)
 
 instance HexCode MathClass where
-  toHexInt = H.Q.HexInt . fromEnum
+  toHexInt = Q.HexInt . fromEnum
 
-  fromHexInt = Just . toEnum . H.Q.unInt
+  fromHexInt = Just . toEnum . Q.unInt
 
 -- The ten digits have \mathcode x = x + "7000.
 -- The 52 letters have \mathcode x = x + "7100.
@@ -290,11 +290,11 @@ newMathCodes = initialiseCharCodeMap f
   where
     f c
       | asciiPred ASCII.Pred.isDigit c =
-          NormalMathCode VariableFamily (FamilyCharRef (H.Q.HexInt 0) c)
+          NormalMathCode VariableFamily (FamilyCharRef (Q.HexInt 0) c)
       | asciiPred ASCII.Pred.isLetter c =
-          NormalMathCode VariableFamily (FamilyCharRef (H.Q.HexInt 1) c)
+          NormalMathCode VariableFamily (FamilyCharRef (Q.HexInt 1) c)
       | otherwise =
-          NormalMathCode Ordinary (FamilyCharRef (H.Q.HexInt 0) c)
+          NormalMathCode Ordinary (FamilyCharRef (Q.HexInt 0) c)
 
 -- Change case code.
 -- -----------------
@@ -303,13 +303,13 @@ newMathCodes = initialiseCharCodeMap f
 -- value, unless the \uccode value is zero, when no change is made. Conversion
 -- to lowercase is similar, using the \lccode.
 data CaseChangeCode = NoCaseChange | ChangeToCode CharCode
-  deriving stock (Show)
+  deriving stock (Show, Eq)
 
 instance HexCode CaseChangeCode where
-  toHexInt NoCaseChange = H.Q.HexInt 0
+  toHexInt NoCaseChange = Q.HexInt 0
   toHexInt (ChangeToCode c) = toHexInt c
 
-  fromHexInt h@(H.Q.HexInt n)
+  fromHexInt h@(Q.HexInt n)
     | n < 0 = Nothing
     | n > 255 = Nothing
     | n == 0 = Just NoCaseChange
@@ -336,16 +336,16 @@ newUppercaseCodes = newCaseCodes ASCII.UpperCase
 -- Space factor code.
 ---------------------
 
-newtype SpaceFactorCode = SpaceFactorCode H.Q.HexInt
-  deriving stock (Show)
+newtype SpaceFactorCode = SpaceFactorCode Q.HexInt
+  deriving stock (Show, Eq)
 
 instance HexCode SpaceFactorCode where
   toHexInt (SpaceFactorCode n) = n
 
-  fromHexInt (H.Q.HexInt n)
+  fromHexInt (Q.HexInt n)
     | n < 0 = Nothing
     | n >= 0x8000 = Nothing
-    | otherwise = Just $ SpaceFactorCode $ H.Q.HexInt n
+    | otherwise = Just $ SpaceFactorCode $ Q.HexInt n
 
 -- By default, all characters have a space factor code of 1000, except that the
 -- uppercase letters ‘A’ through ‘Z’ have code 999.
@@ -353,5 +353,5 @@ newSpaceFactors :: Map CharCode SpaceFactorCode
 newSpaceFactors = initialiseCharCodeMap $ SpaceFactorCode . f
   where
     f c
-      | asciiPred ASCII.Pred.isUpper c = H.Q.HexInt 999
-      | otherwise = H.Q.HexInt 1000
+      | asciiPred ASCII.Pred.isUpper c = Q.HexInt 999
+      | otherwise = Q.HexInt 1000

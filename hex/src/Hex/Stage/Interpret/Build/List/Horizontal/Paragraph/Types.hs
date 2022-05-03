@@ -2,11 +2,11 @@ module Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Types where
 
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 
 data BreakItem
-  = GlueBreak H.Q.Glue
+  = GlueBreak Q.Glue
   | KernBreak H.Inter.B.Box.Kern
   | PenaltyBreak H.Inter.B.List.Penalty
   deriving stock (Show, Generic)

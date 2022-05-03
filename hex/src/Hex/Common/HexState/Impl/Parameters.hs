@@ -1,45 +1,45 @@
 module Hex.Common.HexState.Impl.Parameters where
 
 import Data.Map.Strict qualified as Map
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 import qualified Hex.Common.HexState.Interface.Resolve.SyntaxToken as PT.Syn
 
-newIntParameters :: Map PT.IntParameter H.Q.HexInt
+newIntParameters :: Map PT.IntParameter Q.HexInt
 newIntParameters =
   Map.fromList
-    [ (PT.Tolerance, H.Q.HexInt 10000),
-      (PT.EscapeChar, H.Q.HexInt 92), -- '\'
-      (PT.EndLineChar, H.Q.HexInt 13), -- '\r'
-      (PT.MaxDeadCycles, H.Q.HexInt 25),
-      (PT.HangAfter, H.Q.HexInt 1),
-      (PT.Mag, H.Q.HexInt 1000),
-      (PT.Time, H.Q.HexInt 1),
-      (PT.Day, H.Q.HexInt 1),
-      (PT.Month, H.Q.HexInt 1),
-      (PT.Year, H.Q.HexInt 1970)
+    [ (PT.Tolerance, Q.HexInt 10000),
+      (PT.EscapeChar, Q.HexInt 92), -- '\'
+      (PT.EndLineChar, Q.HexInt 13), -- '\r'
+      (PT.MaxDeadCycles, Q.HexInt 25),
+      (PT.HangAfter, Q.HexInt 1),
+      (PT.Mag, Q.HexInt 1000),
+      (PT.Time, Q.HexInt 1),
+      (PT.Day, Q.HexInt 1),
+      (PT.Month, Q.HexInt 1),
+      (PT.Year, Q.HexInt 1970)
     ]
 
-newLengthParameters :: Map PT.LengthParameter H.Q.Length
+newLengthParameters :: Map PT.LengthParameter Q.Length
 newLengthParameters = mempty
 
-newGlueParameters :: Map PT.GlueParameter H.Q.Glue
+newGlueParameters :: Map PT.GlueParameter Q.Glue
 newGlueParameters = mempty
 
-newMathGlueParameters :: Map PT.MathGlueParameter H.Q.MathGlue
+newMathGlueParameters :: Map PT.MathGlueParameter Q.MathGlue
 newMathGlueParameters = mempty
 
 newTokenListParameters :: Map PT.TokenListParameter PT.Syn.InhibitedBalancedText
 newTokenListParameters = mempty
 
-newSpecialIntParameters :: Map PT.SpecialIntParameter H.Q.HexInt
+newSpecialIntParameters :: Map PT.SpecialIntParameter Q.HexInt
 newSpecialIntParameters = mempty
 
-newSpecialLengthParameters :: Map PT.SpecialLengthParameter H.Q.Length
+newSpecialLengthParameters :: Map PT.SpecialLengthParameter Q.Length
 newSpecialLengthParameters =
   Map.fromList
-    [ (PT.PrevDepth, invert H.Q.oneKPt)
+    [ (PT.PrevDepth, invert Q.oneKPt)
     ]
 
 -- usableIntParameters :: Map IntParameter Int

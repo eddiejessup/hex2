@@ -5,7 +5,7 @@ import Hex.Common.Codes qualified as H.C
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Tok
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse (MonadPrimTokenParse (..))
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
@@ -43,9 +43,9 @@ parseCommand =
       | Par.primTokHasCategory H.C.Space t ->
           pure AST.AddSpace
       | Par.primTokHasCategory H.C.BeginGroup t ->
-          pure $ AST.ModeIndependentCommand $ AST.ChangeScope H.Q.Positive AST.CharCommandTrigger
+          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Positive AST.CharCommandTrigger
       | Par.primTokHasCategory H.C.EndGroup t ->
-          pure $ AST.ModeIndependentCommand $ AST.ChangeScope H.Q.Negative AST.CharCommandTrigger
+          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Negative AST.CharCommandTrigger
       | Par.primTokHasCategory H.C.MathShift t ->
           pure $ AST.HModeCommand AST.EnterMathMode
     H.Tok.RelaxTok ->
@@ -118,14 +118,14 @@ parseCommand =
           AST.ModeIndependentCommand . AST.WriteToStream <$> Par.headToParseWriteToStream AST.Deferred t,
           AST.ModeIndependentCommand . AST.AddBox AST.NaturalPlacement <$> Par.headToParseBox t,
           AST.HModeCommand . AST.AddCharacter <$> headToParseCharCodeRef t,
-          AST.HModeCommand . AST.AddHGlue <$> Par.headToParseModedAddGlue H.Q.Horizontal t,
-          AST.HModeCommand . AST.AddHLeaders <$> Par.headToParseLeadersSpec H.Q.Horizontal t,
-          AST.HModeCommand . AST.AddHRule <$> Par.headToParseModedRule H.Q.Horizontal t,
-          AST.HModeCommand . AST.AddUnwrappedFetchedHBox <$> Par.headToParseFetchedBoxRef H.Q.Horizontal t,
-          AST.VModeCommand . AST.AddVGlue <$> Par.headToParseModedAddGlue H.Q.Vertical t,
-          AST.VModeCommand . AST.AddVLeaders <$> Par.headToParseLeadersSpec H.Q.Vertical t,
-          AST.VModeCommand . AST.AddVRule <$> Par.headToParseModedRule H.Q.Vertical t,
-          AST.VModeCommand . AST.AddUnwrappedFetchedVBox <$> Par.headToParseFetchedBoxRef H.Q.Vertical t
+          AST.HModeCommand . AST.AddHGlue <$> Par.headToParseModedAddGlue Q.Horizontal t,
+          AST.HModeCommand . AST.AddHLeaders <$> Par.headToParseLeadersSpec Q.Horizontal t,
+          AST.HModeCommand . AST.AddHRule <$> Par.headToParseModedRule Q.Horizontal t,
+          AST.HModeCommand . AST.AddUnwrappedFetchedHBox <$> Par.headToParseFetchedBoxRef Q.Horizontal t,
+          AST.VModeCommand . AST.AddVGlue <$> Par.headToParseModedAddGlue Q.Vertical t,
+          AST.VModeCommand . AST.AddVLeaders <$> Par.headToParseLeadersSpec Q.Vertical t,
+          AST.VModeCommand . AST.AddVRule <$> Par.headToParseModedRule Q.Vertical t,
+          AST.VModeCommand . AST.AddUnwrappedFetchedVBox <$> Par.headToParseFetchedBoxRef Q.Vertical t
         ]
 
 headToParseInternalQuantity :: MonadPrimTokenParse m => H.Tok.PrimitiveToken -> m AST.InternalQuantity

@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Wno-deprecations #-}
+
 module Hexlude
   ( module Protolude,
     module Optics.Core,
@@ -13,6 +14,7 @@ module Hexlude
     (|<>|),
     traceShowIdM,
     traceResultM,
+    notImplemented,
     fmtViewed,
     Fmt,
     flap,
@@ -34,13 +36,17 @@ import Formatting qualified as F
 import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)
-import Protolude hiding (isDigit, isLower, isSpace, isUpper, to, uncons, unsnoc, words, (%))
+import Protolude hiding (isDigit, isLower, isSpace, isUpper, notImplemented, to, uncons, unsnoc, words, (%))
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a
 
 traceResultM :: (Show a, Monad m) => Text -> m a -> m a
 traceResultM prefix prog = prog >>= traceShowIdM prefix
+
+notImplemented :: Text -> a
+notImplemented msg =
+  panic $ "Not implemented: " <> msg
 
 nothingToError :: MonadError e m => m (Maybe a) -> e -> m a
 nothingToError prog eofError = do

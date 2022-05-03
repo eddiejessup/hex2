@@ -2,7 +2,7 @@ module Hex.Stage.Interpret.Build.List.Elem where
 
 import Formatting qualified as F
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 
 -- Elements.
@@ -10,11 +10,11 @@ import Hexlude
 -- Vertical list.
 data VListElem
   = VListBaseElem H.Inter.B.Box.BaseElem
-  | ListGlue H.Q.Glue
+  | ListGlue Q.Glue
   | ListPenalty Penalty
   deriving stock (Show, Generic)
 
-newtype Penalty = Penalty {unPenalty :: H.Q.HexInt}
+newtype Penalty = Penalty {unPenalty :: Q.HexInt}
   deriving stock (Show, Eq, Generic)
 
 -- Horizontal list.
@@ -64,7 +64,7 @@ fmtVListElem = F.later $ \case
   VListBaseElem e ->
     bformat H.Inter.B.Box.fmtBaseElemOneLine e
   ListGlue g ->
-    bformat H.Q.fmtGlue g
+    bformat Q.fmtGlue g
   ListPenalty _ ->
     "penalty"
 
@@ -75,5 +75,5 @@ data VBoxAlignType
   | TopAlign -- \vtop
   deriving stock (Show, Eq, Generic)
 
-data DesiredLength = Natural | Spread H.Q.Length | To H.Q.Length
+data DesiredLength = Natural | Spread Q.Length | To Q.Length
   deriving stock (Show)

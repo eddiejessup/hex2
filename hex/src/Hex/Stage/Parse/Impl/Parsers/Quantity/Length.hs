@@ -6,7 +6,7 @@ import Hex.Common.Codes qualified as H.C
 import Hex.Stage.Parse.Interface.AST.Common qualified as AST
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 import Hex.Common.Parse (MonadPrimTokenParse(..))
 
@@ -82,13 +82,13 @@ parseUnit =
     -- initial space, which would also need backtracking.
     parsePhysicalUnitLit =
       PC.choice
-        [ Par.skipKeyword [Chr_ 'b', Chr_ 'p'] $> H.Q.BigPoint,
-          Par.skipKeyword [Chr_ 'c', Chr_ 'c'] $> H.Q.Cicero,
-          Par.skipKeyword [Chr_ 'c', Chr_ 'm'] $> H.Q.Centimetre,
-          Par.skipKeyword [Chr_ 'd', Chr_ 'd'] $> H.Q.Didot,
-          Par.skipKeyword [Chr_ 'i', Chr_ 'n'] $> H.Q.Inch,
-          Par.skipKeyword [Chr_ 'm', Chr_ 'm'] $> H.Q.Millimetre,
-          Par.skipKeyword [Chr_ 'p', Chr_ 'c'] $> H.Q.Pica,
-          Par.skipKeyword [Chr_ 'p', Chr_ 't'] $> H.Q.Point,
-          Par.skipKeyword [Chr_ 's', Chr_ 'p'] $> H.Q.ScaledPoint
+        [ Par.skipKeyword [Chr_ 'b', Chr_ 'p'] $> Q.BigPoint,
+          Par.skipKeyword [Chr_ 'c', Chr_ 'c'] $> Q.Cicero,
+          Par.skipKeyword [Chr_ 'c', Chr_ 'm'] $> Q.Centimetre,
+          Par.skipKeyword [Chr_ 'd', Chr_ 'd'] $> Q.Didot,
+          Par.skipKeyword [Chr_ 'i', Chr_ 'n'] $> Q.Inch,
+          Par.skipKeyword [Chr_ 'm', Chr_ 'm'] $> Q.Millimetre,
+          Par.skipKeyword [Chr_ 'p', Chr_ 'c'] $> Q.Pica,
+          Par.skipKeyword [Chr_ 'p', Chr_ 't'] $> Q.Point,
+          Par.skipKeyword [Chr_ 's', Chr_ 'p'] $> Q.ScaledPoint
         ]

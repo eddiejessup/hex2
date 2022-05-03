@@ -7,12 +7,12 @@ import Hex.Stage.Parse.Interface.AST.Common qualified as AST
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
 import Hex.Common.Parse (MonadPrimTokenParse(..))
 
-headToParseModedAddGlue :: MonadPrimTokenParse m => H.Q.Axis -> T.PrimitiveToken -> m AST.Glue
+headToParseModedAddGlue :: MonadPrimTokenParse m => Q.Axis -> T.PrimitiveToken -> m AST.Glue
 headToParseModedAddGlue axis = \case
   T.ModedCommand tokenAxis modedTok | tokenAxis == axis ->
     case modedTok of
@@ -76,9 +76,9 @@ parseFilLength = do
   order <-
     parseNrLs >>= \case
       0 -> panic "impossible"
-      1 -> pure H.Q.Fil1
-      2 -> pure H.Q.Fil2
-      3 -> pure H.Q.Fil3
+      1 -> pure Q.Fil1
+      2 -> pure Q.Fil2
+      3 -> pure Q.Fil3
       _ -> empty
   Par.skipOptionalSpaces
   pure $ AST.FilLength factor order

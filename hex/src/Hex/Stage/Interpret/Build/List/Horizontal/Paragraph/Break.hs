@@ -1,7 +1,7 @@
 module Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Break where
 
 import Formatting qualified as F
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Interpret.Build.List.Horizontal.Badness
 import Hex.Stage.Interpret.Build.List.Horizontal.Evaluate
@@ -65,9 +65,9 @@ finaliseHList (H.Inter.B.List.HList elems@(elemInit :|> lastElem)) =
     finishingElems :: Seq H.Inter.B.List.HListElem
     finishingElems =
       Empty
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ H.Q.HexInt H.Q.tenK)
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue (H.Q.filStretchGlue H.Q.onePt))
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ H.Q.HexInt $ -H.Q.tenK)
+        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ Q.HexInt Q.tenK)
+        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue (Q.filStretchGlue Q.onePt))
+        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ Q.HexInt $ -Q.tenK)
 
 newtype Line = Line {unLine :: Seq H.Inter.B.List.HListElem}
   deriving stock (Show, Generic)
@@ -98,9 +98,9 @@ newtype LineSequence = LineSequence {unLineSequence :: Seq Line}
 
 -- breakParagraph ::
 --   (Monad m) =>
---   H.Q.Length -> -- HSize
---   H.Q.HexInt -> -- Tolerance
---   H.Q.HexInt -> -- LinePenalty
+--   Q.Length -> -- HSize
+--   Q.HexInt -> -- Tolerance
+--   Q.HexInt -> -- LinePenalty
 --   H.Inter.B.List.HList ->
 --   m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBox))
 -- breakParagraph _ _ _ (H.Inter.B.List.HList Empty) =
@@ -115,9 +115,9 @@ withBreaks :: H.Inter.B.List.HList -> Seq (H.Inter.B.List.HListElem, Maybe Break
 withBreaks = seqOf (#unHList % to toAdjacents % folded % to (\adj@(_, e, _) -> (e, hListElemToBreakItem adj)))
 
 breakGreedy ::
-  H.Q.Length -> -- HSize
-  -- H.Q.HexInt -> -- Tolerance
-  -- H.Q.HexInt -> -- LinePenalty
+  Q.Length -> -- HSize
+  -- Q.HexInt -> -- Tolerance
+  -- Q.HexInt -> -- LinePenalty
   H.Inter.B.List.HList ->
   Seq H.Inter.B.List.HList
 -- breakGreedy dw tol lp allEs =

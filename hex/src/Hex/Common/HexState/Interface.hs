@@ -1,107 +1,105 @@
 module Hex.Common.HexState.Interface where
 
-import Hex.Common.Codes qualified as H.Codes
+import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Hex.Common.Codes as Code
+import qualified ASCII
 
 class Monad m => MonadHexState m where
-  getIntParameter :: H.Sym.Tok.IntParameter -> m H.Q.HexInt
+  getIntParameter :: PT.IntParameter -> m Q.HexInt
 
-  getLengthParameter :: H.Sym.Tok.LengthParameter -> m H.Q.Length
+  getLengthParameter :: PT.LengthParameter -> m Q.Length
 
-  getGlueParameter :: H.Sym.Tok.GlueParameter -> m H.Q.Glue
+  getGlueParameter :: PT.GlueParameter -> m Q.Glue
 
-  getSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> m H.Q.Length
+  getSpecialLengthParameter :: PT.SpecialLengthParameter -> m Q.Length
 
-  setSpecialLengthParameter :: H.Sym.Tok.SpecialLengthParameter -> H.Q.Length -> m ()
+  setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> m ()
 
-  getCategory :: H.Codes.CharCode -> m H.Codes.CatCode
+  getCategory :: Codes.CharCode -> m Codes.CatCode
 
   resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
 
   loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
 
-  selectFont :: H.Sym.Tok.FontNumber -> H.Sym.Tok.ScopeFlag -> m ()
+  selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
 
-  currentFontCharacter :: H.Codes.CharCode -> m (Maybe (H.Q.Length, H.Q.Length, H.Q.Length, H.Q.Length))
+  setCategory :: Code.CharCode -> Code.CatCode -> PT.ScopeFlag -> m ()
 
-  currentFontSpaceGlue :: m (Maybe H.Q.Glue)
+  setMathCode :: Code.CharCode -> Code.MathCode -> PT.ScopeFlag -> m ()
+
+  setChangeCaseCode :: ASCII.Case -> Code.CharCode -> Code.CaseChangeCode -> PT.ScopeFlag -> m ()
+
+  setSpaceFactor :: Code.CharCode -> Code.SpaceFactorCode -> PT.ScopeFlag -> m ()
+
+  setDelimiterCode :: Code.CharCode -> Code.DelimiterCode -> PT.ScopeFlag -> m ()
+
+  currentFontCharacter :: Codes.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
+
+  currentFontSpaceGlue :: m (Maybe Q.Glue)
 
   setAfterAssignmentToken :: Maybe Lex.LexToken -> m ()
 
-  setControlSequence :: ControlSymbol -> ResolvedToken -> H.Sym.Tok.ScopeFlag -> m ()
+  setControlSequence :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> m ()
 
   -- Support stuff for parsing.
   setLastFetchedLexTok :: Lex.LexToken -> m ()
 
   getLastFetchedLexTok :: m (Maybe Lex.LexToken)
 
--- Lifting.
--- instance {-# OVERLAPPABLE #-} MonadHexState m => MonadHexState (ExceptT e m) where
---   getIntParameter = lift . getIntParameter
-
---   getLengthParameter = lift . getLengthParameter
-
---   getGlueParameter = lift . getGlueParameter
-
---   getSpecialLengthParameter = lift . getSpecialLengthParameter
-
---   setSpecialLengthParameter p v = lift $ setSpecialLengthParameter p v
-
---   getCategory p = lift $ getCategory p
-
---   resolveSymbol a = lift $ resolveSymbol a
-
---   loadFont p spec = lift $ loadFont p spec
-
---   selectFont a b = lift $ selectFont a b
-
---   currentFontCharacter = lift . currentFontCharacter
-
---   currentFontSpaceGlue = lift currentFontSpaceGlue
-
 instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.HList m) where
-  getIntParameter = panic "Not implemented"
-  getLengthParameter = panic "Not implemented"
-  getGlueParameter = panic "Not implemented"
-  getSpecialLengthParameter = panic "Not implemented"
-  setSpecialLengthParameter = panic "Not implemented"
-  getCategory = panic "Not implemented"
-  resolveSymbol = panic "Not implemented"
-  loadFont = panic "Not implemented"
-  selectFont = panic "Not implemented"
-  currentFontCharacter = panic "Not implemented"
-  currentFontSpaceGlue = panic "Not implemented"
-  setAfterAssignmentToken = panic "Not implemented"
-  setControlSequence = panic "Not implemented"
-  setLastFetchedLexTok = panic "Not implemented"
-  getLastFetchedLexTok = panic "Not implemented"
+  getIntParameter x = lift $ getIntParameter x
+  getLengthParameter x = lift $ getLengthParameter x
+  getGlueParameter x = lift $ getGlueParameter x
+  getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
+  setSpecialLengthParameter x y = lift $ setSpecialLengthParameter x y
+  getCategory x = lift $ getCategory x
+  resolveSymbol x = lift $ resolveSymbol x
+  loadFont x y = lift $ loadFont x y
+  selectFont x y = lift $ selectFont x y
+  currentFontCharacter x = lift $ currentFontCharacter x
+  currentFontSpaceGlue = lift currentFontSpaceGlue
+  setAfterAssignmentToken x = lift $ setAfterAssignmentToken x
+  setControlSequence x y z = lift $ setControlSequence x y z
+  setLastFetchedLexTok x = lift $ setLastFetchedLexTok x
+  getLastFetchedLexTok = lift getLastFetchedLexTok
+  setCategory x y z = lift $ setCategory x y z
+  setMathCode x y z = lift $ setMathCode x y z
+  setChangeCaseCode w x y z = lift $ setChangeCaseCode w x y z
+  setSpaceFactor x y z = lift $ setSpaceFactor x y z
+  setDelimiterCode x y z = lift $ setDelimiterCode x y z
 
 instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.VList m) where
-  getIntParameter = panic "Not implemented"
-  getLengthParameter = panic "Not implemented"
-  getGlueParameter = panic "Not implemented"
-  getSpecialLengthParameter = panic "Not implemented"
-  setSpecialLengthParameter = panic "Not implemented"
-  getCategory = panic "Not implemented"
-  resolveSymbol = panic "Not implemented"
-  loadFont = panic "Not implemented"
-  selectFont = panic "Not implemented"
-  currentFontCharacter = panic "Not implemented"
-  currentFontSpaceGlue = panic "Not implemented"
-  setAfterAssignmentToken = panic "Not implemented"
-  setControlSequence = panic "Not implemented"
-  setLastFetchedLexTok = panic "Not implemented"
-  getLastFetchedLexTok = panic "Not implemented"
+  getIntParameter x = lift $ getIntParameter x
+  getLengthParameter x = lift $ getLengthParameter x
+  getGlueParameter x = lift $ getGlueParameter x
+  getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
+  setSpecialLengthParameter x y = lift $ setSpecialLengthParameter x y
+  getCategory x = lift $ getCategory x
+  resolveSymbol x = lift $ resolveSymbol x
+  loadFont x y = lift $ loadFont x y
+  selectFont x y = lift $ selectFont x y
+  currentFontCharacter x = lift $ currentFontCharacter x
+  currentFontSpaceGlue = lift currentFontSpaceGlue
+  setAfterAssignmentToken x = lift $ setAfterAssignmentToken x
+  setControlSequence x y z = lift $ setControlSequence x y z
+  setLastFetchedLexTok x = lift $ setLastFetchedLexTok x
+  getLastFetchedLexTok = lift getLastFetchedLexTok
+  setCategory x y z = lift $ setCategory x y z
+  setMathCode x y z = lift $ setMathCode x y z
+  setChangeCaseCode w x y z = lift $ setChangeCaseCode w x y z
+  setSpaceFactor x y z = lift $ setSpaceFactor x y z
+  setDelimiterCode x y z = lift $ setDelimiterCode x y z
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do
-  boxWidth <- getLengthParameter H.Sym.Tok.ParIndent
+  boxWidth <- getLengthParameter PT.ParIndent
   pure $
     H.Inter.B.List.HVListElem $
       H.Inter.B.List.VListBaseElem $

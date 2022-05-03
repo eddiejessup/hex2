@@ -1,6 +1,6 @@
 module Hex.Common.HexState.Interface.Resolve.SyntaxToken where
 
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
@@ -82,5 +82,5 @@ data SyntaxCommandHeadToken
   | InputTok -- \input
   | EndInputTok -- \endinput
   | TheTok -- \the
-  | ChangeCaseTok H.Q.VDirection -- \uppercase, \lowercase
+  | ChangeCaseTok Q.VDirection -- \uppercase, \lowercase
   deriving stock (Show, Eq, Generic)

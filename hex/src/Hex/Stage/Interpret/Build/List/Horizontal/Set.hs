@@ -4,10 +4,10 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Interpret.Build.List.Horizontal.Badness
 import Hex.Stage.Interpret.Build.List.Horizontal.Evaluate
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 
-setList :: H.Inter.B.List.HList -> H.Q.Length -> (H.Inter.B.Box.HBoxElemSeq, Badness)
+setList :: H.Inter.B.List.HList -> Q.Length -> (H.Inter.B.Box.HBoxElemSeq, Badness)
 setList hList desiredWidth =
   let (flexSpec, badness) = listFlexSpec hList desiredWidth
 

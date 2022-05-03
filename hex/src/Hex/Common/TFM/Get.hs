@@ -4,7 +4,7 @@ import Control.Arrow (left)
 import Data.ByteString qualified as BS
 import Data.Serialize qualified as Ser
 import Data.Text qualified as Tx
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get.CharInfo qualified as H.TFM.Get.CharInfo
 import Hex.Common.TFM.Get.Character qualified as H.TFM.Get.Character
 import Hex.Common.TFM.Get.Common qualified as H.TFM.Get.Common
@@ -35,12 +35,12 @@ parseTFMBytes bs = do
 
   header <- runGetText H.TFM.Get.Header.getHeader $ H.TFM.Get.TableParams.headerBytes tableParams
   charInfos <- runGetText (H.TFM.Get.Common.getChunks H.TFM.Get.CharInfo.getCharInfo) $ H.TFM.Get.TableParams.characterInfoBytes tableParams
-  widths <- runGetText (H.TFM.Get.Common.getChunks (H.Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.widthBytes tableParams
-  heights <- runGetText (H.TFM.Get.Common.getChunks (H.Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.heightBytes tableParams
-  depths <- runGetText (H.TFM.Get.Common.getChunks (H.Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.depthBytes tableParams
-  italicCorrs <- runGetText (H.TFM.Get.Common.getChunks (H.Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.italicCorrectionBytes tableParams
+  widths <- runGetText (H.TFM.Get.Common.getChunks (Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.widthBytes tableParams
+  heights <- runGetText (H.TFM.Get.Common.getChunks (Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.heightBytes tableParams
+  depths <- runGetText (H.TFM.Get.Common.getChunks (Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.depthBytes tableParams
+  italicCorrs <- runGetText (H.TFM.Get.Common.getChunks (Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.italicCorrectionBytes tableParams
   ligKernCommands <- runGetText (H.TFM.Get.Common.getChunks H.TFM.Get.LigKernCommand.getLigKernCommand) $ H.TFM.Get.TableParams.ligKernBytes tableParams
-  kernOps <- runGetText (H.TFM.Get.Common.getChunks (KernOp . H.Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.kernBytes tableParams
+  kernOps <- runGetText (H.TFM.Get.Common.getChunks (KernOp . Q.LengthDesignSize <$> H.TFM.Get.Common.getFixWord)) $ H.TFM.Get.TableParams.kernBytes tableParams
   recipes <- runGetText (H.TFM.Get.Common.getChunks H.TFM.Get.Recipe.getExtensibleRecipe) $ H.TFM.Get.TableParams.extensibleRecipeBytes tableParams
   let scheme = H.TFM.Get.Header.characterCodingScheme header
   params <- runGetText (H.TFM.Get.FontParams.getFontParams scheme) $ H.TFM.Get.TableParams.fontParameterBytes tableParams

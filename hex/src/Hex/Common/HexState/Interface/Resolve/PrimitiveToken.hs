@@ -4,7 +4,7 @@ import ASCII qualified
 import ASCII.Char qualified
 import Formatting qualified as F
 import Hex.Common.Codes
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
@@ -219,7 +219,7 @@ data ModedCommandPrimitiveToken
   = SpecifiedGlueTok -- \vskip, \hskip
   | PresetGlueTok PresetGlueType -- \{v,h}{fil,fill,filneg,ss}
   | AlignedMaterialTok -- \halign, \valign
-  | ShiftedBoxTok H.Q.Direction -- \moveleft, \moveright, \raise, \lower
+  | ShiftedBoxTok Q.Direction -- \moveleft, \moveright, \raise, \lower
   | UnwrappedFetchedBoxTok BoxFetchMode -- \un{v,h}{box,copy}
   | RuleTok -- \hrule, \vrule
   deriving stock (Show, Eq, Generic)
@@ -231,7 +231,7 @@ data SyntaxCommandArg
 data CodeType
   = CategoryCodeType
   | MathCodeType
-  | ChangeCaseCodeType H.Q.VDirection
+  | ChangeCaseCodeType ASCII.Case
   | SpaceFactorCodeType
   | DelimiterCodeType
   deriving stock (Show, Eq, Generic)
@@ -311,7 +311,7 @@ data VBoxAlignType
   | TopAlign -- \vtop
   deriving stock (Show, Eq, Generic)
 
-newtype FontNumber = FontNumber H.Q.HexInt
+newtype FontNumber = FontNumber Q.HexInt
   deriving stock (Show)
   deriving newtype (Eq, Ord, Enum)
 
@@ -319,7 +319,7 @@ data PrimitiveToken
   = SyntaxCommandArg SyntaxCommandArg
   | -- Starters of commands.
     RelaxTok -- \relax
-  | ChangeScopeCSTok H.Q.Sign
+  | ChangeScopeCSTok Q.Sign
   | ShowTokenTok -- \show
   | ShowBoxTok -- \showbox
   | ShowListsTok -- \showlists
@@ -346,7 +346,7 @@ data PrimitiveToken
   | StartParagraphTok IndentFlag -- \indent, \noindent
   | EndParagraphTok -- \par
   -- Starters of mode-specific commands with almost mode-independent grammar.
-  | ModedCommand H.Q.Axis ModedCommandPrimitiveToken
+  | ModedCommand Q.Axis ModedCommandPrimitiveToken
   | -- Starters of Vertical-Mode-specific commands.
     EndTok -- \end
   | DumpTok -- \dump
@@ -372,7 +372,7 @@ data PrimitiveToken
   | SpecialIntParameterTok SpecialIntParameter -- \example: \spacefactor
   | SpecialLengthParameterTok SpecialLengthParameter -- \example: \pagestretch
   -- Tokens storing integers defined by short-hand definitions.
-  | IntRefTok CharryQuantityType H.Q.HexInt
+  | IntRefTok CharryQuantityType Q.HexInt
   | -- A char-cat pair defined by a 'let' assignment. This differs from a
     -- \chardef target, because \chardef maps to a character number, which is
     -- categorised at the time of use, while a \let maps to a static char-cat
@@ -387,7 +387,7 @@ data PrimitiveToken
     ShortDefHeadTok CharryQuantityType
   | -- > Modifying variable values with arithmetic.
     AdvanceVarTok -- \advance
-  | ScaleVarTok H.Q.VDirection -- \multiply, \divide.
+  | ScaleVarTok Q.VDirection -- \multiply, \divide.
   | CodeTypeTok CodeType
   | -- > Aliasing tokens.
     LetTok -- \let
@@ -402,7 +402,7 @@ data PrimitiveToken
   -- Internal lengths.
   | LastKernTok -- \lastkern
   | FontDimensionTok -- \fontdimen
-  | BoxDimensionTok H.Q.BoxDim -- \ht, \wd, \dp
+  | BoxDimensionTok Q.BoxDim -- \ht, \wd, \dp
   -- Internal glues.
   | LastGlueTok -- \lastskip
   -- Specifying boxes.

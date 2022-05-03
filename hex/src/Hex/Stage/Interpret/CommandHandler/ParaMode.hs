@@ -1,9 +1,9 @@
 module Hex.Stage.Interpret.CommandHandler.ParaMode where
 
-import Hex.Common.Codes qualified as H.Codes
+import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
@@ -35,13 +35,13 @@ buildParaList ::
     MonadIO m,
     AsType H.AllMode.InterpretError e
   ) =>
-  H.Sym.Tok.IndentFlag ->
+  PT.IndentFlag ->
   m (EndParaReason, H.Inter.B.List.HList)
 buildParaList indentFlag = do
   initList <- case indentFlag of
-    H.Sym.Tok.Indent ->
+    PT.Indent ->
       singleton <$> HSt.getParIndentBox
-    H.Sym.Tok.DoNotIndent ->
+    PT.DoNotIndent ->
       pure mempty
   runStateT go (H.Inter.B.List.HList initList)
   where
@@ -111,7 +111,7 @@ charAsBox ::
     MonadError e m,
     AsType H.AllMode.InterpretError e
   ) =>
-  H.Codes.CharCode ->
+  Codes.CharCode ->
   m H.Inter.B.Box.CharBox
 charAsBox char = do
   (width, height, depth, _) <- HSt.currentFontCharacter char >>= note (injectTyped H.AllMode.NoFontSelected)
@@ -119,23 +119,23 @@ charAsBox char = do
     H.Inter.B.Box.CharBox
       H.Inter.B.Box.Box
         { H.Inter.B.Box.contents = char,
-          H.Inter.B.Box.boxWidth = width ^. typed @H.Q.Length,
-          H.Inter.B.Box.boxHeight = height ^. typed @H.Q.Length,
-          H.Inter.B.Box.boxDepth = depth ^. typed @H.Q.Length
+          H.Inter.B.Box.boxWidth = width ^. typed @Q.Length,
+          H.Inter.B.Box.boxHeight = height ^. typed @Q.Length,
+          H.Inter.B.Box.boxDepth = depth ^. typed @Q.Length
         }
 
 hModeStartParagraph ::
   ( HSt.MonadHexState m
   ) =>
-  H.Sym.Tok.IndentFlag ->
+  PT.IndentFlag ->
   StateT H.Inter.B.List.HList m ()
 hModeStartParagraph = \case
-  H.Sym.Tok.DoNotIndent ->
+  PT.DoNotIndent ->
     pure ()
   -- \indent: An empty box of width \parindent is appended to the current
   -- list, and the space factor is set to 1000.
   -- TODO: Space factor.
-  H.Sym.Tok.Indent -> do
+  PT.Indent -> do
     lift HSt.getParIndentBox >>= extendHListStateT
 
 extendHListVElemStateT :: Monad m => H.Inter.B.List.VListElem -> StateT H.Inter.B.List.HList m ()

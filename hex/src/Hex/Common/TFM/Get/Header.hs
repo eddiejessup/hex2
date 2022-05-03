@@ -2,7 +2,7 @@ module Hex.Common.TFM.Get.Header where
 
 import ASCII qualified
 import Data.Serialize.Get qualified as Ser
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get.Common qualified as H.TFM.Get.Common
 import Hexlude
 
@@ -16,7 +16,7 @@ familyLength = 20
 -- The information stored in the header table of a H.TFM file.
 data Header = Header
   { checksum :: Word32,
-    designFontSize :: H.Q.LengthScaledPoints Rational,
+    designFontSize :: Q.LengthScaledPoints Rational,
     characterCodingScheme :: Maybe [ASCII.Char],
     family :: Maybe [ASCII.Char],
     sevenBitSafeFlag :: Maybe Word8,
@@ -60,7 +60,7 @@ getHeader =
   do
     -- header[0 ... 1]: Required; checksum and design size.
     checksum <- Ser.getWord32be
-    designFontSize <- H.Q.lengthFromPointsRational <$> H.TFM.Get.Common.getFixWord
+    designFontSize <- Q.lengthFromPointsRational <$> H.TFM.Get.Common.getFixWord
     -- header[2 ... 11]: Optional; character coding scheme.
     characterCodingScheme <-
       Ser.isEmpty >>= \case

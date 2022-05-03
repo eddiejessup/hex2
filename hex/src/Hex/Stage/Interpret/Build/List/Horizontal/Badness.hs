@@ -1,6 +1,6 @@
 module Hex.Stage.Interpret.Build.List.Horizontal.Badness where
 
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 
 -- Badness.
@@ -13,11 +13,11 @@ zeroBadness :: Badness
 zeroBadness = Badness_ 0
 
 infBadness :: Badness
-infBadness = Badness_ H.Q.tenK
+infBadness = Badness_ Q.tenK
 
-finiteFlexBadness :: H.Q.Length -> H.Q.Length -> Badness
+finiteFlexBadness :: Q.Length -> Q.Length -> Badness
 finiteFlexBadness requiredFlex flexibility
-  | flexibility == H.Q.zeroLength = infBadness
+  | flexibility == Q.zeroLength = infBadness
   | otherwise =
-    let r = H.Q.lengthRatio requiredFlex flexibility
+    let r = Q.lengthRatio requiredFlex flexibility
      in min infBadness $ Badness_ $ round $ (abs r ^ (3 :: Int)) * 100

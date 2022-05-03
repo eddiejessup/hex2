@@ -3,7 +3,7 @@ module Hex.Common.HexState.Impl.Scope where
 import ASCII qualified
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Parameters qualified as H.Inter.St.Param
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 import Hex.Common.HexState.Interface.Resolve (CSMap, ResolvedToken, ControlSymbol)
@@ -24,9 +24,9 @@ data Scope = Scope
     spaceFactors :: Map Codes.CharCode Codes.SpaceFactorCode,
     delimiterCodes :: Map Codes.CharCode Codes.DelimiterCode,
     -- Parameters.
-    intParameters :: Map PT.IntParameter H.Q.HexInt,
-    lengthParameters :: Map PT.LengthParameter H.Q.Length,
-    glueParameters :: Map PT.GlueParameter H.Q.Glue
+    intParameters :: Map PT.IntParameter Q.HexInt,
+    lengthParameters :: Map PT.LengthParameter Q.Length,
+    glueParameters :: Map PT.GlueParameter Q.Glue
     --   mathGlueParameters :: Map MathGlueParameter (BL.Glue MathLength),
     --   tokenListParameters :: Map TokenListParameter BalancedText
     -- Registers.
@@ -118,13 +118,13 @@ scopeDelimiterCodeLens :: Codes.CharCode -> Lens' Scope (Maybe Codes.DelimiterCo
 scopeDelimiterCodeLens p = #delimiterCodes % at' p
 
 -- The value for an integer-parameter.
-scopeIntParamLens :: PT.IntParameter -> Lens' Scope (Maybe H.Q.HexInt)
+scopeIntParamLens :: PT.IntParameter -> Lens' Scope (Maybe Q.HexInt)
 scopeIntParamLens p = #intParameters % at' p
 
 -- The value for a length-parameter.
-scopeLengthParamLens :: PT.LengthParameter -> Lens' Scope (Maybe H.Q.Length)
+scopeLengthParamLens :: PT.LengthParameter -> Lens' Scope (Maybe Q.Length)
 scopeLengthParamLens p = #lengthParameters % at' p
 
 -- The value for a glue-parameter.
-scopeGlueParamLens :: PT.GlueParameter -> Lens' Scope (Maybe H.Q.Glue)
+scopeGlueParamLens :: PT.GlueParameter -> Lens' Scope (Maybe Q.Glue)
 scopeGlueParamLens p = #glueParameters % at' p

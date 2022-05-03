@@ -7,22 +7,22 @@ import Data.Generics.Product.Internal.HList qualified as G.P.HList
 import Data.Text.Encoding qualified as Tx
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Codes qualified as H.Codes
+import Hex.Common.Codes qualified as Codes
 import Hexlude
 
 newtype ControlSequence = ControlSequence ByteString
   deriving stock (Show, Generic)
   deriving newtype (Eq, Hashable)
 
-mkControlSequence :: [H.Codes.CharCode] -> ControlSequence
-mkControlSequence csChars = ControlSequence $ BS.pack $ H.Codes.unCharCode <$> csChars
+mkControlSequence :: [Codes.CharCode] -> ControlSequence
+mkControlSequence csChars = ControlSequence $ BS.pack $ Codes.unCharCode <$> csChars
 
 fmtControlSequence :: Fmt ControlSequence r
 fmtControlSequence = "\\" F.% (F.accessed (Tx.decodeUtf8 . (getTyped @ByteString)) F.stext)
 
 data LexCharCat = LexCharCat
-  { lexCCChar :: H.Codes.CharCode,
-    lexCCCat :: H.Codes.CoreCatCode
+  { lexCCChar :: Codes.CharCode,
+    lexCCCat :: Codes.CoreCatCode
   }
   deriving stock (Show, Eq, Generic)
 
@@ -44,16 +44,16 @@ fmtLexToken = later $ \case
   ControlSequenceLexToken controlSeq ->
     bformat fmtControlSequence controlSeq
 
-lexTokCharCode :: AffineTraversal' LexToken H.Codes.CharCode
-lexTokCharCode = lexTokCharCat % typed @H.Codes.CharCode
+lexTokCharCode :: AffineTraversal' LexToken Codes.CharCode
+lexTokCharCode = lexTokCharCat % typed @Codes.CharCode
 
-lexTokCategory :: AffineTraversal' LexToken H.Codes.CoreCatCode
-lexTokCategory = lexTokCharCat % typed @H.Codes.CoreCatCode
+lexTokCategory :: AffineTraversal' LexToken Codes.CoreCatCode
+lexTokCategory = lexTokCharCat % typed @Codes.CoreCatCode
 
 lexTokCharCat :: AffineTraversal' LexToken LexCharCat
 lexTokCharCat = castOptic @An_AffineTraversal (_Ctor @"CharCatLexToken")
 
-lexTokCharCatTup :: AffineTraversal' LexToken (H.Codes.CharCode, H.Codes.CoreCatCode)
+lexTokCharCatTup :: AffineTraversal' LexToken (Codes.CharCode, Codes.CoreCatCode)
 lexTokCharCatTup = lexTokCharCat % prodTupleIso
 
 prodTupleIso :: (Generic s, G.P.HList.GIsList (Rep s) (Rep s) as as, G.P.HList.ListTuple t t as as) => Iso' s t
@@ -77,4 +77,4 @@ data LexError
   deriving stock (Show, Eq, Generic)
 
 parToken :: LexToken
-parToken = ControlSequenceLexToken $ mkControlSequence $ H.Codes.unsafeCodeFromChar <$> ("par" :: [Char])
+parToken = ControlSequenceLexToken $ mkControlSequence $ Codes.unsafeCodeFromChar <$> ("par" :: [Char])

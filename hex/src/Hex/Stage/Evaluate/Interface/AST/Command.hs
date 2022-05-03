@@ -3,14 +3,15 @@ module Hex.Stage.Evaluate.Interface.AST.Command where
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as Res.PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Res.ST
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, HexFilePath, Kern, Rule)
 import Hex.Stage.Interpret.Build.List.Elem (Penalty)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Common qualified as Uneval
 import Hexlude
-import qualified Hex.Stage.Evaluate.Interface.AST.Common as Eval
+import qualified Hex.Common.Codes as Code
+import qualified ASCII
 
 -- What's the plan here?
 -- I want to do as much evaluation as possible in this stage, but I'm not sure
@@ -28,14 +29,14 @@ import qualified Hex.Stage.Evaluate.Interface.AST.Common as Eval
 -- types distinct, so I don't confuse myself
 data Command
   = ShowToken Lex.LexToken
-  | ShowBox H.Q.HexInt
+  | ShowBox Q.HexInt
   | ShowLists
   | ShowTheInternalQuantity Uneval.InternalQuantity
   | ShipOut Uneval.Box
   | AddMark Res.ST.ExpandedBalancedText
   | -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- then can 'migrate' out.
-    AddInsertion H.Q.HexInt VModeMaterial
+    AddInsertion Q.HexInt VModeMaterial
   | AddAdjustment VModeMaterial
   | AddSpace
   | StartParagraph Res.PT.IndentFlag
@@ -80,7 +81,7 @@ data ModeIndependentCommand
   | WriteToStream Uneval.StreamWriteCommand
   | DoSpecial Res.ST.ExpandedBalancedText
   | AddBox Uneval.BoxPlacement Uneval.Box
-  | ChangeScope H.Q.Sign Uneval.CommandTrigger
+  | ChangeScope Q.Sign Uneval.CommandTrigger
   deriving stock (Show, Eq, Generic)
 
 data HModeCommand
@@ -91,7 +92,7 @@ data HModeCommand
   | AddDiscretionaryText Uneval.DiscretionaryText
   | AddDiscretionaryHyphen
   | EnterMathMode
-  | AddHGlue H.Q.Glue
+  | AddHGlue Q.Glue
   | AddHLeaders Uneval.LeadersSpec
   | AddHRule Rule
   | AddUnwrappedFetchedHBox Uneval.FetchedBoxRef -- \unh{box,copy}
@@ -115,7 +116,15 @@ data AssignmentBody
   | SetInteractionMode Res.PT.InteractionMode
   deriving stock (Show, Eq, Generic)
 
-data CodeAssignment = CodeAssignment {codeTableRef :: Eval.CodeTableRef, codeValue :: H.Q.HexInt}
+data CodeAssignment = CodeAssignment {codeIndex :: Code.CharCode, codeValue :: CodeValue}
+  deriving stock (Show, Eq, Generic)
+
+data CodeValue
+  = CatCodeValue Code.CatCode
+  | MathCodeValue Code.MathCode
+  | ChangeCaseCodeValue ASCII.Case Code.CaseChangeCode
+  | SpaceFactorCodeValue Code.SpaceFactorCode
+  | DelimiterCodeValue Code.DelimiterCode
   deriving stock (Show, Eq, Generic)
 
 data MessageWriteCommand = MessageWriteCommand Res.PT.StandardOutputSource Text

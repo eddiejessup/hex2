@@ -68,19 +68,19 @@ expandSyntaxCommand = \case
 --   expandConditionToken ct
 --   pure mempty
 -- NumberTok ->
---   panic "Not implemented: syntax command NumberTok"
+--   notImplemented "syntax command NumberTok"
 -- RomanNumeralTok ->
---   panic "Not implemented: syntax command RomanNumeralTok"
+--   notImplemented "syntax command RomanNumeralTok"
 -- StringTok -> do
 --   conf <- use $ typed @Conf.Config
 --   let escapeChar = (Conf.IntParamVal . Conf.lookupIntParameter EscapeChar) conf
 --   expandString escapeChar <$> parseLexToken
 -- JobNameTok ->
---   panic "Not implemented: syntax command JobNameTok"
+--   notImplemented "syntax command JobNameTok"
 -- FontNameTok ->
---   panic "Not implemented: syntax command FontNameTok"
+--   notImplemented "syntax command FontNameTok"
 -- MeaningTok ->
---   panic "Not implemented: syntax command MeaningTok"
+--   notImplemented "syntax command MeaningTok"
 -- CSNameTok -> do
 --   a <- parseCSNameArgs
 --   singleton <$> expandCSName a
@@ -90,9 +90,9 @@ expandSyntaxCommand = \case
 --   -- Prepend the unexpanded token.
 --   pure (argLT <| postArgLTs)
 -- NoExpandTok ->
---   panic "Not implemented: syntax command NoExpandTok"
+--   notImplemented "syntax command NoExpandTok"
 -- MarkRegisterTok _ ->
---   panic "Not implemented: syntax command MarkRegisterTok"
+--   notImplemented "syntax command MarkRegisterTok"
 -- -- \input ⟨file name⟩:
 -- -- - Expand to no tokens
 -- -- - Prepare to read from the specified file before looking at any more
@@ -102,7 +102,7 @@ expandSyntaxCommand = \case
 --   inputPath texPath
 --   pure mempty
 -- EndInputTok ->
---   panic "Not implemented: syntax command EndInputTok"
+--   notImplemented "syntax command EndInputTok"
 -- TheTok -> do
 --   intQuant <- parseInternalQuantity
 --   fmap charCodeAsMadeToken <$> texEvaluate intQuant

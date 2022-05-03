@@ -7,7 +7,7 @@ import Hex.Common.Codes qualified as H.C
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..), UnexpectedToken (..))
-import Hex.Common.Quantity qualified as H.Q
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Interface.AST.Common qualified as AST
@@ -16,14 +16,14 @@ import Hexlude
 parseSigned :: forall m a. MonadPrimTokenParse m => m a -> m (AST.Signed a)
 parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
   where
-    parseOptionalSigns :: m [H.Q.Sign]
+    parseOptionalSigns :: m [Q.Sign]
     parseOptionalSigns = do
       skipOptionalSpaces
       PC.sepEndBy (satisfyThen signToPos) skipOptionalSpaces
       where
         signToPos t
-          | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '+') t = Just H.Q.Positive
-          | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '-') t = Just H.Q.Negative
+          | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '+') t = Just Q.Positive
+          | isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '-') t = Just Q.Negative
           | otherwise = Nothing
 
 parseInt :: MonadPrimTokenParse m => m AST.HexInt
@@ -122,14 +122,14 @@ headToParseCodeTableRef = \case
 parseCharCodeInt :: MonadPrimTokenParse m => m AST.CharCodeInt
 parseCharCodeInt = AST.CharCodeInt <$> parseInt
 
-headToParseCharToken :: MonadPrimTokenParse m => T.PrimitiveToken -> m H.Q.HexInt
+headToParseCharToken :: MonadPrimTokenParse m => T.PrimitiveToken -> m Q.HexInt
 headToParseCharToken = \case
   T.IntRefTok T.CharQuantity c ->
     pure c
   t ->
     parseError $ SawUnexpectedToken $ UnexpectedToken {saw = t, expected = "IntRefTok CharQuantity"}
 
-headToParseMathCharToken :: MonadPrimTokenParse m => T.PrimitiveToken -> m H.Q.HexInt
+headToParseMathCharToken :: MonadPrimTokenParse m => T.PrimitiveToken -> m Q.HexInt
 headToParseMathCharToken = \case
   T.IntRefTok T.MathCharQuantity c ->
     pure c
