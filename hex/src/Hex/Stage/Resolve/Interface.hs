@@ -13,9 +13,6 @@ data ResolutionError = ResolutionError LexToken
 fmtResolutionError :: Fmt ResolutionError r
 fmtResolutionError = F.shown
 
-data ResolutionMode = Resolving | NotResolving
-  deriving stock (Show, Eq)
-
 class (Monad m) => MonadResolve m where
   resolveLexToken :: Lex.LexToken -> m (Either ResolutionError ResolvedToken)
 

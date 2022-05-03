@@ -3,7 +3,6 @@
 
 module Hex.Stage.Expand.Impl where
 
-import Hex.Common.HexState.Interface (MonadHexState (..))
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Syn
@@ -18,10 +17,10 @@ data ExpansionError
   = ResolutionExpansionError Res.ResolutionError
   deriving stock (Generic, Show)
 
-instance (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, Lex.MonadLexTokenSource m, MonadHexState m) => MonadPrimTokenSource m where
-  getTokenResolving = getTokenResolvingImpl
+instance (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, Lex.MonadLexTokenSource m) => MonadPrimTokenSource m where
+  getPrimitiveToken = getPrimitiveTokenImpl
 
-  getTokenNotResolving = Lex.getLexToken
+  getTokenInhibited = Lex.getLexToken
 
 -- These '[...]Internal functions are so-called because they aren't meant to be used externally.
 -- This is because they don't set the 'last-fetched-primitive-token', which we use for debugging.
@@ -29,8 +28,8 @@ instance (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, Lex.Monad
 -- Get the next lex-token from the input, and resolve it.
 -- Note that the lex-token is just returned for debugging really.
 -- It is passed through unchanged from the resolved-token-source.
-getTokenResolvingImpl :: (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, MonadHexState m, Lex.MonadLexTokenSource m) => m (Maybe (LexToken, PrimitiveToken))
-getTokenResolvingImpl =
+getPrimitiveTokenImpl :: (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, Lex.MonadLexTokenSource m) => m (Maybe (LexToken, PrimitiveToken))
+getPrimitiveTokenImpl =
   Res.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
     Nothing -> pure Nothing
@@ -40,33 +39,28 @@ getTokenResolvingImpl =
       -- If resolution failed, throw an error.
       Left e ->
         throwError $ injectTyped $ ResolutionExpansionError e
-      -- Otherwise, look at the result of resolution.
-      -- Is it a primitive token, or does it need expansion?
-      Right rt ->
-        case rt of
-          -- If it's a primitive token, we are done, just return that.
-          PrimitiveToken pt -> do
-            pure $ Just (lt, pt)
-          -- Otherwise, the token is the head of a syntax-command.
-          SyntaxCommandHeadToken headTok ->
-            do
-              -- Expand the rest of the command into lex-tokens.
-              lts <- expandSyntaxCommand headTok
-              -- Insert those resulting lex-tokens back into the input.
-              -- (It's not this function's concern,
-              -- but recall they will be put on the lex-token-buffer).
-              Lex.insertLexTokensToSource lts
-              -- Try to read a primitive token again.
-              -- Note that the new lex tokens might
-              -- themselves introduce a syntax command,
-              -- so we might need to expand again.
-              getTokenResolvingImpl
+      -- If we resolved to a primitive token, we are done, just return that.
+      Right (PrimitiveToken pt) ->
+        pure $ Just (lt, pt)
+      -- Otherwise, the token is the head of a syntax-command.
+      Right (SyntaxCommandHeadToken headTok) -> do
+        -- Expand the rest of the command into lex-tokens.
+        lts <- expandSyntaxCommand headTok
+        -- Insert those resulting lex-tokens back into the input. (It's not this
+        -- function's concern, but recall they will be put on the
+        -- lex-token-buffer).
+        Lex.insertLexTokensToSource lts
+        -- Try to read a primitive token again. Note that the new lex-tokens
+        -- might themselves introduce a syntax command, so we might need to
+        -- expand again.
+        getPrimitiveTokenImpl
 
 expandSyntaxCommand ::
   Syn.SyntaxCommandHeadToken ->
   m (Seq Lex.LexToken)
 expandSyntaxCommand = \case
   _ -> panic "Not implemented"
+
 -- MacroTok m -> do
 --   args <- parseMacroArgs m
 --   expandMacro m args

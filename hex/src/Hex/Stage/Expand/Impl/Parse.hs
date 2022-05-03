@@ -8,10 +8,9 @@ import Control.Monad.Trans (MonadTrans (..))
 import Hex.Common.HexState.Interface (MonadHexState (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parse
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..), getPrimitiveToken)
+import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
 
 -- This is the monad we will do our parsing in.
@@ -104,9 +103,7 @@ satisfyThenImpl f = do
 
 getAnyPrimitiveTokenImpl :: (MonadHexState m, MonadPrimTokenSource m) => m (Maybe PT.PrimitiveToken)
 getAnyPrimitiveTokenImpl =
-  -- Find out whether we're currently resolving, and get a primitive-token according to that mode.
-  -- Then take just the primitive token from the result.
-  getResolutionMode >>= getPrimitiveToken <&> \case
+  getPrimitiveToken <&> \case
     Nothing -> Nothing
     Just (_lt, pt) -> Just pt
 
@@ -122,7 +119,7 @@ getAnyPrimitiveTokenErrImpl = endOfInputToError getAnyPrimitiveTokenImpl
 
 getAnyLexTokenImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m Lex.LexToken
 getAnyLexTokenImpl =
-  endOfInputToError getTokenNotResolving
+  endOfInputToError getTokenInhibited
 
 -- I want to write my parsers in 'MonadPrimTokenParse m => m'.
 -- I could write them in 'Lex.MonadLexTokenSource m, MonadPrimTokenSource m => ParseT m',
@@ -135,17 +132,5 @@ instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) =>
   getAnyLexToken = getAnyLexTokenImpl
 
   satisfyThen = satisfyThenImpl
-
-  withInhibition :: (InhibitionToken -> ParseT m a) -> ParseT m a
-  withInhibition p = do
-    -- Save previous resolution-mode.
-    prevResMode <- lift getResolutionMode
-    -- Set resolution-mode to 'not-resolving', i.e. inhibited.
-    lift $ setResolutionMode Res.NotResolving
-    -- Run the parser, providing the inhibition-token that proves we have stopped resolution.
-    res <- p InhibitionToken
-    -- Restore the resolution-mode to its previous state.
-    lift $ setResolutionMode prevResMode
-    pure res
 
   parseError = parseErrorImpl

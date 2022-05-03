@@ -17,7 +17,7 @@ expandAll :: App [(Lex.LexToken, PrimitiveToken)]
 expandAll = go
   where
     go =
-      getTokenResolving >>= \case
+      getPrimitiveToken >>= \case
         Nothing ->
           pure []
         Just r -> do

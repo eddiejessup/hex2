@@ -8,7 +8,6 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Stage.Resolve.Interface as Res
 
 class Monad m => MonadHexState m where
   getIntParameter :: H.Sym.Tok.IntParameter -> m H.Q.HexInt
@@ -41,10 +40,6 @@ class Monad m => MonadHexState m where
   setLastFetchedLexTok :: Lex.LexToken -> m ()
 
   getLastFetchedLexTok :: m (Maybe Lex.LexToken)
-
-  getResolutionMode :: m Res.ResolutionMode
-
-  setResolutionMode :: Res.ResolutionMode -> m ()
 
 -- Lifting.
 -- instance {-# OVERLAPPABLE #-} MonadHexState m => MonadHexState (ExceptT e m) where
@@ -86,8 +81,6 @@ instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.HList m) where
   setControlSequence = panic "Not implemented"
   setLastFetchedLexTok = panic "Not implemented"
   getLastFetchedLexTok = panic "Not implemented"
-  getResolutionMode = panic "Not implemented"
-  setResolutionMode = panic "Not implemented"
 
 instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.VList m) where
   getIntParameter = panic "Not implemented"
@@ -105,8 +98,6 @@ instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.VList m) where
   setControlSequence = panic "Not implemented"
   setLastFetchedLexTok = panic "Not implemented"
   getLastFetchedLexTok = panic "Not implemented"
-  getResolutionMode = panic "Not implemented"
-  setResolutionMode = panic "Not implemented"
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do

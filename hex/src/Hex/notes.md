@@ -11,11 +11,8 @@
   - We only lex once, so we require a 'char-source' to store lex-tokens that we've pushed back into the input.
   - A 'CharSource' is like a single file: a source of individual char-codes.
     - It has its own lex-state.
-- Resolution takes lex-tokens, resolves them into 'resolved tokens'
-  - There is some statefulness to this operation, we can be 'resolving' or 'not-resolving'.
-    - If we are resolving, we pass through all lex-tokens as 'unresolved-tokens' containing the lex-tokens. No lookup of any symbols
-    - If we are not-resolving, we look up control-symbols in the internal-state. Non-control-symbols like normal letters and stuff, are treated the same as when resolving.
-- Expansion takes 'resolved tokens', and produces 'primitive tokens'
+- Expansion reads 'lex-tokens', and produces 'primitive tokens', potentially using the 'resolver'
+  - A user can choose whether to resolve tokens or not: we can provide lex tokens unchanged, or we can resolve them, then potentially do expansion. Choosing to resolve lex-tokens is equivalent to choosing to expand lex-tokens, because lex-tokens themselves aren't associated with any expansion operation.
   - Expansion in fact does some parsing, so it might turn out that this gets quite intermingled with the 'Parsing' stage. That isn't worked out quite yet as I have the code now.
 - Parsing takes 'primitive tokens' and produces 'commands'.
 
@@ -67,3 +64,7 @@
     - MonadIO m
     - MonadState st m
     - HasType HexState st
+- Resolve lex-tokens into 'resolved tokens'
+  - Look up control-symbols in the internal-state.
+  - Interface: MonadResolve
+  - Implementation: MonadHexState

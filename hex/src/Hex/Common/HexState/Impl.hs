@@ -122,11 +122,8 @@ instance
   getLastFetchedLexTok =
     use (typed @HexState % #lastFetchedLexTok)
 
-  getResolutionMode = use (typed @HexState % #resolutionMode)
-
-  setResolutionMode = assign' (typed @HexState % #resolutionMode)
-
   setAfterAssignmentToken = panic "Not implemented"
+
   setControlSequence = panic "Not implemented"
 
 currentFontInfo ::
