@@ -115,7 +115,7 @@ data AssignmentBody
   | SetInteractionMode Res.PT.InteractionMode
   deriving stock (Show, Eq, Generic)
 
-data CodeAssignment = CodeAssignment Eval.CodeTableRef H.Q.HexInt
+data CodeAssignment = CodeAssignment {codeTableRef :: Eval.CodeTableRef, codeValue :: H.Q.HexInt}
   deriving stock (Show, Eq, Generic)
 
 data MessageWriteCommand = MessageWriteCommand Res.PT.StandardOutputSource Text

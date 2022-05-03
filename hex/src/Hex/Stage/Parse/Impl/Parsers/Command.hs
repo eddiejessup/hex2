@@ -148,6 +148,6 @@ headToParseCharCodeRef = \case
   T.IntRefTok T.CharQuantity i ->
     pure $ AST.CharTokenRef i
   T.ControlCharTok ->
-    AST.CharCodeNrRef <$> Par.parseInt
+    AST.CharCodeNrRef <$> Par.parseCharCodeInt
   _ ->
     empty

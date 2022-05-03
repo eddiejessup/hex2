@@ -2,8 +2,8 @@
 
 module Hex.Stage.Parse.Interface.AST.Common where
 
-import Hex.Common.Quantity qualified as H.Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Sym.Tok
+import Hex.Common.Quantity qualified as H.Q
 import Hexlude
 
 data Signed a = Signed [H.Q.Sign] a
@@ -20,11 +20,14 @@ data UnsignedInt
 data IntBase = Base8 | Base10 | Base16
   deriving stock (Show, Eq, Generic)
 
-data IntConstantDigits = IntConstantDigits IntBase [Word8]
+data IntConstantDigits = IntConstantDigits {intBase :: IntBase, digits :: [Word8]}
   deriving stock (Show, Eq, Generic)
 
 -- Think: 'un-coerced integer'.
-data NormalInt = IntConstant IntConstantDigits | CharLikeCode Word8 | InternalInt InternalInt
+data NormalInt
+  = IntConstant IntConstantDigits
+  | CharLikeCode Word8
+  | InternalInt InternalInt
   deriving stock (Show, Eq, Generic)
 
 zeroInt :: NormalInt
@@ -181,7 +184,11 @@ data InternalInt
   | Badness
   deriving stock (Show, Eq, Generic)
 
-data CodeTableRef = CodeTableRef H.Sym.Tok.CodeType HexInt
+data CodeTableRef = CodeTableRef {codeType :: H.Sym.Tok.CodeType, codeIndex :: CharCodeInt}
+  deriving stock (Show, Eq, Generic)
+
+-- | Newtype wrapper to represent HexInts that represent a char-code.
+newtype CharCodeInt = CharCodeInt {unCharCodeInt :: HexInt}
   deriving stock (Show, Eq, Generic)
 
 data FontCharRef = FontCharRef H.Sym.Tok.FontChar FontRef

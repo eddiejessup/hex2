@@ -162,7 +162,7 @@ data NumericVariable
   | MathGlueNumericVariable (QuantVariableAST 'Res.PT.MathGlueQuantity)
   deriving stock (Show, Eq, Generic)
 
-data CodeAssignment = CodeAssignment CodeTableRef HexInt
+data CodeAssignment = CodeAssignment {codeTableRef :: CodeTableRef, codeValue :: HexInt }
   deriving stock (Show, Eq, Generic)
 
 data FontSpecification = NaturalFont | FontAt Length | FontScaled HexInt
@@ -226,5 +226,5 @@ data BoxPlacement = NaturalPlacement | ShiftedPlacement H.Q.Axis H.Q.Direction L
 data CharCodeRef
   = CharRef H.Code.CharCode
   | CharTokenRef H.Q.HexInt
-  | CharCodeNrRef HexInt
+  | CharCodeNrRef CharCodeInt
   deriving stock (Show, Eq, Generic)

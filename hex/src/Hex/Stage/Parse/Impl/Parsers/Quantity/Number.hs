@@ -115,9 +115,12 @@ headToParseCoercedInt =
 headToParseCodeTableRef :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.CodeTableRef
 headToParseCodeTableRef = \case
   T.CodeTypeTok c ->
-    AST.CodeTableRef c <$> parseInt
+    AST.CodeTableRef c <$> parseCharCodeInt
   t ->
     parseError $ SawUnexpectedToken $ UnexpectedToken {saw = t, expected = "CodeTypeTok"}
+
+parseCharCodeInt :: MonadPrimTokenParse m => m AST.CharCodeInt
+parseCharCodeInt = AST.CharCodeInt <$> parseInt
 
 headToParseCharToken :: MonadPrimTokenParse m => T.PrimitiveToken -> m H.Q.HexInt
 headToParseCharToken = \case

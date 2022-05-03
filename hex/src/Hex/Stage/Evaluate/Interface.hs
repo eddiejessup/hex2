@@ -9,12 +9,10 @@ class MonadEvaluate m where
   evalCommand :: Uneval.Command -> m Eval.Command
 
 getEvalCommand :: (MonadCommandSource m, MonadEvaluate m) => m (Maybe Eval.Command)
-getEvalCommand = do
+getEvalCommand =
   getCommand >>= \case
     Nothing -> pure Nothing
-    Just c -> do
-      ec <- evalCommand c
-      pure $ Just ec
+    Just c -> Just <$> evalCommand c
 
 -- A helper that's like `getEvalCommand`, but throws an error on end-of-input instead of returning `Nothing`.
 getEvalCommandErrorEOF :: (MonadCommandSource m, MonadEvaluate m, MonadError e m) => e -> m Eval.Command
