@@ -2,7 +2,9 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes qualified as H.C
-import Hex.Stage.Parse.Interface.AST.Command qualified as AST
+-- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Parse (MonadPrimTokenParse (..))
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par
@@ -10,10 +12,8 @@ import Hex.Stage.Parse.Impl.Parsers.Command.Stream qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
--- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 headToParseNonMacroAssignmentBody ::
   MonadPrimTokenParse m =>
@@ -33,7 +33,13 @@ headToParseNonMacroAssignmentBody = \case
     cs <- Par.parseCSName
     lt1 <- getAnyLexToken
     lt2 <- getAnyLexToken
-    pure $ AST.DefineControlSequence cs $ AST.FutureLetTarget lt1 lt2
+    pure $
+      AST.DefineControlSequence cs $
+        AST.FutureLetTarget $
+          AST.FutureLetTargetDefinition
+            { tokenToExpand = lt1,
+              letTargetToken = lt2
+            }
   T.ShortDefHeadTok quant -> do
     (cs, nr) <- Par.parseXEqualsY Par.parseCSName Par.parseInt
     pure $ AST.DefineControlSequence cs (AST.ShortDefineTarget quant nr)

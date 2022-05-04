@@ -3,7 +3,7 @@ module Hex.Stage.Parse.Impl.Parsers.Quantity.Glue where
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as H.C
-import Hex.Stage.Parse.Interface.AST.Common qualified as AST
+import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par

@@ -8,7 +8,7 @@ import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, HexFilePath, Kern,
 import Hex.Stage.Interpret.Build.List.Elem (Penalty)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
-import Hex.Stage.Parse.Interface.AST.Common qualified as Uneval
+import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
 import qualified Hex.Common.Codes as Code
 import qualified ASCII

@@ -4,14 +4,15 @@ import ASCII qualified
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as H.C
-import Hex.Stage.Parse.Interface.AST.Command qualified as AST
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 parseOpenFileStream :: MonadPrimTokenParse m => AST.FileStreamType -> m AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =
@@ -46,24 +47,28 @@ headToParseWriteToStream writePolicy = \case
     empty
 
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
-parseFileName :: MonadPrimTokenParse m => m AST.HexFilePath
+parseFileName :: MonadPrimTokenParse m => m Box.HexFilePath
 parseFileName = do
   Par.skipOptionalSpaces
   fileNameAsciiChars <-
     PC.some $
       satisfyThen $ \pt -> do
+        -- First check that we get a char-cat (with ^?)
+        -- and that it has the right properties.
         code <-
           pt ^? Par.primTokCharCat >>= \case
             Lex.LexCharCat c H.C.Letter ->
               Just c
             Lex.LexCharCat c H.C.Other
               | isValidOther c ->
-                Just c
+                  Just c
             _ ->
               Nothing
-        code ^. typed @Word8 % to ASCII.word8ToCharMaybe
+        -- We should never get hold of a char-code that isn't a valid ASCII
+        -- character.
+        pure $ code ^. typed @Word8 % to ASCII.word8ToCharUnsafe
   Par.skipSatisfied Par.isSpace
-  pure $ AST.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
+  pure $ Box.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where
     isValidOther = \case
       -- Not in the spec, but let's say these are OK.

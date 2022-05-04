@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Hex.Stage.Parse.Interface.AST.Common where
+module Hex.Stage.Parse.Interface.AST.Quantity where
 
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q

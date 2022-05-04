@@ -1,50 +1,47 @@
-module Hex.Stage.Evaluate.Impl.Eval where
+module Hex.Stage.Evaluate.Impl.Quantity where
 
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Stage.Parse.Interface.AST.Command qualified as AST
-import Hex.Stage.Parse.Interface.AST.Common qualified as AST
+import Hex.Stage.Evaluate.Impl.Common (EvaluationError(..))
+import Hex.Stage.Parse.Interface.AST.Command qualified as P
+import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
-
-data EvaluationError
-  = ValueNotInRange
-  deriving stock (Show, Generic)
 
 evalSignedValue ::
   Functor m =>
   (a -> m b) ->
-  AST.Signed a ->
+  P.Signed a ->
   m (Q.Signed b)
-evalSignedValue evalU (AST.Signed signs u) = do
+evalSignedValue evalU (P.Signed signs u) = do
   Q.Signed (evalSigns signs) <$> evalU u
   where
     evalSigns :: [Q.Sign] -> Q.Sign
     evalSigns = mconcat
 
-evalInt :: Monad m => AST.HexInt -> m Q.HexInt
+evalInt :: Monad m => P.HexInt -> m Q.HexInt
 evalInt n = do
   evalSignedValue evalUnsignedInt n.unInt >>= \case
     Q.Signed Q.Positive x -> pure x
     Q.Signed Q.Negative x -> pure $ -x
 
-evalUnsignedInt :: Monad m => AST.UnsignedInt -> m Q.HexInt
+evalUnsignedInt :: Monad m => P.UnsignedInt -> m Q.HexInt
 evalUnsignedInt = \case
-  AST.NormalUnsignedInt normalInt -> evalNormalInt normalInt
-  AST.CoercedUnsignedInt coercedInt -> evalCoercedInt coercedInt
+  P.NormalUnsignedInt normalInt -> evalNormalInt normalInt
+  P.CoercedUnsignedInt coercedInt -> evalCoercedInt coercedInt
 
-evalNormalInt :: Monad m => AST.NormalInt -> m Q.HexInt
+evalNormalInt :: Monad m => P.NormalInt -> m Q.HexInt
 evalNormalInt = \case
-  AST.IntConstant intConstantDigits -> pure $ evalIntConstantDigits intConstantDigits
-  AST.CharLikeCode word8 -> pure $ Q.HexInt $ word8ToInt word8
-  AST.InternalInt internalInt -> evalInternalInt internalInt
+  P.IntConstant intConstantDigits -> pure $ evalIntConstantDigits intConstantDigits
+  P.CharLikeCode word8 -> pure $ Q.HexInt $ word8ToInt word8
+  P.InternalInt internalInt -> evalInternalInt internalInt
 
-evalIntConstantDigits :: AST.IntConstantDigits -> Q.HexInt
+evalIntConstantDigits :: P.IntConstantDigits -> Q.HexInt
 evalIntConstantDigits x =
   let baseInt = case x.intBase of
-        AST.Base8 -> 8
-        AST.Base10 -> 10
-        AST.Base16 -> 16
+        P.Base8 -> 8
+        P.Base10 -> 10
+        P.Base16 -> 16
    in digitsToHexInt baseInt (word8ToInt <$> x.digits)
 
 word8ToInt :: Word8 -> Int
@@ -62,19 +59,19 @@ digitsToHexInt :: Int -> [Int] -> Q.HexInt
 digitsToHexInt base digs =
   Q.HexInt $ foldl' (\a b -> a * base + b) 0 digs
 
-evalLength :: AST.Length -> m Q.Length
+evalLength :: P.Length -> m Q.Length
 evalLength = notImplemented "evalLength"
 
-evalGlue :: AST.Glue -> m Q.Glue
+evalGlue :: P.Glue -> m Q.Glue
 evalGlue = notImplemented "evalGlue"
 
 evalRule ::
-  AST.Rule ->
+  P.Rule ->
   m Q.Length ->
   m Q.Length ->
   m Q.Length ->
   m H.Inter.B.Box.Rule
-evalRule (AST.Rule _dims) _defaultW _defaultH _defaultD =
+evalRule (P.Rule _dims) _defaultW _defaultH _defaultD =
   notImplemented "evalRule"
 
 -- H.Inter.B.Box.Rule
@@ -85,7 +82,7 @@ evalRule (AST.Rule _dims) _defaultW _defaultH _defaultD =
 --       )
 
 evalVModeRule ::
-  AST.Rule ->
+  P.Rule ->
   m H.Inter.B.Box.Rule
 evalVModeRule _rule =
   -- ruleToElem rule defaultWidth defaultHeight defaultDepth
@@ -97,7 +94,7 @@ evalVModeRule _rule =
 --   defaultDepth = pure 0
 
 evalHModeRule ::
-  AST.Rule ->
+  P.Rule ->
   m H.Inter.B.Box.Rule
 evalHModeRule _rule =
   notImplemented "evalHModeRule"
@@ -108,15 +105,15 @@ evalHModeRule _rule =
 --   defaultHeight = pure (toScaledPointApprox (10 :: Int) Point)
 --   defaultDepth = pure 0
 
-evalChar :: (MonadError e m, AsType EvaluationError e) => AST.CharCodeRef -> m Codes.CharCode
+evalChar :: (MonadError e m, AsType EvaluationError e) => P.CharCodeRef -> m Codes.CharCode
 evalChar = \case
-  AST.CharRef c -> pure c
-  AST.CharTokenRef c -> noteRange c
-  AST.CharCodeNrRef n -> evalCharCodeInt n
+  P.CharRef c -> pure c
+  P.CharTokenRef c -> noteRange c
+  P.CharCodeNrRef n -> evalCharCodeInt n
 
 evalCharCodeInt ::
   (MonadError e m, AsType EvaluationError e) =>
-  AST.CharCodeInt ->
+  P.CharCodeInt ->
   m Codes.CharCode
 evalCharCodeInt n =
   evalInt n.unCharCodeInt >>= noteRange

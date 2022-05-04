@@ -8,7 +8,7 @@ import Hex.Common.TFM.Get qualified as H.TFM
 import Hex.Stage.Categorise.Impl (MonadCharCatSourceT (..))
 import Hex.Stage.Categorise.Interface (MonadCharCatSource)
 import Hex.Stage.Evaluate.Impl (MonadEvaluateT (..))
-import Hex.Stage.Evaluate.Impl.Eval (EvaluationError)
+import Hex.Stage.Evaluate.Impl.Common (EvaluationError)
 import Hex.Stage.Evaluate.Interface (MonadEvaluate)
 import Hex.Stage.Expand.Impl (ExpansionError, MonadPrimTokenSourceT (..))
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource)

@@ -1,6 +1,6 @@
 module Hex.Stage.Parse.Interface.AST.Condition where
 
-import Hex.Stage.Parse.Interface.AST.Common
+import Hex.Stage.Parse.Interface.AST.Quantity
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as PT.Syn
 import Hexlude

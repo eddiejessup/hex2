@@ -1,4 +1,4 @@
-module Hex.Stage.Evaluate.Interface.AST.Common where
+module Hex.Stage.Evaluate.Interface.AST.Quantity where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT

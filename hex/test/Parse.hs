@@ -2,7 +2,7 @@ module Parse where
 
 import Hex.Common.Codes
 import Hex.Stage.Lex.Interface
-import Hex.Stage.Parse.Interface.AST.Common
+import Hex.Stage.Parse.Interface.AST.Quantity
 import Hex.Stage.Parse.Interface
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number
 import Hex.Common.Quantity qualified as Q

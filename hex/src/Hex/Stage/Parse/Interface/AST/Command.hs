@@ -3,13 +3,14 @@
 module Hex.Stage.Parse.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as H.Code
-import Hex.Stage.Parse.Interface.AST.Common
+import Hex.Stage.Parse.Interface.AST.Quantity
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as Res.PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Res.ST
 import Hexlude
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
+import Hex.Stage.Interpret.Build.Box.Elem (HexFilePath)
 
 data Command
   = ShowToken Lex.LexToken
@@ -85,19 +86,29 @@ data FileStreamModificationCommand = FileStreamModificationCommand FileStreamTyp
 data Assignment = Assignment {body :: AssignmentBody, scope :: Res.PT.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
-newtype HexFilePath = HexFilePath FilePath
-  deriving stock (Show, Eq, Generic)
-
 data ControlSequenceTarget
   = MacroTarget Res.ST.MacroDefinition
   | LetTarget Lex.LexToken
-  | FutureLetTarget Lex.LexToken Lex.LexToken
+  | FutureLetTarget FutureLetDefinition
   | ShortDefineTarget Res.PT.CharryQuantityType HexInt
   | ReadTarget HexInt
   | FontTarget FontFileSpec
   deriving stock (Show, Eq, Generic)
 
-data FontFileSpec = FontFileSpec FontSpecification HexFilePath
+-- | \futurelet (token1) (token2) (token3)
+-- (token1): Just the name of the control sequence we are defining, as with any
+-- control-sequence definition.
+-- (token3): The argument of the assignment, as in a normal 'let', i.e. (token1)
+-- will be assigned the current meaning of (token3).
+-- (token2): A token that we will expand immediately after performing the above
+-- assignment. (i.e. at 'let' definition-time, not when the \let definition is
+-- used.)
+-- For an example of how this might be used, see:
+-- https://tug.org/TUGboat/tb09-3/tb22bechtolsheim.pdf
+data FutureLetDefinition = FutureLetTargetDefinition { tokenToExpand :: Lex.LexToken, letTargetToken :: Lex.LexToken }
+  deriving stock (Show, Eq, Generic)
+
+data FontFileSpec = FontFileSpec { fontSpec :: FontSpecification, fontPath :: HexFilePath }
   deriving stock (Show, Eq, Generic)
 
 data AssignmentBody

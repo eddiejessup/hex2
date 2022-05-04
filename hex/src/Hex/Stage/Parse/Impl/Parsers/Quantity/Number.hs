@@ -10,7 +10,7 @@ import Hex.Common.Parse (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
-import Hex.Stage.Parse.Interface.AST.Common qualified as AST
+import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
 
 parseSigned :: forall m a. MonadPrimTokenParse m => m a -> m (AST.Signed a)
