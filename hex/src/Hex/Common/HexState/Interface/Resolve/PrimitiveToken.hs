@@ -427,6 +427,12 @@ data PrimitiveToken
   | UnresolvedTok Lex.LexToken
   deriving stock (Show, Eq, Generic)
 
+primTokLexTok :: Prism' PrimitiveToken Lex.LexToken
+primTokLexTok = _Ctor @"UnresolvedTok"
+
+primTokCharCat :: Prism' PrimitiveToken Lex.LexCharCat
+primTokCharCat = primTokLexTok % Lex.lexTokCharCat
+
 fmtPrimitiveToken :: Fmt PrimitiveToken r
 fmtPrimitiveToken = F.later $ \case
   UnresolvedTok lt -> F.bformat ("LexToken" |%| F.parenthesised Lex.fmtLexToken) lt

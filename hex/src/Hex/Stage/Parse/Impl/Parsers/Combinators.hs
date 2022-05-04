@@ -47,16 +47,10 @@ satisfyLexThen f = do
   maybe empty pure (f lt)
 
 primTokHasCategory :: H.C.CoreCatCode -> PrimitiveToken -> Bool
-primTokHasCategory = isOnly (primTokCharCat % typed @H.C.CoreCatCode)
-
-primTokLexTok :: AffineTraversal' PrimitiveToken Lex.LexToken
-primTokLexTok = castOptic @An_AffineTraversal (_Ctor @"UnresolvedTok")
-
-primTokCharCat :: AffineTraversal' PrimitiveToken Lex.LexCharCat
-primTokCharCat = primTokLexTok % Lex.lexTokCharCat
+primTokHasCategory = isOnly (T.primTokCharCat % typed @H.C.CoreCatCode)
 
 primTokCatChar :: H.C.CoreCatCode -> AffineFold PrimitiveToken H.C.CharCode
-primTokCatChar cat = primTokCharCat % filtered (isOnly (typed @H.C.CoreCatCode) cat) % typed @H.C.CharCode
+primTokCatChar cat = T.primTokCharCat % filtered (isOnly (typed @H.C.CoreCatCode) cat) % typed @H.C.CharCode
 
 -- More domainy.
 
@@ -70,7 +64,7 @@ isSpace = primTokHasCategory H.C.Space
 
 matchNonActiveCharacterUncased :: H.C.CharCode -> PrimitiveToken -> Bool
 matchNonActiveCharacterUncased a pt =
-  case pt ^? primTokCharCat of
+  case pt ^? T.primTokCharCat of
     Just cc ->
       let aWord = a ^. typed @Word8
           chrWord = cc ^. typed @H.C.CharCode % typed @Word8

@@ -25,6 +25,11 @@ pattern Chr_ c <-
   where
     Chr_ c = unsafeCodeFromChar c
 
+codeAsAsciiChar :: CharCode -> ASCII.Char
+codeAsAsciiChar code =
+  -- We should never get hold of a char-code that isn't a valid ASCII character.
+  ASCII.word8ToCharUnsafe code.unCharCode
+
 unsafeCodeAsChar :: CharCode -> Char
 unsafeCodeAsChar (CharCode w) = case ASCII.word8ToCharMaybe w of
   Just asciiChar -> ASCII.charToUnicode asciiChar

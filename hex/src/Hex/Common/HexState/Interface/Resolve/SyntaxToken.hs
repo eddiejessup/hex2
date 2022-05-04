@@ -9,7 +9,7 @@ newtype InhibitedBalancedText = InhibitedBalancedText (Seq Lex.LexToken)
   deriving stock (Show, Generic)
   deriving newtype (Eq, Semigroup, Monoid)
 
-newtype ExpandedBalancedText = ExpandedBalancedText (Seq PrimitiveToken)
+newtype ExpandedBalancedText = ExpandedBalancedText {expBalancedTextTokens :: Seq PrimitiveToken}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Semigroup, Monoid)
 

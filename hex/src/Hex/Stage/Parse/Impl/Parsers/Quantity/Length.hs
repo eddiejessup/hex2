@@ -9,6 +9,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 import Hex.Common.Parse (MonadPrimTokenParse(..))
+import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 
 parseLength :: MonadPrimTokenParse m => m AST.Length
 parseLength = Par.parseSigned parseUnsignedLength
@@ -40,7 +41,7 @@ parseFactor =
 parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
 parseRationalConstant = do
   wholeDigits <- PC.many (satisfyThen Par.decCharToWord)
-  Par.skipSatisfied $ \t -> case t ^? Par.primTokCharCat of
+  Par.skipSatisfied $ \t -> case t ^? PT.primTokCharCat of
     Just cc ->
       let chrCode = cc ^. typed @H.C.CharCode
        in (cc ^. typed @H.C.CoreCatCode == H.C.Other) && (chrCode == H.C.Chr_ ',' || chrCode == H.C.Chr_ '.')

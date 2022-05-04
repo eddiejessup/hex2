@@ -1,8 +1,8 @@
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as Res.PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Res.ST
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, HexFilePath, Kern, Rule)
 import Hex.Stage.Interpret.Build.List.Elem (Penalty)
@@ -33,13 +33,13 @@ data Command
   | ShowLists
   | ShowTheInternalQuantity Uneval.InternalQuantity
   | ShipOut Uneval.Box
-  | AddMark Res.ST.ExpandedBalancedText
+  | AddMark ST.ExpandedBalancedText
   | -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- then can 'migrate' out.
     AddInsertion Q.HexInt VModeMaterial
   | AddAdjustment VModeMaterial
   | AddSpace
-  | StartParagraph Res.PT.IndentFlag
+  | StartParagraph PT.IndentFlag
   | EndParagraph
   | AddAlignedMaterial
       DesiredLength
@@ -63,7 +63,7 @@ data AlignmentMaterial
 data DesiredLength
   deriving stock (Show, Eq, Generic)
 
-data Assignment = Assignment {body :: AssignmentBody, scope :: Res.PT.ScopeFlag}
+data Assignment = Assignment {body :: AssignmentBody, scope :: PT.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
 data ModeIndependentCommand
@@ -73,13 +73,13 @@ data ModeIndependentCommand
   | AddPenalty Penalty
   | AddKern Kern
   | AddMathKern Uneval.MathLength
-  | RemoveItem Res.PT.RemovableItem
+  | RemoveItem PT.RemovableItem
   | SetAfterAssignmentToken Lex.LexToken
   | AddToAfterGroupTokens Lex.LexToken
   | WriteMessage MessageWriteCommand
   | ModifyFileStream Uneval.FileStreamModificationCommand
   | WriteToStream Uneval.StreamWriteCommand
-  | DoSpecial Res.ST.ExpandedBalancedText
+  | DoSpecial ST.ExpandedBalancedText
   | AddBox Uneval.BoxPlacement Uneval.Box
   | ChangeScope Q.Sign Uneval.CommandTrigger
   deriving stock (Show, Eq, Generic)
@@ -103,17 +103,17 @@ data AssignmentBody
   | SetVariable Uneval.VariableAssignment
   | ModifyVariable Uneval.VariableModification
   | AssignCode CodeAssignment
-  | SelectFont Res.PT.FontNumber
+  | SelectFont PT.FontNumber
   | SetFamilyMember Uneval.FamilyMember Uneval.FontRef
   | SetParShape Uneval.HexInt [Uneval.Length]
   | SetBoxRegister Uneval.HexInt Uneval.Box
   | -- Global assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
   | SetFontChar Uneval.FontCharRef Uneval.HexInt
-  | SetHyphenation Res.ST.InhibitedBalancedText
-  | SetHyphenationPatterns Res.ST.InhibitedBalancedText
+  | SetHyphenation ST.InhibitedBalancedText
+  | SetHyphenationPatterns ST.InhibitedBalancedText
   | SetBoxDimension Uneval.BoxDimensionRef Uneval.Length
-  | SetInteractionMode Res.PT.InteractionMode
+  | SetInteractionMode PT.InteractionMode
   deriving stock (Show, Eq, Generic)
 
 data CodeAssignment = CodeAssignment {codeIndex :: Code.CharCode, codeValue :: CodeValue}
@@ -127,7 +127,7 @@ data CodeValue
   | DelimiterCodeValue Code.DelimiterCode
   deriving stock (Show, Eq, Generic)
 
-data MessageWriteCommand = MessageWriteCommand Res.PT.StandardOutputSource Text
+data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputSource, messageContents :: Text}
   deriving stock (Show, Eq, Generic)
 
 data ControlSequenceTarget

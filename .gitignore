@@ -3,3 +3,7 @@ dist-newstyle/
 *.tfm
 hex.cabal
 log.txt
+texput.log
+plain.tex
+texbook.tex
+texbook.pdf

@@ -37,7 +37,7 @@ evalModeIndepCmd = \case
   P.RemoveItem _removableItem -> notImplemented "evalModeIndepCmd 'RemoveItem'"
   P.SetAfterAssignmentToken _lexToken -> notImplemented "evalModeIndepCmd 'SetAfterAssignmentToken'"
   P.AddToAfterGroupTokens _lexToken -> notImplemented "evalModeIndepCmd 'AddToAfterGroupTokens'"
-  P.WriteMessage _messageWriteCommand -> notImplemented "evalModeIndepCmd 'WriteMessage'"
+  P.WriteMessage messageWriteCommand -> E.WriteMessage <$> evalMessageWriteCommand messageWriteCommand
   P.ModifyFileStream _fileStreamModificationCommand -> notImplemented "evalModeIndepCmd 'ModifyFileStream'"
   P.WriteToStream _streamWriteCommand -> notImplemented "evalModeIndepCmd 'WriteToStream'"
   P.DoSpecial _expandedBalancedText -> notImplemented "evalModeIndepCmd 'DoSpecial'"
@@ -112,3 +112,11 @@ evalCodeAssignment codeAssignment = do
       E.DelimiterCodeValue
         <$> Eval.noteRange @Code.DelimiterCode vInt
   pure $ E.CodeAssignment codeIx codeValue
+
+evalMessageWriteCommand ::
+  (MonadError e m, AsType Eval.EvaluationError e) =>
+  P.MessageWriteCommand ->
+  m E.MessageWriteCommand
+evalMessageWriteCommand cmd = do
+  messageContents <- Eval.evalExpandedBalancedTextToText cmd.messageContents
+  pure $ E.MessageWriteCommand {messageDest = cmd.messageDest, messageContents}
