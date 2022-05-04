@@ -20,7 +20,13 @@ data ExpansionError
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, Res.MonadResolve, Lex.MonadLexTokenSource)
 
-instance (Res.MonadResolve (MonadPrimTokenSourceT m), MonadError e (MonadPrimTokenSourceT m), AsType ExpansionError e, Lex.MonadLexTokenSource (MonadPrimTokenSourceT m)) => MonadPrimTokenSource (MonadPrimTokenSourceT m) where
+instance (
+    Res.MonadResolve (MonadPrimTokenSourceT m),
+    MonadError e (MonadPrimTokenSourceT m),
+    AsType ExpansionError e,
+    Lex.MonadLexTokenSource (MonadPrimTokenSourceT m)
+  )
+  => MonadPrimTokenSource (MonadPrimTokenSourceT m) where
   getPrimitiveToken = getPrimitiveTokenImpl
 
   getTokenInhibited = Lex.getLexToken

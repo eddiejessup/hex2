@@ -50,6 +50,7 @@ handleCommandInMainVMode ::
     MonadCommandSource m,
     Eval.MonadEvaluate m,
     H.Inter.St.MonadHexState m,
+    MonadLexTokenSource m,
     MonadError e m,
     AsType H.AllMode.InterpretError e
   ) =>
