@@ -1,11 +1,11 @@
 module Hex.Stage.Lex.Impl.Extract where
 
-import Hex.Stage.Categorise.Impl qualified as H.Cat
-import Hex.Stage.Categorise.Types qualified as H.Cat
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Stage.Categorise.Impl qualified as Cat
+import Hex.Stage.Categorise.Interface qualified as Cat
+import Hex.Stage.Lex.Interface.Extract (LexCharCat (..), LexError (..), LexState (..), LexToken (..), mkControlSequence, parToken)
 import Hexlude
-import Hex.Stage.Lex.Interface.Extract (LexToken (..), LexError (..), LexState (..), parToken, mkControlSequence, LexCharCat (..))
-import qualified Hex.Common.HexState.Interface as HSt
 
 spaceTok :: LexToken
 spaceTok = CharCatLexToken $ LexCharCat (Code.Chr_ ' ') Code.Space
@@ -15,12 +15,12 @@ getLetterChars :: HSt.MonadHexState m => ByteString -> m (Seq Code.CharCode, Byt
 getLetterChars = go Empty
   where
     go acc cs =
-      H.Cat.extractCharCat cs >>= \case
+      Cat.extractCharCat cs >>= \case
         -- No input left: Return our accumulation, and an empty rest-of-input.
         Nothing ->
           pure (acc, mempty)
         -- See a letter: append to our accumulation, and recur.
-        Just (H.Cat.RawCharCat char (Code.CoreCatCode Code.Letter), csRest) ->
+        Just (Cat.RawCharCat char (Code.CoreCatCode Code.Letter), csRest) ->
           go (acc :|> char) csRest
         -- See something else: return our accumulation, and return the
         -- rest-of-input *before the fetch* (note, cs, not csRest)
@@ -29,10 +29,10 @@ getLetterChars = go Empty
 
 dropTilEndOfLine :: HSt.MonadHexState m => ByteString -> m ByteString
 dropTilEndOfLine xs = do
-  H.Cat.extractCharCat xs >>= \case
+  Cat.extractCharCat xs >>= \case
     Nothing ->
       pure mempty
-    Just (H.Cat.RawCharCat _ Code.EndOfLine, xsRest) ->
+    Just (Cat.RawCharCat _ Code.EndOfLine, xsRest) ->
       pure xsRest
     Just (_, xsRest) ->
       dropTilEndOfLine xsRest
@@ -47,16 +47,16 @@ extractToken = go
   where
     go :: LexState -> ByteString -> ExceptT e m (Maybe (LexToken, LexState, ByteString))
     go _state cs = do
-      lift (H.Cat.extractCharCat cs) >>= \case
+      lift (Cat.extractCharCat cs) >>= \case
         Nothing -> pure Nothing
-        Just (H.Cat.RawCharCat n1 cat1, rest) ->
+        Just (Cat.RawCharCat n1 cat1, rest) ->
           case (cat1, _state) of
             -- Control sequence: Grab it.
             (Code.Escape, _) -> do
-              lift (H.Cat.extractCharCat rest) >>= \case
+              lift (Cat.extractCharCat rest) >>= \case
                 Nothing ->
                   throwE $ injectTyped TerminalEscapeCharacter
-                Just (H.Cat.RawCharCat csChar1 ctrlSeqCat1, restPostEscape) -> do
+                Just (Cat.RawCharCat csChar1 ctrlSeqCat1, restPostEscape) -> do
                   (ctrlSeqChars, restPostCtrlSeq) <- case ctrlSeqCat1 of
                     Code.CoreCatCode Code.Letter -> do
                       (ctrlWordCharsPostFirst, restPostCtrlWord) <- lift $ getLetterChars restPostEscape
@@ -67,11 +67,12 @@ extractToken = go
                         Code.CoreCatCode Code.Space -> SkippingBlanks
                         Code.CoreCatCode Code.Letter -> SkippingBlanks
                         _ -> LineMiddle
-                  pure $ Just
-                    ( ControlSequenceLexToken $ mkControlSequence $ toList ctrlSeqChars,
-                      nextState,
-                      restPostCtrlSeq
-                    )
+                  pure $
+                    Just
+                      ( ControlSequenceLexToken $ mkControlSequence $ toList ctrlSeqChars,
+                        nextState,
+                        restPostCtrlSeq
+                      )
             -- Comment: Ignore rest of line and switch to line-begin.
             (Code.Comment, _) -> do
               restPostComment <- lift $ dropTilEndOfLine rest
@@ -107,4 +108,3 @@ extractToken = go
             --------------------------
             (Code.CoreCatCode cc, _) ->
               pure $ Just (CharCatLexToken $ LexCharCat n1 cc, LineMiddle, rest)
-

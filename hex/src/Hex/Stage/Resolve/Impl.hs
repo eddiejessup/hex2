@@ -4,7 +4,6 @@
 module Hex.Stage.Resolve.Impl where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface qualified as H.St
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..), ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken (..))
@@ -32,8 +31,8 @@ resolveToken ::
   m (Maybe ResolvedToken)
 resolveToken = \case
   Lex.ControlSequenceLexToken cs -> do
-    H.St.resolveSymbol $ ControlSequenceSymbol cs
+    HSt.resolveSymbol $ ControlSequenceSymbol cs
   Lex.CharCatLexToken (Lex.LexCharCat c Code.Active) ->
-    H.St.resolveSymbol $ ActiveCharacterSymbol c
+    HSt.resolveSymbol $ ActiveCharacterSymbol c
   t ->
     pure $ Just $ PrimitiveToken $ UnresolvedTok t

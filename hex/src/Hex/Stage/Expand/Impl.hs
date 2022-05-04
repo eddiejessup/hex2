@@ -25,12 +25,10 @@ instance (Res.MonadResolve (MonadPrimTokenSourceT m), MonadError e (MonadPrimTok
 
   getTokenInhibited = Lex.getLexToken
 
--- These '[...]Internal functions are so-called because they aren't meant to be used externally.
--- This is because they don't set the 'last-fetched-primitive-token', which we use for debugging.
-
--- Get the next lex-token from the input, and resolve it.
+-- Get the next lex-token from the input, resolve it, and expand it if
+-- necessary.
 -- Note that the lex-token is just returned for debugging really.
--- It is passed through unchanged from the resolved-token-source.
+-- It is passed through unchanged from the lex-token-source.
 getPrimitiveTokenImpl :: (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, Lex.MonadLexTokenSource m) => m (Maybe (LexToken, PrimitiveToken))
 getPrimitiveTokenImpl =
   Res.getMayResolvedToken >>= \case

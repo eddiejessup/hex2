@@ -1,7 +1,7 @@
 module Hex.Run.App where
 
 import Hex.Common.HexState.Impl (HexStateError, MonadHexStateImplT (..))
-import Hex.Common.HexState.Impl.Type qualified as H.St
+import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.Parse (ParseUnexpectedError)
 import Hex.Common.TFM.Get qualified as H.TFM
@@ -23,14 +23,14 @@ import Hex.Stage.Resolve.Impl (MonadResolveT (..))
 import Hex.Stage.Resolve.Interface (MonadResolve)
 import Hexlude
 
-data HexStateWithChars = HexStateWithChars H.St.HexState CharSource
+data HexStateWithChars = HexStateWithChars HSt.HexState CharSource
   deriving stock (Generic)
 
 instance {-# OVERLAPPING #-} HasType ByteString HexStateWithChars where
   typed = typed @CharSource % typed @ByteString
 
 newHexStateWithChars :: ByteString -> HexStateWithChars
-newHexStateWithChars chrs = HexStateWithChars H.St.newHexState (newCharSource chrs)
+newHexStateWithChars chrs = HexStateWithChars HSt.newHexState (newCharSource chrs)
 
 newtype App a = App {unApp :: StateT HexStateWithChars (ExceptT AppError IO) a}
   deriving newtype
