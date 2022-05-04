@@ -15,7 +15,6 @@ description: Please see the README on GitHub at <https://github.com/eddiejessup/
 dependencies:
   - base
   - bytestring
-  - formatting
 
 library:
   source-dirs: src
@@ -25,18 +24,16 @@ library:
     - cereal
     - containers
     - filepath
-    - generic-lens-core
+    - formatting
     - generic-optics
     - groups
     - mtl
     - optics-core
     - optics-extra
-    - text
-    - transformers
-    - unordered-containers
     - parser-combinators
     - protolude
-
+    - text
+    - transformers
 
 ghc-options:
 - -optP-Wno-nonportable-include-path
