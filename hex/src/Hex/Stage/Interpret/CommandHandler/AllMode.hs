@@ -6,6 +6,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
+import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
 
 data InterpretError
@@ -20,7 +21,7 @@ data AllModeCommandResult
   | DidNotSeeEndBox
 
 handleModeIndependentCommand ::
-  (Monad m, MonadIO m, HSt.MonadHexState m) =>
+  (Monad m, MonadIO m, HSt.MonadHexState m, Lex.MonadLexTokenSource m) =>
   (H.Inter.B.List.VListElem -> m ()) ->
   Eval.ModeIndependentCommand ->
   m AllModeCommandResult
@@ -42,7 +43,7 @@ handleModeIndependentCommand addVElem = \case
   -- construction (not after the '}'). Insert the ⟨token⟩ just before tokens
   -- inserted by \everyhbox or \everyvbox.
   Eval.SetAfterAssignmentToken lt -> do
-    HSt.setAfterAssignmentToken (Just lt)
+    HSt.setAfterAssignmentToken lt
     pure DidNotSeeEndBox
   Eval.AddPenalty p -> do
     addVElem $ H.Inter.B.List.ListPenalty p
@@ -60,7 +61,7 @@ handleModeIndependentCommand addVElem = \case
             fontDefinition <- HSt.loadFont fontPath fontSpec
             addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
             pure $ Res.PrimitiveToken $ T.FontRefToken $ fontDefinition ^. typed @T.FontNumber
-        HSt.setControlSequence cs tgtResolvedTok scope
+        HSt.setSymbol cs tgtResolvedTok scope
       Eval.AssignCode (Eval.CodeAssignment idxChar codeVal) ->
         case codeVal of
           Eval.CatCodeValue catCode ->
@@ -146,13 +147,12 @@ handleModeIndependentCommand addVElem = \case
       --       modifyFont fNr updateFontChar
       assignment ->
         notImplemented $ "Assignment body: " <> show assignment
-    -- use (typed @Config % #afterAssignmentToken) >>= \case
-    --   Nothing ->
-    --     pure ()
-    --   Just lt ->
-    --     do
-    --       insertLexToken lt
-    --       assign' (typed @Config % #afterAssignmentToken) Nothing
+    -- Now that we're done with an assignment, see whether any
+    -- 'after-assignment' token was set.
+    HSt.popAfterAssignmentToken >>= \case
+      Nothing -> pure ()
+      -- If a token was indeed set, put it into the input.
+      Just lt -> Lex.insertLexTokenToSource lt
     pure DidNotSeeEndBox
   -- Eval.WriteToStream n (Eval.ImmediateWriteText eTxt) -> do
   --   en <- texEvaluate n

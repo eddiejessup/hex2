@@ -115,6 +115,9 @@ setSpaceFactor = setScopedMapValue #spaceFactors
 setDelimiterCode :: Code.CharCode -> Code.DelimiterCode -> PT.ScopeFlag -> GroupScopes -> GroupScopes
 setDelimiterCode = setScopedMapValue #delimiterCodes
 
+setSymbol :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setSymbol = setScopedMapValue #symbolMap
+
 -- | Set a scoped property which is contained in a map, indexed by some key.
 setScopedMapValue :: Ord k => (Lens' Scope (Map k v)) -> k -> v -> PT.ScopeFlag -> GroupScopes -> GroupScopes
 setScopedMapValue mapLens c = setScopedProperty (mapLens % O.at' c)

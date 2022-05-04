@@ -68,6 +68,10 @@ instance
   resolveSymbol :: ControlSymbol -> (MonadHexStateImplT m) (Maybe ResolvedToken)
   resolveSymbol p = getGroupScopesProperty (GroupScopes.localResolvedToken p)
 
+  setSymbol :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setSymbol symbol target scopeFlag =
+    modifyGroupScopes $ GroupScopes.setSymbol symbol target scopeFlag
+
   currentFontSpaceGlue :: (MonadHexStateImplT m) (Maybe Q.Glue)
   currentFontSpaceGlue = do
     currentFontInfo >>= \case
@@ -139,6 +143,15 @@ instance
   setDelimiterCode idxCode delimiterCode scopeFlag =
     modifyGroupScopes $ GroupScopes.setDelimiterCode idxCode delimiterCode scopeFlag
 
+  setAfterAssignmentToken :: Lex.LexToken -> MonadHexStateImplT m ()
+  setAfterAssignmentToken t = assign' (typed @HexState % #afterAssignmentToken) (Just t)
+
+  popAfterAssignmentToken :: MonadHexStateImplT m (Maybe Lex.LexToken)
+  popAfterAssignmentToken = do
+    v <- use (typed @HexState % #afterAssignmentToken)
+    assign' (typed @HexState % #afterAssignmentToken) Nothing
+    pure v
+
   setLastFetchedLexTok :: Lex.LexToken -> MonadHexStateImplT m ()
   setLastFetchedLexTok t =
     assign' (typed @HexState % #lastFetchedLexTok) (Just t)
@@ -146,10 +159,6 @@ instance
   getLastFetchedLexTok :: MonadHexStateImplT m (Maybe Lex.LexToken)
   getLastFetchedLexTok =
     use (typed @HexState % #lastFetchedLexTok)
-
-  setAfterAssignmentToken = panic "Not implemented"
-
-  setControlSequence = panic "Not implemented"
 
 modifyGroupScopes :: (MonadState st m, HasType HexState st) => (GroupScopes -> GroupScopes) -> m ()
 modifyGroupScopes = modifying' (typed @HexState % #groupScopes)

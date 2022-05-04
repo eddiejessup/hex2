@@ -6,8 +6,8 @@ import Hex.Common.HexState.Impl.Parameters qualified as H.Inter.St.Param
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
-import Hex.Common.HexState.Interface.Resolve (CSMap, ResolvedToken, ControlSymbol)
-import Hex.Common.HexState.Impl.CSMap (initialCSMap)
+import Hex.Common.HexState.Interface.Resolve (SymbolMap, ResolvedToken, ControlSymbol)
+import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
 
 
 data Scope = Scope
@@ -15,7 +15,7 @@ data Scope = Scope
     currentFontNr :: Maybe PT.FontNumber,
     -- familyMemberFonts :: Map (FontRange, HexInt) HexInt,
     -- Control sequences.
-    csMap :: CSMap,
+    symbolMap :: SymbolMap,
     -- Char-code attribute maps.
     catCodes :: Map Codes.CharCode Codes.CatCode,
     mathCodes :: Map Codes.CharCode Codes.MathCode,
@@ -44,7 +44,7 @@ newGlobalScope =
   Scope
     { currentFontNr = Nothing,
       -- familyMemberFonts = mempty
-      csMap = initialCSMap,
+      symbolMap = initialSymbolMap,
       catCodes = Codes.newCatCodes,
       mathCodes = Codes.newMathCodes,
       lowercaseCodes = Codes.newLowercaseCodes,
@@ -69,7 +69,7 @@ newLocalScope =
   Scope
     { currentFontNr = Nothing,
       -- familyMemberFonts = mempty
-      csMap = mempty,
+      symbolMap = mempty,
       catCodes = mempty,
       mathCodes = mempty,
       lowercaseCodes = mempty,
@@ -93,7 +93,7 @@ newLocalScope =
 
 -- | The token a control-symbol resolves to
 scopeResolvedTokenLens :: ControlSymbol -> Lens' Scope (Maybe ResolvedToken)
-scopeResolvedTokenLens p = #csMap % at' p
+scopeResolvedTokenLens p = #symbolMap % at' p
 
 -- | The cat-code for a char-code.
 scopeCategoryLens :: Codes.CharCode -> Lens' Scope (Maybe Codes.CatCode)

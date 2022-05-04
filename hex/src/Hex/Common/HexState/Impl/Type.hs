@@ -19,7 +19,7 @@ data HexState = HexState
     -- Global parameters.
     specialInts :: Map PT.SpecialIntParameter Q.HexInt,
     specialLengths :: Map PT.SpecialLengthParameter Q.Length,
-    -- afterAssignmentToken :: Maybe Lex.Token,
+    afterAssignmentToken :: Maybe Lex.LexToken,
     -- Scopes and groups.
     groupScopes :: GroupScopes,
     -- Just for parsing support help.
@@ -35,7 +35,7 @@ newHexState =
       specialLengths = H.Inter.St.Param.newSpecialLengthParameters,
       -- , logStream = logHandle
       -- , outFileStreams = mempty
-      -- , afterAssignmentToken = Nothing
+      afterAssignmentToken = Nothing,
       groupScopes = newGroupScopes,
       -- , internalLoggerSet
       lastFetchedLexTok = Nothing

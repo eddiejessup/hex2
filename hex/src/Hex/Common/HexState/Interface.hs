@@ -44,9 +44,11 @@ class Monad m => MonadHexState m where
 
   currentFontSpaceGlue :: m (Maybe Q.Glue)
 
-  setAfterAssignmentToken :: Maybe Lex.LexToken -> m ()
+  popAfterAssignmentToken :: m (Maybe Lex.LexToken)
 
-  setControlSequence :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> m ()
+  setAfterAssignmentToken :: Lex.LexToken -> m ()
+
+  setSymbol :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> m ()
 
   -- Support stuff for parsing.
   setLastFetchedLexTok :: Lex.LexToken -> m ()
@@ -65,8 +67,9 @@ instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.HList m) where
   selectFont x y = lift $ selectFont x y
   currentFontCharacter x = lift $ currentFontCharacter x
   currentFontSpaceGlue = lift currentFontSpaceGlue
+  popAfterAssignmentToken = lift popAfterAssignmentToken
   setAfterAssignmentToken x = lift $ setAfterAssignmentToken x
-  setControlSequence x y z = lift $ setControlSequence x y z
+  setSymbol x y z = lift $ setSymbol x y z
   setLastFetchedLexTok x = lift $ setLastFetchedLexTok x
   getLastFetchedLexTok = lift getLastFetchedLexTok
   setCategory x y z = lift $ setCategory x y z
@@ -87,8 +90,9 @@ instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.VList m) where
   selectFont x y = lift $ selectFont x y
   currentFontCharacter x = lift $ currentFontCharacter x
   currentFontSpaceGlue = lift currentFontSpaceGlue
+  popAfterAssignmentToken = lift popAfterAssignmentToken
   setAfterAssignmentToken x = lift $ setAfterAssignmentToken x
-  setControlSequence x y z = lift $ setControlSequence x y z
+  setSymbol x y z = lift $ setSymbol x y z
   setLastFetchedLexTok x = lift $ setLastFetchedLexTok x
   getLastFetchedLexTok = lift getLastFetchedLexTok
   setCategory x y z = lift $ setCategory x y z

@@ -12,7 +12,7 @@ import Hexlude
 
 newtype ControlSequence = ControlSequence ByteString
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Hashable)
+  deriving newtype (Eq, Ord)
 
 mkControlSequence :: [Codes.CharCode] -> ControlSequence
 mkControlSequence csChars = ControlSequence $ BS.pack $ Codes.unCharCode <$> csChars

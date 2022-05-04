@@ -4,7 +4,6 @@ import Hexlude
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken
 import qualified Hex.Common.Codes as Codes
-import qualified Data.HashMap.Strict as HMap
 import qualified Hex.Stage.Lex.Interface.Extract as Lex
 import qualified Formatting as F
 
@@ -12,8 +11,7 @@ import qualified Formatting as F
 data ControlSymbol
   = ActiveCharacterSymbol Codes.CharCode
   | ControlSequenceSymbol Lex.ControlSequence
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (Hashable)
+  deriving stock (Show, Eq, Ord, Generic)
 
 -- The result of resolving a symbol.
 data ResolvedToken
@@ -26,4 +24,4 @@ fmtResolvedToken = F.later $ \case
   SyntaxCommandHeadToken st -> F.bformat F.shown st
   PrimitiveToken pt -> F.bformat fmtPrimitiveToken pt
 
-type CSMap = HMap.HashMap ControlSymbol ResolvedToken
+type SymbolMap = Map ControlSymbol ResolvedToken

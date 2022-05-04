@@ -1,7 +1,7 @@
-module Hex.Common.HexState.Impl.CSMap where
+module Hex.Common.HexState.Impl.SymbolMap where
 
 import ASCII qualified
-import Data.HashMap.Strict qualified as HMap
+import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
@@ -33,9 +33,9 @@ vModeTok e = primTok $ ModedCommand Q.Vertical e
 hModeTok :: ModedCommandPrimitiveToken -> ResolvedToken
 hModeTok e = primTok $ ModedCommand Q.Horizontal e
 
-initialCSMap :: H.Res.CSMap
-initialCSMap =
-  HMap.fromList
+initialSymbolMap :: H.Res.SymbolMap
+initialSymbolMap =
+  Map.fromList
     [ (_cs "ifnum", condTok IfHexIntPairTestTok),
       (_cs "ifdim", condTok IfLengthPairTestTok),
       (_cs "ifodd", condTok IfHexIntOddTok),
