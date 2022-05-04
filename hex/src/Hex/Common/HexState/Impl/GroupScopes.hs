@@ -1,5 +1,6 @@
 module Hex.Common.HexState.Impl.GroupScopes where
 
+import ASCII qualified
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Group
@@ -10,7 +11,6 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 import Optics.Core qualified as O
-import qualified ASCII
 
 -- | Collection of relevant scopes and groups.
 -- We always have a global scope,
@@ -64,16 +64,31 @@ localMostScopeLens = lens getter setter
     setter :: GroupScopes -> Scope -> GroupScopes
     setter c newScope = c & O.singular scopesTraversal !~ newScope
 
+localProperty :: Lens' Scope (Maybe a) -> GroupScopes -> Maybe a
+localProperty lens_ = scopedLookup (view lens_)
+
+localCompleteProperty :: Lens' Scope (Maybe a) -> GroupScopes -> a
+localCompleteProperty lens_ =
+  fromMaybe (panic "Not property found for char-code in code-table") . localProperty lens_
+
 localResolvedToken :: ControlSymbol -> GroupScopes -> Maybe ResolvedToken
 localResolvedToken p =
-  scopedLookup
-    (view (Scope.scopeResolvedTokenLens p))
+  localProperty (Scope.scopeResolvedTokenLens p)
 
 localCategory :: Codes.CharCode -> GroupScopes -> Codes.CatCode
-localCategory p =
-  fromMaybe Codes.Invalid
-    . scopedLookup
-      (view (Scope.scopeCategoryLens p))
+localCategory p = localCompleteProperty (Scope.scopeCategoryLens p)
+
+localMathCode :: Codes.CharCode -> GroupScopes -> Codes.MathCode
+localMathCode p = localCompleteProperty (Scope.scopeMathCodeLens p)
+
+localChangeCaseCode :: ASCII.Case -> Codes.CharCode -> GroupScopes -> Codes.CaseChangeCode
+localChangeCaseCode letterCase p = localCompleteProperty (Scope.scopeCaseChangeCodeLens letterCase p)
+
+localSpaceFactor :: Codes.CharCode -> GroupScopes -> Codes.SpaceFactorCode
+localSpaceFactor p = localCompleteProperty (Scope.scopeSpaceFactorLens p)
+
+localDelimiterCode :: Codes.CharCode -> GroupScopes -> Codes.DelimiterCode
+localDelimiterCode p = localCompleteProperty (Scope.scopeDelimiterCodeLens p)
 
 localIntParam :: PT.IntParameter -> GroupScopes -> Q.HexInt
 localIntParam p =

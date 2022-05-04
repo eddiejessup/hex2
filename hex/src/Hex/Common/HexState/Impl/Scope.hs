@@ -3,12 +3,11 @@ module Hex.Common.HexState.Impl.Scope where
 import ASCII qualified
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Parameters qualified as H.Inter.St.Param
+import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
+import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken, SymbolMap)
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
-import Hex.Common.HexState.Interface.Resolve (SymbolMap, ResolvedToken, ControlSymbol)
-import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
-
 
 data Scope = Scope
   { -- Fonts.

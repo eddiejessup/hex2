@@ -1,19 +1,19 @@
 module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
-import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
 
-evalCommand :: (MonadError e m, AsType Eval.EvaluationError e) => P.Command -> m E.Command
+evalCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Command -> m E.Command
 evalCommand = \case
   P.ShowToken lt -> pure $ E.ShowToken lt
   P.ShowBox n -> E.ShowBox <$> Eval.evalInt n
@@ -24,7 +24,7 @@ evalCommand = \case
 evalVModeCmd :: Monad m => P.VModeCommand -> m P.VModeCommand
 evalVModeCmd = pure
 
-evalModeIndepCmd :: (MonadError e m, AsType Eval.EvaluationError e) => P.ModeIndependentCommand -> m E.ModeIndependentCommand
+evalModeIndepCmd :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ModeIndependentCommand -> m E.ModeIndependentCommand
 evalModeIndepCmd = \case
   P.Assign P.Assignment {body, scope} -> do
     eBody <- evalAssignmentBody body
@@ -44,7 +44,7 @@ evalModeIndepCmd = \case
   P.AddBox _boxPlacement _box -> notImplemented "evalModeIndepCmd 'AddBox'"
   P.ChangeScope _sign _commandTrigger -> notImplemented "evalModeIndepCmd 'ChangeScope'"
 
-evalAssignmentBody :: (MonadError e m, AsType Eval.EvaluationError e) => P.AssignmentBody -> m E.AssignmentBody
+evalAssignmentBody :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.AssignmentBody -> m E.AssignmentBody
 evalAssignmentBody = \case
   P.DefineControlSequence controlSymbol controlSequenceTarget ->
     E.DefineControlSequence controlSymbol <$> evalControlSequenceTarget controlSequenceTarget
@@ -62,7 +62,7 @@ evalAssignmentBody = \case
   P.SetBoxDimension _boxDimensionRef _length -> notImplemented "evalAssignmentBody 'SetBoxDimension'"
   P.SetInteractionMode _interactionMode -> notImplemented "evalAssignmentBody 'SetInteractionMode'"
 
-evalControlSequenceTarget :: (MonadError e m) => P.ControlSequenceTarget -> m E.ControlSequenceTarget
+evalControlSequenceTarget :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ControlSequenceTarget -> m E.ControlSequenceTarget
 evalControlSequenceTarget = \case
   P.MacroTarget macroDefinition -> do
     pure $ E.NonFontTarget $ Res.SyntaxCommandHeadToken $ ST.MacroTok macroDefinition
@@ -70,8 +70,9 @@ evalControlSequenceTarget = \case
     notImplemented "evalControlSequenceTarget 'LetTarget'"
   P.FutureLetTarget _futureLetTargetDefinition ->
     notImplemented "evalControlSequenceTarget 'FutureLetTarget'"
-  P.ShortDefineTarget _charryQuantityType _n -> do
-    notImplemented "evalControlSequenceTarget 'ShortDefineTarget'"
+  P.ShortDefineTarget charryQuantityType tgtValInt -> do
+    eTgtValInt <- Eval.evalInt tgtValInt
+    pure $ E.NonFontTarget $ Res.PrimitiveToken $ PT.IntRefTok charryQuantityType eTgtValInt
   P.ReadTarget _hexInt -> do
     notImplemented "evalControlSequenceTarget 'ReadTarget'"
   P.FontTarget pFontFileSpec -> do
@@ -81,13 +82,13 @@ evalControlSequenceTarget = \case
         <*> pure pFontFileSpec.fontPath
     pure $ E.FontTarget eFontFileSpec
 
-evalFontSpecification :: (MonadError e m) => P.FontSpecification -> m Box.FontSpecification
+evalFontSpecification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.FontSpecification -> m Box.FontSpecification
 evalFontSpecification = \case
   P.NaturalFont -> pure Box.NaturalFont
   P.FontAt len -> Box.FontAt <$> Eval.evalLength len
   P.FontScaled n -> Box.FontScaled <$> Eval.evalInt n
 
-evalCodeAssignment :: (MonadError e m, AsType Eval.EvaluationError e) => P.CodeAssignment -> m E.CodeAssignment
+evalCodeAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.CodeAssignment -> m E.CodeAssignment
 evalCodeAssignment codeAssignment = do
   -- Evaluate the index in the code-table, i.e. which char-code's property to set.
   codeIx <- Eval.evalCharCodeInt codeAssignment.codeTableRef.codeIndex
@@ -111,9 +112,3 @@ evalCodeAssignment codeAssignment = do
       E.DelimiterCodeValue
         <$> Eval.noteRange @Code.DelimiterCode vInt
   pure $ E.CodeAssignment codeIx codeValue
-
-evalCodeTableRef :: (MonadError e m, AsType Eval.EvaluationError e) => P.CodeTableRef -> m E.CodeTableRef
-evalCodeTableRef codeTableRef =
-  E.CodeTableRef
-    <$> pure codeTableRef.codeType
-    <*> Eval.evalCharCodeInt codeTableRef.codeIndex

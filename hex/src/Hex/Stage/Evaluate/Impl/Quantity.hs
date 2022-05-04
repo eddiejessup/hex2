@@ -1,9 +1,15 @@
 module Hex.Stage.Evaluate.Impl.Quantity where
 
+import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
+import Hex.Common.HexState.Interface (MonadHexState (getSpecialIntParameter))
+import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
+import Hex.Stage.Evaluate.Impl.Common qualified as Eval
+import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Stage.Evaluate.Impl.Common (EvaluationError(..))
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
@@ -19,18 +25,18 @@ evalSignedValue evalU (P.Signed signs u) = do
     evalSigns :: [Q.Sign] -> Q.Sign
     evalSigns = mconcat
 
-evalInt :: Monad m => P.HexInt -> m Q.HexInt
+evalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.HexInt -> m Q.HexInt
 evalInt n = do
   evalSignedValue evalUnsignedInt n.unInt >>= \case
     Q.Signed Q.Positive x -> pure x
     Q.Signed Q.Negative x -> pure $ -x
 
-evalUnsignedInt :: Monad m => P.UnsignedInt -> m Q.HexInt
+evalUnsignedInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.UnsignedInt -> m Q.HexInt
 evalUnsignedInt = \case
   P.NormalUnsignedInt normalInt -> evalNormalInt normalInt
   P.CoercedUnsignedInt coercedInt -> evalCoercedInt coercedInt
 
-evalNormalInt :: Monad m => P.NormalInt -> m Q.HexInt
+evalNormalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.NormalInt -> m Q.HexInt
 evalNormalInt = \case
   P.IntConstant intConstantDigits -> pure $ evalIntConstantDigits intConstantDigits
   P.CharLikeCode word8 -> pure $ Q.HexInt $ word8ToInt word8
@@ -50,8 +56,43 @@ word8ToInt = fromEnum
 evalCoercedInt :: p -> a
 evalCoercedInt _x = notImplemented "evalCoercedInt"
 
-evalInternalInt :: p -> a
-evalInternalInt _x = notImplemented "evalInternalInt"
+evalInternalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalInt -> m Q.HexInt
+evalInternalInt = \case
+  P.InternalIntVariable v -> evalInternalIntVariable v
+  P.InternalSpecialIntParameter v -> getSpecialIntParameter v
+  P.InternalCodeTableRef v -> evalCodeTableRefAsTarget v
+  P.InternalCharToken n -> pure n
+  P.InternalMathCharToken n -> pure n
+  P.InternalFontCharRef v -> evalInternalFontCharRef v
+  P.LastPenalty -> panic "Not implemented: evaluate LastPenalty"
+  P.ParShape -> panic "Not implemented: evaluate ParShape"
+  P.InputLineNr -> panic "Not implemented: evaluate InputLineNr"
+  P.Badness -> panic "Not implemented: evaluate Badness"
+
+-- | Evaluate the code-table-ref, but only as far as the raw reference. Don't
+-- look up the actual value in the reference.
+evalCodeTableRefAsRef :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.CodeTableRef -> m E.CodeTableRef
+evalCodeTableRefAsRef codeTableRef =
+  E.CodeTableRef
+    <$> pure codeTableRef.codeType
+    <*> evalCharCodeInt codeTableRef.codeIndex
+
+-- | Evaluate the code-table-ref, in the sense of looking up the referred value.
+evalCodeTableRefAsTarget :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.CodeTableRef -> m Q.HexInt
+evalCodeTableRefAsTarget codeTableRef = do
+  eCodeTableRef <- evalCodeTableRefAsRef codeTableRef
+  case eCodeTableRef.codeTableType of
+    PT.CategoryCodeType -> HSt.getCategory eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.MathCodeType -> HSt.getMathCode eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.ChangeCaseCodeType letterCase -> HSt.getChangeCaseCode letterCase eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.SpaceFactorCodeType -> HSt.getCategory eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.DelimiterCodeType -> HSt.getCategory eCodeTableRef.codeTableChar <&> Code.toHexInt
+
+evalInternalIntVariable :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.QuantVariableAST 'PT.IntQuantity -> m Q.HexInt
+evalInternalIntVariable = notImplemented "evalInternalIntVariable"
+
+evalInternalFontCharRef :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => _ -> m Q.HexInt
+evalInternalFontCharRef = notImplemented "evalInternalFontCharRef"
 
 -- | Convert a list of digits in some base, into the integer they represent in
 -- that base.
@@ -105,14 +146,14 @@ evalHModeRule _rule =
 --   defaultHeight = pure (toScaledPointApprox (10 :: Int) Point)
 --   defaultDepth = pure 0
 
-evalChar :: (MonadError e m, AsType EvaluationError e) => P.CharCodeRef -> m Codes.CharCode
+evalChar :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.CharCodeRef -> m Codes.CharCode
 evalChar = \case
   P.CharRef c -> pure c
   P.CharTokenRef c -> noteRange c
   P.CharCodeNrRef n -> evalCharCodeInt n
 
 evalCharCodeInt ::
-  (MonadError e m, AsType EvaluationError e) =>
+  (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
   P.CharCodeInt ->
   m Codes.CharCode
 evalCharCodeInt n =

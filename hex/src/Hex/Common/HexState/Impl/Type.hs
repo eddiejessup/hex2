@@ -1,7 +1,7 @@
 module Hex.Common.HexState.Impl.Type where
 
 import Hex.Common.HexState.Impl.GroupScopes (GroupScopes, newGroupScopes)
-import Hex.Common.HexState.Impl.Parameters qualified as H.Inter.St.Param
+import Hex.Common.HexState.Impl.Parameters qualified as Param
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Types qualified as H.TFM
@@ -31,8 +31,8 @@ newHexState :: HexState
 newHexState =
   HexState
     { fontInfos = mempty,
-      specialInts = H.Inter.St.Param.newSpecialIntParameters,
-      specialLengths = H.Inter.St.Param.newSpecialLengthParameters,
+      specialInts = Param.newSpecialIntParameters,
+      specialLengths = Param.newSpecialLengthParameters,
       -- , logStream = logHandle
       -- , outFileStreams = mempty
       afterAssignmentToken = Nothing,
@@ -45,7 +45,10 @@ data FontInfo = FontInfo {fontMetrics :: H.TFM.Font, hyphenChar :: Q.HexInt, ske
   deriving stock (Show, Generic)
 
 stateSpecialLengthParamLens :: PT.SpecialLengthParameter -> Lens' HexState Q.Length
-stateSpecialLengthParamLens p = #specialLengths % at' p % non (Q.Length 0)
+stateSpecialLengthParamLens p = #specialLengths % at' p % non Q.zeroLength
+
+stateSpecialIntParamLens :: PT.SpecialIntParameter -> Lens' HexState Q.HexInt
+stateSpecialIntParamLens p = #specialInts % at' p % non Q.zeroInt
 
 stateFontInfoLens :: PT.FontNumber -> Lens' HexState (Maybe FontInfo)
 stateFontInfoLens fNr = #fontInfos % at' fNr

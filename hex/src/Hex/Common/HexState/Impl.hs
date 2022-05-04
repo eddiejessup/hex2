@@ -56,6 +56,12 @@ instance
   getGlueParameter :: PT.GlueParameter -> (MonadHexStateImplT m) Q.Glue
   getGlueParameter p = getGroupScopesProperty (GroupScopes.localGlueParam p)
 
+  getSpecialIntParameter :: PT.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
+  getSpecialIntParameter p = use $ typed @HexState % stateSpecialIntParamLens p
+
+  setSpecialIntParameter :: PT.SpecialIntParameter -> Q.HexInt -> (MonadHexStateImplT m) ()
+  setSpecialIntParameter p v = assign' (typed @HexState % stateSpecialIntParamLens p) v
+
   getSpecialLengthParameter :: PT.SpecialLengthParameter -> (MonadHexStateImplT m) Q.Length
   getSpecialLengthParameter p = use $ typed @HexState % stateSpecialLengthParamLens p
 
@@ -64,6 +70,18 @@ instance
 
   getCategory :: Codes.CharCode -> (MonadHexStateImplT m) Codes.CatCode
   getCategory p = getGroupScopesProperty (GroupScopes.localCategory p)
+
+  getMathCode :: Codes.CharCode -> (MonadHexStateImplT m) Codes.MathCode
+  getMathCode p = getGroupScopesProperty (GroupScopes.localMathCode p)
+
+  getChangeCaseCode :: ASCII.Case -> Codes.CharCode -> (MonadHexStateImplT m) Codes.CaseChangeCode
+  getChangeCaseCode letterCase p = getGroupScopesProperty (GroupScopes.localChangeCaseCode letterCase p)
+
+  getSpaceFactor :: Codes.CharCode -> (MonadHexStateImplT m) Codes.SpaceFactorCode
+  getSpaceFactor p = getGroupScopesProperty (GroupScopes.localSpaceFactor p)
+
+  getDelimiterCode :: Codes.CharCode -> (MonadHexStateImplT m) Codes.DelimiterCode
+  getDelimiterCode p = getGroupScopesProperty (GroupScopes.localDelimiterCode p)
 
   resolveSymbol :: ControlSymbol -> (MonadHexStateImplT m) (Maybe ResolvedToken)
   resolveSymbol p = getGroupScopesProperty (GroupScopes.localResolvedToken p)

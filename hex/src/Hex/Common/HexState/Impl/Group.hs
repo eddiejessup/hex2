@@ -1,8 +1,8 @@
 module Hex.Common.HexState.Impl.Group where
 
+import Hex.Common.HexState.Impl.Scope (Scope)
 import Hex.Stage.Parse.Interface.AST.Command qualified as H.Par.AST
 import Hexlude
-import Hex.Common.HexState.Impl.Scope (Scope)
 
 -- | A group is a weaker idea than a scope.
 -- Some groups introduce a scope, but some don't.

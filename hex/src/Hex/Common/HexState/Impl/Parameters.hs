@@ -1,10 +1,10 @@
 module Hex.Common.HexState.Impl.Parameters where
 
 import Data.Map.Strict qualified as Map
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Quantity qualified as Q
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
-import qualified Hex.Common.HexState.Interface.Resolve.SyntaxToken as ST
 
 newIntParameters :: Map PT.IntParameter Q.HexInt
 newIntParameters =

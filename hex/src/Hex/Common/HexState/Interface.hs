@@ -1,5 +1,7 @@
 module Hex.Common.HexState.Interface where
 
+import ASCII qualified
+import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
@@ -8,8 +10,6 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Common.Codes as Code
-import qualified ASCII
 
 class Monad m => MonadHexState m where
   getIntParameter :: PT.IntParameter -> m Q.HexInt
@@ -18,11 +18,23 @@ class Monad m => MonadHexState m where
 
   getGlueParameter :: PT.GlueParameter -> m Q.Glue
 
+  getSpecialIntParameter :: PT.SpecialIntParameter -> m Q.HexInt
+
+  setSpecialIntParameter :: PT.SpecialIntParameter -> Q.HexInt -> m ()
+
   getSpecialLengthParameter :: PT.SpecialLengthParameter -> m Q.Length
 
   setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> m ()
 
   getCategory :: Codes.CharCode -> m Codes.CatCode
+
+  getMathCode :: Code.CharCode -> m Code.MathCode
+
+  getChangeCaseCode :: ASCII.Case -> Code.CharCode -> m Code.CaseChangeCode
+
+  getSpaceFactor :: Code.CharCode -> m Code.SpaceFactorCode
+
+  getDelimiterCode :: Code.CharCode -> m Code.DelimiterCode
 
   resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
 
@@ -59,9 +71,15 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   getIntParameter x = lift $ getIntParameter x
   getLengthParameter x = lift $ getLengthParameter x
   getGlueParameter x = lift $ getGlueParameter x
+  getSpecialIntParameter x = lift $ getSpecialIntParameter x
+  setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
   getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
   setSpecialLengthParameter x y = lift $ setSpecialLengthParameter x y
   getCategory x = lift $ getCategory x
+  getMathCode x = lift $ getMathCode x
+  getChangeCaseCode x y = lift $ getChangeCaseCode x y
+  getSpaceFactor x = lift $ getSpaceFactor x
+  getDelimiterCode x = lift $ getDelimiterCode x
   resolveSymbol x = lift $ resolveSymbol x
   loadFont x y = lift $ loadFont x y
   selectFont x y = lift $ selectFont x y
