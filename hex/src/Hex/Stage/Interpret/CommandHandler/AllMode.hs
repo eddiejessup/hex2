@@ -8,6 +8,10 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
+import qualified Hex.Stage.Evaluate.Interface as Eval
+import qualified Hex.Stage.Parse.Interface as Par
+import Hex.Capability.Log.Interface (MonadHexLog(..))
+import qualified Formatting as F
 
 data InterpretError
   = SawEndBoxInMainVMode
@@ -19,6 +23,17 @@ data InterpretError
 data AllModeCommandResult
   = SawEndBox
   | DidNotSeeEndBox
+
+getNextCommandLogged :: ( Eval.MonadEvaluate m,
+    Par.MonadCommandSource m,
+    MonadError e m,
+    AsType InterpretError e,
+    MonadHexLog m
+  ) => m Eval.Command
+getNextCommandLogged = do
+  cmd <- Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
+  logText $ F.sformat ("Read command: " |%| F.shown) cmd
+  pure cmd
 
 handleModeIndependentCommand ::
   (Monad m, MonadIO m, HSt.MonadHexState m, Lex.MonadLexTokenSource m) =>

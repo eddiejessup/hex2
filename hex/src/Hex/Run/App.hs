@@ -1,5 +1,7 @@
 module Hex.Run.App where
 
+import Hex.Capability.Log.Impl (MonadHexLogT (..))
+import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Impl (HexStateError, MonadHexStateImplT (..))
 import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface (MonadHexState)
@@ -22,24 +24,34 @@ import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hex.Stage.Resolve.Impl (MonadResolveT (..))
 import Hex.Stage.Resolve.Interface (MonadResolve)
 import Hexlude
+import System.IO (hFlush)
 
-data HexStateWithChars = HexStateWithChars HSt.HexState CharSource
+data AppEnv = AppEnv
+  { appLogHandle :: Handle
+  }
   deriving stock (Generic)
 
-instance {-# OVERLAPPING #-} HasType ByteString HexStateWithChars where
+data AppState = AppState
+  { appHexState :: HSt.HexState,
+    appCharSource :: CharSource
+  }
+  deriving stock (Generic)
+
+instance {-# OVERLAPPING #-} HasType ByteString AppState where
   typed = typed @CharSource % typed @ByteString
 
-newHexStateWithChars :: ByteString -> HexStateWithChars
-newHexStateWithChars chrs = HexStateWithChars HSt.newHexState (newCharSource chrs)
+newHexStateWithChars :: ByteString -> AppState
+newHexStateWithChars chrs = AppState HSt.newHexState (newCharSource chrs)
 
-newtype App a = App {unApp :: StateT HexStateWithChars (ExceptT AppError IO) a}
+newtype App a = App {unApp :: ReaderT AppEnv (StateT AppState (ExceptT AppError IO)) a}
   deriving newtype
     ( Functor,
       Applicative,
       Monad,
       MonadIO,
       MonadError AppError,
-      MonadState HexStateWithChars
+      MonadState AppState,
+      MonadReader AppEnv
     )
   deriving (MonadHexState) via (MonadHexStateImplT App)
   deriving (MonadCharCatSource) via (MonadCharCatSourceT App)
@@ -48,6 +60,7 @@ newtype App a = App {unApp :: StateT HexStateWithChars (ExceptT AppError IO) a}
   deriving (MonadLexTokenSource) via (MonadLexTokenSourceT App)
   deriving (MonadPrimTokenSource) via (MonadPrimTokenSourceT App)
   deriving (MonadCommandSource) via (MonadCommandSourceT App)
+  deriving (MonadHexLog) via (MonadHexLogT App)
 
 data AppError
   = AppLexError Lex.LexError
@@ -59,17 +72,40 @@ data AppError
   | AppTFMError H.TFM.TFMError
   deriving stock (Generic, Show)
 
-runAppWithState ::
-  HexStateWithChars ->
+runAppGivenState ::
+  AppState ->
   App a ->
-  IO (Either AppError (a, HexStateWithChars))
-runAppWithState chrSrc app = runExceptT (runStateT (app.unApp) chrSrc)
+  AppEnv ->
+  IO (Either AppError (a, AppState))
+runAppGivenState appState app appEnv =
+  let x = runReaderT app.unApp appEnv
+   in runExceptT $ runStateT x appState
+
+-- | Set up the enironment in this 'with'-style, to ensure we clean up the log
+-- handle when we're finished.
+withAppEnv :: (AppEnv -> IO a) -> IO a
+withAppEnv k = do
+  appLogHandle <- openFile "log.txt" WriteMode
+  k $ AppEnv {appLogHandle}
+
+runAppGivenEnv ::
+  ByteString ->
+  App a ->
+  AppEnv ->
+  IO (Either AppError (a, AppState))
+runAppGivenEnv bs app appEnv = do
+  let appState = newHexStateWithChars bs
+  runAppGivenState appState app appEnv
 
 runApp ::
   ByteString ->
   App a ->
-  IO (Either AppError (a, HexStateWithChars))
-runApp = runAppWithState . newHexStateWithChars
+  IO (Either AppError (a, AppState))
+runApp bs app =
+  withAppEnv $ \appEnv -> do
+    a <- runAppGivenEnv bs app appEnv
+    hFlush appEnv.appLogHandle
+    pure a
 
 evalApp :: ByteString -> App a -> IO (Either AppError a)
 evalApp chrs = fmap (fmap fst) <$> runApp chrs

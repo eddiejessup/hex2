@@ -9,13 +9,14 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Break qualified as H.Inter.B.List.H.Para
 import Hex.Stage.Interpret.Build.List.Horizontal.Set qualified as H.Inter.B.List.H
-import Hex.Stage.Interpret.CommandHandler.AllMode qualified as H.AllMode
+import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
 import Hex.Stage.Interpret.CommandHandler.ParaMode qualified as H.Para
 import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
 import Hex.Stage.Lex.Interface.CharSource (CharSource)
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hexlude
+import Hex.Capability.Log.Interface (MonadHexLog)
 
 data VModeCommandResult
   = ContinueMainVMode
@@ -29,8 +30,9 @@ buildMainVList ::
     MonadCommandSource m,
     H.Inter.St.MonadHexState m,
     MonadError e m,
-    AsType H.AllMode.InterpretError e,
-    MonadIO m
+    AsType AllMode.InterpretError e,
+    MonadIO m,
+    MonadHexLog m
   ) =>
   m H.Inter.B.List.VList
 buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
@@ -38,7 +40,7 @@ buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
     go :: StateT H.Inter.B.List.VList m ()
     go = do
       streamPreParse <- lift getSource
-      command <- lift $ Eval.getEvalCommandErrorEOF $ injectTyped H.AllMode.UnexpectedEndOfInput
+      command <- lift $ AllMode.getNextCommandLogged
       handleCommandInMainVMode streamPreParse command >>= \case
         EndMainVMode -> pure ()
         ContinueMainVMode -> go
@@ -47,12 +49,13 @@ handleCommandInMainVMode ::
   forall m e.
   ( Monad m,
     MonadIO m,
+    MonadHexLog m,
     MonadCommandSource m,
     Eval.MonadEvaluate m,
     H.Inter.St.MonadHexState m,
     MonadLexTokenSource m,
     MonadError e m,
-    AsType H.AllMode.InterpretError e
+    AsType AllMode.InterpretError e
   ) =>
   CharSource ->
   Eval.Command ->
@@ -78,10 +81,10 @@ handleCommandInMainVMode oldSrc = \case
   Eval.AddSpace ->
     pure ContinueMainVMode
   Eval.ModeIndependentCommand modeIndependentCommand -> do
-    H.AllMode.handleModeIndependentCommand extendVListStateT modeIndependentCommand >>= \case
-      H.AllMode.SawEndBox ->
-        lift $ throwError $ injectTyped H.AllMode.SawEndBoxInMainVMode
-      H.AllMode.DidNotSeeEndBox ->
+    AllMode.handleModeIndependentCommand extendVListStateT modeIndependentCommand >>= \case
+      AllMode.SawEndBox ->
+        lift $ throwError $ injectTyped AllMode.SawEndBoxInMainVMode
+      AllMode.DidNotSeeEndBox ->
         pure ContinueMainVMode
   oth ->
     panic $ "Not implemented, outer V mode: " <> show oth
@@ -100,7 +103,7 @@ handleCommandInMainVMode oldSrc = \case
         H.Para.EndParaSawEndParaCommand ->
           pure ContinueMainVMode
         H.Para.EndParaSawLeaveBox ->
-          lift $ throwError $ injectTyped H.AllMode.SawEndBoxInMainVModePara
+          lift $ throwError $ injectTyped AllMode.SawEndBoxInMainVModePara
 
 extendVListWithParagraphStateT ::
   ( H.Inter.St.MonadHexState m

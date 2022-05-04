@@ -1,8 +1,8 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Hex.Stage.Evaluate.Impl where
 
+import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Stage.Evaluate.Impl.Command qualified as Eval
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
@@ -12,7 +12,16 @@ import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hexlude
 
 newtype MonadEvaluateT m a = MonadEvaluateT {unMonadEvaluateT :: m a}
-  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, MonadHexState)
+  deriving newtype
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadState st,
+      MonadError e,
+      MonadHexState,
+      MonadHexLog
+    )
 
 instance
   ( MonadError e (MonadEvaluateT m),

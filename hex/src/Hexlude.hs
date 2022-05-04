@@ -19,6 +19,7 @@ module Hexlude
     Fmt,
     flap,
     nothingToError,
+    know,
   )
 where
 
@@ -69,3 +70,11 @@ type Fmt a r = Format r (a -> r)
 flap :: Functor f => f (a -> b) -> a -> f b
 flap ff x = (\f -> f x) <$> ff
 {-# INLINE flap #-}
+
+-- Optics for MonadReader contexts, by analogy with 'use' etc in Optics.Extra.
+
+know
+  :: (Is k A_Getter, MonadReader e m)
+  => Optic' k is e a
+  -> m a
+know o = asks (view o)

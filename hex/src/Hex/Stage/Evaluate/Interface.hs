@@ -1,9 +1,9 @@
 module Hex.Stage.Evaluate.Interface where
 
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
+import Hex.Stage.Parse.Interface (MonadCommandSource (..))
+import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hexlude
-import qualified Hex.Stage.Parse.Interface.AST.Command as Uneval
-import Hex.Stage.Parse.Interface (MonadCommandSource(..))
 
 class MonadEvaluate m where
   evalCommand :: Uneval.Command -> m Eval.Command

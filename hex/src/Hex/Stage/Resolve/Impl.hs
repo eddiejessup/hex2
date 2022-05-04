@@ -1,8 +1,8 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Hex.Stage.Resolve.Impl where
 
+import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..), ResolvedToken (..))
@@ -12,7 +12,16 @@ import Hex.Stage.Resolve.Interface (MonadResolve (..), ResolutionError (..))
 import Hexlude
 
 newtype MonadResolveT m a = MonadResolveT {unMonadResolveT :: m a}
-  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, HSt.MonadHexState)
+  deriving newtype
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadState st,
+      MonadError e,
+      HSt.MonadHexState,
+      MonadHexLog
+    )
 
 instance
   ( Monad (MonadResolveT m),

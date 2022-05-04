@@ -1,8 +1,8 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Hex.Stage.Parse.Impl where
 
+import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.Parse (ParseUnexpectedError (..), ParsingError (..))
 import Hex.Stage.Expand.Impl.Parse (runParseT)
@@ -13,7 +13,18 @@ import Hex.Stage.Parse.Interface
 import Hexlude
 
 newtype MonadCommandSourceT m a = MonadCommandSourceT {unMonadCommandSourceT :: m a}
-  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, MonadHexState, Exp.MonadPrimTokenSource, Lex.MonadLexTokenSource)
+  deriving newtype
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadState st,
+      MonadError e,
+      MonadHexState,
+      Exp.MonadPrimTokenSource,
+      Lex.MonadLexTokenSource,
+      MonadHexLog
+    )
 
 -- This is quite opaque so to explain:
 -- We need (Lex.MonadLexTokenSource m, MonadPrimTokenSource m),

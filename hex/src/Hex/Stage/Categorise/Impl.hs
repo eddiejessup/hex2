@@ -1,10 +1,10 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Hex.Stage.Categorise.Impl where
 
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.ByteString qualified as BS
+import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Categorise.Interface (MonadCharCatSource (..), RawCharCat (..))
@@ -38,7 +38,16 @@ extractCharCat xs = runMaybeT $ do
       pure normal
 
 newtype MonadCharCatSourceT m a = MonadCharCatSourceT {unMonadCharCatSourceT :: m a}
-  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, HSt.MonadHexState)
+  deriving newtype
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadState st,
+      MonadError e,
+      HSt.MonadHexState,
+      MonadHexLog
+    )
 
 instance
   ( Monad (MonadCharCatSourceT m),

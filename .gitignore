@@ -2,4 +2,4 @@
 dist-newstyle/
 *.tfm
 hex.cabal
-
+log.txt

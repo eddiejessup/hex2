@@ -8,13 +8,13 @@ import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
-import Hex.Stage.Interpret.CommandHandler.AllMode (InterpretError (..))
-import Hex.Stage.Interpret.CommandHandler.AllMode qualified as H.AllMode
+import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
 import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
 import Hex.Stage.Lex.Interface.CharSource (CharSource)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
+import Hex.Capability.Log.Interface (MonadHexLog)
 
 data ParaModeCommandResult
   = ContinuePara
@@ -33,7 +33,8 @@ buildParaList ::
     HSt.MonadHexState m,
     MonadError e m,
     MonadIO m,
-    AsType H.AllMode.InterpretError e
+    AsType AllMode.InterpretError e,
+    MonadHexLog m
   ) =>
   PT.IndentFlag ->
   m (EndParaReason, H.Inter.B.List.HList)
@@ -51,7 +52,7 @@ buildParaList indentFlag = do
       -- in case we need to revert to before the command.
       sPreParse <- lift getSource
       -- Read the next command.
-      command <- lift $ Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
+      command <- lift $ AllMode.getNextCommandLogged
       -- Handle the next command, passing the old state in case we need to revert.
       handleCommandInParaMode sPreParse command >>= \case
         EndPara endReason -> pure endReason
@@ -63,7 +64,7 @@ handleCommandInParaMode ::
     MonadLexTokenSource m,
     MonadError e m,
     MonadIO m,
-    AsType H.AllMode.InterpretError e
+    AsType AllMode.InterpretError e
   ) =>
   CharSource ->
   Eval.Command ->
@@ -88,7 +89,7 @@ handleCommandInParaMode oldSrc = \case
     extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
     pure ContinuePara
   Eval.AddSpace -> do
-    spaceGlue <- lift $ HSt.currentFontSpaceGlue >>= note (injectTyped H.AllMode.NoFontSelected)
+    spaceGlue <- lift $ HSt.currentFontSpaceGlue >>= note (injectTyped AllMode.NoFontSelected)
     extendHListStateT $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue spaceGlue
     pure ContinuePara
   Eval.StartParagraph indentFlag -> do
@@ -98,10 +99,10 @@ handleCommandInParaMode oldSrc = \case
   Eval.EndParagraph ->
     pure $ EndPara EndParaSawEndParaCommand
   Eval.ModeIndependentCommand modeIndependentCommand -> do
-    H.AllMode.handleModeIndependentCommand extendHListVElemStateT modeIndependentCommand <&> \case
-      H.AllMode.SawEndBox ->
+    AllMode.handleModeIndependentCommand extendHListVElemStateT modeIndependentCommand <&> \case
+      AllMode.SawEndBox ->
         EndPara EndParaSawEndParaCommand
-      H.AllMode.DidNotSeeEndBox ->
+      AllMode.DidNotSeeEndBox ->
         ContinuePara
   oth ->
     panic $ show oth
@@ -109,12 +110,12 @@ handleCommandInParaMode oldSrc = \case
 charAsBox ::
   ( HSt.MonadHexState m,
     MonadError e m,
-    AsType H.AllMode.InterpretError e
+    AsType AllMode.InterpretError e
   ) =>
   Codes.CharCode ->
   m H.Inter.B.Box.CharBox
 charAsBox char = do
-  (width, height, depth, _) <- HSt.currentFontCharacter char >>= note (injectTyped H.AllMode.NoFontSelected)
+  (width, height, depth, _) <- HSt.currentFontCharacter char >>= note (injectTyped AllMode.NoFontSelected)
   pure $
     H.Inter.B.Box.CharBox
       H.Inter.B.Box.Box

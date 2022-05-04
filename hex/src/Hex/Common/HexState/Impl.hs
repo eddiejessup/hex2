@@ -1,13 +1,12 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Hex.Common.HexState.Impl where
 
 import ASCII qualified
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
+import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.GroupScopes (GroupScopes)
 import Hex.Common.HexState.Impl.GroupScopes qualified as GroupScopes
 import Hex.Common.HexState.Impl.Type
@@ -34,10 +33,19 @@ getGroupScopesProperty groupScopesGetter =
   use $ typed @HexState % #groupScopes % to groupScopesGetter
 
 newtype MonadHexStateImplT m a = MonadHexStateImplT {unMonadHexStateImplT :: m a}
-  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e)
+  deriving newtype
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadState st,
+      MonadError e,
+      MonadHexLog
+    )
 
 instance
   ( Monad (MonadHexStateImplT m),
+    MonadHexLog (MonadHexStateImplT m),
     MonadIO (MonadHexStateImplT m),
     MonadState st (MonadHexStateImplT m),
     HasType HexState st,
@@ -68,19 +76,19 @@ instance
   setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> (MonadHexStateImplT m) ()
   setSpecialLengthParameter p v = assign' (typed @HexState % stateSpecialLengthParamLens p) v
 
-  getCategory :: Codes.CharCode -> (MonadHexStateImplT m) Codes.CatCode
+  getCategory :: Code.CharCode -> (MonadHexStateImplT m) Code.CatCode
   getCategory p = getGroupScopesProperty (GroupScopes.localCategory p)
 
-  getMathCode :: Codes.CharCode -> (MonadHexStateImplT m) Codes.MathCode
+  getMathCode :: Code.CharCode -> (MonadHexStateImplT m) Code.MathCode
   getMathCode p = getGroupScopesProperty (GroupScopes.localMathCode p)
 
-  getChangeCaseCode :: ASCII.Case -> Codes.CharCode -> (MonadHexStateImplT m) Codes.CaseChangeCode
+  getChangeCaseCode :: ASCII.Case -> Code.CharCode -> (MonadHexStateImplT m) Code.CaseChangeCode
   getChangeCaseCode letterCase p = getGroupScopesProperty (GroupScopes.localChangeCaseCode letterCase p)
 
-  getSpaceFactor :: Codes.CharCode -> (MonadHexStateImplT m) Codes.SpaceFactorCode
+  getSpaceFactor :: Code.CharCode -> (MonadHexStateImplT m) Code.SpaceFactorCode
   getSpaceFactor p = getGroupScopesProperty (GroupScopes.localSpaceFactor p)
 
-  getDelimiterCode :: Codes.CharCode -> (MonadHexStateImplT m) Codes.DelimiterCode
+  getDelimiterCode :: Code.CharCode -> (MonadHexStateImplT m) Code.DelimiterCode
   getDelimiterCode p = getGroupScopesProperty (GroupScopes.localDelimiterCode p)
 
   resolveSymbol :: ControlSymbol -> (MonadHexStateImplT m) (Maybe ResolvedToken)
@@ -101,13 +109,13 @@ instance
         let gShrink = Q.FinitePureFlex $ TFM.fontLengthParamLength font (TFM.spaceShrink . TFM.params)
         pure $ Just $ Q.Glue {Q.gDimen = spacing, Q.gStretch, Q.gShrink}
 
-  currentFontCharacter :: Codes.CharCode -> MonadHexStateImplT m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
+  currentFontCharacter :: Code.CharCode -> MonadHexStateImplT m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
   currentFontCharacter chrCode = do
     currentFontInfo >>= \case
       Nothing -> pure Nothing
       Just fInfo -> do
         let fontMetrics = fInfo ^. typed @TFM.Font
-        tfmChar <- note (injectTyped CharacterCodeNotFound) $ fontMetrics ^. #characters % at' (fromIntegral $ Codes.unCharCode chrCode)
+        tfmChar <- note (injectTyped CharacterCodeNotFound) $ fontMetrics ^. #characters % at' (fromIntegral $ Code.unCharCode chrCode)
         let toLen :: TFM.LengthDesignSize -> Q.Length
             toLen = TFM.lengthFromFontDesignSize fontMetrics
         pure $ Just (tfmChar ^. #width % to toLen, tfmChar ^. #height % to toLen, tfmChar ^. #depth % to toLen, tfmChar ^. #italicCorrection % to toLen)
@@ -142,7 +150,8 @@ instance
     modifyGroupScopes $ GroupScopes.setCurrentFontNr fNr scopeFlag
 
   setCategory :: Code.CharCode -> Code.CatCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setCategory idxCode cat scopeFlag =
+  setCategory idxCode cat scopeFlag = do
+    logText $ sformat ("setCategory: " |%| Code.fmtCharCode |%| " -> " |%| Code.fmtCatCode) idxCode cat
     modifyGroupScopes $ GroupScopes.setCategory idxCode cat scopeFlag
 
   setMathCode :: Code.CharCode -> Code.MathCode -> PT.ScopeFlag -> MonadHexStateImplT m ()

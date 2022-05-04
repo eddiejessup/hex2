@@ -1,8 +1,8 @@
 {-# LANGUAGE UndecidableInstances #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
 
 module Hex.Stage.Expand.Impl where
 
+import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Syn
@@ -18,15 +18,26 @@ data ExpansionError
   deriving stock (Generic, Show)
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
-  deriving newtype (Functor, Applicative, Monad, MonadIO, MonadState st, MonadError e, Res.MonadResolve, Lex.MonadLexTokenSource)
+  deriving newtype
+    ( Functor,
+      Applicative,
+      Monad,
+      MonadIO,
+      MonadState st,
+      MonadError e,
+      Res.MonadResolve,
+      Lex.MonadLexTokenSource,
+      MonadHexLog
+    )
 
-instance (
-    Res.MonadResolve (MonadPrimTokenSourceT m),
+instance
+  ( Res.MonadResolve (MonadPrimTokenSourceT m),
     MonadError e (MonadPrimTokenSourceT m),
     AsType ExpansionError e,
     Lex.MonadLexTokenSource (MonadPrimTokenSourceT m)
-  )
-  => MonadPrimTokenSource (MonadPrimTokenSourceT m) where
+  ) =>
+  MonadPrimTokenSource (MonadPrimTokenSourceT m)
+  where
   getPrimitiveToken = getPrimitiveTokenImpl
 
   getTokenInhibited = Lex.getLexToken
