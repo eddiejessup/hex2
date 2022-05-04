@@ -55,30 +55,7 @@ class Monad m => MonadHexState m where
 
   getLastFetchedLexTok :: m (Maybe Lex.LexToken)
 
-instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.HList m) where
-  getIntParameter x = lift $ getIntParameter x
-  getLengthParameter x = lift $ getLengthParameter x
-  getGlueParameter x = lift $ getGlueParameter x
-  getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
-  setSpecialLengthParameter x y = lift $ setSpecialLengthParameter x y
-  getCategory x = lift $ getCategory x
-  resolveSymbol x = lift $ resolveSymbol x
-  loadFont x y = lift $ loadFont x y
-  selectFont x y = lift $ selectFont x y
-  currentFontCharacter x = lift $ currentFontCharacter x
-  currentFontSpaceGlue = lift currentFontSpaceGlue
-  popAfterAssignmentToken = lift popAfterAssignmentToken
-  setAfterAssignmentToken x = lift $ setAfterAssignmentToken x
-  setSymbol x y z = lift $ setSymbol x y z
-  setLastFetchedLexTok x = lift $ setLastFetchedLexTok x
-  getLastFetchedLexTok = lift getLastFetchedLexTok
-  setCategory x y z = lift $ setCategory x y z
-  setMathCode x y z = lift $ setMathCode x y z
-  setChangeCaseCode w x y z = lift $ setChangeCaseCode w x y z
-  setSpaceFactor x y z = lift $ setSpaceFactor x y z
-  setDelimiterCode x y z = lift $ setDelimiterCode x y z
-
-instance MonadHexState m => MonadHexState (StateT H.Inter.B.List.VList m) where
+instance MonadHexState m => MonadHexState (StateT a m) where
   getIntParameter x = lift $ getIntParameter x
   getLengthParameter x = lift $ getLengthParameter x
   getGlueParameter x = lift $ getGlueParameter x

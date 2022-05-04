@@ -22,9 +22,9 @@ data AllModeCommandResult
 
 handleModeIndependentCommand ::
   (Monad m, MonadIO m, HSt.MonadHexState m, Lex.MonadLexTokenSource m) =>
-  (H.Inter.B.List.VListElem -> m ()) ->
+  (H.Inter.B.List.VListElem -> StateT s m ()) ->
   Eval.ModeIndependentCommand ->
-  m AllModeCommandResult
+  StateT s m AllModeCommandResult
 handleModeIndependentCommand addVElem = \case
   Eval.WriteMessage (Eval.MessageWriteCommand stdStream expandedText) -> do
     let _handle = case stdStream of
@@ -152,7 +152,7 @@ handleModeIndependentCommand addVElem = \case
     HSt.popAfterAssignmentToken >>= \case
       Nothing -> pure ()
       -- If a token was indeed set, put it into the input.
-      Just lt -> Lex.insertLexTokenToSource lt
+      Just lt -> lift $ Lex.insertLexTokenToSource lt
     pure DidNotSeeEndBox
   -- Eval.WriteToStream n (Eval.ImmediateWriteText eTxt) -> do
   --   en <- texEvaluate n
