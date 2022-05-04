@@ -15,8 +15,8 @@ import Hex.Common.HexState.Interface
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
-import Hex.Common.TFM.Get qualified as H.TFM
-import Hex.Common.TFM.Types qualified as H.TFM
+import Hex.Common.TFM.Get qualified as TFM
+import Hex.Common.TFM.Types qualified as TFM
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
@@ -43,7 +43,7 @@ instance
     HasType HexState st,
     MonadError e (MonadHexStateImplT m),
     AsType HexStateError e,
-    AsType H.TFM.TFMError e
+    AsType TFM.TFMError e
   ) =>
   MonadHexState (MonadHexStateImplT m)
   where
@@ -74,9 +74,9 @@ instance
       Nothing -> pure Nothing
       Just fInfo -> do
         let font = fontMetrics fInfo
-        let spacing = H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spacing . H.TFM.params)
-        let gStretch = Q.FinitePureFlex $ H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spaceStretch . H.TFM.params)
-        let gShrink = Q.FinitePureFlex $ H.TFM.fontLengthParamScaledPointsInt font (H.TFM.spaceShrink . H.TFM.params)
+        let spacing = TFM.fontLengthParamLength font (TFM.spacing . TFM.params)
+        let gStretch = Q.FinitePureFlex $ TFM.fontLengthParamLength font (TFM.spaceStretch . TFM.params)
+        let gShrink = Q.FinitePureFlex $ TFM.fontLengthParamLength font (TFM.spaceShrink . TFM.params)
         pure $ Just $ Q.Glue {Q.gDimen = spacing, Q.gStretch, Q.gShrink}
 
   currentFontCharacter :: Codes.CharCode -> MonadHexStateImplT m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
@@ -84,10 +84,10 @@ instance
     currentFontInfo >>= \case
       Nothing -> pure Nothing
       Just fInfo -> do
-        let fontMetrics = fInfo ^. typed @H.TFM.Font
+        let fontMetrics = fInfo ^. typed @TFM.Font
         tfmChar <- note (injectTyped CharacterCodeNotFound) $ fontMetrics ^. #characters % at' (fromIntegral $ Codes.unCharCode chrCode)
-        let toLen :: Q.LengthDesignSize Rational -> Q.LengthScaledPoints Int
-            toLen = H.TFM.fontLengthScaledPointsInt fontMetrics
+        let toLen :: TFM.LengthDesignSize -> Q.Length
+            toLen = TFM.lengthFromFontDesignSize fontMetrics
         pure $ Just (tfmChar ^. #width % to toLen, tfmChar ^. #height % to toLen, tfmChar ^. #depth % to toLen, tfmChar ^. #italicCorrection % to toLen)
 
   loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> MonadHexStateImplT m H.Inter.B.Box.FontDefinition
@@ -175,13 +175,13 @@ currentFontInfo = do
 readFontInfo ::
   ( MonadIO m,
     MonadError e m,
-    AsType H.TFM.TFMError e,
+    AsType TFM.TFMError e,
     MonadHexState m
   ) =>
   FilePath ->
   m FontInfo
 readFontInfo fontPath = do
-  fontMetrics <- H.TFM.parseTFMFile fontPath
+  fontMetrics <- TFM.parseTFMFile fontPath
   hyphenChar <- getIntParameter PT.DefaultHyphenChar
   skewChar <- getIntParameter PT.DefaultSkewChar
   pure FontInfo {fontMetrics, hyphenChar, skewChar}

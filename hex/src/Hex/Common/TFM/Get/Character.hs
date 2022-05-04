@@ -1,7 +1,6 @@
 module Hex.Common.TFM.Get.Character where
 
 import Data.IntMap qualified as IntMap
-import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get.CharInfo qualified as H.TFM.Get.CharInfo
 import Hex.Common.TFM.Types
 import Hexlude
@@ -10,10 +9,10 @@ character ::
   forall m.
   MonadError Text m =>
   [Recipe] ->
-  [Q.LengthDesignSize Rational] -> -- Width
-  [Q.LengthDesignSize Rational] -> -- Height
-  [Q.LengthDesignSize Rational] -> -- Depth
-  [Q.LengthDesignSize Rational] -> -- ItalicCorrection
+  [LengthDesignSize] -> -- Width
+  [LengthDesignSize] -> -- Height
+  [LengthDesignSize] -> -- Depth
+  [LengthDesignSize] -> -- ItalicCorrection
   H.TFM.Get.CharInfo.CharInfo ->
   m Character
 character recipes widths heights depths italicCorrs charInfo =
@@ -45,9 +44,9 @@ character recipes widths heights depths italicCorrs charInfo =
     -- hold, so that an index of zero implies a value of zero. A character is
     -- valid if and only if it lies between `bc` and `ec` and has a nonzero
     -- `width_index`.
-    dimAtEith :: Monoid a => [a] -> Word8 -> Maybe a
+    dimAtEith :: [LengthDesignSize] -> Word8 -> Maybe LengthDesignSize
     dimAtEith xs i
-      | i == 0 = Just mempty
+      | i == 0 = Just zeroLengthDesignSize
       | otherwise = atMay xs (fromIntegral @Word8 @Int i)
 
 characters ::
@@ -55,10 +54,10 @@ characters ::
   Word16 ->
   [H.TFM.Get.CharInfo.CharInfo] ->
   [Recipe] ->
-  [Q.LengthDesignSize Rational] -> -- Width
-  [Q.LengthDesignSize Rational] -> -- Height
-  [Q.LengthDesignSize Rational] -> -- Depth
-  [Q.LengthDesignSize Rational] -> -- ItalicCorrection
+  [LengthDesignSize] -> -- Width
+  [LengthDesignSize] -> -- Height
+  [LengthDesignSize] -> -- Depth
+  [LengthDesignSize] -> -- ItalicCorrection
   m (IntMap Character)
 characters minCode charInfos recipes widths heights depths italicCorrs =
   do

@@ -55,10 +55,10 @@ data PureFlex = FinitePureFlex Length | InfPureFlex InfLengthOfOrder
 zeroFlex :: PureFlex
 zeroFlex = FinitePureFlex zeroLength
 
-flexPt :: Int -> PureFlex
+flexPt :: Rational -> PureFlex
 flexPt = FinitePureFlex . pt
 
-filFlexPt :: Int -> PureFlex
+filFlexPt :: Rational -> PureFlex
 filFlexPt = filFlex . pt
 
 filFlex :: Length -> PureFlex
@@ -84,10 +84,10 @@ fmtPureFlex = F.later $ \case
 data NetFlex = NetFlex {finiteFlex :: Length, fil1Flex, fil2Flex, fil3Flex :: Length}
   deriving stock (Show, Generic)
 
-netFlexPt :: Int -> NetFlex
+netFlexPt :: Rational -> NetFlex
 netFlexPt = pureAsNetFlex . flexPt
 
-filNetFlexPt :: Int -> NetFlex
+filNetFlexPt :: Rational -> NetFlex
 filNetFlexPt = pureAsNetFlex . filFlexPt
 
 zeroNetFlex :: NetFlex

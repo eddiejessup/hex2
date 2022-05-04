@@ -16,7 +16,7 @@ familyLength = 20
 -- The information stored in the header table of a H.TFM file.
 data Header = Header
   { checksum :: Word32,
-    designFontSize :: Q.LengthScaledPoints Rational,
+    designFontSize :: Q.Length,
     characterCodingScheme :: Maybe [ASCII.Char],
     family :: Maybe [ASCII.Char],
     sevenBitSafeFlag :: Maybe Word8,
@@ -60,7 +60,7 @@ getHeader =
   do
     -- header[0 ... 1]: Required; checksum and design size.
     checksum <- Ser.getWord32be
-    designFontSize <- Q.lengthFromPointsRational <$> H.TFM.Get.Common.getFixWord
+    designFontSize <- Q.pt <$> H.TFM.Get.Common.getFixWord
     -- header[2 ... 11]: Optional; character coding scheme.
     characterCodingScheme <-
       Ser.isEmpty >>= \case

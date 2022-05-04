@@ -4,9 +4,16 @@ import ASCII qualified
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
+newtype LengthDesignSize = LengthDesignSize {unLengthDesignSize :: Rational}
+  deriving stock (Show, Generic)
+  deriving newtype (Eq, Ord)
+
+zeroLengthDesignSize :: LengthDesignSize
+zeroLengthDesignSize = LengthDesignSize 0
+
 data Font = Font
   { checksum :: Word32,
-    designFontSize :: Q.LengthScaledPoints Rational,
+    designFontSize :: Q.Length,
     characterCodingScheme :: Maybe [ASCII.Char],
     family :: Maybe [ASCII.Char],
     params :: FontParams,
@@ -15,18 +22,15 @@ data Font = Font
   }
   deriving stock (Show, Generic)
 
-fontLengthScaledPoints :: Font -> Q.LengthDesignSize Rational -> Q.LengthScaledPoints Rational
-fontLengthScaledPoints font lengthInDS =
-  Q.fromDesignSize lengthInDS (designFontSize font)
+lengthFromFontDesignSize :: Font -> LengthDesignSize -> Q.Length
+lengthFromFontDesignSize font lengthInDS =
+  lengthFromDesignSize lengthInDS (designFontSize font)
 
-fontLengthScaledPointsInt :: Font -> Q.LengthDesignSize Rational -> Q.LengthScaledPoints Int
-fontLengthScaledPointsInt font lengthInDS = Q.roundScaledPoints $ fontLengthScaledPoints font lengthInDS
+lengthFromDesignSize :: LengthDesignSize -> Q.Length -> Q.Length
+lengthFromDesignSize (LengthDesignSize d) = Q.scaleLengthByRational d
 
-fontLengthParamScaledPoints :: Font -> (Font -> Q.LengthDesignSize Rational) -> Q.LengthScaledPoints Rational
-fontLengthParamScaledPoints font getLengthInDS = fontLengthScaledPoints font (getLengthInDS font)
-
-fontLengthParamScaledPointsInt :: Font -> (Font -> Q.LengthDesignSize Rational) -> Q.LengthScaledPoints Int
-fontLengthParamScaledPointsInt font getLengthInDS = Q.roundScaledPoints $ fontLengthParamScaledPoints font getLengthInDS
+fontLengthParamLength :: Font -> (Font -> LengthDesignSize) -> Q.Length
+fontLengthParamLength font getLengthInDS = lengthFromFontDesignSize font (getLengthInDS font)
 
 data FontParams = FontParams
   { -- `slant`, the amount of italic slant, which is used to help position
@@ -35,12 +39,12 @@ data FontParams = FontParams
     -- the only `fix_word` other than the design size itself that is not scaled
     -- by the design size.
     slant :: Rational,
-    spacing :: Q.LengthDesignSize Rational,
-    spaceStretch :: Q.LengthDesignSize Rational,
-    spaceShrink :: Q.LengthDesignSize Rational,
-    xHeight :: Q.LengthDesignSize Rational,
-    quad :: Q.LengthDesignSize Rational,
-    extraSpace :: Q.LengthDesignSize Rational,
+    spacing :: LengthDesignSize,
+    spaceStretch :: LengthDesignSize,
+    spaceShrink :: LengthDesignSize,
+    xHeight :: LengthDesignSize,
+    quad :: LengthDesignSize,
+    extraSpace :: LengthDesignSize,
     extraParams :: Maybe ExtraFontParams
   }
   deriving stock (Show)
@@ -51,35 +55,35 @@ data ExtraFontParams
   deriving stock (Show)
 
 data MathSymbolParams = MathSymbolParams
-  { num1 :: Q.LengthDesignSize Rational,
-    num2 :: Q.LengthDesignSize Rational,
-    num3 :: Q.LengthDesignSize Rational,
-    denom1 :: Q.LengthDesignSize Rational,
-    denom2 :: Q.LengthDesignSize Rational,
-    sup1 :: Q.LengthDesignSize Rational,
-    sup2 :: Q.LengthDesignSize Rational,
-    sup3 :: Q.LengthDesignSize Rational,
-    sub1 :: Q.LengthDesignSize Rational,
-    sub2 :: Q.LengthDesignSize Rational,
-    supdrop :: Q.LengthDesignSize Rational,
-    subdrop :: Q.LengthDesignSize Rational,
-    delim1 :: Q.LengthDesignSize Rational,
-    delim2 :: Q.LengthDesignSize Rational,
-    axisHeight :: Q.LengthDesignSize Rational
+  { num1 :: LengthDesignSize,
+    num2 :: LengthDesignSize,
+    num3 :: LengthDesignSize,
+    denom1 :: LengthDesignSize,
+    denom2 :: LengthDesignSize,
+    sup1 :: LengthDesignSize,
+    sup2 :: LengthDesignSize,
+    sup3 :: LengthDesignSize,
+    sub1 :: LengthDesignSize,
+    sub2 :: LengthDesignSize,
+    supdrop :: LengthDesignSize,
+    subdrop :: LengthDesignSize,
+    delim1 :: LengthDesignSize,
+    delim2 :: LengthDesignSize,
+    axisHeight :: LengthDesignSize
   }
   deriving stock (Show)
 
 data MathExtensionParams = MathExtensionParams
-  { defaultRuleThickness :: Q.LengthDesignSize Rational,
-    bigOpSpacing1 :: Q.LengthDesignSize Rational,
-    bigOpSpacing2 :: Q.LengthDesignSize Rational,
-    bigOpSpacing3 :: Q.LengthDesignSize Rational,
-    bigOpSpacing4 :: Q.LengthDesignSize Rational,
-    bigOpSpacing5 :: Q.LengthDesignSize Rational
+  { defaultRuleThickness :: LengthDesignSize,
+    bigOpSpacing1 :: LengthDesignSize,
+    bigOpSpacing2 :: LengthDesignSize,
+    bigOpSpacing3 :: LengthDesignSize,
+    bigOpSpacing4 :: LengthDesignSize,
+    bigOpSpacing5 :: LengthDesignSize
   }
   deriving stock (Show)
 
-newtype KernOp = KernOp (Q.LengthDesignSize Rational)
+newtype KernOp = KernOp (LengthDesignSize)
   deriving stock (Show)
 
 data LigatureOp = LigatureOp
@@ -103,10 +107,10 @@ data LigKernInstr = LigKernInstr
   deriving stock (Show)
 
 data Character = Character
-  { width :: Q.LengthDesignSize Rational,
-    height :: Q.LengthDesignSize Rational,
-    depth :: Q.LengthDesignSize Rational,
-    italicCorrection :: Q.LengthDesignSize Rational,
+  { width :: LengthDesignSize,
+    height :: LengthDesignSize,
+    depth :: LengthDesignSize,
+    italicCorrection :: LengthDesignSize,
     special :: Maybe CharacterSpecial
   }
   deriving stock (Show, Generic)
