@@ -1,6 +1,5 @@
 module Hex.Common.HexState.Impl.SymbolMap where
 
-import ASCII qualified
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
@@ -299,8 +298,8 @@ initialSymbolMap =
       -- Code types.
       (_cs "catcode", primTok $ CodeTypeTok CategoryCodeType),
       (_cs "mathcode", primTok $ CodeTypeTok MathCodeType),
-      (_cs "lccode", primTok $ CodeTypeTok $ ChangeCaseCodeType ASCII.LowerCase),
-      (_cs "uccode", primTok $ CodeTypeTok $ ChangeCaseCodeType ASCII.UpperCase),
+      (_cs "lccode", primTok $ CodeTypeTok $ LowerCaseCodeType),
+      (_cs "uccode", primTok $ CodeTypeTok $ UpperCaseCodeType),
       (_cs "sfcode", primTok $ CodeTypeTok SpaceFactorCodeType),
       (_cs "delcode", primTok $ CodeTypeTok DelimiterCodeType),
       -- Alias tokens.

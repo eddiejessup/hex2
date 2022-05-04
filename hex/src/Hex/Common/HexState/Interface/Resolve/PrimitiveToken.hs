@@ -231,7 +231,8 @@ data SyntaxCommandArg
 data CodeType
   = CategoryCodeType
   | MathCodeType
-  | ChangeCaseCodeType ASCII.Case
+  | UpperCaseCodeType
+  | LowerCaseCodeType
   | SpaceFactorCodeType
   | DelimiterCodeType
   deriving stock (Show, Eq, Generic)

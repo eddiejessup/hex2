@@ -1,5 +1,6 @@
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
@@ -10,8 +11,6 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
-import qualified Hex.Common.Codes as Code
-import qualified ASCII
 
 -- What's the plan here?
 -- I want to do as much evaluation as possible in this stage, but I'm not sure
@@ -122,7 +121,8 @@ data CodeAssignment = CodeAssignment {codeIndex :: Code.CharCode, codeValue :: C
 data CodeValue
   = CatCodeValue Code.CatCode
   | MathCodeValue Code.MathCode
-  | ChangeCaseCodeValue ASCII.Case Code.CaseChangeCode
+  | UpperCaseCodeValue Code.UpperCaseCode
+  | LowerCaseCodeValue Code.LowerCaseCode
   | SpaceFactorCodeValue Code.SpaceFactorCode
   | DelimiterCodeValue Code.DelimiterCode
   deriving stock (Show, Eq, Generic)

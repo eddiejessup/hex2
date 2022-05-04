@@ -80,15 +80,17 @@ handleModeIndependentCommand addVElem = \case
       Eval.AssignCode (Eval.CodeAssignment idxChar codeVal) ->
         case codeVal of
           Eval.CatCodeValue catCode ->
-            HSt.setCategory idxChar catCode scope
+            HSt.setHexCode idxChar catCode scope
           Eval.MathCodeValue mathCode ->
-            HSt.setMathCode idxChar mathCode scope
-          Eval.ChangeCaseCodeValue letterCase caseChangeCode ->
-            HSt.setChangeCaseCode letterCase idxChar caseChangeCode scope
+            HSt.setHexCode idxChar mathCode scope
+          Eval.UpperCaseCodeValue upperCaseCode ->
+            HSt.setHexCode idxChar upperCaseCode scope
+          Eval.LowerCaseCodeValue lowerCaseCode ->
+            HSt.setHexCode idxChar lowerCaseCode scope
           Eval.SpaceFactorCodeValue spaceFactorCode ->
-            HSt.setSpaceFactor idxChar spaceFactorCode scope
+            HSt.setHexCode idxChar spaceFactorCode scope
           Eval.DelimiterCodeValue delimiterCode ->
-            HSt.setDelimiterCode idxChar delimiterCode scope
+            HSt.setHexCode idxChar delimiterCode scope
       --   Eval.SetVariable ass ->
       --     case ass of
       --       Eval.TeXIntVariableAssignment v tgt ->

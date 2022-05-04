@@ -1,7 +1,6 @@
 module Hex.Stage.Evaluate.Impl.Quantity where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Interface (MonadHexState (getSpecialIntParameter))
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
@@ -82,11 +81,12 @@ evalCodeTableRefAsTarget :: (MonadError e m, AsType Eval.EvaluationError e, Mona
 evalCodeTableRefAsTarget codeTableRef = do
   eCodeTableRef <- evalCodeTableRefAsRef codeTableRef
   case eCodeTableRef.codeTableType of
-    PT.CategoryCodeType -> HSt.getCategory eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.MathCodeType -> HSt.getMathCode eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.ChangeCaseCodeType letterCase -> HSt.getChangeCaseCode letterCase eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.SpaceFactorCodeType -> HSt.getCategory eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.DelimiterCodeType -> HSt.getCategory eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.CategoryCodeType -> HSt.getHexCode @_ @Code.CatCode eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.MathCodeType -> HSt.getHexCode @_ @Code.MathCode eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.UpperCaseCodeType -> HSt.getHexCode @_ @Code.UpperCaseCode eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.LowerCaseCodeType -> HSt.getHexCode @_ @Code.LowerCaseCode eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.SpaceFactorCodeType -> HSt.getHexCode @_ @Code.SpaceFactorCode eCodeTableRef.codeTableChar <&> Code.toHexInt
+    PT.DelimiterCodeType -> HSt.getHexCode @_ @Code.DelimiterCode eCodeTableRef.codeTableChar <&> Code.toHexInt
 
 evalInternalIntVariable :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.QuantVariableAST 'PT.IntQuantity -> m Q.HexInt
 evalInternalIntVariable = notImplemented "evalInternalIntVariable"
@@ -146,7 +146,9 @@ evalHModeRule _rule =
 --   defaultHeight = pure (toScaledPointApprox (10 :: Int) Point)
 --   defaultDepth = pure 0
 
-evalChar :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.CharCodeRef -> m Codes.CharCode
+evalChar ::
+  (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
+  P.CharCodeRef -> m Code.CharCode
 evalChar = \case
   P.CharRef c -> pure c
   P.CharTokenRef c -> noteRange c
@@ -155,12 +157,12 @@ evalChar = \case
 evalCharCodeInt ::
   (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
   P.CharCodeInt ->
-  m Codes.CharCode
+  m Code.CharCode
 evalCharCodeInt n =
   evalInt n.unCharCodeInt >>= noteRange
 
-noteRange :: (Codes.HexCode a, MonadError e m, AsType EvaluationError e) => Q.HexInt -> m a
+noteRange :: (Code.HexCode a, MonadError e m, AsType EvaluationError e) => Q.HexInt -> m a
 noteRange x =
   note
     (injectTyped ValueNotInRange)
-    (Codes.fromHexInt x)
+    (Code.fromHexInt x)

@@ -1,6 +1,5 @@
 module Hex.Common.HexState.Impl.Scope where
 
-import ASCII qualified
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Parameters qualified as H.Inter.St.Param
 import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
@@ -18,9 +17,9 @@ data Scope = Scope
     -- Char-code attribute maps.
     catCodes :: Map Codes.CharCode Codes.CatCode,
     mathCodes :: Map Codes.CharCode Codes.MathCode,
-    lowercaseCodes :: Map Codes.CharCode Codes.CaseChangeCode,
-    uppercaseCodes :: Map Codes.CharCode Codes.CaseChangeCode,
-    spaceFactors :: Map Codes.CharCode Codes.SpaceFactorCode,
+    lowerCaseCodes :: Map Codes.CharCode Codes.LowerCaseCode,
+    upperCaseCodes :: Map Codes.CharCode Codes.UpperCaseCode,
+    spaceFactorCodes :: Map Codes.CharCode Codes.SpaceFactorCode,
     delimiterCodes :: Map Codes.CharCode Codes.DelimiterCode,
     -- Parameters.
     intParameters :: Map PT.IntParameter Q.HexInt,
@@ -46,9 +45,9 @@ newGlobalScope =
       symbolMap = initialSymbolMap,
       catCodes = Codes.newCatCodes,
       mathCodes = Codes.newMathCodes,
-      lowercaseCodes = Codes.newLowercaseCodes,
-      uppercaseCodes = Codes.newUppercaseCodes,
-      spaceFactors = Codes.newSpaceFactors,
+      lowerCaseCodes = Codes.newLowercaseCodes,
+      upperCaseCodes = Codes.newUppercaseCodes,
+      spaceFactorCodes = Codes.newspaceFactorCodes,
       delimiterCodes = Codes.newDelimiterCodes,
       intParameters = H.Inter.St.Param.newIntParameters,
       lengthParameters = H.Inter.St.Param.newLengthParameters,
@@ -71,9 +70,9 @@ newLocalScope =
       symbolMap = mempty,
       catCodes = mempty,
       mathCodes = mempty,
-      lowercaseCodes = mempty,
-      uppercaseCodes = mempty,
-      spaceFactors = mempty,
+      lowerCaseCodes = mempty,
+      upperCaseCodes = mempty,
+      spaceFactorCodes = mempty,
       delimiterCodes = mempty,
       intParameters = mempty,
       lengthParameters = mempty,
@@ -93,28 +92,6 @@ newLocalScope =
 -- | The token a control-symbol resolves to
 scopeResolvedTokenLens :: ControlSymbol -> Lens' Scope (Maybe ResolvedToken)
 scopeResolvedTokenLens p = #symbolMap % at' p
-
--- | The cat-code for a char-code.
-scopeCategoryLens :: Codes.CharCode -> Lens' Scope (Maybe Codes.CatCode)
-scopeCategoryLens p = #catCodes % at' p
-
--- | The math-code for a char-code.
-scopeMathCodeLens :: Codes.CharCode -> Lens' Scope (Maybe Codes.MathCode)
-scopeMathCodeLens p = #mathCodes % at' p
-
--- | The change-case-code for a char-code, for a particular target-case.
-scopeCaseChangeCodeLens :: ASCII.Case -> Codes.CharCode -> Lens' Scope (Maybe Codes.CaseChangeCode)
-scopeCaseChangeCodeLens letterCase p = case letterCase of
-  ASCII.LowerCase -> #lowercaseCodes % at' p
-  ASCII.UpperCase -> #uppercaseCodes % at' p
-
--- | The space-factor-code for a char-code.
-scopeSpaceFactorLens :: Codes.CharCode -> Lens' Scope (Maybe Codes.SpaceFactorCode)
-scopeSpaceFactorLens p = #spaceFactors % at' p
-
--- | The delimiter-code for a char-code.
-scopeDelimiterCodeLens :: Codes.CharCode -> Lens' Scope (Maybe Codes.DelimiterCode)
-scopeDelimiterCodeLens p = #delimiterCodes % at' p
 
 -- The value for an integer-parameter.
 scopeIntParamLens :: PT.IntParameter -> Lens' Scope (Maybe Q.HexInt)

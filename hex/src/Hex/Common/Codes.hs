@@ -307,10 +307,10 @@ newMathCodes = initialiseCharCodeMap f
 -- Conversion to uppercase means that a character is replaced by its \uccode
 -- value, unless the \uccode value is zero, when no change is made. Conversion
 -- to lowercase is similar, using the \lccode.
-data CaseChangeCode = NoCaseChange | ChangeToCode CharCode
+data ChangeCaseCode = NoCaseChange | ChangeToCode CharCode
   deriving stock (Show, Eq)
 
-instance HexCode CaseChangeCode where
+instance HexCode ChangeCaseCode where
   toHexInt NoCaseChange = Q.HexInt 0
   toHexInt (ChangeToCode c) = toHexInt c
 
@@ -323,7 +323,7 @@ instance HexCode CaseChangeCode where
 -- By default, all \uccode and \lccode values are zero except that the
 -- letters a to z and A to Z have \uccode values A to Z and \lccode values a to
 -- z.
-newCaseCodes :: ASCII.Case -> Map CharCode CaseChangeCode
+newCaseCodes :: ASCII.Case -> Map CharCode ChangeCaseCode
 newCaseCodes destCase = initialiseCharCodeMap f
   where
     f c = case ASCII.word8ToCharMaybe (unCharCode c) of
@@ -332,11 +332,17 @@ newCaseCodes destCase = initialiseCharCodeMap f
             ChangeToCode $ codeFromAsciiChar $ ASCII.toCaseChar destCase asciiChar
       _ -> NoCaseChange
 
-newLowercaseCodes :: Map CharCode CaseChangeCode
-newLowercaseCodes = newCaseCodes ASCII.LowerCase
+newtype LowerCaseCode = LowerCaseCode ChangeCaseCode
+  deriving newtype (Show, Eq, HexCode)
 
-newUppercaseCodes :: Map CharCode CaseChangeCode
-newUppercaseCodes = newCaseCodes ASCII.UpperCase
+newtype UpperCaseCode = UpperCaseCode ChangeCaseCode
+  deriving newtype (Show, Eq, HexCode)
+
+newLowercaseCodes :: Map CharCode LowerCaseCode
+newLowercaseCodes = LowerCaseCode <$> newCaseCodes ASCII.LowerCase
+
+newUppercaseCodes :: Map CharCode UpperCaseCode
+newUppercaseCodes = UpperCaseCode <$> newCaseCodes ASCII.UpperCase
 
 -- Space factor code.
 ---------------------
@@ -354,8 +360,8 @@ instance HexCode SpaceFactorCode where
 
 -- By default, all characters have a space factor code of 1000, except that the
 -- uppercase letters ‘A’ through ‘Z’ have code 999.
-newSpaceFactors :: Map CharCode SpaceFactorCode
-newSpaceFactors = initialiseCharCodeMap $ SpaceFactorCode . f
+newspaceFactorCodes :: Map CharCode SpaceFactorCode
+newspaceFactorCodes = initialiseCharCodeMap $ SpaceFactorCode . f
   where
     f c
       | asciiPred ASCII.Pred.isUpper c = Q.HexInt 999

@@ -1,8 +1,8 @@
 module Hex.Common.HexState.Interface where
 
-import ASCII qualified
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
+import Hex.Common.HexState.Impl.GroupScopes (MutableHexCode)
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
@@ -26,31 +26,15 @@ class Monad m => MonadHexState m where
 
   setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> m ()
 
-  getCategory :: Codes.CharCode -> m Codes.CatCode
+  getHexCode :: MutableHexCode c => Codes.CharCode -> m c
 
-  getMathCode :: Code.CharCode -> m Code.MathCode
-
-  getChangeCaseCode :: ASCII.Case -> Code.CharCode -> m Code.CaseChangeCode
-
-  getSpaceFactor :: Code.CharCode -> m Code.SpaceFactorCode
-
-  getDelimiterCode :: Code.CharCode -> m Code.DelimiterCode
+  setHexCode :: MutableHexCode c => Code.CharCode -> c -> PT.ScopeFlag -> m ()
 
   resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
 
   loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
 
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
-
-  setCategory :: Code.CharCode -> Code.CatCode -> PT.ScopeFlag -> m ()
-
-  setMathCode :: Code.CharCode -> Code.MathCode -> PT.ScopeFlag -> m ()
-
-  setChangeCaseCode :: ASCII.Case -> Code.CharCode -> Code.CaseChangeCode -> PT.ScopeFlag -> m ()
-
-  setSpaceFactor :: Code.CharCode -> Code.SpaceFactorCode -> PT.ScopeFlag -> m ()
-
-  setDelimiterCode :: Code.CharCode -> Code.DelimiterCode -> PT.ScopeFlag -> m ()
 
   currentFontCharacter :: Codes.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
 
@@ -75,11 +59,8 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
   getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
   setSpecialLengthParameter x y = lift $ setSpecialLengthParameter x y
-  getCategory x = lift $ getCategory x
-  getMathCode x = lift $ getMathCode x
-  getChangeCaseCode x y = lift $ getChangeCaseCode x y
-  getSpaceFactor x = lift $ getSpaceFactor x
-  getDelimiterCode x = lift $ getDelimiterCode x
+  getHexCode x = lift $ getHexCode x
+  setHexCode x y z = lift $ setHexCode x y z
   resolveSymbol x = lift $ resolveSymbol x
   loadFont x y = lift $ loadFont x y
   selectFont x y = lift $ selectFont x y
@@ -90,11 +71,6 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   setSymbol x y z = lift $ setSymbol x y z
   setLastFetchedLexTok x = lift $ setLastFetchedLexTok x
   getLastFetchedLexTok = lift getLastFetchedLexTok
-  setCategory x y z = lift $ setCategory x y z
-  setMathCode x y z = lift $ setMathCode x y z
-  setChangeCaseCode w x y z = lift $ setChangeCaseCode w x y z
-  setSpaceFactor x y z = lift $ setSpaceFactor x y z
-  setDelimiterCode x y z = lift $ setDelimiterCode x y z
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do

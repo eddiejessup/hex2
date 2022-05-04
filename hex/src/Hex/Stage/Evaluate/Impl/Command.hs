@@ -102,9 +102,12 @@ evalCodeAssignment codeAssignment = do
     PT.MathCodeType -> do
       E.MathCodeValue
         <$> Eval.noteRange @Code.MathCode vInt
-    PT.ChangeCaseCodeType letterCase -> do
-      E.ChangeCaseCodeValue letterCase
-        <$> Eval.noteRange @Code.CaseChangeCode vInt
+    PT.UpperCaseCodeType -> do
+      E.UpperCaseCodeValue
+        <$> Eval.noteRange @Code.UpperCaseCode vInt
+    PT.LowerCaseCodeType -> do
+      E.LowerCaseCodeValue
+        <$> Eval.noteRange @Code.LowerCaseCode vInt
     PT.SpaceFactorCodeType -> do
       E.SpaceFactorCodeValue
         <$> Eval.noteRange @Code.SpaceFactorCode vInt

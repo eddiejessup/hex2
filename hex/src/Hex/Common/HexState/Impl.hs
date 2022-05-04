@@ -2,12 +2,11 @@
 
 module Hex.Common.HexState.Impl where
 
-import ASCII qualified
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Impl.GroupScopes (GroupScopes)
+import Hex.Common.HexState.Impl.GroupScopes (GroupScopes, MutableHexCode)
 import Hex.Common.HexState.Impl.GroupScopes qualified as GroupScopes
 import Hex.Common.HexState.Impl.Type
 import Hex.Common.HexState.Interface
@@ -76,21 +75,6 @@ instance
   setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> (MonadHexStateImplT m) ()
   setSpecialLengthParameter p v = assign' (typed @HexState % stateSpecialLengthParamLens p) v
 
-  getCategory :: Code.CharCode -> (MonadHexStateImplT m) Code.CatCode
-  getCategory p = getGroupScopesProperty (GroupScopes.localCategory p)
-
-  getMathCode :: Code.CharCode -> (MonadHexStateImplT m) Code.MathCode
-  getMathCode p = getGroupScopesProperty (GroupScopes.localMathCode p)
-
-  getChangeCaseCode :: ASCII.Case -> Code.CharCode -> (MonadHexStateImplT m) Code.CaseChangeCode
-  getChangeCaseCode letterCase p = getGroupScopesProperty (GroupScopes.localChangeCaseCode letterCase p)
-
-  getSpaceFactor :: Code.CharCode -> (MonadHexStateImplT m) Code.SpaceFactorCode
-  getSpaceFactor p = getGroupScopesProperty (GroupScopes.localSpaceFactor p)
-
-  getDelimiterCode :: Code.CharCode -> (MonadHexStateImplT m) Code.DelimiterCode
-  getDelimiterCode p = getGroupScopesProperty (GroupScopes.localDelimiterCode p)
-
   resolveSymbol :: ControlSymbol -> (MonadHexStateImplT m) (Maybe ResolvedToken)
   resolveSymbol p = getGroupScopesProperty (GroupScopes.localResolvedToken p)
 
@@ -149,26 +133,13 @@ instance
   selectFont fNr scopeFlag =
     modifyGroupScopes $ GroupScopes.setCurrentFontNr fNr scopeFlag
 
-  setCategory :: Code.CharCode -> Code.CatCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setCategory idxCode cat scopeFlag = do
-    logText $ sformat ("setCategory: " |%| Code.fmtCharCode |%| " -> " |%| Code.fmtCatCode) idxCode cat
-    modifyGroupScopes $ GroupScopes.setCategory idxCode cat scopeFlag
+  getHexCode :: MutableHexCode c => Code.CharCode -> (MonadHexStateImplT m) c
+  getHexCode p = getGroupScopesProperty (GroupScopes.localHexCode p)
 
-  setMathCode :: Code.CharCode -> Code.MathCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setMathCode idxCode mathCode scopeFlag =
-    modifyGroupScopes $ GroupScopes.setMathCode idxCode mathCode scopeFlag
-
-  setChangeCaseCode :: ASCII.Case -> Code.CharCode -> Code.CaseChangeCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setChangeCaseCode letterCase idxCode val scopeFlag =
-    modifyGroupScopes $ GroupScopes.setChangeCaseCode letterCase idxCode val scopeFlag
-
-  setSpaceFactor :: Code.CharCode -> Code.SpaceFactorCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setSpaceFactor idxCode spaceFactor scopeFlag =
-    modifyGroupScopes $ GroupScopes.setSpaceFactor idxCode spaceFactor scopeFlag
-
-  setDelimiterCode :: Code.CharCode -> Code.DelimiterCode -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setDelimiterCode idxCode delimiterCode scopeFlag =
-    modifyGroupScopes $ GroupScopes.setDelimiterCode idxCode delimiterCode scopeFlag
+  setHexCode :: MutableHexCode c => Code.CharCode -> c -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setHexCode idxCode code scopeFlag = do
+    -- logText $ sformat ("setHexCode: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
+    modifyGroupScopes $ GroupScopes.setHexCode idxCode code scopeFlag
 
   setAfterAssignmentToken :: Lex.LexToken -> MonadHexStateImplT m ()
   setAfterAssignmentToken t = assign' (typed @HexState % #afterAssignmentToken) (Just t)
