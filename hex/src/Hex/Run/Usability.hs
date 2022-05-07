@@ -1,8 +1,8 @@
 module Hex.Run.Usability where
 
 import Data.Map qualified as Map
-import Hex.Common.HexState.Impl.Parameters qualified as Param
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Parameters qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 

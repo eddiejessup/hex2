@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as Code
@@ -99,7 +100,7 @@ data HModeCommand
 
 data AssignmentBody
   = DefineControlSequence Res.ControlSymbol ControlSequenceTarget
-  | SetVariable Uneval.VariableAssignment
+  | SetVariable VariableAssignment
   | ModifyVariable Uneval.VariableModification
   | AssignCode CodeAssignment
   | SelectFont PT.FontNumber
@@ -136,4 +137,41 @@ data ControlSequenceTarget
   deriving stock (Show, Eq, Generic)
 
 data FontFileSpec = FontFileSpec FontSpecification HexFilePath
+  deriving stock (Show, Eq, Generic)
+
+data VariableAssignment
+  = IntVariableAssignment (QuantVariableAssignment 'PT.IntQuantity)
+  | LengthVariableAssignment (QuantVariableAssignment 'PT.LengthQuantity)
+  | GlueVariableAssignment (QuantVariableAssignment 'PT.GlueQuantity)
+  | MathGlueVariableAssignment (QuantVariableAssignment 'PT.MathGlueQuantity)
+  | TokenListVariableAssignment (QuantVariableAssignment 'PT.TokenListQuantity)
+  | SpecialIntParameterVariableAssignment PT.SpecialIntParameter Q.HexInt
+  | SpecialLengthParameterVariableAssignment PT.SpecialLengthParameter Q.Length
+  deriving stock (Show, Eq, Generic)
+
+data QuantVariableAssignment (q :: PT.QuantityType) = QuantVariableAssignment (QuantVariableEval q) (QuantVariableTargetEval q)
+  deriving stock (Generic)
+
+deriving stock instance (Show (QuantVariableEval a), Show (QuantVariableTargetEval a)) => Show (QuantVariableAssignment a)
+
+deriving stock instance (Eq (QuantVariableEval a), Eq (QuantVariableTargetEval a)) => Eq (QuantVariableAssignment a)
+
+type family QuantVariableTargetEval a where
+  QuantVariableTargetEval 'PT.IntQuantity = Q.HexInt
+  QuantVariableTargetEval 'PT.LengthQuantity = Q.Length
+  QuantVariableTargetEval 'PT.GlueQuantity = Q.Glue
+  QuantVariableTargetEval 'PT.MathGlueQuantity = Q.MathGlue
+  QuantVariableTargetEval 'PT.TokenListQuantity = TokenListAssignmentTarget
+
+newtype TokenListAssignmentTarget = TokenListAssignmentTarget ST.InhibitedBalancedText
+  deriving stock (Show, Eq, Generic)
+
+data QuantVariableEval (a :: PT.QuantityType) = ParamVar (Uneval.QuantParam a) | RegisterVar RegisterLocation
+  deriving stock (Generic)
+
+deriving stock instance Show (Uneval.QuantParam a) => Show (QuantVariableEval a)
+
+deriving stock instance Eq (Uneval.QuantParam a) => Eq (QuantVariableEval a)
+
+newtype RegisterLocation = RegisterLocation Q.HexInt
   deriving stock (Show, Eq, Generic)

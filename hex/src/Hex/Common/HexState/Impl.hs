@@ -4,10 +4,16 @@ module Hex.Common.HexState.Impl where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
+import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Impl.GroupScopes (GroupScopes, MutableHexCode)
-import Hex.Common.HexState.Impl.GroupScopes qualified as GroupScopes
+import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
+import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.C
+import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
+import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes)
+import Hex.Common.HexState.Impl.Scoped.Parameter (ScopedHexParameter (..))
+import Hex.Common.HexState.Impl.Scoped.Parameter qualified as Sc.P
+import Hex.Common.HexState.Impl.Scoped.Symbol qualified as Sc.Sym
 import Hex.Common.HexState.Impl.Type
 import Hex.Common.HexState.Interface
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
@@ -25,6 +31,9 @@ data HexStateError
   | BadPath Text
   | CharacterCodeNotFound
   deriving stock (Show, Generic)
+
+fmtHexStateError :: Fmt HexStateError a
+fmtHexStateError = F.shown
 
 getGroupScopesProperty ::
   (MonadState st m, HasType HexState st) => (GroupScopes -> a) -> m a
@@ -54,33 +63,40 @@ instance
   ) =>
   MonadHexState (MonadHexStateImplT m)
   where
-  getIntParameter :: PT.IntParameter -> (MonadHexStateImplT m) Q.HexInt
-  getIntParameter p = getGroupScopesProperty (GroupScopes.localIntParam p)
+  getScopedParameterValue :: ScopedHexParameter p => p -> (MonadHexStateImplT m) (ScopedHexParameterValue p)
+  getScopedParameterValue p = getGroupScopesProperty (Sc.P.localParameterValue p)
 
-  getLengthParameter :: PT.LengthParameter -> (MonadHexStateImplT m) Q.Length
-  getLengthParameter p = getGroupScopesProperty (GroupScopes.localLengthParam p)
-
-  getGlueParameter :: PT.GlueParameter -> (MonadHexStateImplT m) Q.Glue
-  getGlueParameter p = getGroupScopesProperty (GroupScopes.localGlueParam p)
+  setScopedParameterValue :: ScopedHexParameter p => p -> ScopedHexParameterValue p -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setScopedParameterValue param value scopeFlag = do
+    -- logText $ sformat ("setScopedParameterValue: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
+    modifyGroupScopes $ Sc.P.setParameterValue param value scopeFlag
 
   getSpecialIntParameter :: PT.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
   getSpecialIntParameter p = use $ typed @HexState % stateSpecialIntParamLens p
 
-  setSpecialIntParameter :: PT.SpecialIntParameter -> Q.HexInt -> (MonadHexStateImplT m) ()
-  setSpecialIntParameter p v = assign' (typed @HexState % stateSpecialIntParamLens p) v
-
   getSpecialLengthParameter :: PT.SpecialLengthParameter -> (MonadHexStateImplT m) Q.Length
   getSpecialLengthParameter p = use $ typed @HexState % stateSpecialLengthParamLens p
+
+  setSpecialIntParameter :: PT.SpecialIntParameter -> Q.HexInt -> (MonadHexStateImplT m) ()
+  setSpecialIntParameter p v = assign' (typed @HexState % stateSpecialIntParamLens p) v
 
   setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> (MonadHexStateImplT m) ()
   setSpecialLengthParameter p v = assign' (typed @HexState % stateSpecialLengthParamLens p) v
 
+  getHexCode :: MutableHexCode c => Code.CharCode -> (MonadHexStateImplT m) c
+  getHexCode p = getGroupScopesProperty (Sc.C.localHexCode p)
+
+  setHexCode :: MutableHexCode c => Code.CharCode -> c -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setHexCode idxCode code scopeFlag = do
+    -- logText $ sformat ("setHexCode: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
+    modifyGroupScopes $ Sc.C.setHexCode idxCode code scopeFlag
+
   resolveSymbol :: ControlSymbol -> (MonadHexStateImplT m) (Maybe ResolvedToken)
-  resolveSymbol p = getGroupScopesProperty (GroupScopes.localResolvedToken p)
+  resolveSymbol p = getGroupScopesProperty (Sc.Sym.localResolvedToken p)
 
   setSymbol :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setSymbol symbol target scopeFlag =
-    modifyGroupScopes $ GroupScopes.setSymbol symbol target scopeFlag
+    modifyGroupScopes $ Sc.Sym.setSymbol symbol target scopeFlag
 
   currentFontSpaceGlue :: (MonadHexStateImplT m) (Maybe Q.Glue)
   currentFontSpaceGlue = do
@@ -131,15 +147,7 @@ instance
 
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> MonadHexStateImplT m ()
   selectFont fNr scopeFlag =
-    modifyGroupScopes $ GroupScopes.setCurrentFontNr fNr scopeFlag
-
-  getHexCode :: MutableHexCode c => Code.CharCode -> (MonadHexStateImplT m) c
-  getHexCode p = getGroupScopesProperty (GroupScopes.localHexCode p)
-
-  setHexCode :: MutableHexCode c => Code.CharCode -> c -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setHexCode idxCode code scopeFlag = do
-    -- logText $ sformat ("setHexCode: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
-    modifyGroupScopes $ GroupScopes.setHexCode idxCode code scopeFlag
+    modifyGroupScopes $ Sc.Font.setCurrentFontNr fNr scopeFlag
 
   setAfterAssignmentToken :: Lex.LexToken -> MonadHexStateImplT m ()
   setAfterAssignmentToken t = assign' (typed @HexState % #afterAssignmentToken) (Just t)
@@ -169,7 +177,7 @@ currentFontInfo ::
   ) =>
   m (Maybe FontInfo)
 currentFontInfo = do
-  getGroupScopesProperty GroupScopes.localCurrentFontNr >>= \case
+  getGroupScopesProperty Sc.Font.localCurrentFontNr >>= \case
     -- No set font number is a Nothing.
     Nothing -> pure Nothing
     Just fNr -> do
@@ -189,6 +197,6 @@ readFontInfo ::
   m FontInfo
 readFontInfo fontPath = do
   fontMetrics <- TFM.parseTFMFile fontPath
-  hyphenChar <- getIntParameter PT.DefaultHyphenChar
-  skewChar <- getIntParameter PT.DefaultSkewChar
+  hyphenChar <- getScopedParameterValue PT.DefaultHyphenChar
+  skewChar <- getScopedParameterValue PT.DefaultSkewChar
   pure FontInfo {fontMetrics, hyphenChar, skewChar}

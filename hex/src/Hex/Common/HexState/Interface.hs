@@ -2,7 +2,6 @@ module Hex.Common.HexState.Interface where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
-import Hex.Common.HexState.Impl.GroupScopes (MutableHexCode)
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
@@ -10,19 +9,19 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import Hex.Common.HexState.Impl.Scoped.Parameter (ScopedHexParameter (..))
+import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
 
 class Monad m => MonadHexState m where
-  getIntParameter :: PT.IntParameter -> m Q.HexInt
+  getScopedParameterValue :: ScopedHexParameter p => p -> m (ScopedHexParameterValue p)
 
-  getLengthParameter :: PT.LengthParameter -> m Q.Length
-
-  getGlueParameter :: PT.GlueParameter -> m Q.Glue
+  setScopedParameterValue :: ScopedHexParameter p => p -> (ScopedHexParameterValue p) -> PT.ScopeFlag -> m ()
 
   getSpecialIntParameter :: PT.SpecialIntParameter -> m Q.HexInt
 
-  setSpecialIntParameter :: PT.SpecialIntParameter -> Q.HexInt -> m ()
-
   getSpecialLengthParameter :: PT.SpecialLengthParameter -> m Q.Length
+
+  setSpecialIntParameter :: PT.SpecialIntParameter -> Q.HexInt -> m ()
 
   setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> m ()
 
@@ -52,12 +51,11 @@ class Monad m => MonadHexState m where
   getLastFetchedLexTok :: m (Maybe Lex.LexToken)
 
 instance MonadHexState m => MonadHexState (StateT a m) where
-  getIntParameter x = lift $ getIntParameter x
-  getLengthParameter x = lift $ getLengthParameter x
-  getGlueParameter x = lift $ getGlueParameter x
+  getScopedParameterValue x = lift $ getScopedParameterValue x
+  setScopedParameterValue x y z = lift $ setScopedParameterValue x y z
   getSpecialIntParameter x = lift $ getSpecialIntParameter x
-  setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
   getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
+  setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
   setSpecialLengthParameter x y = lift $ setSpecialLengthParameter x y
   getHexCode x = lift $ getHexCode x
   setHexCode x y z = lift $ setHexCode x y z
@@ -74,7 +72,7 @@ instance MonadHexState m => MonadHexState (StateT a m) where
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do
-  boxWidth <- getLengthParameter PT.ParIndent
+  boxWidth <- getScopedParameterValue @_ @PT.LengthParameter PT.ParIndent
   pure $
     H.Inter.B.List.HVListElem $
       H.Inter.B.List.VListBaseElem $

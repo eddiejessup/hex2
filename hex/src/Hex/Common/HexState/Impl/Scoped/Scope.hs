@@ -1,10 +1,10 @@
-module Hex.Common.HexState.Impl.Scope where
+module Hex.Common.HexState.Impl.Scoped.Scope where
 
 import Hex.Common.Codes qualified as Codes
-import Hex.Common.HexState.Impl.Parameters qualified as H.Inter.St.Param
 import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
-import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken, SymbolMap)
+import Hex.Common.HexState.Interface.Resolve (SymbolMap)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Parameters qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -49,9 +49,9 @@ newGlobalScope =
       upperCaseCodes = Codes.newUppercaseCodes,
       spaceFactorCodes = Codes.newspaceFactorCodes,
       delimiterCodes = Codes.newDelimiterCodes,
-      intParameters = H.Inter.St.Param.newIntParameters,
-      lengthParameters = H.Inter.St.Param.newLengthParameters,
-      glueParameters = H.Inter.St.Param.newGlueParameters
+      intParameters = Param.newIntParameters,
+      lengthParameters = Param.newLengthParameters,
+      glueParameters = Param.newGlueParameters
       -- , mathGlueParameters = newMathGlueParameters
       -- , tokenListParameters = newTokenListParameters
       -- , hexIntRegister = mempty
@@ -88,19 +88,3 @@ newLocalScope =
     }
 
 -- In a single scope...
-
--- | The token a control-symbol resolves to
-scopeResolvedTokenLens :: ControlSymbol -> Lens' Scope (Maybe ResolvedToken)
-scopeResolvedTokenLens p = #symbolMap % at' p
-
--- The value for an integer-parameter.
-scopeIntParamLens :: PT.IntParameter -> Lens' Scope (Maybe Q.HexInt)
-scopeIntParamLens p = #intParameters % at' p
-
--- The value for a length-parameter.
-scopeLengthParamLens :: PT.LengthParameter -> Lens' Scope (Maybe Q.Length)
-scopeLengthParamLens p = #lengthParameters % at' p
-
--- The value for a glue-parameter.
-scopeGlueParamLens :: PT.GlueParameter -> Lens' Scope (Maybe Q.Glue)
-scopeGlueParamLens p = #glueParameters % at' p

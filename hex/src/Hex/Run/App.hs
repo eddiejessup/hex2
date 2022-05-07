@@ -1,20 +1,23 @@
 module Hex.Run.App where
 
+import Formatting qualified as F
 import Hex.Capability.Log.Impl (MonadHexLogT (..))
 import Hex.Capability.Log.Interface (MonadHexLog)
-import Hex.Common.HexState.Impl (HexStateError, MonadHexStateImplT (..))
+import Hex.Common.HexState.Impl (MonadHexStateImplT (..))
+import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface (MonadHexState)
-import Hex.Common.Parse (ParseUnexpectedError)
-import Hex.Common.TFM.Get qualified as H.TFM
+import Hex.Common.Parse qualified as Parse
+import Hex.Common.TFM.Get qualified as TFM
 import Hex.Stage.Categorise.Impl (MonadCharCatSourceT (..))
 import Hex.Stage.Categorise.Interface (MonadCharCatSource)
 import Hex.Stage.Evaluate.Impl (MonadEvaluateT (..))
-import Hex.Stage.Evaluate.Impl.Common (EvaluationError)
+import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface (MonadEvaluate)
-import Hex.Stage.Expand.Impl (ExpansionError, MonadPrimTokenSourceT (..))
+import Hex.Stage.Expand.Impl (MonadPrimTokenSourceT (..))
+import Hex.Stage.Expand.Impl qualified as Expand
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
-import Hex.Stage.Interpret.CommandHandler.AllMode (InterpretError)
+import Hex.Stage.Interpret.CommandHandler.AllMode qualified as Interpret
 import Hex.Stage.Lex.Impl (MonadLexTokenSourceT (..))
 import Hex.Stage.Lex.Interface (MonadLexTokenSource)
 import Hex.Stage.Lex.Interface.CharSource (CharSource, newCharSource)
@@ -64,13 +67,23 @@ newtype App a = App {unApp :: ReaderT AppEnv (StateT AppState (ExceptT AppError 
 
 data AppError
   = AppLexError Lex.LexError
-  | AppParseError ParseUnexpectedError
-  | AppExpansionError ExpansionError
-  | AppInterpretError InterpretError
-  | AppEvaluationError EvaluationError
-  | AppHexStateError HexStateError
-  | AppTFMError H.TFM.TFMError
+  | AppParseError Parse.ParseUnexpectedError
+  | AppExpansionError Expand.ExpansionError
+  | AppInterpretError Interpret.InterpretError
+  | AppEvaluationError Eval.EvaluationError
+  | AppHexStateError HSt.HexStateError
+  | AppTFMError TFM.TFMError
   deriving stock (Generic, Show)
+
+fmtAppError :: Format r (AppError -> r)
+fmtAppError = F.later $ \case
+  AppLexError lexError -> F.bformat Lex.fmtLexError lexError
+  AppParseError parseError -> F.bformat Parse.fmtParseUnexpectedError parseError
+  AppExpansionError expansionError -> F.bformat Expand.fmtExpansionError expansionError
+  AppInterpretError interpretError -> F.bformat Interpret.fmtInterpretError interpretError
+  AppEvaluationError evaluationError -> F.bformat Eval.fmtEvaluationError evaluationError
+  AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
+  AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
 
 runAppGivenState ::
   AppState ->
@@ -113,5 +126,5 @@ evalApp chrs = fmap (fmap fst) <$> runApp chrs
 unsafeEvalApp :: ByteString -> App a -> IO a
 unsafeEvalApp chrs app = do
   evalApp chrs app >>= \case
-    Left e -> panic $ "got error: " <> show e
+    Left e -> panic $ sformat ("got error: " |%| fmtAppError) e
     Right v -> pure v

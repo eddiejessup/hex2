@@ -48,7 +48,8 @@ evalAssignmentBody :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadH
 evalAssignmentBody = \case
   P.DefineControlSequence controlSymbol controlSequenceTarget ->
     E.DefineControlSequence controlSymbol <$> evalControlSequenceTarget controlSequenceTarget
-  P.SetVariable _variableAssignment -> notImplemented "evalAssignmentBody 'SetVariable'"
+  P.SetVariable variableAssignment ->
+    E.SetVariable <$> evalVariableAssignment variableAssignment
   P.ModifyVariable _variableModification -> notImplemented "evalAssignmentBody 'ModifyVariable'"
   P.AssignCode codeAssignment -> E.AssignCode <$> evalCodeAssignment codeAssignment
   P.SelectFont _fontNumber -> notImplemented "evalAssignmentBody 'SelectFont'"
@@ -61,6 +62,43 @@ evalAssignmentBody = \case
   P.SetHyphenationPatterns _inhibitedBalancedText -> notImplemented "evalAssignmentBody 'SetHyphenationPatterns'"
   P.SetBoxDimension _boxDimensionRef _length -> notImplemented "evalAssignmentBody 'SetBoxDimension'"
   P.SetInteractionMode _interactionMode -> notImplemented "evalAssignmentBody 'SetInteractionMode'"
+
+evalVariableAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableAssignment -> m E.VariableAssignment
+evalVariableAssignment = \case
+  P.IntVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
+    quantVariableEval <- evalQuantVariable qVar
+    eTgt <- Eval.evalInt tgt
+    pure $ E.IntVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
+  P.LengthVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
+    quantVariableEval <- evalQuantVariable qVar
+    eTgt <- Eval.evalLength tgt
+    pure $ E.LengthVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
+  P.GlueVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
+    quantVariableEval <- evalQuantVariable qVar
+    eTgt <- Eval.evalGlue tgt
+    pure $ E.GlueVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
+  P.MathGlueVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
+    quantVariableEval <- evalQuantVariable qVar
+    eTgt <- Eval.evalMathGlue tgt
+    pure $ E.MathGlueVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
+  P.TokenListVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
+    quantVariableEval <- evalQuantVariable qVar
+    eTgt <- Eval.evalTokenListAssignmentTarget tgt
+    pure $ E.TokenListVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
+  P.SpecialIntParameterVariableAssignment specialIntParameter hexInt ->
+    E.SpecialIntParameterVariableAssignment specialIntParameter <$> Eval.evalInt hexInt
+  P.SpecialLengthParameterVariableAssignment specialLengthParameter length ->
+    E.SpecialLengthParameterVariableAssignment specialLengthParameter <$> Eval.evalLength length
+
+evalQuantVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.QuantVariableAST a -> m (E.QuantVariableEval a)
+evalQuantVariable = \case
+  P.ParamVar intParam -> pure $ E.ParamVar intParam
+  P.RegisterVar registerLocation -> E.RegisterVar <$> evalRegisterLocation registerLocation
+
+evalRegisterLocation :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.RegisterLocation -> m E.RegisterLocation
+evalRegisterLocation = \case
+  P.ExplicitRegisterLocation hexInt -> E.RegisterLocation <$> Eval.evalInt hexInt
+  P.InternalRegisterLocation evalInt -> pure $ E.RegisterLocation evalInt
 
 evalControlSequenceTarget :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ControlSequenceTarget -> m E.ControlSequenceTarget
 evalControlSequenceTarget = \case

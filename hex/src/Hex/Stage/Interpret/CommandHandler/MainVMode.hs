@@ -122,7 +122,7 @@ setAndBreakHListToHBoxes ::
   m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBoxElemSeq))
 setAndBreakHListToHBoxes hList =
   do
-    -- hSize <- H.Inter.St.getLengthParameter PT.HSize
+    -- hSize <- H.Inter.St.getScopedParameterValue PT.HSize
 
     let hSize = Q.pt 200
     -- lineTol <- H.Inter.St.getIntParameter PT.Tolerance
@@ -160,9 +160,9 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
     --    \lineskip
     -- Then set \prevdepth to the depth of the new box.
     prevDepth <- H.Inter.St.getSpecialLengthParameter PT.PrevDepth
-    blineGlue <- H.Inter.St.getGlueParameter PT.BaselineSkip
-    skipLimit <- H.Inter.St.getLengthParameter PT.LineSkipLimit
-    skip <- H.Inter.St.getGlueParameter PT.LineSkip
+    blineGlue <- H.Inter.St.getScopedParameterValue PT.BaselineSkip
+    skipLimit <- H.Inter.St.getScopedParameterValue PT.LineSkipLimit
+    skip <- H.Inter.St.getScopedParameterValue PT.LineSkip
     H.Inter.St.setSpecialLengthParameter PT.PrevDepth (H.Inter.B.Box.boxDepth b)
     pure $
       H.Inter.B.List.VList $

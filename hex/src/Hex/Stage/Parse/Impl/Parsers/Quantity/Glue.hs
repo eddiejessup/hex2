@@ -1,16 +1,17 @@
 module Hex.Stage.Parse.Impl.Parsers.Quantity.Glue where
 
 import Control.Monad.Combinators qualified as PC
+import Data.Foldable qualified as Fold
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as H.C
-import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
-import Hex.Common.Quantity qualified as Q
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
-import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 headToParseModedAddGlue :: MonadPrimTokenParse m => Q.Axis -> T.PrimitiveToken -> m AST.Glue
 headToParseModedAddGlue axis = \case
@@ -83,4 +84,4 @@ parseFilLength = do
   Par.skipOptionalSpaces
   pure $ AST.FilLength factor order
   where
-    parseNrLs = length <$> PC.some (Par.skipSatisfied $ Par.matchNonActiveCharacterUncased (Chr_ 'l'))
+    parseNrLs = Fold.length <$> PC.some (Par.skipSatisfied $ Par.matchNonActiveCharacterUncased (Chr_ 'l'))

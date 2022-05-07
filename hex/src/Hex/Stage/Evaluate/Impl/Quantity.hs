@@ -1,12 +1,13 @@
 module Hex.Stage.Evaluate.Impl.Quantity where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface (MonadHexState (getSpecialIntParameter))
+import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
+import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
@@ -58,11 +59,11 @@ evalCoercedInt _x = notImplemented "evalCoercedInt"
 evalInternalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalInt -> m Q.HexInt
 evalInternalInt = \case
   P.InternalIntVariable v -> evalInternalIntVariable v
-  P.InternalSpecialIntParameter v -> getSpecialIntParameter v
+  P.InternalSpecialIntParameter v -> HSt.getSpecialIntParameter v
   P.InternalCodeTableRef v -> evalCodeTableRefAsTarget v
   P.InternalCharToken n -> pure n
   P.InternalMathCharToken n -> pure n
-  P.InternalFontCharRef v -> evalInternalFontCharRef v
+  P.InternalFontCharRef v -> evalFontCharRef v
   P.LastPenalty -> panic "Not implemented: evaluate LastPenalty"
   P.ParShape -> panic "Not implemented: evaluate ParShape"
   P.InputLineNr -> panic "Not implemented: evaluate InputLineNr"
@@ -88,11 +89,11 @@ evalCodeTableRefAsTarget codeTableRef = do
     PT.SpaceFactorCodeType -> HSt.getHexCode @_ @Code.SpaceFactorCode eCodeTableRef.codeTableChar <&> Code.toHexInt
     PT.DelimiterCodeType -> HSt.getHexCode @_ @Code.DelimiterCode eCodeTableRef.codeTableChar <&> Code.toHexInt
 
-evalInternalIntVariable :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.QuantVariableAST 'PT.IntQuantity -> m Q.HexInt
+evalInternalIntVariable :: P.QuantVariableAST 'PT.IntQuantity -> m Q.HexInt
 evalInternalIntVariable = notImplemented "evalInternalIntVariable"
 
-evalInternalFontCharRef :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => _ -> m Q.HexInt
-evalInternalFontCharRef = notImplemented "evalInternalFontCharRef"
+evalFontCharRef :: P.FontCharRef -> m Q.HexInt
+evalFontCharRef = notImplemented "evalFontCharRef"
 
 -- | Convert a list of digits in some base, into the integer they represent in
 -- that base.
@@ -166,3 +167,9 @@ noteRange x =
   note
     (injectTyped ValueNotInRange)
     (Code.fromHexInt x)
+
+evalMathGlue :: P.MathGlue -> m Q.MathGlue
+evalMathGlue = notImplemented "evalMathGlue"
+
+evalTokenListAssignmentTarget :: P.TokenListAssignmentTarget -> m E.TokenListAssignmentTarget
+evalTokenListAssignmentTarget = notImplemented "evalMathGlue"

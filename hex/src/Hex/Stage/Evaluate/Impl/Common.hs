@@ -6,11 +6,17 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Formatting as F
 
 data EvaluationError
   = ValueNotInRange
   | InvalidTokenInBalancedText PT.PrimitiveToken
   deriving stock (Show, Generic)
+
+fmtEvaluationError :: Fmt EvaluationError a
+fmtEvaluationError = F.later $ \case
+  ValueNotInRange -> "Value not in range"
+  InvalidTokenInBalancedText pt -> "Invalid token in balanced text: " <> F.bformat PT.fmtPrimitiveToken pt
 
 evalExpandedBalancedTextToText ::
   (MonadError e m, AsType EvaluationError e) =>

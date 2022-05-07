@@ -1,7 +1,7 @@
 module Hex.Common.TFM.Get.Character where
 
 import Data.IntMap qualified as IntMap
-import Hex.Common.TFM.Get.CharInfo qualified as H.TFM.Get.CharInfo
+import Hex.Common.TFM.Get.CharInfo qualified as TFM.Get.CharInfo
 import Hex.Common.TFM.Types
 import Hexlude
 
@@ -13,17 +13,17 @@ character ::
   [LengthDesignSize] -> -- Height
   [LengthDesignSize] -> -- Depth
   [LengthDesignSize] -> -- ItalicCorrection
-  H.TFM.Get.CharInfo.CharInfo ->
+  TFM.Get.CharInfo.CharInfo ->
   m Character
 character recipes widths heights depths italicCorrs charInfo =
   do
-    width <- note "Bad width index" $ dimAtEith widths $ H.TFM.Get.CharInfo.widthIdx charInfo
-    height <- note "Bad height index" $ dimAtEith heights $ H.TFM.Get.CharInfo.heightIdx charInfo
-    depth <- note "Bad depth index" $ dimAtEith depths $ H.TFM.Get.CharInfo.depthIdx charInfo
-    italicCorrection <- note "Bad italic correction index" $ dimAtEith italicCorrs $ H.TFM.Get.CharInfo.italicCorrectionIdx charInfo
-    let remainder = H.TFM.Get.CharInfo.charRemainder charInfo
+    width <- note "Bad width index" $ dimAtEith widths $ TFM.Get.CharInfo.widthIdx charInfo
+    height <- note "Bad height index" $ dimAtEith heights $ TFM.Get.CharInfo.heightIdx charInfo
+    depth <- note "Bad depth index" $ dimAtEith depths $ TFM.Get.CharInfo.depthIdx charInfo
+    italicCorrection <- note "Bad italic correction index" $ dimAtEith italicCorrs $ TFM.Get.CharInfo.italicCorrectionIdx charInfo
+    let remainder = TFM.Get.CharInfo.charRemainder charInfo
     -- If the character is special, get its particular extra attributes.
-    special <- case H.TFM.Get.CharInfo.tag charInfo of
+    special <- case TFM.Get.CharInfo.tag charInfo of
       Plain -> pure Nothing
       LigKern -> pure $ Just $ LigKernIndex remainder
       Chain -> pure $ Just $ NextLargerChar remainder
@@ -52,7 +52,7 @@ character recipes widths heights depths italicCorrs charInfo =
 characters ::
   MonadError Text m =>
   Word16 ->
-  [H.TFM.Get.CharInfo.CharInfo] ->
+  [TFM.Get.CharInfo.CharInfo] ->
   [Recipe] ->
   [LengthDesignSize] -> -- Width
   [LengthDesignSize] -> -- Height

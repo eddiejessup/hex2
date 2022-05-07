@@ -279,7 +279,7 @@ initialSymbolMap =
       (_cs "pagedepth", primTok $ SpecialLengthParameterTok PageDepth),
       -- Register reference type prefixes.
       (_cs "count", primTok $ RegisterVariableTok IntQuantity),
-      (_cs "dimen", primTok $ RegisterVariableTok LenQuantity),
+      (_cs "dimen", primTok $ RegisterVariableTok LengthQuantity),
       (_cs "skip", primTok $ RegisterVariableTok GlueQuantity),
       (_cs "muskip", primTok $ RegisterVariableTok MathGlueQuantity),
       (_cs "toks", primTok $ RegisterVariableTok TokenListQuantity),
@@ -287,7 +287,7 @@ initialSymbolMap =
       (_cs "chardef", primTok $ ShortDefHeadTok CharQuantity),
       (_cs "mathchardef", primTok $ ShortDefHeadTok MathCharQuantity),
       (_cs "countdef", primTok $ ShortDefHeadTok $ QuantityType IntQuantity),
-      (_cs "dimendef", primTok $ ShortDefHeadTok $ QuantityType LenQuantity),
+      (_cs "dimendef", primTok $ ShortDefHeadTok $ QuantityType LengthQuantity),
       (_cs "skipdef", primTok $ ShortDefHeadTok $ QuantityType GlueQuantity),
       (_cs "muskipdef", primTok $ ShortDefHeadTok $ QuantityType MathGlueQuantity),
       (_cs "toksdef", primTok $ ShortDefHeadTok $ QuantityType TokenListQuantity),

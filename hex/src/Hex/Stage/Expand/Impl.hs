@@ -2,6 +2,7 @@
 
 module Hex.Stage.Expand.Impl where
 
+import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
@@ -16,6 +17,10 @@ import Hexlude
 data ExpansionError
   = ResolutionExpansionError Res.ResolutionError
   deriving stock (Generic, Show)
+
+fmtExpansionError :: Fmt ExpansionError a
+fmtExpansionError = F.later $ \case
+  ResolutionExpansionError e -> F.bformat Res.fmtResolutionError e
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype

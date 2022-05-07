@@ -1,17 +1,17 @@
 module Hex.Stage.Interpret.CommandHandler.AllMode where
 
+import Formatting qualified as F
+import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface qualified as Lex
+import Hex.Stage.Parse.Interface qualified as Par
 import Hexlude
-import qualified Hex.Stage.Evaluate.Interface as Eval
-import qualified Hex.Stage.Parse.Interface as Par
-import Hex.Capability.Log.Interface (MonadHexLog(..))
-import qualified Formatting as F
 
 data InterpretError
   = SawEndBoxInMainVMode
@@ -20,16 +20,21 @@ data InterpretError
   | UnexpectedEndOfInput
   deriving stock (Generic, Show)
 
+fmtInterpretError :: Fmt InterpretError a
+fmtInterpretError = F.shown
+
 data AllModeCommandResult
   = SawEndBox
   | DidNotSeeEndBox
 
-getNextCommandLogged :: ( Eval.MonadEvaluate m,
+getNextCommandLogged ::
+  ( Eval.MonadEvaluate m,
     Par.MonadCommandSource m,
     MonadError e m,
     AsType InterpretError e,
     MonadHexLog m
-  ) => m Eval.Command
+  ) =>
+  m Eval.Command
 getNextCommandLogged = do
   cmd <- Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
   logText $ F.sformat ("Read command: " |%| F.shown) cmd
@@ -91,25 +96,45 @@ handleModeIndependentCommand addVElem = \case
             HSt.setHexCode idxChar spaceFactorCode scope
           Eval.DelimiterCodeValue delimiterCode ->
             HSt.setHexCode idxChar delimiterCode scope
-      --   Eval.SetVariable ass ->
-      --     case ass of
-      --       Eval.TeXIntVariableAssignment v tgt ->
-      --         Var.setValueFromAST v scope tgt
-      --       Eval.LengthVariableAssignment v tgt ->
-      --         Var.setValueFromAST v scope tgt
-      --       Eval.GlueVariableAssignment v tgt ->
-      --         Var.setValueFromAST v scope tgt
-      --       Eval.MathGlueVariableAssignment v tgt ->
-      --         Var.setValueFromAST v scope tgt
-      --       Eval.TokenListVariableAssignment v tgt ->
-      --         Var.setValueFromAST v scope tgt
-      --       Eval.SpecialTeXIntVariableAssignment v tgt ->
-      --         Var.setValueFromAST v scope tgt
-      --       Eval.SpecialLengthParameterVariableAssignment v tgt ->
-      --         Var.setValueFromAST v scope tgt
+      Eval.SetVariable ass ->
+        case ass of
+          Eval.IntVariableAssignment (Eval.QuantVariableAssignment v tgt) ->
+            case v of
+              Eval.ParamVar intParam ->
+                HSt.setScopedParameterValue intParam tgt scope
+              Eval.RegisterVar _registerLoc ->
+                notImplemented "IntVariableAssignment, register-variable"
+          Eval.LengthVariableAssignment (Eval.QuantVariableAssignment v tgt) ->
+            case v of
+              Eval.ParamVar lengthParam ->
+                HSt.setScopedParameterValue lengthParam tgt scope
+              Eval.RegisterVar _registerLoc ->
+                notImplemented "LengthVariableAssignment, register-variable"
+          Eval.GlueVariableAssignment (Eval.QuantVariableAssignment v tgt) ->
+            case v of
+              Eval.ParamVar glueParam ->
+                HSt.setScopedParameterValue glueParam tgt scope
+              Eval.RegisterVar _registerLoc ->
+                notImplemented "GlueVariableAssignment, register-variable"
+          Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment v _tgt) ->
+            case v of
+              Eval.ParamVar _mathGlueParam ->
+                notImplemented "MathGlueVariableAssignment, parameter-variable"
+              Eval.RegisterVar _registerLoc ->
+                notImplemented "MathGlueVariableAssignment, register-variable"
+          Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment v _tgt) ->
+            case v of
+              Eval.ParamVar _tokenListParam ->
+                notImplemented "TokenListVariableAssignment, parameter-variable"
+              Eval.RegisterVar _registerLoc ->
+                notImplemented "TokenListVariableAssignment, register-variable"
+          Eval.SpecialIntParameterVariableAssignment param tgt ->
+            HSt.setSpecialIntParameter param tgt
+          Eval.SpecialLengthParameterVariableAssignment param tgt ->
+            HSt.setSpecialLengthParameter param tgt
       --   Eval.ModifyVariable modCommand ->
       --     case modCommand of
-      --       Eval.AdvanceTeXIntVariable var plusVal ->
+      --       Eval.AdvanceIntVariable var plusVal ->
       --         Var.advanceValueFromAST var scope plusVal
       --       Eval.AdvanceLengthVariable var plusVal ->
       --         Var.advanceValueFromAST var scope plusVal
@@ -119,7 +144,7 @@ handleModeIndependentCommand addVElem = \case
       --         Var.advanceValueFromAST var scope plusVal
       --       Eval.ScaleVariable vDir numVar scaleVal ->
       --         case numVar of
-      --           Eval.TeXIntNumericVariable var ->
+      --           Eval.HexIntNumericVariable var ->
       --             Var.scaleValueFromAST var scope vDir scaleVal
       --           Eval.LengthNumericVariable var ->
       --             Var.scaleValueFromAST var scope vDir scaleVal

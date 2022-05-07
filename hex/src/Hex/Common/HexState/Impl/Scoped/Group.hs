@@ -1,6 +1,6 @@
-module Hex.Common.HexState.Impl.Group where
+module Hex.Common.HexState.Impl.Scoped.Group where
 
-import Hex.Common.HexState.Impl.Scope (Scope)
+import Hex.Common.HexState.Impl.Scoped.Scope (Scope)
 import Hex.Stage.Parse.Interface.AST.Command qualified as H.Par.AST
 import Hexlude
 

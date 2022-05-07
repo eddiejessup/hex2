@@ -1,4 +1,6 @@
-module Hex.Common.HexState.Impl.Parameters where
+{-# LANGUAGE ViewPatterns #-}
+
+module Hex.Common.Parameters where
 
 import Data.Map.Strict qualified as Map
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT

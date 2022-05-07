@@ -51,6 +51,9 @@ lexTokCategory = lexTokCharCat % typed @Codes.CoreCatCode
 lexTokCharCat :: Prism' LexToken LexCharCat
 lexTokCharCat = _Ctor @"CharCatLexToken"
 
+parToken :: LexToken
+parToken = ControlSequenceLexToken $ mkControlSequence $ Codes.unsafeCodeFromChar <$> ("par" :: [Char])
+
 data LexState
   = SkippingBlanks
   | LineMiddle
@@ -62,5 +65,5 @@ data LexError
   | InvalidCharacter
   deriving stock (Show, Eq, Generic)
 
-parToken :: LexToken
-parToken = ControlSequenceLexToken $ mkControlSequence $ Codes.unsafeCodeFromChar <$> ("par" :: [Char])
+fmtLexError :: Fmt LexError r
+fmtLexError = F.shown

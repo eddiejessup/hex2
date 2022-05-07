@@ -155,7 +155,7 @@ data MathFlex = FiniteMathFlex MathLength | FilMathFlex FilLength
 
 type family QuantParam (a :: PT.QuantityType) where
   QuantParam 'PT.IntQuantity = PT.IntParameter
-  QuantParam 'PT.LenQuantity = PT.LengthParameter
+  QuantParam 'PT.LengthQuantity = PT.LengthParameter
   QuantParam 'PT.GlueQuantity = PT.GlueParameter
   QuantParam 'PT.MathGlueQuantity = PT.MathGlueParameter
   QuantParam 'PT.TokenListQuantity = PT.TokenListParameter
@@ -210,7 +210,7 @@ data FontDimensionRef = FontDimensionRef HexInt FontRef
   deriving stock (Show, Eq, Generic)
 
 data InternalLength
-  = InternalLengthVariable (QuantVariableAST 'PT.LenQuantity)
+  = InternalLengthVariable (QuantVariableAST 'PT.LengthQuantity)
   | InternalSpecialLengthParameter PT.SpecialLengthParameter
   | InternalFontDimensionRef FontDimensionRef
   | InternalBoxDimensionRef BoxDimensionRef

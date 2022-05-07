@@ -226,13 +226,13 @@ headToParseIntVariable = \case
   _ ->
     empty
 
-headToParseLengthVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.LenQuantity)
+headToParseLengthVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.LengthQuantity)
 headToParseLengthVariable = \case
   T.LenParamVarTok p ->
     pure (AST.ParamVar p)
-  T.IntRefTok (T.QuantityType T.LenQuantity) n ->
+  T.IntRefTok (T.QuantityType T.LengthQuantity) n ->
     pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-  T.RegisterVariableTok T.LenQuantity ->
+  T.RegisterVariableTok T.LengthQuantity ->
     AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
   _ ->
     empty

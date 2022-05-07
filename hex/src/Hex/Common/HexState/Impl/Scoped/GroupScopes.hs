@@ -1,12 +1,8 @@
-module Hex.Common.HexState.Impl.GroupScopes where
+module Hex.Common.HexState.Impl.Scoped.GroupScopes where
 
-import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Impl.Group
-import Hex.Common.HexState.Impl.Scope (Scope, newGlobalScope)
-import Hex.Common.HexState.Impl.Scope qualified as Scope
-import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
+import Hex.Common.HexState.Impl.Scoped.Group
+import Hex.Common.HexState.Impl.Scoped.Scope (Scope, newGlobalScope)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Quantity qualified as Q
 import Hexlude
 import Optics.Core qualified as O
 
@@ -68,69 +64,6 @@ localProperty lens_ = scopedLookup (view lens_)
 localCompleteProperty :: Lens' Scope (Maybe a) -> GroupScopes -> a
 localCompleteProperty lens_ =
   fromMaybe (panic "Not property found for char-code in code-table") . localProperty lens_
-
-localResolvedToken :: ControlSymbol -> GroupScopes -> Maybe ResolvedToken
-localResolvedToken p =
-  localProperty (Scope.scopeResolvedTokenLens p)
-
-class Code.HexCode c => MutableHexCode c where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode c)
-
-setHexCode :: MutableHexCode c => Code.CharCode -> c -> PT.ScopeFlag -> GroupScopes -> GroupScopes
-setHexCode = setScopedMapValue scopeCodeMapLens
-
-localHexCode :: MutableHexCode c => Code.CharCode -> GroupScopes -> c
-localHexCode p = localCompleteProperty (scopeCodeMapLens % at' p)
-
-instance MutableHexCode Code.CatCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.CatCode)
-  scopeCodeMapLens = #catCodes
-
-instance MutableHexCode Code.MathCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.MathCode)
-  scopeCodeMapLens = #mathCodes
-
-instance MutableHexCode Code.UpperCaseCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.UpperCaseCode)
-  scopeCodeMapLens = #upperCaseCodes
-
-instance MutableHexCode Code.LowerCaseCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.LowerCaseCode)
-  scopeCodeMapLens = #lowerCaseCodes
-
-instance MutableHexCode Code.SpaceFactorCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.SpaceFactorCode)
-  scopeCodeMapLens = #spaceFactorCodes
-
-instance MutableHexCode Code.DelimiterCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.DelimiterCode)
-  scopeCodeMapLens = #delimiterCodes
-
-localIntParam :: PT.IntParameter -> GroupScopes -> Q.HexInt
-localIntParam p =
-  fromMaybe Q.zeroInt
-    . scopedLookup
-      (view (Scope.scopeIntParamLens p))
-
-localLengthParam :: PT.LengthParameter -> GroupScopes -> Q.Length
-localLengthParam p =
-  fromMaybe Q.zeroLength
-    . scopedLookup
-      (view (Scope.scopeLengthParamLens p))
-
-localGlueParam :: PT.GlueParameter -> GroupScopes -> Q.Glue
-localGlueParam p =
-  fromMaybe Q.zeroGlue
-    . scopedLookup (view (Scope.scopeGlueParamLens p))
-
-localCurrentFontNr :: GroupScopes -> Maybe PT.FontNumber
-localCurrentFontNr = scopedLookup (view #currentFontNr)
-
-setCurrentFontNr :: PT.FontNumber -> PT.ScopeFlag -> GroupScopes -> GroupScopes
-setCurrentFontNr = setScopedProperty (castOptic #currentFontNr)
-
-setSymbol :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> GroupScopes -> GroupScopes
-setSymbol = setScopedMapValue #symbolMap
 
 -- | Set a scoped property which is contained in a map, indexed by some key.
 setScopedMapValue :: Ord k => (Lens' Scope (Map k v)) -> k -> v -> PT.ScopeFlag -> GroupScopes -> GroupScopes

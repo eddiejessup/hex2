@@ -1,12 +1,12 @@
 module Hex.Common.HexState.Impl.Type where
 
-import Hex.Common.HexState.Impl.GroupScopes (GroupScopes, newGroupScopes)
-import Hex.Common.HexState.Impl.Parameters qualified as Param
+import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, newGroupScopes)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
-import Hex.Common.TFM.Types qualified as H.TFM
+import Hex.Common.TFM.Types qualified as TFM
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Hex.Common.Parameters as Param
 
 data HexState = HexState
   { fontInfos :: Map PT.FontNumber FontInfo,
@@ -41,7 +41,7 @@ newHexState =
       lastFetchedLexTok = Nothing
     }
 
-data FontInfo = FontInfo {fontMetrics :: H.TFM.Font, hyphenChar :: Q.HexInt, skewChar :: Q.HexInt}
+data FontInfo = FontInfo {fontMetrics :: TFM.Font, hyphenChar :: Q.HexInt, skewChar :: Q.HexInt}
   deriving stock (Show, Generic)
 
 stateSpecialLengthParamLens :: PT.SpecialLengthParameter -> Lens' HexState Q.Length

@@ -3,7 +3,7 @@ module Hex.Common.TFM.Get.Header where
 import ASCII qualified
 import Data.Serialize.Get qualified as Ser
 import Hex.Common.Quantity qualified as Q
-import Hex.Common.TFM.Get.Common qualified as H.TFM.Get.Common
+import Hex.Common.TFM.Get.Common qualified as TFM.Get.Common
 import Hexlude
 
 -- The length of the character coding scheme and font family, respectively.
@@ -13,7 +13,7 @@ characterCodingSchemeLength = 40
 familyLength :: Word8
 familyLength = 20
 
--- The information stored in the header table of a H.TFM file.
+-- The information stored in the header table of a TFM file.
 data Header = Header
   { checksum :: Word32,
     designFontSize :: Q.Length,
@@ -60,17 +60,17 @@ getHeader =
   do
     -- header[0 ... 1]: Required; checksum and design size.
     checksum <- Ser.getWord32be
-    designFontSize <- Q.pt <$> H.TFM.Get.Common.getFixWord
+    designFontSize <- Q.pt <$> TFM.Get.Common.getFixWord
     -- header[2 ... 11]: Optional; character coding scheme.
     characterCodingScheme <-
       Ser.isEmpty >>= \case
         True -> pure Nothing
-        False -> Just <$> H.TFM.Get.Common.getBCPL characterCodingSchemeLength
+        False -> Just <$> TFM.Get.Common.getBCPL characterCodingSchemeLength
     -- header[12 ... 16]: Optional; font family.
     family <-
       Ser.isEmpty >>= \case
         True -> pure Nothing
-        False -> Just <$> H.TFM.Get.Common.getBCPL familyLength
+        False -> Just <$> TFM.Get.Common.getBCPL familyLength
     -- header[17]: Optional; seven-bit-safe-flag, and face code.
     (sevenBitSafeFlag, face) <-
       Ser.isEmpty >>= \case

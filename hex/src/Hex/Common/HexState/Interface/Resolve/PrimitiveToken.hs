@@ -245,7 +245,7 @@ data CharryQuantityType
 
 data QuantityType
   = IntQuantity -- \count, \countdef
-  | LenQuantity -- \dimen, \dimendef
+  | LengthQuantity -- \dimen, \dimendef
   | GlueQuantity -- \skip, \skipdef
   | MathGlueQuantity -- \muskip, \muskipdef
   | TokenListQuantity -- \toks, \toksdef
