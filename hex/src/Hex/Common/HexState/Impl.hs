@@ -25,6 +25,9 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 import System.FilePath qualified as FilePath
+import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue)
+import qualified Hex.Common.HexState.Impl.Scoped.Register as Sc.R
+import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation)
 
 data HexStateError
   = FontNotFound
@@ -70,6 +73,14 @@ instance
   setScopedParameterValue param value scopeFlag = do
     -- logText $ sformat ("setScopedParameterValue: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
     modifyGroupScopes $ Sc.P.setParameterValue param value scopeFlag
+
+  getScopedRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> MonadHexStateImplT m r
+  getScopedRegisterValue r = getGroupScopesProperty (Sc.R.localRegisterValue r)
+
+  setScopedRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> r -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setScopedRegisterValue param value scopeFlag = do
+    -- logText $ sformat ("setScopedRegisterValue: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
+    modifyGroupScopes $ Sc.R.setRegisterValue param value scopeFlag
 
   getSpecialIntParameter :: PT.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
   getSpecialIntParameter p = use $ typed @HexState % stateSpecialIntParamLens p

@@ -12,6 +12,7 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
+import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation)
 
 -- What's the plan here?
 -- I want to do as much evaluation as possible in this stage, but I'm not sure
@@ -172,6 +173,3 @@ data QuantVariableEval (a :: PT.QuantityType) = ParamVar (Uneval.QuantParam a) |
 deriving stock instance Show (Uneval.QuantParam a) => Show (QuantVariableEval a)
 
 deriving stock instance Eq (Uneval.QuantParam a) => Eq (QuantVariableEval a)
-
-newtype RegisterLocation = RegisterLocation Q.HexInt
-  deriving stock (Show, Eq, Generic)

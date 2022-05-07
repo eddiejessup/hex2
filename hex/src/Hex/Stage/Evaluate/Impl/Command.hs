@@ -12,6 +12,7 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
+import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation(..))
 
 evalCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Command -> m E.Command
 evalCommand = \case
@@ -95,10 +96,10 @@ evalQuantVariable = \case
   P.ParamVar intParam -> pure $ E.ParamVar intParam
   P.RegisterVar registerLocation -> E.RegisterVar <$> evalRegisterLocation registerLocation
 
-evalRegisterLocation :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.RegisterLocation -> m E.RegisterLocation
+evalRegisterLocation :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.RegisterLocation -> m RegisterLocation
 evalRegisterLocation = \case
-  P.ExplicitRegisterLocation hexInt -> E.RegisterLocation <$> Eval.evalInt hexInt
-  P.InternalRegisterLocation evalInt -> pure $ E.RegisterLocation evalInt
+  P.ExplicitRegisterLocation hexInt -> RegisterLocation <$> Eval.evalInt hexInt
+  P.InternalRegisterLocation evalInt -> pure $ RegisterLocation evalInt
 
 evalControlSequenceTarget :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ControlSequenceTarget -> m E.ControlSequenceTarget
 evalControlSequenceTarget = \case

@@ -102,20 +102,20 @@ handleModeIndependentCommand addVElem = \case
             case v of
               Eval.ParamVar intParam ->
                 HSt.setScopedParameterValue intParam tgt scope
-              Eval.RegisterVar _registerLoc ->
-                notImplemented "IntVariableAssignment, register-variable"
+              Eval.RegisterVar registerLoc ->
+                HSt.setScopedRegisterValue registerLoc tgt scope
           Eval.LengthVariableAssignment (Eval.QuantVariableAssignment v tgt) ->
             case v of
               Eval.ParamVar lengthParam ->
                 HSt.setScopedParameterValue lengthParam tgt scope
-              Eval.RegisterVar _registerLoc ->
-                notImplemented "LengthVariableAssignment, register-variable"
+              Eval.RegisterVar registerLoc ->
+                HSt.setScopedRegisterValue registerLoc tgt scope
           Eval.GlueVariableAssignment (Eval.QuantVariableAssignment v tgt) ->
             case v of
               Eval.ParamVar glueParam ->
                 HSt.setScopedParameterValue glueParam tgt scope
-              Eval.RegisterVar _registerLoc ->
-                notImplemented "GlueVariableAssignment, register-variable"
+              Eval.RegisterVar registerLoc ->
+                HSt.setScopedRegisterValue registerLoc tgt scope
           Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment v _tgt) ->
             case v of
               Eval.ParamVar _mathGlueParam ->

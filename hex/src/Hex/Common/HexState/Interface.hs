@@ -2,6 +2,10 @@ module Hex.Common.HexState.Interface where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
+import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
+import Hex.Common.HexState.Impl.Scoped.Parameter (ScopedHexParameter (..))
+import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue (..))
+import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
@@ -9,13 +13,15 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import Hex.Common.HexState.Impl.Scoped.Parameter (ScopedHexParameter (..))
-import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
 
 class Monad m => MonadHexState m where
   getScopedParameterValue :: ScopedHexParameter p => p -> m (ScopedHexParameterValue p)
 
   setScopedParameterValue :: ScopedHexParameter p => p -> (ScopedHexParameterValue p) -> PT.ScopeFlag -> m ()
+
+  getScopedRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> m r
+
+  setScopedRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> r -> PT.ScopeFlag -> m ()
 
   getSpecialIntParameter :: PT.SpecialIntParameter -> m Q.HexInt
 
@@ -31,6 +37,8 @@ class Monad m => MonadHexState m where
 
   resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
 
+  setSymbol :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> m ()
+
   loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
 
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
@@ -43,8 +51,6 @@ class Monad m => MonadHexState m where
 
   setAfterAssignmentToken :: Lex.LexToken -> m ()
 
-  setSymbol :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> m ()
-
   -- Support stuff for parsing.
   setLastFetchedLexTok :: Lex.LexToken -> m ()
 
@@ -53,6 +59,8 @@ class Monad m => MonadHexState m where
 instance MonadHexState m => MonadHexState (StateT a m) where
   getScopedParameterValue x = lift $ getScopedParameterValue x
   setScopedParameterValue x y z = lift $ setScopedParameterValue x y z
+  getScopedRegisterValue x = lift $ getScopedRegisterValue x
+  setScopedRegisterValue x y z = lift $ setScopedRegisterValue x y z
   getSpecialIntParameter x = lift $ getSpecialIntParameter x
   getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
   setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
