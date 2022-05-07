@@ -13,7 +13,7 @@ data ChunkedHListElem
   | HListBreakItem H.Inter.B.List.HListElem BreakItem
   deriving stock (Show, Generic)
 
-fmtChunkedHListElem :: Fmt ChunkedHListElem r
+fmtChunkedHListElem :: Fmt ChunkedHListElem
 fmtChunkedHListElem = F.later $ \case
   HListChunk els -> bformat (F.commaSpaceSep H.Inter.B.List.fmtHListElem) els
   HListBreakItem _ b -> bformat ("Break: " |%| F.shown) b
@@ -27,7 +27,7 @@ chunkHList hList = foldl' f Empty (withBreaks hList)
         _ -> fState :|> HListChunk (Empty :|> x)
       Just b -> fState :|> HListBreakItem x b
 
-fmtLine :: Fmt (Seq ChunkedHListElem) r
+fmtLine :: Fmt (Seq ChunkedHListElem)
 fmtLine = F.unlined fmtChunkedHListElem
 
 data AdjState a

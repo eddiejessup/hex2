@@ -1,15 +1,15 @@
 module Hex.Common.HexState.Impl.Type where
 
+import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, newGroupScopes)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Parameters qualified as Param
 import Hex.Common.Quantity qualified as Q
-import Hex.Common.TFM.Types qualified as TFM
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Common.Parameters as Param
 
 data HexState = HexState
-  { fontInfos :: Map PT.FontNumber FontInfo,
+  { fontInfos :: Map PT.FontNumber HSt.Font.FontInfo,
     -- searchDirectories :: [Path Abs Dir],
     -- File streams.
     -- logStream :: Handle,
@@ -27,6 +27,9 @@ data HexState = HexState
   }
   deriving stock (Generic)
 
+-- fmtHexState :: Fmt HexState a
+-- fmtHexState =
+
 newHexState :: HexState
 newHexState =
   HexState
@@ -41,14 +44,11 @@ newHexState =
       lastFetchedLexTok = Nothing
     }
 
-data FontInfo = FontInfo {fontMetrics :: TFM.Font, hyphenChar :: Q.HexInt, skewChar :: Q.HexInt}
-  deriving stock (Show, Generic)
-
 stateSpecialLengthParamLens :: PT.SpecialLengthParameter -> Lens' HexState Q.Length
 stateSpecialLengthParamLens p = #specialLengths % at' p % non Q.zeroLength
 
 stateSpecialIntParamLens :: PT.SpecialIntParameter -> Lens' HexState Q.HexInt
 stateSpecialIntParamLens p = #specialInts % at' p % non Q.zeroInt
 
-stateFontInfoLens :: PT.FontNumber -> Lens' HexState (Maybe FontInfo)
+stateFontInfoLens :: PT.FontNumber -> Lens' HexState (Maybe HSt.Font.FontInfo)
 stateFontInfoLens fNr = #fontInfos % at' fNr

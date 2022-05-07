@@ -1,8 +1,8 @@
 module Hex.Common.TFM.Types where
 
-import ASCII qualified
 import Hex.Common.Quantity qualified as Q
 import Hexlude
+import qualified Formatting as F
 
 newtype LengthDesignSize = LengthDesignSize {unLengthDesignSize :: Rational}
   deriving stock (Show, Generic)
@@ -14,13 +14,26 @@ zeroLengthDesignSize = LengthDesignSize 0
 data Font = Font
   { checksum :: Word32,
     designFontSize :: Q.Length,
-    characterCodingScheme :: Maybe [ASCII.Char],
-    family :: Maybe [ASCII.Char],
+    characterCodingScheme :: Maybe Text,
+    family :: Maybe Text,
     params :: FontParams,
     ligKerns :: [LigKernInstr],
     characters :: IntMap Character
   }
   deriving stock (Show, Generic)
+
+fmtFont :: Fmt Font
+fmtFont =
+  ("Checksum: " |%| F.accessed (.checksum) fmtChecksum |%| "\n")
+  <> ("Design font-size: " |%| F.accessed (.designFontSize) Q.fmtLengthWithUnit |%| "\n")
+  <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "[None]" F.stext) |%| "\n")
+  <> ("Family: " |%| fmtViewed (field @"family") (F.maybed "[None]" F.stext) |%| "\n")
+  |%| ("Params: [...]\n")
+  |%| ("ligKerns: [...]\n")
+  |%| ("characters: [...]\n")
+  where
+    fmtChecksum = F.int
+
 
 lengthFromFontDesignSize :: Font -> LengthDesignSize -> Q.Length
 lengthFromFontDesignSize font lengthInDS =

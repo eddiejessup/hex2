@@ -13,7 +13,7 @@ data HBoxElem
   | HBoxHBaseElem HBaseElem
   deriving stock (Show, Generic)
 
-fmtHBoxElem :: Fmt HBoxElem r
+fmtHBoxElem :: Fmt HBoxElem
 fmtHBoxElem = F.later $ \case
   HVBoxElem vBoxElem -> bformat fmtVBoxElemOneLine vBoxElem
   HBoxHBaseElem e -> bformat fmtHBaseElem e
@@ -23,7 +23,7 @@ newtype HBaseElem
   = ElemCharacter CharBox
   deriving stock (Show)
 
-fmtHBaseElem :: Fmt HBaseElem r
+fmtHBaseElem :: Fmt HBaseElem
 fmtHBaseElem = F.later $ \case
   ElemCharacter c -> bformat fmtCharBoxWithDimens c
 
@@ -32,7 +32,7 @@ data VBoxElem
   | BoxGlue SetGlue
   deriving stock (Show, Generic)
 
-fmtVBoxElemOneLine :: Fmt VBoxElem r
+fmtVBoxElemOneLine :: Fmt VBoxElem
 fmtVBoxElemOneLine = F.later $ \case
   VBoxBaseElem e -> bformat fmtBaseElemOneLine e
   BoxGlue sg -> bformat fmtSetGlue sg
@@ -44,7 +44,7 @@ data BaseElem
   | ElemKern Kern
   deriving stock (Show, Generic)
 
-fmtBaseElemOneLine :: Fmt BaseElem r
+fmtBaseElemOneLine :: Fmt BaseElem
 fmtBaseElemOneLine = F.later $ \case
   ElemBox b -> bformat fmtBaseBox b
   ElemFontDefinition _ ->
@@ -62,7 +62,7 @@ newtype Kern = Kern {unKern :: Q.Length}
 data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: Q.Length}
   deriving stock (Show, Eq, Generic, Functor, Foldable)
 
-fmtBoxDimens :: Fmt (Box a) r
+fmtBoxDimens :: Fmt (Box a)
 fmtBoxDimens =
   let fmtWidth = fmtViewed #boxWidth Q.fmtLengthMagnitude
       fmtHeight = fmtViewed #boxHeight Q.fmtLengthMagnitude
@@ -74,7 +74,7 @@ fmtBoxDimens =
 newtype SetGlue = SetGlue {sgDimen :: Q.Length}
   deriving stock (Show, Generic)
 
-fmtSetGlue :: Fmt SetGlue r
+fmtSetGlue :: Fmt SetGlue
 fmtSetGlue = F.fconst "\\setglue " <> fmtViewed #sgDimen Q.fmtLengthWithUnit
 
 data BaseBoxContents
@@ -83,13 +83,13 @@ data BaseBoxContents
   | RuleContents
   deriving stock (Show, Generic)
 
-fmtBaseBoxContents :: Fmt BaseBoxContents r
+fmtBaseBoxContents :: Fmt BaseBoxContents
 fmtBaseBoxContents = F.later $ \case
   HBoxContents hboxElemSeq -> bformat (F.prefixed "\\hbox" $ fmtViewed #unHBoxElemSeq (F.braced (F.commaSpaceSep fmtHBoxElem))) hboxElemSeq
   VBoxContents vboxElemSeq -> bformat (F.prefixed "\\vbox" $ fmtViewed #unVBoxElemSeq (F.braced (F.commaSpaceSep fmtVBoxElemOneLine))) vboxElemSeq
   RuleContents -> "\\rule{}"
 
-fmtBaseBox :: Fmt (Box BaseBoxContents) r
+fmtBaseBox :: Fmt (Box BaseBoxContents)
 fmtBaseBox = fmtBoxDimens <> fmtViewed #contents fmtBaseBoxContents
 
 newtype HBoxElemSeq = HBoxElemSeq {unHBoxElemSeq :: Seq HBoxElem}
@@ -104,10 +104,10 @@ newtype Rule = Rule {unRule :: Box ()}
 newtype CharBox = CharBox {unCharacter :: Box Codes.CharCode}
   deriving stock (Show, Generic)
 
-fmtCharBox :: Fmt CharBox r
+fmtCharBox :: Fmt CharBox
 fmtCharBox = fmtViewed (to charBoxChar) (F.squoted F.char)
 
-fmtCharBoxWithDimens :: Fmt CharBox r
+fmtCharBoxWithDimens :: Fmt CharBox
 fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> F.prefixed "\\c" fmtCharBox
 
 charBoxChar :: CharBox -> Char

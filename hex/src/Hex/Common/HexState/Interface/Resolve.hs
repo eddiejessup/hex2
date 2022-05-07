@@ -19,7 +19,7 @@ data ResolvedToken
   | PrimitiveToken PrimitiveToken
   deriving stock (Show, Eq, Generic)
 
-fmtResolvedToken :: Fmt ResolvedToken r
+fmtResolvedToken :: Fmt ResolvedToken
 fmtResolvedToken = F.later $ \case
   SyntaxCommandHeadToken st -> F.bformat F.shown st
   PrimitiveToken pt -> F.bformat fmtPrimitiveToken pt

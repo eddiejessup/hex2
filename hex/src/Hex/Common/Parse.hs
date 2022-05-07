@@ -17,7 +17,7 @@ data ParseUnexpectedError = ParseUnexpectedError
   }
   deriving stock (Show, Eq, Generic)
 
-fmtParseUnexpectedError :: Fmt ParseUnexpectedError r
+fmtParseUnexpectedError :: Fmt ParseUnexpectedError
 fmtParseUnexpectedError =
   "ParseUnexpectedError: " |%| F.accessed (.err) F.shown
     <> (", last seen token: " |%| F.accessed (.lastSeenTok) (F.maybed "[None]" Lex.fmtLexToken))

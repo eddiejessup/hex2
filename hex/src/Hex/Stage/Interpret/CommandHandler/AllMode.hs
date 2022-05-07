@@ -20,7 +20,7 @@ data InterpretError
   | UnexpectedEndOfInput
   deriving stock (Generic, Show)
 
-fmtInterpretError :: Fmt InterpretError a
+fmtInterpretError :: Fmt InterpretError
 fmtInterpretError = F.shown
 
 data AllModeCommandResult

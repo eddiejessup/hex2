@@ -1,10 +1,14 @@
 module Hex.Common.Quantity.Number where
 
 import Hexlude
+import qualified Formatting as F
 
 newtype HexInt = HexInt {unInt :: Int}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord, Enum, Bounded, Hashable, Num)
+
+fmtHexInt :: Fmt HexInt
+fmtHexInt = "H." |%| F.accessed (.unInt) F.shown
 
 zeroInt :: HexInt
 zeroInt = HexInt 0

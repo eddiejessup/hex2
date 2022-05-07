@@ -8,7 +8,7 @@ import Hexlude
 data Glue = Glue {gDimen :: Length, gStretch, gShrink :: PureFlex}
   deriving stock (Show, Eq, Generic)
 
-fmtGlue :: Fmt Glue r
+fmtGlue :: Fmt Glue
 fmtGlue =
   "\\glue " F.% fmtViewed #gDimen fmtLengthWithUnit
     <> (" plus " F.% fmtViewed #gStretch fmtPureFlex)
@@ -74,7 +74,7 @@ shrinkPureFlex i = \case
   FinitePureFlex x -> FinitePureFlex $ shrinkLength i x
   InfPureFlex x -> InfPureFlex $ shrinkInfLengthOfOrder i x
 
-fmtPureFlex :: Fmt PureFlex r
+fmtPureFlex :: Fmt PureFlex
 fmtPureFlex = F.later $ \case
   FinitePureFlex ln -> F.bformat fmtLengthWithUnit ln
   InfPureFlex ln -> F.bformat fmtInfLengthOfOrder ln
@@ -136,7 +136,7 @@ asBiNetFlex g = BiNetFlex (g ^. #gStretch % to pureAsNetFlex) (g ^. #gShrink % t
 data InfLengthOrder = Fil1 | Fil2 | Fil3
   deriving stock (Show, Generic, Eq)
 
-fmtInfLengthOrder :: Fmt InfLengthOrder r
+fmtInfLengthOrder :: Fmt InfLengthOrder
 fmtInfLengthOrder = F.later $ \case
   Fil1 -> "fil"
   Fil2 -> "fill"
@@ -151,5 +151,5 @@ scaleInfLengthOfOrder i (InfLengthOfOrder order infLen) = InfLengthOfOrder order
 shrinkInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
 shrinkInfLengthOfOrder i (InfLengthOfOrder order infLen) = InfLengthOfOrder order (shrinkLength i infLen)
 
-fmtInfLengthOfOrder :: Fmt InfLengthOfOrder r
+fmtInfLengthOfOrder :: Fmt InfLengthOfOrder
 fmtInfLengthOfOrder = fmtViewed (typed @Length) fmtLengthMagnitude |<>| F.fconst " " |<>| fmtViewed (typed @InfLengthOrder) fmtInfLengthOrder

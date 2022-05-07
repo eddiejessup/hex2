@@ -312,9 +312,12 @@ data VBoxAlignType
   | TopAlign -- \vtop
   deriving stock (Show, Eq, Generic)
 
-newtype FontNumber = FontNumber Q.HexInt
+newtype FontNumber = FontNumber {fontNumber :: Q.HexInt}
   deriving stock (Show)
   deriving newtype (Eq, Ord, Enum)
+
+fmtFontNumber :: Fmt FontNumber
+fmtFontNumber = "FontNumber " |%| F.accessed (.fontNumber) Q.fmtHexInt
 
 data PrimitiveToken
   = SyntaxCommandArg SyntaxCommandArg
@@ -434,7 +437,7 @@ primTokLexTok = _Ctor @"UnresolvedTok"
 primTokCharCat :: Prism' PrimitiveToken Lex.LexCharCat
 primTokCharCat = primTokLexTok % Lex.lexTokCharCat
 
-fmtPrimitiveToken :: Fmt PrimitiveToken r
+fmtPrimitiveToken :: Fmt PrimitiveToken
 fmtPrimitiveToken = F.later $ \case
   UnresolvedTok lt -> F.bformat ("LexToken" |%| F.parenthesised Lex.fmtLexToken) lt
   t -> F.bformat F.shown t

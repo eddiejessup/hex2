@@ -20,7 +20,7 @@ resolveAll = go
           v <- go
           pure $ r : v
 
-fmtResolveResult :: Fmt [(Lex.LexToken, Either ResolutionError ResolvedToken)] r
+fmtResolveResult :: Fmt [(Lex.LexToken, Either ResolutionError ResolvedToken)]
 fmtResolveResult = F.intercalated "\n\n" fmtOneResult
   where
     fmtOneResult =

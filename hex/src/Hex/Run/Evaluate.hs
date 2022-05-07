@@ -17,7 +17,7 @@ evaluateAll = go
           v <- go
           pure $ r : v
 
-fmtEvalCommandList :: Fmt [Command] r
+fmtEvalCommandList :: Fmt [Command]
 fmtEvalCommandList = F.unlined fmtOneCommand
   where
     fmtOneCommand =

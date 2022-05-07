@@ -19,7 +19,7 @@ expandAll = go
           v <- go
           pure $ r : v
 
-fmtExpandResult :: Fmt [(Lex.LexToken, PrimitiveToken)] r
+fmtExpandResult :: Fmt [(Lex.LexToken, PrimitiveToken)]
 fmtExpandResult = F.intercalated "\n\n" fmtOneResult
   where
     fmtOneResult =

@@ -18,7 +18,7 @@ data ExpansionError
   = ResolutionExpansionError Res.ResolutionError
   deriving stock (Generic, Show)
 
-fmtExpansionError :: Fmt ExpansionError a
+fmtExpansionError :: Fmt ExpansionError
 fmtExpansionError = F.later $ \case
   ResolutionExpansionError e -> F.bformat Res.fmtResolutionError e
 

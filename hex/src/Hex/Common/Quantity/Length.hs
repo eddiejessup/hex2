@@ -163,12 +163,12 @@ inScaledPoint u = case u of
 -- Display.
 -- --------
 
-fmtLengthMagnitude :: F.Format r (Length -> r)
+fmtLengthMagnitude :: Fmt Length
 fmtLengthMagnitude = F.later $ \len ->
   F.bformat F.shortest (fromRational @Fixed.Centi $ lengthInPoints len)
   where
     lengthInPoints :: Length -> Rational
     lengthInPoints len = lengthRatio len pointLength
 
-fmtLengthWithUnit :: F.Format r (Length -> r)
+fmtLengthWithUnit :: Fmt Length
 fmtLengthWithUnit = fmtLengthMagnitude F.% "pt"

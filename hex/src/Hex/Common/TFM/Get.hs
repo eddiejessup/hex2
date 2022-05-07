@@ -16,11 +16,12 @@ import Hex.Common.TFM.Get.TableParams qualified as TFM.Get.TableParams
 import Hex.Common.TFM.Types
 import Hexlude
 import qualified Formatting as F
+import qualified ASCII
 
 newtype TFMError = TFMError Text
   deriving stock (Generic, Show)
 
-fmtTfmError :: Fmt TFMError a
+fmtTfmError :: Fmt TFMError
 fmtTfmError = "TFM Error: " |%| F.shown
 
 parseTFMFile :: (MonadIO m, MonadError e m, AsType TFMError e) => FilePath -> m Font
@@ -54,8 +55,8 @@ parseTFMBytes bs = do
     Font
       { checksum = TFM.Get.Header.checksum header,
         designFontSize = TFM.Get.Header.designFontSize header,
-        characterCodingScheme = TFM.Get.Header.characterCodingScheme header,
-        family = TFM.Get.Header.family header,
+        characterCodingScheme = ASCII.charListToText <$> TFM.Get.Header.characterCodingScheme header,
+        family = ASCII.charListToText <$> TFM.Get.Header.family header,
         params,
         ligKerns = ligKernInstrs,
         characters = chars

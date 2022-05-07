@@ -17,7 +17,7 @@ parseAll = go
           v <- go
           pure $ r : v
 
-fmtCommandList :: Fmt [Command] r
+fmtCommandList :: Fmt [Command]
 fmtCommandList = F.unlined fmtOneCommand
   where
     fmtOneCommand =

@@ -16,5 +16,5 @@ categoriseAll = go
           v <- go
           pure $ tok : v
 
-fmtCategoriseResult :: Fmt [RawCharCat] r
+fmtCategoriseResult :: Fmt [RawCharCat]
 fmtCategoriseResult = F.unlined fmtRawCharCat

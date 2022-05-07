@@ -15,7 +15,7 @@ newtype ControlSequence = ControlSequence ByteString
 mkControlSequence :: [Codes.CharCode] -> ControlSequence
 mkControlSequence csChars = ControlSequence $ BS.pack $ Codes.unCharCode <$> csChars
 
-fmtControlSequence :: Fmt ControlSequence r
+fmtControlSequence :: Fmt ControlSequence
 fmtControlSequence = "\\" F.% (F.accessed (Tx.decodeUtf8 . (getTyped @ByteString)) F.stext)
 
 data LexCharCat = LexCharCat
@@ -24,7 +24,7 @@ data LexCharCat = LexCharCat
   }
   deriving stock (Show, Eq, Generic)
 
-fmtLexCharCat :: Fmt LexCharCat r
+fmtLexCharCat :: Fmt LexCharCat
 fmtLexCharCat =
   let f1 = F.accessed (.lexCCChar) Code.fmtCharCode
       f2 = F.accessed (.lexCCCat) Code.fmtCoreCatCode
@@ -35,7 +35,7 @@ data LexToken
   | ControlSequenceLexToken ControlSequence
   deriving stock (Show, Eq, Generic)
 
-fmtLexToken :: Fmt LexToken r
+fmtLexToken :: Fmt LexToken
 fmtLexToken = later $ \case
   CharCatLexToken lexCC ->
     bformat fmtLexCharCat lexCC
@@ -65,5 +65,5 @@ data LexError
   | InvalidCharacter
   deriving stock (Show, Eq, Generic)
 
-fmtLexError :: Fmt LexError r
+fmtLexError :: Fmt LexError
 fmtLexError = F.shown

@@ -40,7 +40,7 @@ unsafeCodeFromChar c = case ASCII.unicodeToCharMaybe c of
   Just asciiChar -> CharCode $ ASCII.charToWord8 asciiChar
   Nothing -> panic $ show c
 
-fmtCharCode :: Fmt CharCode r
+fmtCharCode :: Fmt CharCode
 fmtCharCode = F.accessed unsafeCodeAsChar F.char
 
 codeFromAsciiChar :: ASCII.Char -> CharCode
@@ -80,7 +80,7 @@ data CatCode
   | CoreCatCode CoreCatCode
   deriving stock (Show, Eq, Generic)
 
-fmtCatCode :: Fmt CatCode r
+fmtCatCode :: Fmt CatCode
 fmtCatCode = F.later $ \case
   CoreCatCode x -> F.bformat fmtCoreCatCode x
   x -> F.bformat F.shown x
@@ -167,7 +167,7 @@ data CoreCatCode
   | Active -- 13
   deriving stock (Show, Eq, Generic)
 
-fmtCoreCatCode :: Fmt CoreCatCode r
+fmtCoreCatCode :: Fmt CoreCatCode
 fmtCoreCatCode = F.shown
 
 -- Delimiter code.

@@ -33,16 +33,16 @@ newtype HList = HList {unHList :: Seq HListElem}
 hListElemTraversal :: Traversal' HList HListElem
 hListElemTraversal = #unHList % traversed
 
-fmtHListOneLine :: Fmt HList r
+fmtHListOneLine :: Fmt HList
 fmtHListOneLine = F.prefixed "\\hlist" $ F.braced (fmtViewed #unHList fmtHListElemsOneLine)
 
-fmtHListMultiLine :: Fmt HList r
+fmtHListMultiLine :: Fmt HList
 fmtHListMultiLine = F.prefixed "\\hlist\n=======\n" (fmtViewed #unHList (F.unlined fmtHListElem))
 
-fmtHListElemsOneLine :: Fmt (Seq HListElem) r
+fmtHListElemsOneLine :: Fmt (Seq HListElem)
 fmtHListElemsOneLine = F.commaSpaceSep fmtHListElem
 
-fmtHListElem :: Fmt HListElem r
+fmtHListElem :: Fmt HListElem
 fmtHListElem = F.later $ \case
   HVListElem vEl -> bformat fmtVListElem vEl
   HListHBaseElem e -> bformat H.Inter.B.Box.fmtHBaseElem e
@@ -53,7 +53,7 @@ newtype VList = VList {unVList :: Seq VListElem}
 vListElemTraversal :: Traversal' VList VListElem
 vListElemTraversal = #unVList % traversed
 
-fmtVList :: Fmt VList r
+fmtVList :: Fmt VList
 fmtVList = F.prefixed "\\vlist\n=====\n" $ fmtViewed #unVList fmtVListElemSeq
 
 fmtVListElemSeq :: F.Format r (Seq VListElem -> r)

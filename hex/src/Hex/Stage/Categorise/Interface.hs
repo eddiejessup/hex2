@@ -10,7 +10,7 @@ data RawCharCat = RawCharCat
   }
   deriving stock (Show, Eq, Generic)
 
-fmtRawCharCat :: Fmt RawCharCat r
+fmtRawCharCat :: Fmt RawCharCat
 fmtRawCharCat =
   let f1 = F.accessed (.rawCCChar) Code.fmtCharCode
       f2 = F.accessed (.rawCCCat) Code.fmtCatCode

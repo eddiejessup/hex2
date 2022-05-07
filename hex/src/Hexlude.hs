@@ -28,16 +28,15 @@ import Data.Generics.Sum (AsType, injectTyped, _Ctor, _Typed)
 import Data.Group (Group (..), (~~))
 import Data.Sequence (Seq (Empty, (:<|), (:|>)), singleton, (><))
 import Data.Sequence.Optics (seqOf)
+import Formatting (Format, bformat, later, sformat)
+import Formatting qualified as F
 -- Import `Optics.At` for instance:
 --   (Eq k, Hashable k) => At (HashMap k a)
 -- So we can do `at` on a HashMap, for control sequence map
-
-import Formatting (Format, bformat, later, sformat)
-import Formatting qualified as F
 import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)
-import Protolude hiding (isDigit, isLower, isSpace, isUpper, notImplemented, to, uncons, unsnoc, words, (%), length)
+import Protolude hiding (isDigit, isLower, isSpace, isUpper, length, notImplemented, to, uncons, unsnoc, words, (%))
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a
@@ -64,7 +63,7 @@ nothingToError prog eofError = do
 fmtViewed :: Is k A_Getter => Optic' k is s a -> Format r (a -> r) -> Format r (s -> r)
 fmtViewed lens_ = F.accessed (view lens_)
 
-type Fmt a r = Format r (a -> r)
+type Fmt a = forall r. Format r (a -> r)
 
 -- Stolen from relude.
 flap :: Functor f => f (a -> b) -> a -> f b
@@ -73,8 +72,8 @@ flap ff x = (\f -> f x) <$> ff
 
 -- Optics for MonadReader contexts, by analogy with 'use' etc in Optics.Extra.
 
-know
-  :: (Is k A_Getter, MonadReader e m)
-  => Optic' k is e a
-  -> m a
+know ::
+  (Is k A_Getter, MonadReader e m) =>
+  Optic' k is e a ->
+  m a
 know o = asks (view o)

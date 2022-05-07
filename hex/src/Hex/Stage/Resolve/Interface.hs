@@ -10,7 +10,7 @@ import Hex.Stage.Lex.Interface.Extract (LexToken)
 data ResolutionError = ResolutionError LexToken
   deriving stock (Show, Generic)
 
-fmtResolutionError :: Fmt ResolutionError r
+fmtResolutionError :: Fmt ResolutionError
 fmtResolutionError = F.shown
 
 class (Monad m) => MonadResolve m where

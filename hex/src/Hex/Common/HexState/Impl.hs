@@ -28,6 +28,7 @@ import System.FilePath qualified as FilePath
 import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue)
 import qualified Hex.Common.HexState.Impl.Scoped.Register as Sc.R
 import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation)
+import qualified Hex.Common.HexState.Impl.Font as HSt.Font
 
 data HexStateError
   = FontNotFound
@@ -35,7 +36,7 @@ data HexStateError
   | CharacterCodeNotFound
   deriving stock (Show, Generic)
 
-fmtHexStateError :: Fmt HexStateError a
+fmtHexStateError :: Fmt HexStateError
 fmtHexStateError = F.shown
 
 getGroupScopesProperty ::
@@ -114,7 +115,7 @@ instance
     currentFontInfo >>= \case
       Nothing -> pure Nothing
       Just fInfo -> do
-        let font = fontMetrics fInfo
+        let font = HSt.Font.fontMetrics fInfo
         let spacing = TFM.fontLengthParamLength font (TFM.spacing . TFM.params)
         let gStretch = Q.FinitePureFlex $ TFM.fontLengthParamLength font (TFM.spaceStretch . TFM.params)
         let gShrink = Q.FinitePureFlex $ TFM.fontLengthParamLength font (TFM.spaceShrink . TFM.params)
@@ -125,13 +126,20 @@ instance
     currentFontInfo >>= \case
       Nothing -> pure Nothing
       Just fInfo -> do
-        let fontMetrics = fInfo ^. typed @TFM.Font
+        let fontMetrics = HSt.Font.fontMetrics fInfo
         tfmChar <- note (injectTyped CharacterCodeNotFound) $ fontMetrics ^. #characters % at' (fromIntegral $ Code.unCharCode chrCode)
         let toLen :: TFM.LengthDesignSize -> Q.Length
             toLen = TFM.lengthFromFontDesignSize fontMetrics
-        pure $ Just (tfmChar ^. #width % to toLen, tfmChar ^. #height % to toLen, tfmChar ^. #depth % to toLen, tfmChar ^. #italicCorrection % to toLen)
+        pure $ Just
+          (tfmChar ^. #width % to toLen,
+           tfmChar ^. #height % to toLen,
+           tfmChar ^. #depth % to toLen,
+           tfmChar ^. #italicCorrection % to toLen)
 
-  loadFont :: H.Inter.B.Box.HexFilePath -> H.Inter.B.Box.FontSpecification -> MonadHexStateImplT m H.Inter.B.Box.FontDefinition
+  loadFont ::
+    H.Inter.B.Box.HexFilePath ->
+    H.Inter.B.Box.FontSpecification ->
+    MonadHexStateImplT m H.Inter.B.Box.FontDefinition
   loadFont path spec = do
     let filePath = path ^. typed @FilePath
     fontInfo <- readFontInfo filePath
@@ -186,7 +194,7 @@ currentFontInfo ::
     MonadError e m,
     AsType HexStateError e
   ) =>
-  m (Maybe FontInfo)
+  m (Maybe HSt.Font.FontInfo)
 currentFontInfo = do
   getGroupScopesProperty Sc.Font.localCurrentFontNr >>= \case
     -- No set font number is a Nothing.
@@ -205,9 +213,9 @@ readFontInfo ::
     MonadHexState m
   ) =>
   FilePath ->
-  m FontInfo
+  m HSt.Font.FontInfo
 readFontInfo fontPath = do
   fontMetrics <- TFM.parseTFMFile fontPath
   hyphenChar <- getScopedParameterValue PT.DefaultHyphenChar
   skewChar <- getScopedParameterValue PT.DefaultSkewChar
-  pure FontInfo {fontMetrics, hyphenChar, skewChar}
+  pure HSt.Font.FontInfo {fontMetrics, hyphenChar, skewChar}

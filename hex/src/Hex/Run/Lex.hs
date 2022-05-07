@@ -17,5 +17,5 @@ lexAll = go
           v <- go
           pure $ tok : v
 
-fmtLexResult :: Fmt [LexToken] r
+fmtLexResult :: Fmt [LexToken]
 fmtLexResult = F.unlined fmtLexToken
