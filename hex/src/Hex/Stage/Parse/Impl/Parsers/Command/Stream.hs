@@ -4,6 +4,7 @@ import ASCII qualified
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse (MonadPrimTokenParse (..))
 import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
@@ -13,7 +14,6 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 
 parseOpenFileStream :: MonadPrimTokenParse m => AST.FileStreamType -> m AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =
@@ -41,8 +41,8 @@ headToParseWriteToStream writePolicy = \case
     do
       n <- Par.parseInt
       txt <- case writePolicy of
-        AST.Immediate -> AST.ImmediateWriteText <$> Par.parseExpandedGeneralText
-        AST.Deferred -> AST.DeferredWriteText <$> Par.parseInhibitedGeneralText
+        AST.Immediate -> AST.ImmediateWriteText <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
+        AST.Deferred -> AST.DeferredWriteText <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup
       pure $ AST.StreamWriteCommand n txt
   _ ->
     empty

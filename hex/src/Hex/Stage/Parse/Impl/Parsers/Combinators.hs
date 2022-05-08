@@ -2,13 +2,13 @@ module Hex.Stage.Parse.Impl.Parsers.Combinators where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Ascii qualified as H.Ascii
-import Hex.Common.Codes qualified as H.C
+import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..))
-import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 -- <optional spaces> = <zero or more spaces>.
 skipOptionalSpaces :: MonadPrimTokenParse m => m ()
@@ -39,18 +39,25 @@ choiceFlap headToParsers t =
 parseHeaded :: MonadPrimTokenParse m => (PrimitiveToken -> m a) -> m a
 parseHeaded = (getAnyPrimitiveToken >>=)
 
--- Bit more domainy.
-
 satisfyLexThen :: MonadPrimTokenParse m => (Lex.LexToken -> Maybe a) -> m a
 satisfyLexThen f = do
   lt <- getAnyLexToken
   maybe empty pure (f lt)
 
-primTokHasCategory :: H.C.CoreCatCode -> PrimitiveToken -> Bool
-primTokHasCategory = isOnly (T.primTokCharCat % typed @H.C.CoreCatCode)
+satisfyLexIf :: MonadPrimTokenParse m => (Lex.LexToken -> Bool) -> m Lex.LexToken
+satisfyLexIf f = satisfyLexThen (\x -> if f x then Just x else Nothing)
 
-primTokCatChar :: H.C.CoreCatCode -> AffineFold PrimitiveToken H.C.CharCode
-primTokCatChar cat = T.primTokCharCat % filtered (isOnly (typed @H.C.CoreCatCode) cat) % typed @H.C.CharCode
+skipSatisfiedLex :: MonadPrimTokenParse m => (Lex.LexToken -> Bool) -> m ()
+skipSatisfiedLex = void . satisfyLexIf
+
+primTokenHasCategory :: Code.CoreCatCode -> PrimitiveToken -> Bool
+primTokenHasCategory = isOnly (T.primTokCharCat % typed @Code.CoreCatCode)
+
+lexTokenHasCategory :: Code.CoreCatCode -> Lex.LexToken -> Bool
+lexTokenHasCategory = isOnly Lex.lexTokCategory
+
+primTokCatChar :: Code.CoreCatCode -> AffineFold PrimitiveToken Code.CharCode
+primTokCatChar cat = T.primTokCharCat % filtered (isOnly (typed @Code.CoreCatCode) cat) % typed @Code.CharCode
 
 -- More domainy.
 
@@ -60,24 +67,24 @@ skipOneOptionalSpace = skipOptional isSpace
 -- <space token> = character token of category [space], or a control sequence
 -- or active character \let equal to such.
 isSpace :: PrimitiveToken -> Bool
-isSpace = primTokHasCategory H.C.Space
+isSpace = primTokenHasCategory Code.Space
 
-matchNonActiveCharacterUncased :: H.C.CharCode -> PrimitiveToken -> Bool
+matchNonActiveCharacterUncased :: Code.CharCode -> PrimitiveToken -> Bool
 matchNonActiveCharacterUncased a pt =
   case pt ^? T.primTokCharCat of
     Just cc ->
       let aWord = a ^. typed @Word8
-          chrWord = cc ^. typed @H.C.CharCode % typed @Word8
-       in (cc ^. typed @H.C.CoreCatCode /= H.C.Active) && (chrWord == H.Ascii.toUpper aWord || chrWord == H.Ascii.toLower aWord)
+          chrWord = cc ^. typed @Code.CharCode % typed @Word8
+       in (cc ^. typed @Code.CoreCatCode /= Code.Active) && (chrWord == H.Ascii.toUpper aWord || chrWord == H.Ascii.toLower aWord)
     _ ->
       False
 
-skipKeyword :: MonadPrimTokenParse m => [H.C.CharCode] -> m ()
+skipKeyword :: MonadPrimTokenParse m => [Code.CharCode] -> m ()
 skipKeyword s = do
   skipOptionalSpaces
   mapM_ (skipSatisfied . matchNonActiveCharacterUncased) s
 
-parseOptionalKeyword :: MonadPrimTokenParse m => [H.C.CharCode] -> m Bool
+parseOptionalKeyword :: MonadPrimTokenParse m => [Code.CharCode] -> m Bool
 parseOptionalKeyword s = isJust <$> optional (skipKeyword s)
 
 skipFiller :: MonadPrimTokenParse m => m ()
@@ -86,18 +93,18 @@ skipFiller = skipManySatisfied isFillerItem
     isFillerItem :: PrimitiveToken -> Bool
     isFillerItem = \case
       T.RelaxTok -> True
-      t -> primTokHasCategory H.C.Space t
+      t -> primTokenHasCategory Code.Space t
 
 skipOptionalEquals :: MonadPrimTokenParse m => m ()
 skipOptionalEquals = do
   skipOptionalSpaces
-  skipOptional $ isOnly (primTokCatChar H.C.Other) (H.C.Chr_ '=')
+  skipOptional $ isOnly (primTokCatChar Code.Other) (Code.Chr_ '=')
 
 parseCSName :: forall m. MonadPrimTokenParse m => m ControlSymbol
 parseCSName = satisfyLexThen lextokToCSLike
   where
     lextokToCSLike = \case
-      Lex.CharCatLexToken (Lex.LexCharCat c H.C.Active) ->
+      Lex.CharCatLexToken (Lex.LexCharCat c Code.Active) ->
         Just $ ActiveCharacterSymbol c
       Lex.ControlSequenceLexToken cs ->
         Just $ ControlSequenceSymbol cs

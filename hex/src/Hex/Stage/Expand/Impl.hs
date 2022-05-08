@@ -2,36 +2,36 @@
 
 module Hex.Stage.Expand.Impl where
 
-import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as Syn
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
+import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.Parse qualified as Par
+import Hex.Stage.Expand.Impl.Expand qualified as Expand
+import Hex.Stage.Expand.Impl.Parse qualified as Par
+import Hex.Stage.Expand.Impl.Parsers.SyntaxCommand.MacroCall qualified as Par
+import Hex.Stage.Expand.Interface (ExpansionError (..), MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
 
-data ExpansionError
-  = ResolutionExpansionError Res.ResolutionError
-  deriving stock (Generic, Show)
-
-fmtExpansionError :: Fmt ExpansionError
-fmtExpansionError = F.later $ \case
-  ResolutionExpansionError e -> F.bformat Res.fmtResolutionError e
-
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype
     ( Functor,
       Applicative,
       Monad,
+      Alternative,
+      MonadPlus,
       MonadIO,
       MonadState st,
       MonadError e,
       Res.MonadResolve,
       Lex.MonadLexTokenSource,
+      Par.MonadPrimTokenParse,
+      HSt.MonadHexState,
       MonadHexLog
     )
 
@@ -39,7 +39,8 @@ instance
   ( Res.MonadResolve (MonadPrimTokenSourceT m),
     MonadError e (MonadPrimTokenSourceT m),
     AsType ExpansionError e,
-    Lex.MonadLexTokenSource (MonadPrimTokenSourceT m)
+    Lex.MonadLexTokenSource (MonadPrimTokenSourceT m),
+    HSt.MonadHexState (MonadPrimTokenSourceT m)
   ) =>
   MonadPrimTokenSource (MonadPrimTokenSourceT m)
   where
@@ -51,7 +52,15 @@ instance
 -- necessary.
 -- Note that the lex-token is just returned for debugging really.
 -- It is passed through unchanged from the lex-token-source.
-getPrimitiveTokenImpl :: (Res.MonadResolve m, MonadError e m, AsType ExpansionError e, Lex.MonadLexTokenSource m) => m (Maybe (LexToken, PrimitiveToken))
+getPrimitiveTokenImpl ::
+  ( Res.MonadResolve m,
+    MonadError e m,
+    AsType ExpansionError e,
+    Lex.MonadLexTokenSource m,
+    MonadPrimTokenSource m,
+    HSt.MonadHexState m
+  ) =>
+  m (Maybe (LexToken, PrimitiveToken))
 getPrimitiveTokenImpl =
   Res.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
@@ -61,7 +70,7 @@ getPrimitiveTokenImpl =
     Just (lt, errOrResolvedTok) -> case errOrResolvedTok of
       -- If resolution failed, throw an error.
       Left e ->
-        throwError $ injectTyped $ ResolutionExpansionError e
+        throwError $ injectTyped $ ExpansionResolutionError e
       -- If we resolved to a primitive token, we are done, just return that.
       Right (PrimitiveToken pt) ->
         pure $ Just (lt, pt)
@@ -78,59 +87,68 @@ getPrimitiveTokenImpl =
         -- expand again.
         getPrimitiveTokenImpl
 
+runParserDuringExpansion ::
+  (MonadError e m, AsType ExpansionError e) =>
+  Par.ParseT m a ->
+  m a
+runParserDuringExpansion parser =
+  Par.runParseT parser >>= \case
+    Left e -> throwError $ injectTyped $ ExpansionParsingError e
+    Right v -> pure v
+
 expandSyntaxCommand ::
-  Syn.SyntaxCommandHeadToken ->
+  (MonadError e m, AsType ExpansionError e, HSt.MonadHexState m, MonadPrimTokenSource m, Lex.MonadLexTokenSource m) =>
+  ST.SyntaxCommandHeadToken ->
   m (Seq Lex.LexToken)
 expandSyntaxCommand = \case
+  ST.MacroTok macroDefinition -> do
+    args <- runParserDuringExpansion $ Par.parseMacroArguments macroDefinition.parameterSpecification
+    Expand.substituteArgsIntoMacroBody macroDefinition.replacementText args
+  -- ConditionTok ct -> do
+  --   expandConditionToken ct
+  --   pure mempty
+  -- NumberTok ->
+  --   notImplemented "syntax command NumberTok"
+  -- RomanNumeralTok ->
+  --   notImplemented "syntax command RomanNumeralTok"
+  -- StringTok -> do
+  --   conf <- use $ typed @Conf.Config
+  --   let escapeChar = (Conf.IntParamVal . Conf.lookupIntParameter EscapeChar) conf
+  --   expandString escapeChar <$> parseLexToken
+  -- JobNameTok ->
+  --   notImplemented "syntax command JobNameTok"
+  -- FontNameTok ->
+  --   notImplemented "syntax command FontNameTok"
+  -- MeaningTok ->
+  --   notImplemented "syntax command MeaningTok"
+  -- CSNameTok -> do
+  --   a <- parseCSNameArgs
+  --   singleton <$> expandCSName a
+  -- ExpandAfterTok -> do
+  --   argLT <- takeLexToken
+  --   (_, postArgLTs) <- takeAndExpandResolvedToken
+  --   -- Prepend the unexpanded token.
+  --   pure (argLT <| postArgLTs)
+  -- NoExpandTok ->
+  --   notImplemented "syntax command NoExpandTok"
+  -- MarkRegisterTok _ ->
+  --   notImplemented "syntax command MarkRegisterTok"
+  -- -- \input ⟨file name⟩:
+  -- -- - Expand to no tokens
+  -- -- - Prepare to read from the specified file before looking at any more
+  -- --   tokens from the current source.
+  -- InputTok -> do
+  --   TeXFilePath texPath <- parseFileName
+  --   inputPath texPath
+  --   pure mempty
+  -- EndInputTok ->
+  --   notImplemented "syntax command EndInputTok"
+  -- TheTok -> do
+  --   intQuant <- parseInternalQuantity
+  --   fmap charCodeAsMadeToken <$> texEvaluate intQuant
+  -- ChangeCaseTok direction -> do
+  --   conf <- use $ typed @Conf.Config
+  --   expandChangeCase
+  --     (\c -> Conf.lookupChangeCaseCode direction c conf)
+  --     <$> parseGeneralText
   t -> notImplemented $ "Expand syntax command, head: " <> show t
-
--- MacroTok m -> do
---   args <- parseMacroArgs m
---   expandMacro m args
--- ConditionTok ct -> do
---   expandConditionToken ct
---   pure mempty
--- NumberTok ->
---   notImplemented "syntax command NumberTok"
--- RomanNumeralTok ->
---   notImplemented "syntax command RomanNumeralTok"
--- StringTok -> do
---   conf <- use $ typed @Conf.Config
---   let escapeChar = (Conf.IntParamVal . Conf.lookupIntParameter EscapeChar) conf
---   expandString escapeChar <$> parseLexToken
--- JobNameTok ->
---   notImplemented "syntax command JobNameTok"
--- FontNameTok ->
---   notImplemented "syntax command FontNameTok"
--- MeaningTok ->
---   notImplemented "syntax command MeaningTok"
--- CSNameTok -> do
---   a <- parseCSNameArgs
---   singleton <$> expandCSName a
--- ExpandAfterTok -> do
---   argLT <- takeLexToken
---   (_, postArgLTs) <- takeAndExpandResolvedToken
---   -- Prepend the unexpanded token.
---   pure (argLT <| postArgLTs)
--- NoExpandTok ->
---   notImplemented "syntax command NoExpandTok"
--- MarkRegisterTok _ ->
---   notImplemented "syntax command MarkRegisterTok"
--- -- \input ⟨file name⟩:
--- -- - Expand to no tokens
--- -- - Prepare to read from the specified file before looking at any more
--- --   tokens from the current source.
--- InputTok -> do
---   TeXFilePath texPath <- parseFileName
---   inputPath texPath
---   pure mempty
--- EndInputTok ->
---   notImplemented "syntax command EndInputTok"
--- TheTok -> do
---   intQuant <- parseInternalQuantity
---   fmap charCodeAsMadeToken <$> texEvaluate intQuant
--- ChangeCaseTok direction -> do
---   conf <- use $ typed @Conf.Config
---   expandChangeCase
---     (\c -> Conf.lookupChangeCaseCode direction c conf)
---     <$> parseGeneralText

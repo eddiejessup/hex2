@@ -11,6 +11,11 @@ data ParsingError
   | UnexpectedParsingError ParseUnexpectedError
   deriving stock (Show, Eq, Generic)
 
+fmtParsingError :: Fmt ParsingError
+fmtParsingError = F.later $ \case
+  EndOfInputParsingError -> "End of input"
+  UnexpectedParsingError e -> F.bformat fmtParseUnexpectedError e
+
 data ParseUnexpectedError = ParseUnexpectedError
   { lastSeenTok :: Maybe Lex.LexToken,
     err :: ParseUnexpectedErrorCause
@@ -24,10 +29,14 @@ fmtParseUnexpectedError =
 
 data ParseUnexpectedErrorCause
   = ParseExplicitFailure
-  | SawUnexpectedToken UnexpectedToken
+  | SawUnexpectedPrimitiveToken UnexpectedPrimitiveToken
+  | SawUnexpectedLexToken UnexpectedLexToken
   deriving stock (Show, Eq, Generic)
 
-data UnexpectedToken = UnexpectedToken {saw :: PT.PrimitiveToken, expected :: Text}
+data UnexpectedPrimitiveToken = UnexpectedPrimitiveToken {saw :: PT.PrimitiveToken, expected :: Text}
+  deriving stock (Show, Eq, Generic)
+
+data UnexpectedLexToken = UnexpectedLexToken {saw :: Lex.LexToken, expected :: Text}
   deriving stock (Show, Eq, Generic)
 
 -- I want a single class to require when I write my parsers that consume primitive tokens.

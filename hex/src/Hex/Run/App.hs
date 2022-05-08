@@ -14,8 +14,8 @@ import Hex.Stage.Evaluate.Impl (MonadEvaluateT (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface (MonadEvaluate)
 import Hex.Stage.Expand.Impl (MonadPrimTokenSourceT (..))
-import Hex.Stage.Expand.Impl qualified as Expand
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
+import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as Interpret
 import Hex.Stage.Lex.Impl (MonadLexTokenSourceT (..))
 import Hex.Stage.Lex.Interface (MonadLexTokenSource)

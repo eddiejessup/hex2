@@ -3,7 +3,7 @@ module Hex.Stage.Parse.Impl.Parsers.Quantity.Glue where
 import Control.Monad.Combinators qualified as PC
 import Data.Foldable qualified as Fold
 import Hex.Common.Codes (pattern Chr_)
-import Hex.Common.Codes qualified as H.C
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse (MonadPrimTokenParse (..))
 import Hex.Common.Quantity qualified as Q
@@ -56,7 +56,7 @@ parseExplicitGlueSpec = do
   shrink <- parseFlex [Chr_ 'm', Chr_ 'i', Chr_ 'n', Chr_ 'u', Chr_ 's']
   pure $ AST.ExplicitGlueSpec len stretch shrink
 
-parseFlex :: MonadPrimTokenParse m => [H.C.CharCode] -> m (Maybe AST.Flex)
+parseFlex :: MonadPrimTokenParse m => [Code.CharCode] -> m (Maybe AST.Flex)
 parseFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,

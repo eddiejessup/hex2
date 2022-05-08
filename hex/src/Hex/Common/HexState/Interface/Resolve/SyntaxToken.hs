@@ -1,11 +1,12 @@
 module Hex.Common.HexState.Interface.Resolve.SyntaxToken where
 
-import Hex.Common.Quantity qualified as Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
+import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
+import qualified ASCII
 
-newtype InhibitedBalancedText = InhibitedBalancedText (Seq Lex.LexToken)
+newtype InhibitedBalancedText = InhibitedBalancedText {unInhibitedBalancedText :: Seq Lex.LexToken}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Semigroup, Monoid)
 
@@ -18,13 +19,32 @@ newtype ParameterText = ParameterText (Seq Lex.LexToken)
   deriving stock (Show, Generic)
   deriving newtype (Eq)
 
+-- | The form of parameters that are part of a macro definition.
+data MacroParameterSpecification = MacroParameterSpecification
+  { preParameterText :: ParameterText,
+    parameterDelimiterTexts :: Seq ParameterText
+  }
+  deriving stock (Show, Eq, Generic)
+
 data MacroReplacementText
-  = ExpandedReplacementText ExpandedBalancedText
-  | InhibitedReplacementText InhibitedBalancedText
+  = ExpandedMacroReplacementText -- Not implemented
+  | InhibitedMacroReplacementText InhibitedReplacementText
+  deriving stock (Show, Eq, Generic)
+
+newtype InhibitedReplacementText = InhibitedReplacementText {unInhibitedReplacementText :: Seq MacroTextToken}
+  deriving stock (Show, Eq, Generic)
+
+-- A token in a macro template.
+data MacroTextToken
+  = MacroTextLexToken Lex.LexToken -- A 'normal' token.
+  | MacroTextParamToken ParameterNumber
+  deriving stock (Show, Eq, Generic)
+
+newtype ParameterNumber = ParameterNumber {unParameterNumber :: ASCII.Digit}
   deriving stock (Show, Eq, Generic)
 
 data MacroDefinition = MacroDefinition
-  { paramText :: ParameterText,
+  { parameterSpecification :: MacroParameterSpecification,
     replacementText :: MacroReplacementText,
     long, outer :: Bool
   }

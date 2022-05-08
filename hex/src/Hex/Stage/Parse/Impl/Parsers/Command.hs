@@ -1,7 +1,7 @@
 module Hex.Stage.Parse.Impl.Parsers.Command where
 
 import Control.Monad.Combinators qualified as PC
-import Hex.Common.Codes qualified as H.C
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Tok
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse (MonadPrimTokenParse (..))
@@ -36,19 +36,19 @@ parseCommand =
     H.Tok.ShipOutTok ->
       AST.ShipOut <$> Par.parseHeaded Par.headToParseBox
     H.Tok.MarkTok ->
-      AST.AddMark <$> Par.parseExpandedGeneralText
+      AST.AddMark <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
     H.Tok.StartParagraphTok _indent ->
       pure $ AST.StartParagraph _indent
     H.Tok.EndParagraphTok ->
       pure AST.EndParagraph
     t
-      | Par.primTokHasCategory H.C.Space t ->
+      | Par.primTokenHasCategory Code.Space t ->
           pure AST.AddSpace
-      | Par.primTokHasCategory H.C.BeginGroup t ->
+      | Par.primTokenHasCategory Code.BeginGroup t ->
           pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Positive AST.CharCommandTrigger
-      | Par.primTokHasCategory H.C.EndGroup t ->
+      | Par.primTokenHasCategory Code.EndGroup t ->
           pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Negative AST.CharCommandTrigger
-      | Par.primTokHasCategory H.C.MathShift t ->
+      | Par.primTokenHasCategory Code.MathShift t ->
           pure $ AST.HModeCommand AST.EnterMathMode
     H.Tok.RelaxTok ->
       pure $ AST.ModeIndependentCommand AST.Relax
@@ -68,11 +68,11 @@ parseCommand =
     H.Tok.CloseInputTok ->
       AST.ModeIndependentCommand . AST.ModifyFileStream . AST.FileStreamModificationCommand AST.FileInput AST.Close <$> Par.parseInt
     H.Tok.DoSpecialTok ->
-      AST.ModeIndependentCommand . AST.DoSpecial <$> Par.parseExpandedGeneralText
+      AST.ModeIndependentCommand . AST.DoSpecial <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
     H.Tok.RemoveItemTok i ->
       pure $ AST.ModeIndependentCommand $ AST.RemoveItem i
     H.Tok.MessageTok str ->
-      AST.ModeIndependentCommand . AST.WriteMessage . AST.MessageWriteCommand str <$> Par.parseExpandedGeneralText
+      AST.ModeIndependentCommand . AST.WriteMessage . AST.MessageWriteCommand str <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
     H.Tok.OpenInputTok ->
       AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.parseOpenFileStream AST.FileInput
     H.Tok.ImmediateTok -> do
@@ -104,9 +104,9 @@ parseCommand =
     H.Tok.DiscretionaryTextTok -> do
       dText <-
         AST.DiscretionaryText
-          <$> Par.parseExpandedGeneralText
-          <*> Par.parseExpandedGeneralText
-          <*> Par.parseExpandedGeneralText
+          <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
+          <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
+          <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
       pure $ AST.HModeCommand $ AST.AddDiscretionaryText dText
     H.Tok.EndTok ->
       pure $ AST.VModeCommand AST.End
@@ -143,9 +143,9 @@ headToParseInternalQuantity =
 
 headToParseCharCodeRef :: MonadPrimTokenParse m => H.Tok.PrimitiveToken -> m AST.CharCodeRef
 headToParseCharCodeRef = \case
-  T.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c H.C.Letter)) ->
+  T.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Letter)) ->
     pure $ AST.CharRef c
-  T.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c H.C.Other)) ->
+  T.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Other)) ->
     pure $ AST.CharRef c
   T.IntRefTok T.CharQuantity i ->
     pure $ AST.CharTokenRef i

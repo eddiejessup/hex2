@@ -2,17 +2,17 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Box where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
-import Hex.Common.Codes qualified as H.C
-import Hex.Stage.Parse.Interface.AST.Command qualified as AST
+import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
-import Hex.Common.Quantity qualified as Q
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import Hex.Common.Parse (MonadPrimTokenParse(..))
 
 headToParseLeadersSpec :: MonadPrimTokenParse m => Q.Axis -> T.PrimitiveToken -> m AST.LeadersSpec
 headToParseLeadersSpec axis = \case
@@ -29,11 +29,11 @@ headToParseBox = \case
     pure AST.LastBox
   T.SplitVBoxTok -> do
     nr <- Par.parseInt
-    skipKeyword [H.C.Chr_ 't', H.C.Chr_ 'o']
+    skipKeyword [Code.Chr_ 't', Code.Chr_ 'o']
     AST.VSplitBox nr <$> Par.parseLength
   T.ExplicitBoxTok boxType -> do
     boxSpec <- parseBoxSpecification
-    skipSatisfied $ primTokHasCategory H.C.BeginGroup
+    skipSatisfied $ primTokenHasCategory Code.BeginGroup
     pure $ AST.ExplicitBox boxSpec boxType
   _ ->
     empty
@@ -61,7 +61,7 @@ headToParseModedRule :: MonadPrimTokenParse m => Q.Axis -> T.PrimitiveToken -> m
 headToParseModedRule axis = \case
   T.ModedCommand tokenAxis T.RuleTok
     | axis == tokenAxis ->
-      AST.Rule <$> go mempty
+        AST.Rule <$> go mempty
   _ ->
     empty
   where

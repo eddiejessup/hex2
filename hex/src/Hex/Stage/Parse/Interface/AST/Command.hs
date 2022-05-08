@@ -2,7 +2,7 @@
 
 module Hex.Stage.Parse.Interface.AST.Command where
 
-import Hex.Common.Codes qualified as H.Code
+import Hex.Common.Codes qualified as Code
 import Hex.Stage.Parse.Interface.AST.Quantity
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
@@ -236,7 +236,7 @@ data BoxPlacement = NaturalPlacement | ShiftedPlacement Q.Axis Q.Direction Lengt
   deriving stock (Show, Eq, Generic)
 
 data CharCodeRef
-  = CharRef H.Code.CharCode
+  = CharRef Code.CharCode
   | CharTokenRef Q.HexInt
   | CharCodeNrRef CharCodeInt
   deriving stock (Show, Eq, Generic)

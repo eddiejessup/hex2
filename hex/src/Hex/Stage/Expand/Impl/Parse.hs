@@ -96,7 +96,7 @@ satisfyThenImpl f = do
     -- and declare that we failed.
     Nothing -> do
       lift $ Lex.putSource src0
-      parseErrorImpl $ SawUnexpectedToken (UnexpectedToken {saw = pt, expected = "Unknown"})
+      parseErrorImpl $ SawUnexpectedPrimitiveToken (UnexpectedPrimitiveToken {saw = pt, expected = "Unknown"})
     -- If our predicate succeeds, then return the value.
     Just v ->
       pure v

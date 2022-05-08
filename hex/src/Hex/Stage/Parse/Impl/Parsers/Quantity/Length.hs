@@ -2,7 +2,7 @@ module Hex.Stage.Parse.Impl.Parsers.Quantity.Length where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
-import Hex.Common.Codes qualified as H.C
+import Hex.Common.Codes qualified as Code
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
@@ -43,8 +43,8 @@ parseRationalConstant = do
   wholeDigits <- PC.many (satisfyThen Par.decCharToWord)
   Par.skipSatisfied $ \t -> case t ^? PT.primTokCharCat of
     Just cc ->
-      let chrCode = cc ^. typed @H.C.CharCode
-       in (cc ^. typed @H.C.CoreCatCode == H.C.Other) && (chrCode == H.C.Chr_ ',' || chrCode == H.C.Chr_ '.')
+      let chrCode = cc ^. typed @Code.CharCode
+       in (cc ^. typed @Code.CoreCatCode == Code.Other) && (chrCode == Code.Chr_ ',' || chrCode == Code.Chr_ '.')
     Nothing -> False
   fracDigits <- PC.many (satisfyThen Par.decCharToWord)
   pure $ AST.DecimalFraction {AST.wholeDigits, AST.fracDigits}

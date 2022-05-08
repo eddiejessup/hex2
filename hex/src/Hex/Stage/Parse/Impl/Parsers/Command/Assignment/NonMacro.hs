@@ -1,7 +1,7 @@
 module Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro where
 
 import Control.Monad.Combinators qualified as PC
-import Hex.Common.Codes qualified as H.C
+import Hex.Common.Codes qualified as Code
 -- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse (MonadPrimTokenParse (..))
@@ -21,9 +21,9 @@ headToParseNonMacroAssignmentBody ::
   m AST.AssignmentBody
 headToParseNonMacroAssignmentBody = \case
   T.HyphenationTok ->
-    AST.SetHyphenation <$> Par.parseInhibitedGeneralText
+    AST.SetHyphenation <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup
   T.HyphenationPatternsTok ->
-    AST.SetHyphenationPatterns <$> Par.parseInhibitedGeneralText
+    AST.SetHyphenationPatterns <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup
   T.InteractionModeTok mode ->
     pure $ AST.SetInteractionMode mode
   T.LetTok -> do
@@ -53,7 +53,7 @@ headToParseNonMacroAssignmentBody = \case
     pure $ AST.SetParShape nrPairs shapeLengths
   T.ReadTok -> do
     nr <- Par.parseInt
-    Par.skipKeyword [H.C.Chr_ 't', H.C.Chr_ 'o']
+    Par.skipKeyword [Code.Chr_ 't', Code.Chr_ 'o']
     Par.skipOptionalSpaces
     cs <- Par.parseCSName
     pure $ AST.DefineControlSequence cs (AST.ReadTarget nr)
@@ -83,10 +83,10 @@ parseFontTarget = do
   fontSpec <-
     PC.choice
       [ do
-          Par.skipKeyword [H.C.Chr_ 'a', H.C.Chr_ 't']
+          Par.skipKeyword [Code.Chr_ 'a', Code.Chr_ 't']
           AST.FontAt <$> Par.parseLength,
         do
-          Par.skipKeyword [H.C.Chr_ 's', H.C.Chr_ 'c', H.C.Chr_ 'a', H.C.Chr_ 'l', H.C.Chr_ 'e', H.C.Chr_ 'd']
+          Par.skipKeyword [Code.Chr_ 's', Code.Chr_ 'c', Code.Chr_ 'a', Code.Chr_ 'l', Code.Chr_ 'e', Code.Chr_ 'd']
           AST.FontScaled <$> Par.parseInt,
         do
           Par.skipOptionalSpaces
@@ -139,7 +139,7 @@ parseNumericVariable =
 skipOptionalBy :: MonadPrimTokenParse m => m ()
 skipOptionalBy =
   PC.choice
-    [ void $ Par.parseOptionalKeyword [H.C.Chr_ 'b', H.C.Chr_ 'y'],
+    [ void $ Par.parseOptionalKeyword [Code.Chr_ 'b', Code.Chr_ 'y'],
       Par.skipOptionalSpaces
     ]
 
@@ -174,7 +174,7 @@ headToParseVariableAssignment t =
 parseTokenListTarget :: MonadPrimTokenParse m => m AST.TokenListAssignmentTarget
 parseTokenListTarget =
   PC.choice
-    [ AST.TokenListAssignmentText <$> Par.parseInhibitedGeneralText,
+    [ AST.TokenListAssignmentText <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup,
       do
         Par.skipFiller
         AST.TokenListAssignmentVar <$> Par.parseHeaded Par.headToParseTokenListVariable

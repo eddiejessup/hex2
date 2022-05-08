@@ -20,6 +20,7 @@ module Hexlude
     fmtMap,
     fmtViewed,
     flap,
+    foldMapM,
     nothingToError,
     know,
   )
@@ -28,12 +29,13 @@ where
 import Data.Generics.Product (HasType, field, typed)
 import Data.Generics.Sum (AsType, injectTyped, _Ctor, _Typed)
 import Data.Group (Group (..), (~~))
-import Data.Sequence (Seq (Empty, (:<|), (:|>)), singleton, (><))
-import Data.Sequence.Optics (seqOf)
 -- Import `Optics.At` for instance:
 --   (Eq k, Hashable k) => At (HashMap k a)
 -- So we can do `at` on a HashMap, for control sequence map
 
+import Data.Map.Strict qualified as Map
+import Data.Sequence (Seq (Empty, (:<|), (:|>)), singleton, (><))
+import Data.Sequence.Optics (seqOf)
 import Data.Text.Lazy.Builder qualified as Text.Lazy
 import Formatting (Format, bformat, later, sformat)
 import Formatting qualified as F
@@ -41,7 +43,6 @@ import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)
 import Protolude hiding (isDigit, isLower, isSpace, isUpper, length, notImplemented, to, uncons, unsnoc, words, (%))
-import qualified Data.Map.Strict as Map
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a
@@ -85,8 +86,8 @@ fmtWithHeading title accessor fmtContents =
 
 fmtList :: Fmt v -> Fmt [v]
 fmtList fmtValue = F.later $ \case
-    [] -> "No entries."
-    xs -> F.bformat (F.unlined (F.prefixed "- " fmtValue)) xs
+  [] -> "No entries."
+  xs -> F.bformat (F.unlined (F.prefixed "- " fmtValue)) xs
 
 fmtMap :: forall k v. Fmt k -> Fmt v -> Fmt (Map k v)
 fmtMap fmtKey fmtValue = F.accessed Map.toList (fmtList fmtKVEntry)
@@ -100,6 +101,13 @@ type Fmt a = forall r. Format r (a -> r)
 flap :: Functor f => f (a -> b) -> a -> f b
 flap ff x = (\f -> f x) <$> ff
 {-# INLINE flap #-}
+
+-- Stolen from relude.
+foldMapM :: forall b m f a. (Monoid b, Monad m, Foldable f) => (a -> m b) -> f a -> m b
+foldMapM f xs = foldr step return xs mempty
+  where
+    step x r z = f x >>= \y -> r $! z `mappend` y
+{-# INLINE foldMapM #-}
 
 -- Optic for MonadReader context, by analogy with 'use' in Optics.Extra.
 know ::
