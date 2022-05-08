@@ -44,6 +44,7 @@ evalModeIndepCmd = \case
   P.DoSpecial _expandedBalancedText -> notImplemented "evalModeIndepCmd 'DoSpecial'"
   P.AddBox _boxPlacement _box -> notImplemented "evalModeIndepCmd 'AddBox'"
   P.ChangeScope _sign _commandTrigger -> notImplemented "evalModeIndepCmd 'ChangeScope'"
+  P.DebugShowState -> pure E.DebugShowState
 
 evalAssignmentBody :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.AssignmentBody -> m E.AssignmentBody
 evalAssignmentBody = \case

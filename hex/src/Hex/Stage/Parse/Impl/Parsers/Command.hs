@@ -23,6 +23,8 @@ import Hexlude
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
   getAnyPrimitiveToken >>= \case
+    H.Tok.DebugShowState ->
+      pure $ AST.ModeIndependentCommand $ AST.DebugShowState
     H.Tok.ShowTokenTok ->
       AST.ShowToken <$> getAnyLexToken
     H.Tok.ShowBoxTok ->

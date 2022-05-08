@@ -8,19 +8,19 @@ copyright: "Copyright (c) 2017 Elliot Marsden"
 language: GHC2021
 
 extra-source-files:
-- README.md
+  - README.md
 
 description: Please see the README on GitHub at <https://github.com/eddiejessup/hex#readme>
 
 dependencies:
   - base
-  - bytestring
 
 library:
   source-dirs: src
 
   dependencies:
     - ascii
+    - bytestring
     - cereal
     - containers
     - filepath
@@ -36,62 +36,49 @@ library:
     - transformers
 
 ghc-options:
-- -optP-Wno-nonportable-include-path
-
-- -Wall
-- -Wcompat
-- -Widentities
-- -Wincomplete-record-updates
-- -Wincomplete-uni-patterns
-- -Wpartial-fields
-- -Wredundant-constraints
-- -Wmissing-deriving-strategies
-- -Wunused-packages
-
-# - -Wno-warnings-deprecations
-- -O0
-- +RTS -A128m -n2m -RTS
-- -j
+  - -Wall
+  - -Wcompat
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wpartial-fields
+  - -Wredundant-constraints
+  - -Wmissing-deriving-strategies
+  - -Wunused-packages
+  - -O0
 
 executables:
   hexc:
-    main:                Hexc.hs
-    source-dirs:         hexc
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    main: Hexc.hs
+    source-dirs: hexc
     dependencies:
-    - hex
-    - optparse-applicative
+      - hex
+      - bytestring
+      - optparse-applicative
 
 tests:
   hex-test:
-    main:                test.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
+    main: test.hs
+    source-dirs: test
     dependencies:
-    - hex
-    - tasty
-    - tasty-hunit
+      - hex
+      - tasty
+      - tasty-hunit
 
 default-extensions:
-- DataKinds
-- DeriveAnyClass
-- DerivingStrategies
-- DerivingVia
-- DuplicateRecordFields
-- GADTs
-- LambdaCase
-- MultiWayIf
-- NoImplicitPrelude
-- OverloadedLabels
-- OverloadedRecordDot
-- OverloadedStrings
-- PartialTypeSignatures
-- StrictData
-- TypeFamilies
-- PatternSynonyms
+  - DataKinds
+  - DeriveAnyClass
+  - DerivingStrategies
+  - DerivingVia
+  - DuplicateRecordFields
+  - GADTs
+  - LambdaCase
+  - MultiWayIf
+  - NoImplicitPrelude
+  - OverloadedLabels
+  - OverloadedRecordDot
+  - OverloadedStrings
+  - PartialTypeSignatures
+  - StrictData
+  - TypeFamilies
+  - PatternSynonyms

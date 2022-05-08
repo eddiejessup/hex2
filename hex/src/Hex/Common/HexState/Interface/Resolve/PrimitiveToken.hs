@@ -429,6 +429,8 @@ data PrimitiveToken
   -- > Setting interaction mode.
   | InteractionModeTok InteractionMode
   | UnresolvedTok Lex.LexToken
+  -- Custom token for my own use.
+  | DebugShowState
   deriving stock (Show, Eq, Generic)
 
 primTokLexTok :: Prism' PrimitiveToken Lex.LexToken

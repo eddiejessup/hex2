@@ -1,5 +1,6 @@
 module Hex.Common.HexState.Impl.Scoped.GroupScopes where
 
+import Formatting qualified as F
 import Hex.Common.HexState.Impl.Scoped.Group
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope, newGlobalScope)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
@@ -18,6 +19,9 @@ data GroupScopes = GroupScopes
 
 newGroupScopes :: GroupScopes
 newGroupScopes = GroupScopes {globalScope = newGlobalScope, groups = []}
+
+fmtGroupScopes :: Fmt GroupScopes
+fmtGroupScopes = F.shown
 
 -- | Get all scopes except global scope.
 localScopesTraversal :: Traversal' GroupScopes Scope

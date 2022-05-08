@@ -1,8 +1,7 @@
 module Hex.Run.App where
 
 import Formatting qualified as F
-import Hex.Capability.Log.Impl (MonadHexLogT (..))
-import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.HexState.Impl (MonadHexStateImplT (..))
 import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Type qualified as HSt
@@ -30,7 +29,8 @@ import Hexlude
 import System.IO (hFlush)
 
 data AppEnv = AppEnv
-  { appLogHandle :: Handle
+  { appLogHandle :: Handle,
+    searchDirectories :: [FilePath]
   }
   deriving stock (Generic)
 
@@ -63,7 +63,6 @@ newtype App a = App {unApp :: ReaderT AppEnv (StateT AppState (ExceptT AppError 
   deriving (MonadLexTokenSource) via (MonadLexTokenSourceT App)
   deriving (MonadPrimTokenSource) via (MonadPrimTokenSourceT App)
   deriving (MonadCommandSource) via (MonadCommandSourceT App)
-  deriving (MonadHexLog) via (MonadHexLogT App)
 
 data AppError
   = AppLexError Lex.LexError
@@ -85,6 +84,17 @@ fmtAppError = F.later $ \case
   AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
 
+instance MonadHexLog App where
+  logText msg = do
+    logFileHandle <- know $ typed @Handle
+    liftIO $ hPutStrLn logFileHandle msg
+
+  logInternalState = do
+    logFileHandle <- know $ typed @Handle
+    hexState <- use $ typed @HSt.HexState
+    let msg = sformat HSt.fmtHexState hexState
+    liftIO $ hPutStrLn logFileHandle msg
+
 runAppGivenState ::
   AppState ->
   App a ->
@@ -94,12 +104,16 @@ runAppGivenState appState app appEnv =
   let x = runReaderT app.unApp appEnv
    in runExceptT $ runStateT x appState
 
+newAppEnv :: Handle -> AppEnv
+newAppEnv appLogHandle =
+  AppEnv {appLogHandle, searchDirectories = []}
+
 -- | Set up the enironment in this 'with'-style, to ensure we clean up the log
 -- handle when we're finished.
 withAppEnv :: (AppEnv -> IO a) -> IO a
 withAppEnv k = do
-  appLogHandle <- openFile "log.txt" WriteMode
-  k $ AppEnv {appLogHandle}
+  withFile "log.txt" WriteMode $ \appLogHandle -> do
+    k $ newAppEnv appLogHandle
 
 runAppGivenEnv ::
   ByteString ->

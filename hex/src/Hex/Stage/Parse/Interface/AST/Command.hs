@@ -48,6 +48,7 @@ data ModeIndependentCommand
   | DoSpecial ST.ExpandedBalancedText
   | AddBox BoxPlacement Box
   | ChangeScope Q.Sign CommandTrigger
+  | DebugShowState
   deriving stock (Show, Eq, Generic)
 
 data VModeCommand

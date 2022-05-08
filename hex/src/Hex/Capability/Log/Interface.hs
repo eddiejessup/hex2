@@ -4,3 +4,5 @@ import Hexlude
 
 class Monad m => MonadHexLog m where
   logText :: Text -> m ()
+
+  logInternalState :: m ()

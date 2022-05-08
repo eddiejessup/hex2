@@ -1,7 +1,7 @@
 module Hex.Stage.Interpret.CommandHandler.AllMode where
 
 import Formatting qualified as F
-import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
@@ -32,20 +32,28 @@ getNextCommandLogged ::
     Par.MonadCommandSource m,
     MonadError e m,
     AsType InterpretError e,
-    MonadHexLog m
+    Log.MonadHexLog m
   ) =>
   m Eval.Command
 getNextCommandLogged = do
   cmd <- Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
-  logText $ F.sformat ("Read command: " |%| F.shown) cmd
+  Log.logText $ F.sformat ("Read command: " |%| F.shown) cmd
   pure cmd
 
 handleModeIndependentCommand ::
-  (Monad m, MonadIO m, HSt.MonadHexState m, Lex.MonadLexTokenSource m) =>
+  ( Monad m,
+    MonadIO m,
+    HSt.MonadHexState m,
+    Lex.MonadLexTokenSource m,
+    Log.MonadHexLog m
+  ) =>
   (H.Inter.B.List.VListElem -> StateT s m ()) ->
   Eval.ModeIndependentCommand ->
   StateT s m AllModeCommandResult
 handleModeIndependentCommand addVElem = \case
+  Eval.DebugShowState -> do
+    lift $ Log.logInternalState
+    pure DidNotSeeEndBox
   Eval.WriteMessage (Eval.MessageWriteCommand stdStream expandedText) -> do
     let _handle = case stdStream of
           T.StdOut -> stdout
@@ -235,12 +243,6 @@ handleModeIndependentCommand addVElem = \case
   --   assign' (typed @Config) poppedConfig
   --   postPopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
   --   when (prePopCurrentFontNr /= postPopCurrentFontNr) $ do
-  --     sLogStampedJSON
-  --       "After exiting scope, reverting changed font"
-  --       [ ("fontNrPrePop", toJSON prePopCurrentFontNr),
-  --         ("fontNrPostPop", toJSON postPopCurrentFontNr),
-  --         ("groupType", toJSON (renderGroupType group))
-  --       ]
   --     addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection (fromMaybe 0 postPopCurrentFontNr)
   --   case group of
   --     -- Undo the effects of non-global

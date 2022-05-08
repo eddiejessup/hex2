@@ -15,6 +15,7 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
 import Hex.Capability.Log.Interface (MonadHexLog)
+import qualified Hex.Capability.Log.Interface as Log
 
 data ParaModeCommandResult
   = ContinuePara
@@ -64,7 +65,8 @@ handleCommandInParaMode ::
     MonadLexTokenSource m,
     MonadError e m,
     MonadIO m,
-    AsType AllMode.InterpretError e
+    AsType AllMode.InterpretError e,
+    Log.MonadHexLog m
   ) =>
   CharSource ->
   Eval.Command ->

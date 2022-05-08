@@ -83,6 +83,7 @@ initialSymbolMap =
       (_cs "show", primTok ShowTokenTok),
       (_cs "showbox", primTok ShowBoxTok),
       (_cs "showlists", primTok ShowListsTok),
+      (_cs "showstate", primTok DebugShowState),
       (_cs "showthe", primTok ShowTheInternalQuantityTok),
       (_cs "shipout", primTok ShipOutTok),
       (_cs "ignorespaces", primTok IgnoreSpacesTok),

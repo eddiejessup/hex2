@@ -83,6 +83,7 @@ data ModeIndependentCommand
   | DoSpecial ST.ExpandedBalancedText
   | AddBox Uneval.BoxPlacement Uneval.Box
   | ChangeScope Q.Sign Uneval.CommandTrigger
+  | DebugShowState
   deriving stock (Show, Eq, Generic)
 
 data HModeCommand
