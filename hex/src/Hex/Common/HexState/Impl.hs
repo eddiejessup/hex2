@@ -80,7 +80,6 @@ instance
 
   setScopedRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> r -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setScopedRegisterValue param value scopeFlag = do
-    -- logText $ sformat ("setScopedRegisterValue: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
     modifyGroupScopes $ Sc.R.setRegisterValue param value scopeFlag
 
   getSpecialIntParameter :: PT.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
@@ -156,9 +155,9 @@ instance
     let fontName = Tx.pack $ FilePath.takeBaseName filePath
     pure
       H.Inter.B.Box.FontDefinition
-        { H.Inter.B.Box.fontDefChecksum = panic "Not implemented",
-          H.Inter.B.Box.fontDefDesignSize = panic "Not implemented",
-          H.Inter.B.Box.fontDefDesignScale = panic "Not implemented",
+        { H.Inter.B.Box.fontDefChecksum = notImplemented "loadFont: Checksum",
+          H.Inter.B.Box.fontDefDesignSize = notImplemented "loadFont: DesignSize",
+          H.Inter.B.Box.fontDefDesignScale = notImplemented "loadFont: DesignScale",
           H.Inter.B.Box.fontNr = newKey,
           H.Inter.B.Box.fontPath = path,
           H.Inter.B.Box.fontName = fontName

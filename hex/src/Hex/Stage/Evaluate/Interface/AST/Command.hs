@@ -134,7 +134,11 @@ data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutput
   deriving stock (Show, Eq, Generic)
 
 data ControlSequenceTarget
-  = NonFontTarget Res.ResolvedToken
+  = MacroTarget ST.MacroDefinition
+  | LetTarget Lex.LexToken
+  | FutureLetTarget Uneval.FutureLetDefinition
+  | ShortDefineTarget PT.CharryQuantityType Q.HexInt
+  | ReadTarget Q.HexInt
   | FontTarget FontFileSpec
   deriving stock (Show, Eq, Generic)
 

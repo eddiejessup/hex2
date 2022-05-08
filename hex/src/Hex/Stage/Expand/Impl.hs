@@ -82,7 +82,7 @@ expandSyntaxCommand ::
   Syn.SyntaxCommandHeadToken ->
   m (Seq Lex.LexToken)
 expandSyntaxCommand = \case
-  _ -> panic "Not implemented"
+  t -> notImplemented $ "Expand syntax command, head: " <> show t
 
 -- MacroTok m -> do
 --   args <- parseMacroArgs m

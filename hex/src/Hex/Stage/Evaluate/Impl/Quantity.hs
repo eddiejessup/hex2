@@ -64,10 +64,10 @@ evalInternalInt = \case
   P.InternalCharToken n -> pure n
   P.InternalMathCharToken n -> pure n
   P.InternalFontCharRef v -> evalFontCharRef v
-  P.LastPenalty -> panic "Not implemented: evaluate LastPenalty"
-  P.ParShape -> panic "Not implemented: evaluate ParShape"
-  P.InputLineNr -> panic "Not implemented: evaluate InputLineNr"
-  P.Badness -> panic "Not implemented: evaluate Badness"
+  P.LastPenalty -> notImplemented "evalInternalInt: LastPenalty"
+  P.ParShape -> notImplemented "evalInternalInt: ParShape"
+  P.InputLineNr -> notImplemented "evalInternalInt: InputLineNr"
+  P.Badness -> notImplemented "evalInternalInt: Badness"
 
 -- | Evaluate the code-table-ref, but only as far as the raw reference. Don't
 -- look up the actual value in the reference.

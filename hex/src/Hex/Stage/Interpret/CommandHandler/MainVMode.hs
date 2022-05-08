@@ -87,7 +87,7 @@ handleCommandInMainVMode oldSrc = \case
       AllMode.DidNotSeeEndBox ->
         pure ContinueMainVMode
   oth ->
-    panic $ "Not implemented, outer V mode: " <> show oth
+    notImplemented $ "handleCommandInMainVMode, command" <> show oth
   where
     addPara ::
       ( PT.IndentFlag ->

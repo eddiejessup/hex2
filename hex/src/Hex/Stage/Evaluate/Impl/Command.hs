@@ -1,10 +1,9 @@
 module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation (..))
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
@@ -12,7 +11,6 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
-import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation(..))
 
 evalCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Command -> m E.Command
 evalCommand = \case
@@ -104,17 +102,16 @@ evalRegisterLocation = \case
 
 evalControlSequenceTarget :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ControlSequenceTarget -> m E.ControlSequenceTarget
 evalControlSequenceTarget = \case
-  P.MacroTarget macroDefinition -> do
-    pure $ E.NonFontTarget $ Res.SyntaxCommandHeadToken $ ST.MacroTok macroDefinition
-  P.LetTarget _lexToken -> do
-    notImplemented "evalControlSequenceTarget 'LetTarget'"
-  P.FutureLetTarget _futureLetTargetDefinition ->
-    notImplemented "evalControlSequenceTarget 'FutureLetTarget'"
-  P.ShortDefineTarget charryQuantityType tgtValInt -> do
-    eTgtValInt <- Eval.evalInt tgtValInt
-    pure $ E.NonFontTarget $ Res.PrimitiveToken $ PT.IntRefTok charryQuantityType eTgtValInt
-  P.ReadTarget _hexInt -> do
-    notImplemented "evalControlSequenceTarget 'ReadTarget'"
+  P.MacroTarget macroDefinition ->
+    pure $ E.MacroTarget macroDefinition
+  P.LetTarget lexToken ->
+    pure $ E.LetTarget lexToken
+  P.FutureLetTarget futureLetTargetDefinition ->
+    pure $ E.FutureLetTarget futureLetTargetDefinition
+  P.ShortDefineTarget charryQuantityType tgtValInt ->
+    E.ShortDefineTarget charryQuantityType <$> Eval.evalInt tgtValInt
+  P.ReadTarget hexInt ->
+    E.ReadTarget <$> Eval.evalInt hexInt
   P.FontTarget pFontFileSpec -> do
     eFontFileSpec <-
       E.FontFileSpec

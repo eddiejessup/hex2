@@ -4,7 +4,7 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
@@ -12,6 +12,8 @@ import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Parse.Interface qualified as Par
 import Hexlude
+import qualified Hex.Common.HexState.Interface.Resolve.SyntaxToken as ST
+import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 data InterpretError
   = SawEndBoxInMainVMode
@@ -56,8 +58,8 @@ handleModeIndependentCommand addVElem = \case
     pure DidNotSeeEndBox
   Eval.WriteMessage (Eval.MessageWriteCommand stdStream expandedText) -> do
     let _handle = case stdStream of
-          T.StdOut -> stdout
-          T.StdErr -> stderr
+          PT.StdOut -> stdout
+          PT.StdErr -> stderr
     liftIO $ hPutStrLn _handle expandedText
     pure DidNotSeeEndBox
   Eval.Relax ->
@@ -82,14 +84,40 @@ handleModeIndependentCommand addVElem = \case
   Eval.Assign Eval.Assignment {Eval.scope, Eval.body} -> do
     case body of
       Eval.DefineControlSequence cs tgt -> do
-        tgtResolvedTok <- case tgt of
-          Eval.NonFontTarget rt ->
-            pure rt
+        maySymbolTarget <- case tgt of
+          Eval.MacroTarget macroDefinition -> do
+            pure $ Just $ Res.SyntaxCommandHeadToken $ ST.MacroTok macroDefinition
+          Eval.LetTarget lexTokenTargetValue ->
+            case lexTokenTargetValue of
+              -- If the target of the \let is a char-cat pair, then resolve the
+              -- new control sequence to a 'let-char-cat' containing that token.
+              Lex.CharCatLexToken charCat ->
+                pure $ Just $ Res.PrimitiveToken $ PT.LetCharCat charCat
+              -- If the target is a control sequence, then try to resolve that symbol.
+              Lex.ControlSequenceLexToken controlSequence -> do
+                HSt.resolveSymbol (Res.ControlSequenceSymbol controlSequence) >>= \case
+                  -- If the target symbol does not exist, then do nothing, i.e.
+                  -- assign no new control sequence. (I am basing this on the
+                  -- behaviour of tex-the-program.)
+                  Nothing -> pure Nothing
+                  -- If the target symbol does exist, then create a new symbol
+                  -- entry with the same contents as the target symbol.
+                  Just symbol -> pure $ Just symbol
+          Eval.FutureLetTarget _futureLetDefinition -> do
+            notImplemented "Define control sequence: future let"
+          Eval.ShortDefineTarget charryQuantityType targetValue -> do
+            pure $ Just $ Res.PrimitiveToken $ PT.IntRefTok charryQuantityType targetValue
+          Eval.ReadTarget _readInt -> do
+            notImplemented ""
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
             fontDefinition <- HSt.loadFont fontPath fontSpec
             addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
-            pure $ Res.PrimitiveToken $ T.FontRefToken $ fontDefinition ^. typed @T.FontNumber
-        HSt.setSymbol cs tgtResolvedTok scope
+            pure $ Just $ Res.PrimitiveToken $ PT.FontRefToken $ fontDefinition ^. typed @PT.FontNumber
+        case maySymbolTarget of
+          Nothing ->
+            pure ()
+          Just symbolTarget ->
+            HSt.setSymbol cs symbolTarget scope
       Eval.AssignCode (Eval.CodeAssignment idxChar codeVal) ->
         case codeVal of
           Eval.CatCodeValue catCode ->
