@@ -171,4 +171,4 @@ fmtLengthMagnitude = F.later $ \len ->
     lengthInPoints len = lengthRatio len pointLength
 
 fmtLengthWithUnit :: Fmt Length
-fmtLengthWithUnit = fmtLengthMagnitude F.% "pt"
+fmtLengthWithUnit = fmtLengthMagnitude |%| "pt"

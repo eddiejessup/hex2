@@ -26,7 +26,7 @@ fmtResolveResult = F.intercalated "\n\n" fmtOneResult
     fmtOneResult =
       F.accessed fst fmtLexToken
         <> F.fconst "\n"
-        <> F.indented
+        <> F.reindented
           4
           (F.fconst "--r--> " <> F.accessed snd fmtErrOrRT)
 

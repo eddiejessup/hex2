@@ -10,9 +10,9 @@ data Glue = Glue {gDimen :: Length, gStretch, gShrink :: PureFlex}
 
 fmtGlue :: Fmt Glue
 fmtGlue =
-  "\\glue " F.% fmtViewed #gDimen fmtLengthWithUnit
-    <> (" plus " F.% fmtViewed #gStretch fmtPureFlex)
-    <> (" minus " F.% fmtViewed #gShrink fmtPureFlex)
+  "\\glue " |%| fmtViewed #gDimen fmtLengthWithUnit
+    <> (" plus " |%| fmtViewed #gStretch fmtPureFlex)
+    <> (" minus " |%| fmtViewed #gShrink fmtPureFlex)
 
 zeroGlue :: Glue
 zeroGlue = Glue zeroLength zeroFlex zeroFlex
@@ -152,4 +152,4 @@ shrinkInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
 shrinkInfLengthOfOrder i (InfLengthOfOrder order infLen) = InfLengthOfOrder order (shrinkLength i infLen)
 
 fmtInfLengthOfOrder :: Fmt InfLengthOfOrder
-fmtInfLengthOfOrder = fmtViewed (typed @Length) fmtLengthMagnitude |<>| F.fconst " " |<>| fmtViewed (typed @InfLengthOrder) fmtInfLengthOrder
+fmtInfLengthOfOrder = fmtViewed (typed @Length) fmtLengthMagnitude <> F.fconst " " <> fmtViewed (typed @InfLengthOrder) fmtInfLengthOrder

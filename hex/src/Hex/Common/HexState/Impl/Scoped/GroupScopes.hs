@@ -2,7 +2,9 @@ module Hex.Common.HexState.Impl.Scoped.GroupScopes where
 
 import Formatting qualified as F
 import Hex.Common.HexState.Impl.Scoped.Group
+import Hex.Common.HexState.Impl.Scoped.Group qualified as Group
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope, newGlobalScope)
+import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hexlude
 import Optics.Core qualified as O
@@ -21,7 +23,15 @@ newGroupScopes :: GroupScopes
 newGroupScopes = GroupScopes {globalScope = newGlobalScope, groups = []}
 
 fmtGroupScopes :: Fmt GroupScopes
-fmtGroupScopes = F.shown
+fmtGroupScopes =
+  mconcat
+    [ fmtListWithHeading "Groups" (.groups) Group.fmtGroupWithoutScopeDetails,
+      F.accessed seenLocalScope Scope.fmtScope |%| "\n"
+    ]
+
+-- The scope seen from the innermost scope, folding together all variables.
+seenLocalScope :: GroupScopes -> Scope
+seenLocalScope = foldOf scopesTraversal
 
 -- | Get all scopes except global scope.
 localScopesTraversal :: Traversal' GroupScopes Scope

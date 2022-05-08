@@ -26,8 +26,8 @@ fmtFont :: Fmt Font
 fmtFont =
   ("Checksum: " |%| F.accessed (.checksum) fmtChecksum |%| "\n")
   <> ("Design font-size: " |%| F.accessed (.designFontSize) Q.fmtLengthWithUnit |%| "\n")
-  <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "[None]" F.stext) |%| "\n")
-  <> ("Family: " |%| fmtViewed (field @"family") (F.maybed "[None]" F.stext) |%| "\n")
+  <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "None" F.stext) |%| "\n")
+  <> ("Family: " |%| fmtViewed (field @"family") (F.maybed "None" F.stext) |%| "\n")
   |%| ("Params: [...]\n")
   |%| ("ligKerns: [...]\n")
   |%| ("characters: [...]\n")

@@ -24,6 +24,6 @@ fmtExpandResult = F.intercalated "\n\n" fmtOneResult
   where
     fmtOneResult =
       F.accessed fst fmtLexToken <> F.fconst "\n"
-        <> F.indented
+        <> F.reindented
           4
           (F.fconst "--e--> " <> F.accessed snd fmtPrimitiveToken <> F.fconst "\n")

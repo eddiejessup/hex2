@@ -66,6 +66,9 @@ data IntParameter
   | ErrorContextLines -- Maximum extra context shown when errors occur
   deriving stock (Show, Eq, Ord, Generic)
 
+fmtIntParameter :: Fmt IntParameter
+fmtIntParameter = F.shown
+
 data LengthParameter
   = HFuzz -- Maximum overrun before overfull hbox messages occur
   | VFuzz -- Maximum overrun before overfull vbox messages occur
@@ -90,6 +93,9 @@ data LengthParameter
   | VOffset -- Vertical offset in \shipout
   deriving stock (Show, Eq, Ord, Generic)
 
+fmtLengthParameter :: Fmt LengthParameter
+fmtLengthParameter = F.shown
+
 data GlueParameter
   = BaselineSkip -- Desired glue between baselines
   | LineSkip -- Interline glue if \baselineskip isn't feasible
@@ -108,11 +114,17 @@ data GlueParameter
   | ParFillSkip -- Additional \rightskip at end of paragraphs
   deriving stock (Show, Eq, Ord, Generic)
 
+fmtGlueParameter :: Fmt GlueParameter
+fmtGlueParameter = F.shown
+
 data MathGlueParameter
   = ThinMuSkip -- Thin space in math formulas
   | MedMuSkip -- Medium space in math formulas
   | ThickMuSkip -- Thick space in math formulas
   deriving stock (Show, Eq, Ord, Generic)
+
+fmtMathGlueParameter :: Fmt MathGlueParameter
+fmtMathGlueParameter = F.shown
 
 data TokenListParameter
   = Output -- The user's output routine
@@ -126,12 +138,18 @@ data TokenListParameter
   | ErrHelp -- Tokens that supplement an \errmessage
   deriving stock (Show, Eq, Ord, Generic)
 
+fmtTokenListParameter :: Fmt TokenListParameter
+fmtTokenListParameter = F.shown
+
 data SpecialIntParameter
   = SpaceFactorHexInt
   | PrevGrafHexInt
   | DeadCyclesHexInt
   | InsertPenaltiesHexInt
   deriving stock (Show, Eq, Ord, Generic)
+
+fmtSpecialIntParameter :: Fmt SpecialIntParameter
+fmtSpecialIntParameter = F.shown
 
 data SpecialLengthParameter
   = PrevDepth
@@ -144,6 +162,9 @@ data SpecialLengthParameter
   | PageShrink
   | PageDepth
   deriving stock (Show, Eq, Ord, Generic)
+
+fmtSpecialLengthParameter :: Fmt SpecialLengthParameter
+fmtSpecialLengthParameter = F.shown
 
 data AssignPrefixTok
   = LongTok

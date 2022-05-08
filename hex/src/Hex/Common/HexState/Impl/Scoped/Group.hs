@@ -1,5 +1,6 @@
 module Hex.Common.HexState.Impl.Scoped.Group where
 
+import Formatting qualified as F
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope)
 import Hex.Stage.Parse.Interface.AST.Command qualified as H.Par.AST
 import Hexlude
@@ -11,16 +12,24 @@ data HexGroup
   | NonScopeGroup
   deriving stock (Show, Generic)
 
--- | For groups that do have an associated scope, the type of that group.
-data GroupScopeType
-  = LocalStructureGroupScope H.Par.AST.CommandTrigger
-  | ExplicitBoxGroupScope
-  deriving stock (Show)
+fmtGroupWithoutScopeDetails :: Fmt HexGroup
+fmtGroupWithoutScopeDetails = F.later $ \case
+  NonScopeGroup -> "Non-scope group"
+  ScopeGroup scg -> F.bformat fmtGroupScopeWithoutScopeDetails scg
 
 -- | A scope, along with a tag representing the type of group that
 -- introduced the scope.
 data GroupScope = GroupScope {scgScope :: Scope, scgType :: GroupScopeType}
   deriving stock (Show, Generic)
+
+fmtGroupScopeWithoutScopeDetails :: Fmt GroupScope
+fmtGroupScopeWithoutScopeDetails = F.accessed (.scgScope) F.shown
+
+-- | For groups that do have an associated scope, the type of that group.
+data GroupScopeType
+  = LocalStructureGroupScope H.Par.AST.CommandTrigger
+  | ExplicitBoxGroupScope
+  deriving stock (Show)
 
 -- From a group, get the associated scope, if any.
 groupScopeATraversal :: AffineTraversal' HexGroup Scope

@@ -16,7 +16,7 @@ mkControlSequence :: [Codes.CharCode] -> ControlSequence
 mkControlSequence csChars = ControlSequence $ BS.pack $ Codes.unCharCode <$> csChars
 
 fmtControlSequence :: Fmt ControlSequence
-fmtControlSequence = "\\" F.% (F.accessed (Tx.decodeUtf8 . (getTyped @ByteString)) F.stext)
+fmtControlSequence = "\\" |%| (F.accessed (Tx.decodeUtf8 . (getTyped @ByteString)) F.stext)
 
 data LexCharCat = LexCharCat
   { lexCCChar :: Codes.CharCode,

@@ -25,11 +25,11 @@ data HexState = HexState
 fmtHexState :: Fmt HexState
 fmtHexState =
   mconcat
-    [ F.prefixed "FontInfos\n=====\n" $ F.accessed (.fontInfos) HSt.Font.fmtFontInfos |%| "\n",
-      F.prefixed "Special integer parameters\n=====\n" $ F.accessed (.specialInts) fmtSpecialInts |%| "\n",
-      F.prefixed "Special length parameters\n=====\n" $ F.accessed (.specialLengths) fmtSpecialLengths |%| "\n",
+    [ fmtMapWithHeading "FontInfos" (.fontInfos) PT.fmtFontNumber HSt.Font.fmtFontInfo,
+      fmtMapWithHeading "Special integer parameters" (.specialInts) PT.fmtSpecialIntParameter Q.fmtHexInt,
+      fmtMapWithHeading "Special length parameters" (.specialLengths) PT.fmtSpecialLengthParameter Q.fmtLengthWithUnit,
       F.prefixed "After-assignnment token: " $ F.accessed (.afterAssignmentToken) (F.maybed "None" Lex.fmtLexToken) |%| "\n",
-      F.prefixed "Group-scopes\n========\n" $ F.indented 4 $ F.accessed (.groupScopes) fmtGroupScopes |%| "\n"
+      F.accessed (.groupScopes) fmtGroupScopes
     ]
 
 newHexState :: HexState

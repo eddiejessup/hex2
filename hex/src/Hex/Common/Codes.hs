@@ -5,7 +5,9 @@ module Hex.Common.Codes where
 import ASCII qualified
 import ASCII.Predicates qualified as ASCII.Pred
 import Data.ByteString qualified as BS
+import Data.Char qualified as Char
 import Data.Map.Strict qualified as Map
+import Data.Set qualified as Set
 import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
 import Hexlude
@@ -41,7 +43,7 @@ unsafeCodeFromChar c = case ASCII.unicodeToCharMaybe c of
   Nothing -> panic $ show c
 
 fmtCharCode :: Fmt CharCode
-fmtCharCode = F.accessed unsafeCodeAsChar F.char
+fmtCharCode = F.accessed (\code -> (Char.showLitChar $ unsafeCodeAsChar code) "") F.string
 
 codeFromAsciiChar :: ASCII.Char -> CharCode
 codeFromAsciiChar = CharCode . ASCII.charToWord8
@@ -64,9 +66,8 @@ readCharCodes :: MonadIO m => FilePath -> m ByteString
 readCharCodes = liftIO . BS.readFile
 
 initialiseCharCodeMap :: (CharCode -> v) -> Map CharCode v
-initialiseCharCodeMap val =
-  Map.fromList $
-    (\c -> (c, val c)) <$> [minBound .. maxBound]
+initialiseCharCodeMap keyToVal =
+  Map.fromSet keyToVal (Set.fromList [minBound .. maxBound])
 
 -- Category code
 -----------------
@@ -193,6 +194,11 @@ fmtCoreCatCode = F.shown
 data DelimiterCode = NotADelimiter Q.HexInt | DelimiterSpecCode DelimiterSpec
   deriving stock (Show, Eq)
 
+fmtDelimiterCode :: Fmt DelimiterCode
+fmtDelimiterCode = F.later $ \case
+  NotADelimiter n -> "Not a delimiter " <> F.bformat (F.parenthesised Q.fmtHexInt) n
+  DelimiterSpecCode spec -> "Delimiter with spec: " <> F.bformat fmtDelimiterSpec spec
+
 instance HexCode DelimiterCode where
   toHexInt (NotADelimiter n) = n
   toHexInt (DelimiterSpecCode DelimiterSpec {smallVar, largeVar}) =
@@ -212,8 +218,18 @@ instance HexCode DelimiterCode where
 data DelimiterSpec = DelimiterSpec {smallVar, largeVar :: DelimiterVar}
   deriving stock (Show, Eq)
 
+fmtDelimiterSpec :: Fmt DelimiterSpec
+fmtDelimiterSpec =
+  ("Small variant: " |%| F.accessed (.smallVar) fmtDelimiterVar |%| ", ")
+    <> ("Large variant: " |%| F.accessed (.largeVar) fmtDelimiterVar)
+
 data DelimiterVar = PresentDelimiterVar FamilyCharRef | NullDelimiterVar
   deriving stock (Show, Eq)
+
+fmtDelimiterVar :: Fmt DelimiterVar
+fmtDelimiterVar = F.later $ \case
+  PresentDelimiterVar familyCharRef -> "Present-delimiter " <> F.bformat F.shown familyCharRef
+  NullDelimiterVar -> "Null-delimiter-variant"
 
 instance HexCode DelimiterVar where
   toHexInt NullDelimiterVar = Q.HexInt 0
@@ -252,6 +268,9 @@ newDelimiterCodes = initialiseCharCodeMap $ const $ NotADelimiter (Q.HexInt (-1)
 -- to behave as if it has catcode 13 (active).
 data MathCode = NormalMathCode MathClass FamilyCharRef | ActiveMathCode
   deriving stock (Show, Eq, Generic)
+
+fmtMathCode :: Fmt MathCode
+fmtMathCode = F.shown
 
 instance HexCode MathCode where
   toHexInt ActiveMathCode =
@@ -310,6 +329,11 @@ newMathCodes = initialiseCharCodeMap f
 data ChangeCaseCode = NoCaseChange | ChangeToCode CharCode
   deriving stock (Show, Eq)
 
+fmtChangeCaseCode :: Fmt ChangeCaseCode
+fmtChangeCaseCode = F.later $ \case
+  NoCaseChange -> F.bformat $ "No change"
+  ChangeToCode c -> "Change to " <> F.bformat fmtCharCode c
+
 instance HexCode ChangeCaseCode where
   toHexInt NoCaseChange = Q.HexInt 0
   toHexInt (ChangeToCode c) = toHexInt c
@@ -335,11 +359,19 @@ newCaseCodes destCase = initialiseCharCodeMap f
 newtype LowerCaseCode = LowerCaseCode ChangeCaseCode
   deriving newtype (Show, Eq, HexCode)
 
-newtype UpperCaseCode = UpperCaseCode ChangeCaseCode
-  deriving newtype (Show, Eq, HexCode)
+fmtLowerCaseCode :: Fmt LowerCaseCode
+fmtLowerCaseCode = F.later $ \case
+  LowerCaseCode c -> "Lowercase: " <> F.bformat fmtChangeCaseCode c
 
 newLowercaseCodes :: Map CharCode LowerCaseCode
 newLowercaseCodes = LowerCaseCode <$> newCaseCodes ASCII.LowerCase
+
+newtype UpperCaseCode = UpperCaseCode ChangeCaseCode
+  deriving newtype (Show, Eq, HexCode)
+
+fmtUpperCaseCode :: Fmt UpperCaseCode
+fmtUpperCaseCode = F.later $ \case
+  UpperCaseCode c -> "Uppercase: " <> F.bformat fmtChangeCaseCode c
 
 newUppercaseCodes :: Map CharCode UpperCaseCode
 newUppercaseCodes = UpperCaseCode <$> newCaseCodes ASCII.UpperCase
@@ -347,8 +379,11 @@ newUppercaseCodes = UpperCaseCode <$> newCaseCodes ASCII.UpperCase
 -- Space factor code.
 ---------------------
 
-newtype SpaceFactorCode = SpaceFactorCode Q.HexInt
+newtype SpaceFactorCode = SpaceFactorCode {unSpaceFactorCode :: Q.HexInt}
   deriving stock (Show, Eq)
+
+fmtSpaceFactorCode :: Fmt SpaceFactorCode
+fmtSpaceFactorCode = "Space factor: " |%| F.accessed (.unSpaceFactorCode) Q.fmtHexInt
 
 instance HexCode SpaceFactorCode where
   toHexInt (SpaceFactorCode n) = n

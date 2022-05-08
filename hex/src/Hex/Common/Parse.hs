@@ -20,7 +20,7 @@ data ParseUnexpectedError = ParseUnexpectedError
 fmtParseUnexpectedError :: Fmt ParseUnexpectedError
 fmtParseUnexpectedError =
   "ParseUnexpectedError: " |%| F.accessed (.err) F.shown
-    <> (", last seen token: " |%| F.accessed (.lastSeenTok) (F.maybed "[None]" Lex.fmtLexToken))
+    <> (", last seen token: " |%| F.accessed (.lastSeenTok) (F.maybed "None" Lex.fmtLexToken))
 
 data ParseUnexpectedErrorCause
   = ParseExplicitFailure

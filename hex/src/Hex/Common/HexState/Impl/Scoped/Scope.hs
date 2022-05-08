@@ -1,18 +1,25 @@
 module Hex.Common.HexState.Impl.Scoped.Scope where
 
-import Hex.Common.Codes qualified as Codes
+import Data.Map.Strict qualified as Map
+import Formatting qualified as F
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
 import Hex.Common.HexState.Interface.Resolve (SymbolMap)
+import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parameters qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
-newtype RegisterLocation = RegisterLocation Q.HexInt
+newtype RegisterLocation = RegisterLocation {unRegisterLocation :: Q.HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
 
-type CharCodeMap v = Map Codes.CharCode v
+fmtRegisterLocation :: Fmt RegisterLocation
+fmtRegisterLocation = F.squared (F.accessed (.unRegisterLocation) Q.fmtHexInt)
+
+type CharCodeMap v = Map Code.CharCode v
+
 type RegisterMap v = Map RegisterLocation v
 
 data Scope = Scope
@@ -22,12 +29,12 @@ data Scope = Scope
     -- Control sequences.
     symbolMap :: SymbolMap,
     -- Char-code attribute maps.
-    catCodes :: CharCodeMap Codes.CatCode,
-    mathCodes :: CharCodeMap Codes.MathCode,
-    lowerCaseCodes :: CharCodeMap Codes.LowerCaseCode,
-    upperCaseCodes :: CharCodeMap Codes.UpperCaseCode,
-    spaceFactorCodes :: CharCodeMap Codes.SpaceFactorCode,
-    delimiterCodes :: CharCodeMap Codes.DelimiterCode,
+    catCodes :: CharCodeMap Code.CatCode,
+    mathCodes :: CharCodeMap Code.MathCode,
+    lowerCaseCodes :: CharCodeMap Code.LowerCaseCode,
+    upperCaseCodes :: CharCodeMap Code.UpperCaseCode,
+    spaceFactorCodes :: CharCodeMap Code.SpaceFactorCode,
+    delimiterCodes :: CharCodeMap Code.DelimiterCode,
     -- Parameters.
     intParameters :: Map PT.IntParameter Q.HexInt,
     lengthParameters :: Map PT.LengthParameter Q.Length,
@@ -35,9 +42,9 @@ data Scope = Scope
     --   mathGlueParameters :: Map MathGlueParameter (BL.Glue MathLength),
     --   tokenListParameters :: Map TokenListParameter BalancedText
     -- Registers.
-      intRegister :: RegisterMap Q.HexInt,
-      lengthRegister :: RegisterMap Q.Length,
-      glueRegister :: RegisterMap Q.Glue
+    intRegister :: RegisterMap Q.HexInt,
+    lengthRegister :: RegisterMap Q.Length,
+    glueRegister :: RegisterMap Q.Glue
     --   mathGlueRegister :: RegisterMap (BL.Glue MathLength),
     --   tokenListRegister :: RegisterMap BalancedText,
     --   boxRegister :: RegisterMap (B.Box B.BoxContents),
@@ -50,12 +57,12 @@ newGlobalScope =
     { currentFontNr = Nothing,
       -- familyMemberFonts = mempty
       symbolMap = initialSymbolMap,
-      catCodes = Codes.newCatCodes,
-      mathCodes = Codes.newMathCodes,
-      lowerCaseCodes = Codes.newLowercaseCodes,
-      upperCaseCodes = Codes.newUppercaseCodes,
-      spaceFactorCodes = Codes.newspaceFactorCodes,
-      delimiterCodes = Codes.newDelimiterCodes,
+      catCodes = Code.newCatCodes,
+      mathCodes = Code.newMathCodes,
+      lowerCaseCodes = Code.newLowercaseCodes,
+      upperCaseCodes = Code.newUppercaseCodes,
+      spaceFactorCodes = Code.newspaceFactorCodes,
+      delimiterCodes = Code.newDelimiterCodes,
       intParameters = Param.newIntParameters,
       lengthParameters = Param.newLengthParameters,
       glueParameters = Param.newGlueParameters,
@@ -93,3 +100,49 @@ newLocalScope =
       -- , tokenListRegister = mempty
       -- , boxRegister = mempty
     }
+
+fmtScope :: Fmt Scope
+fmtScope =
+  ("Current font number: " |%| F.accessed (.currentFontNr) (F.maybed "None" PT.fmtFontNumber) |%| "\n")
+    <> (fmtMapWithHeading "Symbols" (.symbolMap) Res.fmtControlSymbol Res.fmtResolvedToken)
+    <> (fmtMapWithHeading "Category codes" (.catCodes) Code.fmtCharCode Code.fmtCatCode)
+    <> (fmtMapWithHeading "Math codes" (.mathCodes) Code.fmtCharCode Code.fmtMathCode)
+    <> (fmtMapWithHeading "Lowercase codes" (.lowerCaseCodes) Code.fmtCharCode Code.fmtLowerCaseCode)
+    <> (fmtMapWithHeading "Uppercase codes" (.upperCaseCodes) Code.fmtCharCode Code.fmtUpperCaseCode)
+    <> (fmtMapWithHeading "Space-factor codes" (.spaceFactorCodes) Code.fmtCharCode Code.fmtSpaceFactorCode)
+    <> (fmtMapWithHeading "Delimiter codes" (.delimiterCodes) Code.fmtCharCode Code.fmtDelimiterCode)
+    <> (fmtMapWithHeading "Int parameters" (.intParameters) PT.fmtIntParameter Q.fmtHexInt)
+    <> (fmtMapWithHeading "Length parameters" (.lengthParameters) PT.fmtLengthParameter Q.fmtLengthWithUnit)
+    <> (fmtMapWithHeading "Glue parameters" (.glueParameters) PT.fmtGlueParameter Q.fmtGlue)
+    <> (fmtMapWithHeading "Int registers" (.intRegister) fmtRegisterLocation Q.fmtHexInt)
+    <> (fmtMapWithHeading "Length registers" (.lengthRegister) fmtRegisterLocation Q.fmtLengthWithUnit)
+    <> (fmtMapWithHeading "Glue registers" (.glueRegister) fmtRegisterLocation Q.fmtGlue)
+
+-- If we have two scopes, one nested inside another, we want to consider the
+-- effective scope seen in the inner scope.
+-- Map.union is left-biased, i.e. if keys exist in left and right, the union
+-- result contains the left value. This is what we want, as the inner scope
+-- should be the value we observe.
+instance Semigroup Scope where
+  innerScope <> outerScope =
+    Scope
+      { currentFontNr = innerScope.currentFontNr <|> outerScope.currentFontNr,
+        symbolMap = innerScope.symbolMap `Map.union` outerScope.symbolMap,
+        catCodes = innerScope.catCodes `Map.union` outerScope.catCodes,
+        mathCodes = innerScope.mathCodes `Map.union` outerScope.mathCodes,
+        lowerCaseCodes = innerScope.lowerCaseCodes `Map.union` outerScope.lowerCaseCodes,
+        upperCaseCodes = innerScope.upperCaseCodes `Map.union` outerScope.upperCaseCodes,
+        spaceFactorCodes = innerScope.spaceFactorCodes `Map.union` outerScope.spaceFactorCodes,
+        delimiterCodes = innerScope.delimiterCodes `Map.union` outerScope.delimiterCodes,
+        intParameters = innerScope.intParameters `Map.union` outerScope.intParameters,
+        lengthParameters = innerScope.lengthParameters `Map.union` outerScope.lengthParameters,
+        glueParameters = innerScope.glueParameters `Map.union` outerScope.glueParameters,
+        intRegister = innerScope.intRegister `Map.union` outerScope.intRegister,
+        lengthRegister = innerScope.lengthRegister `Map.union` outerScope.lengthRegister,
+        glueRegister = innerScope.glueRegister `Map.union` outerScope.glueRegister
+      }
+
+-- If we introduce a new local scope, our effective seen-scope should be
+-- unchanged.
+instance Monoid Scope where
+  mempty = newLocalScope
