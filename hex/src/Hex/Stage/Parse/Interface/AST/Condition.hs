@@ -1,10 +1,10 @@
 module Hex.Stage.Parse.Interface.AST.Condition where
 
-import Hex.Stage.Parse.Interface.AST.Quantity
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as PT.Syn
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Parse.Interface.AST.Quantity
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 data IfConditionHead
   = IfIntPairTest HexInt Ordering HexInt -- \ifnum

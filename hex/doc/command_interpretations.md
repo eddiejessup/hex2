@@ -63,3 +63,9 @@ Output:
 ```
 
 This tells us that 'global', when applied to variable modifications like '\advance', applies to the write, not the read. i.e. we look up the variable value to modify, in local scope. Then we apply our modification to get our new value, then we apply the new value to the global scope, like a normal assignment.
+
+## Conditionals
+
+Quote from Texbook:
+
+> Conditionals. When an \if... is expanded, TEX reads ahead as far as nec- essary to determine whether the condition is true or false; and if false, it skips ahead (keeping track of \if...\fi nesting) until finding the \else, \or, or \fi that ends the skipped text. Similarly, when \else, \or, or \fi is expanded, TEX reads to the end of any text that ought to be skipped. The “expansion” of a conditional is empty. (Conditionals always reduce the number of tokens that are seen by later stages of the digestive process, while macros usually increase the number of tokens.)

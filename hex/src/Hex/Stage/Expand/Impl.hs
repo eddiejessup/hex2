@@ -104,9 +104,9 @@ expandSyntaxCommand = \case
   ST.MacroTok macroDefinition -> do
     args <- runParserDuringExpansion $ Par.parseMacroArguments macroDefinition.parameterSpecification
     Expand.substituteArgsIntoMacroBody macroDefinition.replacementText args
-  -- ConditionTok ct -> do
-  --   expandConditionToken ct
-  --   pure mempty
+  ST.ConditionTok ct -> do
+    Expand.expandConditionToken ct
+    pure mempty
   -- NumberTok ->
   --   notImplemented "syntax command NumberTok"
   -- RomanNumeralTok ->

@@ -26,7 +26,7 @@ substituteArgsIntoMacroBody replacementText argsList =
       -- `foldMapM` does the above in one pass.
       foldMapM renderToken (inhibitedReplacementText.unInhibitedReplacementText)
   where
-    -- | The contents of a macro replacement text is either:
+    -- The contents of a macro replacement text is either:
     -- - An ordinary lex-token. In this case the output is just that lex-token itself.
     -- - A reference to some macro parameter. In this case we should look up the
     --   relevant argument in the argument-list, and that is our output.
@@ -41,3 +41,12 @@ substituteArgsIntoMacroBody replacementText argsList =
           throwError $ injectTyped $ Expand.MacroArgumentSubstitutionError argIx argsList
         Just arg ->
           pure $ arg.unMacroArgument.unInhibitedBalancedText
+
+expandConditionToken ::
+  forall m e.
+  ( MonadError e m,
+    AsType ExpansionError e
+  ) =>
+  ST.ConditionTok ->
+  m ()
+expandConditionToken = notImplemented "expandConditionToken"

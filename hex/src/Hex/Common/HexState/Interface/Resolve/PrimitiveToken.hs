@@ -142,10 +142,10 @@ fmtTokenListParameter :: Fmt TokenListParameter
 fmtTokenListParameter = F.shown
 
 data SpecialIntParameter
-  = SpaceFactorHexInt
-  | PrevGrafHexInt
-  | DeadCyclesHexInt
-  | InsertPenaltiesHexInt
+  = SpaceFactorInt
+  | PrevGrafInt
+  | DeadCyclesInt
+  | InsertPenaltiesInt
   deriving stock (Show, Eq, Ord, Generic)
 
 fmtSpecialIntParameter :: Fmt SpecialIntParameter

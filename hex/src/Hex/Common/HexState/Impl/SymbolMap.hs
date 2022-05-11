@@ -35,9 +35,9 @@ hModeTok e = primTok $ ModedCommand Q.Horizontal e
 initialSymbolMap :: H.Res.SymbolMap
 initialSymbolMap =
   Map.fromList
-    [ (_cs "ifnum", condTok IfHexIntPairTestTok),
+    [ (_cs "ifnum", condTok IfIntPairTestTok),
       (_cs "ifdim", condTok IfLengthPairTestTok),
-      (_cs "ifodd", condTok IfHexIntOddTok),
+      (_cs "ifodd", condTok IfIntOddTok),
       (_cs "ifvmode", condTok $ IfInModeTok VerticalMode),
       (_cs "ifhmode", condTok $ IfInModeTok HorizontalMode),
       (_cs "ifmmode", condTok $ IfInModeTok MathMode),
@@ -155,7 +155,7 @@ initialSymbolMap =
       (_cs "edef", primTok $ DefineMacroTok Local ExpandDef),
       (_cs "gdef", primTok $ DefineMacroTok Global InhibitDef),
       (_cs "xdef", primTok $ DefineMacroTok Global ExpandDef),
-      -- HexInt parameters.
+      -- Int parameters.
       (_cs "pretolerance", primTok $ IntParamVarTok PreTolerance),
       (_cs "tolerance", primTok $ IntParamVarTok Tolerance),
       (_cs "hbadness", primTok $ IntParamVarTok HBadness),
@@ -264,10 +264,10 @@ initialSymbolMap =
       (_cs "everycr", primTok $ TokenListParamVarTok EveryCR),
       (_cs "errhelp", primTok $ TokenListParamVarTok ErrHelp),
       -- Special integers.
-      (_cs "spacefactor", primTok $ SpecialIntParameterTok SpaceFactorHexInt),
-      (_cs "prevgraf", primTok $ SpecialIntParameterTok PrevGrafHexInt),
-      (_cs "deadcycles", primTok $ SpecialIntParameterTok DeadCyclesHexInt),
-      (_cs "insertpenalties", primTok $ SpecialIntParameterTok InsertPenaltiesHexInt),
+      (_cs "spacefactor", primTok $ SpecialIntParameterTok SpaceFactorInt),
+      (_cs "prevgraf", primTok $ SpecialIntParameterTok PrevGrafInt),
+      (_cs "deadcycles", primTok $ SpecialIntParameterTok DeadCyclesInt),
+      (_cs "insertpenalties", primTok $ SpecialIntParameterTok InsertPenaltiesInt),
       -- Special lengths.
       (_cs "prevdepth", primTok $ SpecialLengthParameterTok PrevDepth),
       (_cs "pagegoal", primTok $ SpecialLengthParameterTok PageGoal),

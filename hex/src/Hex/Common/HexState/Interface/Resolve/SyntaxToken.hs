@@ -68,9 +68,9 @@ data ConditionTok
   deriving stock (Show, Eq, Generic)
 
 data ConditionHeadTok
-  = IfHexIntPairTestTok -- \ifnum
+  = IfIntPairTestTok -- \ifnum
   | IfLengthPairTestTok -- \ifdim
-  | IfHexIntOddTok -- \ifodd
+  | IfIntOddTok -- \ifodd
   | IfInModeTok ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
   | IfTokenAttributesEqualTok TokenAttribute
   | IfTokensEqualTok -- \ifx
