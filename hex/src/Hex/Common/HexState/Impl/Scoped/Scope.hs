@@ -39,13 +39,13 @@ data Scope = Scope
     intParameters :: Map PT.IntParameter Q.HexInt,
     lengthParameters :: Map PT.LengthParameter Q.Length,
     glueParameters :: Map PT.GlueParameter Q.Glue,
-    --   mathGlueParameters :: Map MathGlueParameter (BL.Glue MathLength),
+    mathGlueParameters :: Map PT.MathGlueParameter Q.MathGlue,
     --   tokenListParameters :: Map TokenListParameter BalancedText
     -- Registers.
     intRegister :: RegisterMap Q.HexInt,
     lengthRegister :: RegisterMap Q.Length,
-    glueRegister :: RegisterMap Q.Glue
-    --   mathGlueRegister :: RegisterMap (BL.Glue MathLength),
+    glueRegister :: RegisterMap Q.Glue,
+    mathGlueRegister :: RegisterMap Q.MathGlue
     --   tokenListRegister :: RegisterMap BalancedText,
     --   boxRegister :: RegisterMap (B.Box B.BoxContents),
   }
@@ -66,12 +66,12 @@ newGlobalScope =
       intParameters = Param.newIntParameters,
       lengthParameters = Param.newLengthParameters,
       glueParameters = Param.newGlueParameters,
-      -- , mathGlueParameters = newMathGlueParameters
+      mathGlueParameters = Param.newMathGlueParameters,
       -- , tokenListParameters = newTokenListParameters
       intRegister = mempty,
       lengthRegister = mempty,
-      glueRegister = mempty
-      -- , mathGlueRegister = mempty
+      glueRegister = mempty,
+      mathGlueRegister = mempty
       -- , tokenListRegister = mempty
       -- , boxRegister = mempty
     }
@@ -91,12 +91,12 @@ newLocalScope =
       intParameters = mempty,
       lengthParameters = mempty,
       glueParameters = mempty,
-      -- , mathGlueParameters = mempty
+      mathGlueParameters = mempty,
       -- , tokenListParameters = mempty
       intRegister = mempty,
       lengthRegister = mempty,
-      glueRegister = mempty
-      -- , mathGlueRegister = mempty
+      glueRegister = mempty,
+      mathGlueRegister = mempty
       -- , tokenListRegister = mempty
       -- , boxRegister = mempty
     }
@@ -137,9 +137,11 @@ instance Semigroup Scope where
         intParameters = innerScope.intParameters `Map.union` outerScope.intParameters,
         lengthParameters = innerScope.lengthParameters `Map.union` outerScope.lengthParameters,
         glueParameters = innerScope.glueParameters `Map.union` outerScope.glueParameters,
+        mathGlueParameters = innerScope.mathGlueParameters `Map.union` outerScope.mathGlueParameters,
         intRegister = innerScope.intRegister `Map.union` outerScope.intRegister,
         lengthRegister = innerScope.lengthRegister `Map.union` outerScope.lengthRegister,
-        glueRegister = innerScope.glueRegister `Map.union` outerScope.glueRegister
+        glueRegister = innerScope.glueRegister `Map.union` outerScope.glueRegister,
+        mathGlueRegister = innerScope.mathGlueRegister `Map.union` outerScope.mathGlueRegister
       }
 
 -- If we introduce a new local scope, our effective seen-scope should be

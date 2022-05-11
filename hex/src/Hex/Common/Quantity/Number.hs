@@ -1,17 +1,48 @@
 module Hex.Common.Quantity.Number where
 
+import Formatting qualified as F
+import Hex.Common.Quantity.Common
 import Hexlude
-import qualified Formatting as F
 
-newtype HexInt = HexInt {unInt :: Int}
+class Group a => Scalable a where
+  scale :: HexInt -> a -> a
+
+  shrink :: HexInt -> a -> a
+
+newtype HexInt = HexInt {unHexInt :: Int}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord, Enum, Bounded, Hashable, Num)
+  deriving newtype (Eq, Ord, Enum)
+  deriving (Semigroup, Monoid, Group) via (Sum Int)
+
+instance Scalable HexInt where
+  scale :: HexInt -> HexInt -> HexInt
+  scale = scaleHexInt
+
+  -- Division of a positive integer by a positive integer
+  -- discards the remainder, and the sign of the result
+  -- changes if you change the sign of either operand.
+  shrink :: HexInt -> HexInt -> HexInt
+  shrink = shrinkHexInt
+
+scaleInDirection :: Scalable a => VDirection -> HexInt -> a -> a
+scaleInDirection = \case
+  Upward -> scale
+  Downward -> shrink
+
+scaleHexInt :: HexInt -> HexInt -> HexInt
+scaleHexInt arg v = HexInt (arg.unHexInt * v.unHexInt)
+
+-- Division of a positive integer by a positive integer
+-- discards the remainder, and the sign of the result
+-- changes if you change the sign of either operand.
+shrinkHexInt :: HexInt -> HexInt -> HexInt
+shrinkHexInt arg v = HexInt (v.unHexInt `quot` arg.unHexInt)
 
 fmtHexInt :: Fmt HexInt
-fmtHexInt = "H." |%| F.accessed (.unInt) F.shown
+fmtHexInt = "H." |%| F.accessed (.unHexInt) F.shown
 
 zeroInt :: HexInt
-zeroInt = HexInt 0
+zeroInt = mempty
 
 tenK :: Int
 tenK = 10000
@@ -45,12 +76,12 @@ newFourBitInt = newNBitInt FourBitInt 4
 
 -- Signs.
 
--- mconcat to fold over a list of signs.
 data Sign
   = Positive
   | Negative
   deriving stock (Show, Eq, Generic)
 
+-- mconcat to fold over a list of signs.
 instance Semigroup Sign where
   a <> b = if a == b then Positive else Negative
 
@@ -61,8 +92,3 @@ data Signed a = Signed Sign a
   deriving stock (Functor, Generic)
 
 deriving stock instance Show a => Show (Signed a)
-
-evalSigned :: Num a => Signed a -> a
-evalSigned (Signed sign a) = case sign of
-  Positive -> a
-  Negative -> - a

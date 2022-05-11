@@ -39,3 +39,27 @@ the effect is exactly the same as,
 ```
 
 If the token is a single character i.e., a (character code, category code) pair, then the control sequence will behave to a certain extent like that character; but there are some differences. For example, after `\let\zero=0` you can’t use `\zero` in a numerical constant, because TEX requires the tokens in a numerical constant to be digits, after macro expansion; \zero is not a macro, so it doesn’t expand.
+
+## \advance
+
+```tex
+\count0=12
+{
+  \count0=4
+  \global\advance\count0 by 2
+  \showthe \count0
+
+  \advance\count0 by 4
+  \showthe \count0
+}
+\showthe \count0
+```
+
+Output:
+
+```plaintext
+6
+6
+```
+
+This tells us that 'global', when applied to variable modifications like '\advance', applies to the write, not the read. i.e. we look up the variable value to modify, in local scope. Then we apply our modification to get our new value, then we apply the new value to the global scope, like a normal assignment.

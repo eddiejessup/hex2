@@ -5,10 +5,15 @@ import Hexlude
 
 newtype MathLength = MathLength {unMathLength :: Int}
   deriving stock (Show)
-  deriving newtype (Num, Eq, Ord, Enum, Real, Integral)
+  deriving newtype (Eq, Ord)
+  deriving (Semigroup, Monoid, Group) via (Sum Int)
+  deriving (Scalable) via (HexInt)
 
-scaleMathLength :: MathLength -> HexInt -> MathLength
-scaleMathLength (MathLength d) (HexInt n) = MathLength (d * n)
+zeroMathLength :: MathLength
+zeroMathLength = mempty
 
-shrinkMathLength :: MathLength -> HexInt -> MathLength
-shrinkMathLength (MathLength d) (HexInt n) = MathLength (d `quot` n)
+scaleMathLength :: HexInt -> MathLength -> MathLength
+scaleMathLength = scale
+
+shrinkMathLength :: HexInt -> MathLength -> MathLength
+shrinkMathLength = shrink

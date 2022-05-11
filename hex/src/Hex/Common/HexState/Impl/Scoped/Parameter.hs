@@ -7,7 +7,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
-class Ord p => ScopedHexParameter p where
+class (Ord p, Q.Scalable (ScopedHexParameterValue p)) => ScopedHexParameter p where
   type ScopedHexParameterValue p
 
   scopeParameterMapLens :: Lens' Scope (Map p (ScopedHexParameterValue p))
@@ -26,6 +26,11 @@ instance ScopedHexParameter PT.GlueParameter where
   type ScopedHexParameterValue PT.GlueParameter = Q.Glue
 
   scopeParameterMapLens = #glueParameters
+
+instance ScopedHexParameter PT.MathGlueParameter where
+  type ScopedHexParameterValue PT.MathGlueParameter = Q.MathGlue
+
+  scopeParameterMapLens = #mathGlueParameters
 
 setParameterValue :: ScopedHexParameter p => p -> (ScopedHexParameterValue p) -> PT.ScopeFlag -> GroupScopes -> GroupScopes
 setParameterValue = setScopedMapValue scopeParameterMapLens

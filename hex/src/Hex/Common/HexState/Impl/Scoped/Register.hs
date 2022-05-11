@@ -7,7 +7,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
-class ScopedHexRegisterValue r where
+class Q.Scalable r => ScopedHexRegisterValue r where
   scopeRegisterMapLens :: Lens' Scope (Map Scope.RegisterLocation r)
 
   registerDefault :: r
@@ -26,6 +26,11 @@ instance ScopedHexRegisterValue Q.Glue where
   scopeRegisterMapLens = #glueRegister
 
   registerDefault = Q.zeroGlue
+
+instance ScopedHexRegisterValue Q.MathGlue where
+  scopeRegisterMapLens = #mathGlueRegister
+
+  registerDefault = Q.zeroMathGlue
 
 setRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> r -> PT.ScopeFlag -> GroupScopes -> GroupScopes
 setRegisterValue = setScopedMapValue scopeRegisterMapLens

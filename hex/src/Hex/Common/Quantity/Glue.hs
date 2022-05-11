@@ -8,6 +8,24 @@ import Hexlude
 data Glue = Glue {gDimen :: Length, gStretch, gShrink :: PureFlex}
   deriving stock (Show, Eq, Generic)
 
+instance Semigroup Glue where
+  -- Add the lengths, and
+  (Glue dA strA shrA) <> (Glue dB strB shrB) =
+    Glue (dA <> dB) (strA <> strB) (shrA <> shrB)
+
+instance Monoid Glue where
+  mempty = zeroGlue
+
+instance Group Glue where
+  invert = invertGlue
+
+instance Scalable Glue where
+  scale :: HexInt -> Glue -> Glue
+  scale = scaleGlue
+
+  shrink :: HexInt -> Glue -> Glue
+  shrink = shrinkGlue
+
 fmtGlue :: Fmt Glue
 fmtGlue =
   "\\glue " |%| fmtViewed #gDimen fmtLengthWithUnit
@@ -51,6 +69,15 @@ shrinkGlue i (Glue dim str shr) =
 
 data PureFlex = FinitePureFlex Length | InfPureFlex InfLengthOfOrder
   deriving stock (Show, Eq, Generic)
+
+instance Semigroup PureFlex where
+  FinitePureFlex a <> FinitePureFlex b = FinitePureFlex (a <> b)
+  FinitePureFlex _ <> InfPureFlex b = InfPureFlex b
+  InfPureFlex a <> FinitePureFlex _ = InfPureFlex a
+  InfPureFlex a <> InfPureFlex b = InfPureFlex (a <> b)
+
+instance Monoid PureFlex where
+  mempty = zeroFlex
 
 zeroFlex :: PureFlex
 zeroFlex = FinitePureFlex zeroLength
@@ -134,7 +161,7 @@ asBiNetFlex g = BiNetFlex (g ^. #gStretch % to pureAsNetFlex) (g ^. #gShrink % t
 -- Inf length of specified order.
 
 data InfLengthOrder = Fil1 | Fil2 | Fil3
-  deriving stock (Show, Generic, Eq)
+  deriving stock (Show, Generic, Eq, Ord)
 
 fmtInfLengthOrder :: Fmt InfLengthOrder
 fmtInfLengthOrder = F.later $ \case
@@ -145,11 +172,20 @@ fmtInfLengthOrder = F.later $ \case
 data InfLengthOfOrder = InfLengthOfOrder InfLengthOrder Length
   deriving stock (Show, Eq, Generic)
 
+instance Semigroup InfLengthOfOrder where
+  a@(InfLengthOfOrder orderA da) <> b@(InfLengthOfOrder orderB db) =
+    case compare orderA orderB of
+      LT -> b
+      GT -> a
+      EQ -> InfLengthOfOrder orderA (da <> db)
+
 scaleInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
-scaleInfLengthOfOrder i (InfLengthOfOrder order infLen) = InfLengthOfOrder order (scaleLength i infLen)
+scaleInfLengthOfOrder i (InfLengthOfOrder order infLen) =
+  InfLengthOfOrder order (scaleLength i infLen)
 
 shrinkInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
-shrinkInfLengthOfOrder i (InfLengthOfOrder order infLen) = InfLengthOfOrder order (shrinkLength i infLen)
+shrinkInfLengthOfOrder i (InfLengthOfOrder order infLen) =
+  InfLengthOfOrder order (shrinkLength i infLen)
 
 fmtInfLengthOfOrder :: Fmt InfLengthOfOrder
 fmtInfLengthOfOrder = fmtViewed (typed @Length) fmtLengthMagnitude <> F.fconst " " <> fmtViewed (typed @InfLengthOrder) fmtInfLengthOrder

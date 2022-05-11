@@ -103,7 +103,7 @@ data HModeCommand
 data AssignmentBody
   = DefineControlSequence Res.ControlSymbol ControlSequenceTarget
   | SetVariable VariableAssignment
-  | ModifyVariable Uneval.VariableModification
+  | ModifyVariable VariableModification
   | AssignCode CodeAssignment
   | SelectFont PT.FontNumber
   | SetFamilyMember Uneval.FamilyMember Uneval.FontRef
@@ -178,3 +178,18 @@ data QuantVariableEval (a :: PT.QuantityType) = ParamVar (Uneval.QuantParam a) |
 deriving stock instance Show (Uneval.QuantParam a) => Show (QuantVariableEval a)
 
 deriving stock instance Eq (Uneval.QuantParam a) => Eq (QuantVariableEval a)
+
+data VariableModification
+  = AdvanceIntVariable (QuantVariableEval 'PT.IntQuantity) (QuantVariableTargetEval 'PT.IntQuantity)
+  | AdvanceLengthVariable (QuantVariableEval 'PT.LengthQuantity) (QuantVariableTargetEval 'PT.LengthQuantity)
+  | AdvanceGlueVariable (QuantVariableEval 'PT.GlueQuantity) (QuantVariableTargetEval 'PT.GlueQuantity)
+  | AdvanceMathGlueVariable (QuantVariableEval 'PT.MathGlueQuantity) (QuantVariableTargetEval 'PT.MathGlueQuantity)
+  | ScaleVariable Q.VDirection NumericVariable Q.HexInt
+  deriving stock (Show, Eq, Generic)
+
+data NumericVariable
+  = IntNumericVariable (QuantVariableEval 'PT.IntQuantity)
+  | LengthNumericVariable (QuantVariableEval 'PT.LengthQuantity)
+  | GlueNumericVariable (QuantVariableEval 'PT.GlueQuantity)
+  | MathGlueNumericVariable (QuantVariableEval 'PT.MathGlueQuantity)
+  deriving stock (Show, Eq, Generic)

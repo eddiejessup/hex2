@@ -116,12 +116,11 @@ withBreaks = seqOf (#unHList % to toAdjacents % folded % to (\adj@(_, e, _) -> (
 
 breakGreedy ::
   Q.Length -> -- HSize
-  -- Q.HexInt -> -- Tolerance
-  -- Q.HexInt -> -- LinePenalty
+  Q.HexInt -> -- Tolerance
+  Q.HexInt -> -- LinePenalty
   H.Inter.B.List.HList ->
   Seq H.Inter.B.List.HList
--- breakGreedy dw tol lp allEs =
-breakGreedy dw (H.Inter.B.List.HList allEs) =
+breakGreedy dw _tol _lp (H.Inter.B.List.HList allEs) =
   let finalisedHList = finaliseHList (H.Inter.B.List.HList allEs)
 
       eWBs :: Seq (H.Inter.B.List.HListElem, Maybe BreakItem)

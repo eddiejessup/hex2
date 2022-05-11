@@ -50,18 +50,18 @@ evalAssignmentBody = \case
     E.DefineControlSequence controlSymbol <$> evalControlSequenceTarget controlSequenceTarget
   P.SetVariable variableAssignment ->
     E.SetVariable <$> evalVariableAssignment variableAssignment
-  P.ModifyVariable _variableModification -> notImplemented "evalAssignmentBody 'ModifyVariable'"
+  P.ModifyVariable variableModification -> E.ModifyVariable <$> evalVariableModification variableModification
   P.AssignCode codeAssignment -> E.AssignCode <$> evalCodeAssignment codeAssignment
-  P.SelectFont _fontNumber -> notImplemented "evalAssignmentBody 'SelectFont'"
-  P.SetFamilyMember _familyMember _fontRef -> notImplemented "evalAssignmentBody 'SetFamilyMember'"
-  P.SetParShape _hexInt _lengths -> notImplemented "evalAssignmentBody 'SetParShape'"
-  P.SetBoxRegister _hexInt _box -> notImplemented "evalAssignmentBody 'SetBoxRegister'"
-  P.SetFontDimension _fontDimensionRef _length -> notImplemented "evalAssignmentBody 'SetFontDimension'"
-  P.SetFontChar _fontCharRef _hexInt -> notImplemented "evalAssignmentBody 'SetFontChar'"
-  P.SetHyphenation _inhibitedBalancedText -> notImplemented "evalAssignmentBody 'SetHyphenation'"
-  P.SetHyphenationPatterns _inhibitedBalancedText -> notImplemented "evalAssignmentBody 'SetHyphenationPatterns'"
-  P.SetBoxDimension _boxDimensionRef _length -> notImplemented "evalAssignmentBody 'SetBoxDimension'"
-  P.SetInteractionMode _interactionMode -> notImplemented "evalAssignmentBody 'SetInteractionMode'"
+  P.SelectFont _fontNumber -> pure $ E.SelectFont $ _fontNumber
+  P.SetFamilyMember _familyMember _fontRef -> pure $ E.SetFamilyMember _familyMember _fontRef
+  P.SetParShape hexInt lengths -> pure $ E.SetParShape hexInt lengths
+  P.SetBoxRegister hexInt box -> pure $ E.SetBoxRegister hexInt box
+  P.SetFontDimension fontDimensionRef length -> pure $ E.SetFontDimension fontDimensionRef length
+  P.SetFontChar fontCharRef hexInt -> pure $ E.SetFontChar fontCharRef hexInt
+  P.SetHyphenation inhibitedBalancedText -> pure $ E.SetHyphenation inhibitedBalancedText
+  P.SetHyphenationPatterns inhibitedBalancedText -> pure $ E.SetHyphenationPatterns inhibitedBalancedText
+  P.SetBoxDimension boxDimensionRef length -> pure $ E.SetBoxDimension boxDimensionRef length
+  P.SetInteractionMode interactionMode -> pure $ E.SetInteractionMode interactionMode
 
 evalVariableAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableAssignment -> m E.VariableAssignment
 evalVariableAssignment = \case
@@ -89,6 +89,36 @@ evalVariableAssignment = \case
     E.SpecialIntParameterVariableAssignment specialIntParameter <$> Eval.evalInt hexInt
   P.SpecialLengthParameterVariableAssignment specialLengthParameter length ->
     E.SpecialLengthParameterVariableAssignment specialLengthParameter <$> Eval.evalLength length
+
+evalVariableModification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableModification -> m E.VariableModification
+evalVariableModification = \case
+  P.AdvanceIntVariable var arg -> do
+    eVar <- evalQuantVariable var
+    eArg <- Eval.evalInt arg
+    pure $ E.AdvanceIntVariable eVar eArg
+  P.AdvanceLengthVariable var arg -> do
+    eVar <- evalQuantVariable var
+    eArg <- Eval.evalLength arg
+    pure $ E.AdvanceLengthVariable eVar eArg
+  P.AdvanceGlueVariable var arg -> do
+    eVar <- evalQuantVariable var
+    eArg <- Eval.evalGlue arg
+    pure $ E.AdvanceGlueVariable eVar eArg
+  P.AdvanceMathGlueVariable var arg -> do
+    eVar <- evalQuantVariable var
+    eArg <- Eval.evalMathGlue arg
+    pure $ E.AdvanceMathGlueVariable eVar eArg
+  P.ScaleVariable scaleDirection numericVar arg -> do
+    eVar <- evalNumericVariable numericVar
+    eArg <- Eval.evalInt arg
+    pure $ E.ScaleVariable scaleDirection eVar eArg
+
+evalNumericVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.NumericVariable -> m E.NumericVariable
+evalNumericVariable = \case
+  P.IntNumericVariable var -> E.IntNumericVariable <$> evalQuantVariable var
+  P.LengthNumericVariable var -> E.LengthNumericVariable <$> evalQuantVariable var
+  P.GlueNumericVariable var -> E.GlueNumericVariable <$> evalQuantVariable var
+  P.MathGlueNumericVariable var -> E.MathGlueNumericVariable <$> evalQuantVariable var
 
 evalQuantVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.QuantVariableAST a -> m (E.QuantVariableEval a)
 evalQuantVariable = \case

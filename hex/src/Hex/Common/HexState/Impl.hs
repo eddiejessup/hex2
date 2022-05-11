@@ -67,19 +67,18 @@ instance
   ) =>
   MonadHexState (MonadHexStateImplT m)
   where
-  getScopedParameterValue :: ScopedHexParameter p => p -> (MonadHexStateImplT m) (ScopedHexParameterValue p)
-  getScopedParameterValue p = getGroupScopesProperty (Sc.P.localParameterValue p)
+  getParameterValue :: ScopedHexParameter p => p -> (MonadHexStateImplT m) (ScopedHexParameterValue p)
+  getParameterValue p = getGroupScopesProperty (Sc.P.localParameterValue p)
 
-  setScopedParameterValue :: ScopedHexParameter p => p -> ScopedHexParameterValue p -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setScopedParameterValue param value scopeFlag = do
-    -- logText $ sformat ("setScopedParameterValue: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
+  setParameterValue :: ScopedHexParameter p => p -> ScopedHexParameterValue p -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setParameterValue param value scopeFlag =
     modifyGroupScopes $ Sc.P.setParameterValue param value scopeFlag
 
-  getScopedRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> MonadHexStateImplT m r
-  getScopedRegisterValue r = getGroupScopesProperty (Sc.R.localRegisterValue r)
+  getRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> MonadHexStateImplT m r
+  getRegisterValue r = getGroupScopesProperty (Sc.R.localRegisterValue r)
 
-  setScopedRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> r -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setScopedRegisterValue param value scopeFlag = do
+  setRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> r -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setRegisterValue param value scopeFlag = do
     modifyGroupScopes $ Sc.R.setRegisterValue param value scopeFlag
 
   getSpecialIntParameter :: PT.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
@@ -215,6 +214,6 @@ readFontInfo ::
   m HSt.Font.FontInfo
 readFontInfo fontPath = do
   fontMetrics <- TFM.parseTFMFile fontPath
-  hyphenChar <- getScopedParameterValue PT.DefaultHyphenChar
-  skewChar <- getScopedParameterValue PT.DefaultSkewChar
+  hyphenChar <- getParameterValue PT.DefaultHyphenChar
+  skewChar <- getParameterValue PT.DefaultSkewChar
   pure HSt.Font.FontInfo {fontMetrics, hyphenChar, skewChar}

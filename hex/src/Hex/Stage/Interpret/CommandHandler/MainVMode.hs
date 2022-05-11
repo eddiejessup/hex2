@@ -1,6 +1,7 @@
 module Hex.Stage.Interpret.CommandHandler.MainVMode where
 
-import Hex.Common.HexState.Interface qualified as H.Inter.St
+import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
@@ -16,7 +17,6 @@ import Hex.Stage.Lex.Interface.CharSource (CharSource)
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hexlude
-import Hex.Capability.Log.Interface (MonadHexLog)
 
 data VModeCommandResult
   = ContinueMainVMode
@@ -28,7 +28,7 @@ buildMainVList ::
     -- We need this because we modify the underlying charsource.
     MonadLexTokenSource m,
     MonadCommandSource m,
-    H.Inter.St.MonadHexState m,
+    HSt.MonadHexState m,
     MonadError e m,
     AsType AllMode.InterpretError e,
     MonadIO m,
@@ -52,7 +52,7 @@ handleCommandInMainVMode ::
     MonadHexLog m,
     MonadCommandSource m,
     Eval.MonadEvaluate m,
-    H.Inter.St.MonadHexState m,
+    HSt.MonadHexState m,
     MonadLexTokenSource m,
     MonadError e m,
     AsType AllMode.InterpretError e
@@ -106,7 +106,7 @@ handleCommandInMainVMode oldSrc = \case
           lift $ throwError $ injectTyped AllMode.SawEndBoxInMainVModePara
 
 extendVListWithParagraphStateT ::
-  ( H.Inter.St.MonadHexState m
+  ( HSt.MonadHexState m
   ) =>
   H.Inter.B.List.HList ->
   StateT H.Inter.B.List.VList m ()
@@ -116,19 +116,17 @@ extendVListWithParagraphStateT paraHList = do
     extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox (H.Inter.B.Box.HBoxContents <$> b)
 
 setAndBreakHListToHBoxes ::
-  ( H.Inter.St.MonadHexState m
+  ( HSt.MonadHexState m
   ) =>
   H.Inter.B.List.HList ->
   m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBoxElemSeq))
 setAndBreakHListToHBoxes hList =
   do
-    -- hSize <- H.Inter.St.getScopedParameterValue PT.HSize
+    hSize <- HSt.getParameterValue PT.HSize
 
-    let hSize = Q.pt 200
-    -- lineTol <- H.Inter.St.getIntParameter PT.Tolerance
-    -- linePen <- H.Inter.St.getIntParameter PT.LinePenalty
-    let lineHLists = H.Inter.B.List.H.Para.breakGreedy hSize hList
-    -- H.Inter.B.List.H.Paragraph.breakGreedy hSize lineTol linePen hList
+    lineTol <- HSt.getParameterValue PT.Tolerance
+    linePen <- HSt.getParameterValue PT.LinePenalty
+    let lineHLists = H.Inter.B.List.H.Para.breakGreedy hSize lineTol linePen hList
 
     -- TODO: Get these.
     let boxHeight = Q.pt 20
@@ -139,11 +137,11 @@ setAndBreakHListToHBoxes hList =
         let (hBoxElems, _) = H.Inter.B.List.H.setList lineHList hSize
          in H.Inter.B.Box.Box {contents = hBoxElems, boxWidth = hSize, boxHeight, boxDepth}
 
-extendVListStateT :: H.Inter.St.MonadHexState m => H.Inter.B.List.VListElem -> StateT H.Inter.B.List.VList m ()
+extendVListStateT :: HSt.MonadHexState m => H.Inter.B.List.VListElem -> StateT H.Inter.B.List.VList m ()
 extendVListStateT e = get >>= lift . extendVList e >>= put
 
 extendVList ::
-  (H.Inter.St.MonadHexState m) =>
+  (HSt.MonadHexState m) =>
   H.Inter.B.List.VListElem ->
   H.Inter.B.List.VList ->
   m H.Inter.B.List.VList
@@ -159,11 +157,11 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
     -- Otherwise:
     --    \lineskip
     -- Then set \prevdepth to the depth of the new box.
-    prevDepth <- H.Inter.St.getSpecialLengthParameter PT.PrevDepth
-    blineGlue <- H.Inter.St.getScopedParameterValue PT.BaselineSkip
-    skipLimit <- H.Inter.St.getScopedParameterValue PT.LineSkipLimit
-    skip <- H.Inter.St.getScopedParameterValue PT.LineSkip
-    H.Inter.St.setSpecialLengthParameter PT.PrevDepth (H.Inter.B.Box.boxDepth b)
+    prevDepth <- HSt.getSpecialLengthParameter PT.PrevDepth
+    blineGlue <- HSt.getParameterValue PT.BaselineSkip
+    skipLimit <- HSt.getParameterValue PT.LineSkipLimit
+    skip <- HSt.getParameterValue PT.LineSkip
+    HSt.setSpecialLengthParameter PT.PrevDepth (H.Inter.B.Box.boxDepth b)
     pure $
       H.Inter.B.List.VList $
         if (prevDepth ^. typed @Int) <= -(Q.oneKPt ^. typed @Int)

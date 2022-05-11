@@ -10,9 +10,9 @@ usableIntParameters :: Map PT.IntParameter Q.HexInt
 usableIntParameters =
   Map.union Param.newIntParameters $
     Map.fromList
-      [ (PT.Tolerance, 500),
-        (PT.LinePenalty, 10),
-        (PT.Mag, 1000)
+      [ (PT.Tolerance, Q.HexInt 500),
+        (PT.LinePenalty, Q.HexInt 10),
+        (PT.Mag, Q.HexInt 1000)
       ]
 
 usableLengthParameters :: Map PT.LengthParameter Q.Length

@@ -12,18 +12,12 @@ import Hexlude
 
 newtype Length = Length {unLength :: Int}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord, Enum)
-
-deriving via (Sum Int) instance Semigroup Length
-
-deriving via (Sum Int) instance Monoid Length
-
-deriving via (Sum Int) instance Group Length
+  deriving newtype (Eq, Ord)
+  deriving (Semigroup, Monoid, Group) via (Sum Int)
+  deriving (Scalable) via (HexInt)
 
 -- | Scale a length by some integer. No rounding happens, ie no information is
 -- lost (assuming no overflow).
-scaleLengthByInt :: Int -> Length -> Length
-scaleLengthByInt n (Length d) = Length (d * n)
 
 -- | Scale a length by a rational number, rounding the result to the nearest
 -- integer.
@@ -36,14 +30,14 @@ scaleLengthByRational d (Length p) =
 
 -- | Scale a length by a HexInt.
 scaleLength :: HexInt -> Length -> Length
-scaleLength (HexInt n) = scaleLengthByInt n
+scaleLength = scale
 
 -- | Shrink a length by a HexInt, ignoring the remainder.
 shrinkLength :: HexInt -> Length -> Length
-shrinkLength (HexInt n) (Length d) = Length (d `quot` n)
+shrinkLength = shrink
 
 zeroLength :: Length
-zeroLength = Length 0
+zeroLength = mempty
 
 -- Find the ratio between two lengths.
 lengthRatio :: Length -> Length -> Rational
@@ -54,36 +48,6 @@ lengthRatio a b =
 -- Concepts.
 ------------
 
-data HDirection
-  = Leftward
-  | Rightward
-  deriving stock (Show, Eq, Generic)
-
-data VDirection
-  = Upward
-  | Downward
-  deriving stock (Show, Eq, Generic)
-
-data Direction
-  = Forward
-  | Backward
-  deriving stock (Show, Eq, Generic)
-
-data Axis
-  = Horizontal
-  | Vertical
-  deriving stock (Show, Eq, Generic)
-
-data MoveMode
-  = Put
-  | Set
-  deriving stock (Show)
-
-data BoxDim
-  = BoxWidth
-  | BoxHeight
-  | BoxDepth
-  deriving stock (Show, Eq, Generic)
 
 -- Physical units.
 -- ---------------
@@ -146,18 +110,18 @@ data PhysicalUnit
 inScaledPoint :: PhysicalUnit -> Length
 inScaledPoint u = case u of
   Point -> pointLength
-  Pica -> scaleLengthByInt picaInPoint pointLength
+  Pica -> scaleLength (HexInt picaInPoint) pointLength
   -- 4,736,286.72 scaled points per inch.
   Inch -> Length 4_736_287
   -- 65,781.76 scaled points per big-point.
   BigPoint -> Length 65_782
-  Centimetre -> scaleLengthByInt 10 (inScaledPoint Millimetre)
+  Centimetre -> scaleLength (HexInt 10) (inScaledPoint Millimetre)
   -- 2.8452755906 points per millimetre.
   -- 186,467.9811023622 scaled points per millimetre.
   Millimetre -> Length 186_468
   -- 70,124.0864304235 scaled points per didot
   Didot -> Length 70_124
-  Cicero -> scaleLengthByInt ciceroInDidot (inScaledPoint Didot)
+  Cicero -> scaleLength (HexInt ciceroInDidot) (inScaledPoint Didot)
   ScaledPoint -> Length 1
 
 -- Display.

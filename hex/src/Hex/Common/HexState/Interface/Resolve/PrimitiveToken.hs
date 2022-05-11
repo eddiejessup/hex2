@@ -264,6 +264,13 @@ data CharryQuantityType
   | QuantityType QuantityType
   deriving stock (Show, Eq, Generic)
 
+data NumericQuantityType
+  = IntNumericQuantity
+  | LengthNumericQuantity
+  | GlueNumericQuantity
+  | MathGlueNumericQuantity
+  deriving stock (Show, Eq, Generic)
+
 data QuantityType
   = IntQuantity -- \count, \countdef
   | LengthQuantity -- \dimen, \dimendef
@@ -450,8 +457,8 @@ data PrimitiveToken
   -- > Setting interaction mode.
   | InteractionModeTok InteractionMode
   | UnresolvedTok Lex.LexToken
-  -- Custom token for my own use.
-  | DebugShowState
+  | -- Custom token for my own use.
+    DebugShowState
   deriving stock (Show, Eq, Generic)
 
 primTokLexTok :: Prism' PrimitiveToken Lex.LexToken

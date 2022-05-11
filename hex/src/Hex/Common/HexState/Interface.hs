@@ -15,13 +15,13 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
 class Monad m => MonadHexState m where
-  getScopedParameterValue :: ScopedHexParameter p => p -> m (ScopedHexParameterValue p)
+  getParameterValue :: ScopedHexParameter p => p -> m (ScopedHexParameterValue p)
 
-  setScopedParameterValue :: ScopedHexParameter p => p -> (ScopedHexParameterValue p) -> PT.ScopeFlag -> m ()
+  setParameterValue :: ScopedHexParameter p => p -> (ScopedHexParameterValue p) -> PT.ScopeFlag -> m ()
 
-  getScopedRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> m r
+  getRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> m r
 
-  setScopedRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> r -> PT.ScopeFlag -> m ()
+  setRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> r -> PT.ScopeFlag -> m ()
 
   getSpecialIntParameter :: PT.SpecialIntParameter -> m Q.HexInt
 
@@ -57,10 +57,10 @@ class Monad m => MonadHexState m where
   getLastFetchedLexTok :: m (Maybe Lex.LexToken)
 
 instance MonadHexState m => MonadHexState (StateT a m) where
-  getScopedParameterValue x = lift $ getScopedParameterValue x
-  setScopedParameterValue x y z = lift $ setScopedParameterValue x y z
-  getScopedRegisterValue x = lift $ getScopedRegisterValue x
-  setScopedRegisterValue x y z = lift $ setScopedRegisterValue x y z
+  getParameterValue x = lift $ getParameterValue x
+  setParameterValue x y z = lift $ setParameterValue x y z
+  getRegisterValue x = lift $ getRegisterValue x
+  setRegisterValue x y z = lift $ setRegisterValue x y z
   getSpecialIntParameter x = lift $ getSpecialIntParameter x
   getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
   setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
@@ -80,7 +80,7 @@ instance MonadHexState m => MonadHexState (StateT a m) where
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do
-  boxWidth <- getScopedParameterValue @_ @PT.LengthParameter PT.ParIndent
+  boxWidth <- getParameterValue @_ @PT.LengthParameter PT.ParIndent
   pure $
     H.Inter.B.List.HVListElem $
       H.Inter.B.List.VListBaseElem $
@@ -91,3 +91,67 @@ getParIndentBox = do
               H.Inter.B.Box.boxHeight = mempty,
               H.Inter.B.Box.boxDepth = mempty
             }
+
+modifyParameterValue ::
+  (MonadHexState m, ScopedHexParameter p) =>
+  p ->
+  ( ScopedHexParameterValue p ->
+    ScopedHexParameterValue p
+  ) ->
+  PT.ScopeFlag ->
+  m ()
+modifyParameterValue p f scopeFlag = do
+  currentVal <- getParameterValue p
+  setParameterValue p (f currentVal) scopeFlag
+
+modifyRegisterValue ::
+  (MonadHexState m, ScopedHexRegisterValue r) =>
+  Scope.RegisterLocation ->
+  (r -> r) ->
+  PT.ScopeFlag ->
+  m ()
+modifyRegisterValue loc f scopeFlag = do
+  currentVal <- getRegisterValue loc
+  setRegisterValue loc (f currentVal) scopeFlag
+
+advanceParameterValue :: (MonadHexState m, ScopedHexParameter p) => p -> (ScopedHexParameterValue p) -> PT.ScopeFlag -> m ()
+advanceParameterValue p plusVal =
+  modifyParameterValue p (\v -> v <> plusVal)
+
+scaleParameterValue ::
+  (MonadHexState m, ScopedHexParameter p) =>
+  p ->
+  Q.VDirection ->
+  Q.HexInt ->
+  PT.ScopeFlag ->
+  m ()
+scaleParameterValue p scaleDirection arg scopeFlag =
+  modifyParameterValue p (Q.scaleInDirection scaleDirection arg) scopeFlag
+
+advanceRegisterValue ::
+  (MonadHexState m, ScopedHexRegisterValue r) =>
+  Scope.RegisterLocation ->
+  r ->
+  PT.ScopeFlag ->
+  m ()
+advanceRegisterValue loc plusVal =
+  modifyRegisterValue loc (\v -> v <> plusVal)
+
+scaleRegisterValue ::
+  (MonadHexState m) =>
+  PT.NumericQuantityType ->
+  Scope.RegisterLocation ->
+  Q.VDirection ->
+  Q.HexInt ->
+  PT.ScopeFlag ->
+  m ()
+scaleRegisterValue qType loc scaleDirection arg scopeFlag =
+  case qType of
+    PT.IntNumericQuantity ->
+      modifyRegisterValue loc (Q.scaleInDirection @Q.HexInt scaleDirection arg) scopeFlag
+    PT.LengthNumericQuantity ->
+      modifyRegisterValue loc (Q.scaleInDirection @Q.Length scaleDirection arg) scopeFlag
+    PT.GlueNumericQuantity ->
+      modifyRegisterValue loc (Q.scaleInDirection @Q.Glue scaleDirection arg) scopeFlag
+    PT.MathGlueNumericQuantity ->
+      modifyRegisterValue loc (Q.scaleInDirection @Q.MathGlue scaleDirection arg) scopeFlag

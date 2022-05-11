@@ -303,7 +303,7 @@ data MathClass
 instance HexCode MathClass where
   toHexInt = Q.HexInt . fromEnum
 
-  fromHexInt = Just . toEnum . Q.unInt
+  fromHexInt = Just . toEnum . Q.unHexInt
 
 -- The ten digits have \mathcode x = x + "7000.
 -- The 52 letters have \mathcode x = x + "7100.

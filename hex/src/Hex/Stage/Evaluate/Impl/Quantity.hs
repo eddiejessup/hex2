@@ -29,7 +29,7 @@ evalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P
 evalInt n = do
   evalSignedValue evalUnsignedInt n.unInt >>= \case
     Q.Signed Q.Positive x -> pure x
-    Q.Signed Q.Negative x -> pure $ -x
+    Q.Signed Q.Negative x -> pure $ invert x
 
 evalUnsignedInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.UnsignedInt -> m Q.HexInt
 evalUnsignedInt = \case

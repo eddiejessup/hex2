@@ -5,15 +5,15 @@ import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface qualified as Lex
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface qualified as Par
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Resolve.SyntaxToken as ST
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
 
 data InterpretError
   = SawEndBoxInMainVMode
@@ -134,32 +134,32 @@ handleModeIndependentCommand addVElem = \case
             HSt.setHexCode idxChar delimiterCode scope
       Eval.SetVariable ass ->
         case ass of
-          Eval.IntVariableAssignment (Eval.QuantVariableAssignment v tgt) ->
-            case v of
+          Eval.IntVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
+            case var of
               Eval.ParamVar intParam ->
-                HSt.setScopedParameterValue intParam tgt scope
+                HSt.setParameterValue intParam tgt scope
               Eval.RegisterVar registerLoc ->
-                HSt.setScopedRegisterValue registerLoc tgt scope
-          Eval.LengthVariableAssignment (Eval.QuantVariableAssignment v tgt) ->
-            case v of
+                HSt.setRegisterValue registerLoc tgt scope
+          Eval.LengthVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
+            case var of
               Eval.ParamVar lengthParam ->
-                HSt.setScopedParameterValue lengthParam tgt scope
+                HSt.setParameterValue lengthParam tgt scope
               Eval.RegisterVar registerLoc ->
-                HSt.setScopedRegisterValue registerLoc tgt scope
-          Eval.GlueVariableAssignment (Eval.QuantVariableAssignment v tgt) ->
-            case v of
+                HSt.setRegisterValue registerLoc tgt scope
+          Eval.GlueVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
+            case var of
               Eval.ParamVar glueParam ->
-                HSt.setScopedParameterValue glueParam tgt scope
+                HSt.setParameterValue glueParam tgt scope
               Eval.RegisterVar registerLoc ->
-                HSt.setScopedRegisterValue registerLoc tgt scope
-          Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment v _tgt) ->
-            case v of
+                HSt.setRegisterValue registerLoc tgt scope
+          Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment var _tgt) ->
+            case var of
               Eval.ParamVar _mathGlueParam ->
                 notImplemented "MathGlueVariableAssignment, parameter-variable"
               Eval.RegisterVar _registerLoc ->
                 notImplemented "MathGlueVariableAssignment, register-variable"
-          Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment v _tgt) ->
-            case v of
+          Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment var _tgt) ->
+            case var of
               Eval.ParamVar _tokenListParam ->
                 notImplemented "TokenListVariableAssignment, parameter-variable"
               Eval.RegisterVar _registerLoc ->
@@ -168,26 +168,58 @@ handleModeIndependentCommand addVElem = \case
             HSt.setSpecialIntParameter param tgt
           Eval.SpecialLengthParameterVariableAssignment param tgt ->
             HSt.setSpecialLengthParameter param tgt
-      --   Eval.ModifyVariable modCommand ->
-      --     case modCommand of
-      --       Eval.AdvanceIntVariable var plusVal ->
-      --         Var.advanceValueFromAST var scope plusVal
-      --       Eval.AdvanceLengthVariable var plusVal ->
-      --         Var.advanceValueFromAST var scope plusVal
-      --       Eval.AdvanceGlueVariable var plusVal ->
-      --         Var.advanceValueFromAST var scope plusVal
-      --       Eval.AdvanceMathGlueVariable var plusVal ->
-      --         Var.advanceValueFromAST var scope plusVal
-      --       Eval.ScaleVariable vDir numVar scaleVal ->
-      --         case numVar of
-      --           Eval.HexIntNumericVariable var ->
-      --             Var.scaleValueFromAST var scope vDir scaleVal
-      --           Eval.LengthNumericVariable var ->
-      --             Var.scaleValueFromAST var scope vDir scaleVal
-      --           Eval.GlueNumericVariable var ->
-      --             Var.scaleValueFromAST var scope vDir scaleVal
-      --           Eval.MathGlueNumericVariable var ->
-      --             Var.scaleValueFromAST var scope vDir scaleVal
+      Eval.ModifyVariable modCommand ->
+        case modCommand of
+          Eval.AdvanceIntVariable var plusVal ->
+            case var of
+              Eval.ParamVar param ->
+                HSt.advanceParameterValue param plusVal scope
+              Eval.RegisterVar registerLoc ->
+                HSt.advanceRegisterValue registerLoc plusVal scope
+          Eval.AdvanceLengthVariable var plusVal ->
+            case var of
+              Eval.ParamVar param ->
+                HSt.advanceParameterValue param plusVal scope
+              Eval.RegisterVar registerLoc ->
+                HSt.advanceRegisterValue registerLoc plusVal scope
+          Eval.AdvanceGlueVariable var plusVal ->
+            case var of
+              Eval.ParamVar param ->
+                HSt.advanceParameterValue param plusVal scope
+              Eval.RegisterVar registerLoc ->
+                HSt.advanceRegisterValue registerLoc plusVal scope
+          Eval.AdvanceMathGlueVariable var plusVal ->
+            case var of
+              Eval.ParamVar param ->
+                HSt.advanceParameterValue param plusVal scope
+              Eval.RegisterVar registerLoc ->
+                HSt.advanceRegisterValue registerLoc plusVal scope
+          Eval.ScaleVariable scaleDirection numVar scaleVal ->
+            case numVar of
+              Eval.IntNumericVariable var ->
+                case var of
+                  Eval.ParamVar param ->
+                    HSt.scaleParameterValue param scaleDirection scaleVal scope
+                  Eval.RegisterVar registerLoc ->
+                    HSt.scaleRegisterValue PT.IntNumericQuantity registerLoc scaleDirection scaleVal scope
+              Eval.LengthNumericVariable var ->
+                case var of
+                  Eval.ParamVar param ->
+                    HSt.scaleParameterValue param scaleDirection scaleVal scope
+                  Eval.RegisterVar registerLoc ->
+                    HSt.scaleRegisterValue PT.LengthNumericQuantity registerLoc scaleDirection scaleVal scope
+              Eval.GlueNumericVariable var ->
+                case var of
+                  Eval.ParamVar param ->
+                    HSt.scaleParameterValue param scaleDirection scaleVal scope
+                  Eval.RegisterVar registerLoc ->
+                    HSt.scaleRegisterValue PT.GlueNumericQuantity registerLoc scaleDirection scaleVal scope
+              Eval.MathGlueNumericVariable var ->
+                case var of
+                  Eval.ParamVar param ->
+                    HSt.scaleParameterValue param scaleDirection scaleVal scope
+                  Eval.RegisterVar registerLoc ->
+                    HSt.scaleRegisterValue PT.MathGlueNumericQuantity registerLoc scaleDirection scaleVal scope
       --   Eval.SelectFont fNr ->
       --     do
       --       selectFont fNr scope
