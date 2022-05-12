@@ -135,7 +135,7 @@ instance
            tfmChar ^. #italicCorrection % to toLen)
 
   loadFont ::
-    H.Inter.B.Box.HexFilePath ->
+    Q.HexFilePath ->
     H.Inter.B.Box.FontSpecification ->
     MonadHexStateImplT m H.Inter.B.Box.FontDefinition
   loadFont path spec = do

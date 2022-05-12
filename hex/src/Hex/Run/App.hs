@@ -6,7 +6,7 @@ import Hex.Common.HexState.Impl (MonadHexStateImplT (..))
 import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface (MonadHexState)
-import Hex.Common.Parse qualified as Parse
+import Hex.Common.Parse.Interface qualified as Parse
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Stage.Categorise.Impl (MonadCharCatSourceT (..))
 import Hex.Stage.Categorise.Interface (MonadCharCatSource)
@@ -27,6 +27,7 @@ import Hex.Stage.Resolve.Impl (MonadResolveT (..))
 import Hex.Stage.Resolve.Interface (MonadResolve)
 import Hexlude
 import System.IO (hFlush)
+import qualified Hex.Stage.Resolve.Interface as Resolve
 
 data AppEnv = AppEnv
   { appLogHandle :: Handle,
@@ -66,20 +67,25 @@ newtype App a = App {unApp :: ReaderT AppEnv (StateT AppState (ExceptT AppError 
 
 data AppError
   = AppLexError Lex.LexError
-  | AppParseError Parse.ParseUnexpectedError
+  | AppParseError Parse.ParsingError
   | AppExpansionError Expand.ExpansionError
   | AppInterpretError Interpret.InterpretError
+  | AppResolutionError Resolve.ResolutionError
   | AppEvaluationError Eval.EvaluationError
   | AppHexStateError HSt.HexStateError
   | AppTFMError TFM.TFMError
-  deriving stock (Generic, Show)
+  deriving stock (Show, Generic)
+
+instance {-# OVERLAPPING #-} AsType Parse.ParseUnexpectedError AppError where
+  _Typed = _Typed @Parse.ParsingError % _Typed @Parse.ParseUnexpectedError
 
 fmtAppError :: Format r (AppError -> r)
 fmtAppError = F.later $ \case
   AppLexError lexError -> F.bformat Lex.fmtLexError lexError
-  AppParseError parseError -> F.bformat Parse.fmtParseUnexpectedError parseError
+  AppParseError parseError -> F.bformat Parse.fmtParsingError parseError
   AppExpansionError expansionError -> F.bformat Expand.fmtExpansionError expansionError
   AppInterpretError interpretError -> F.bformat Interpret.fmtInterpretError interpretError
+  AppResolutionError resolutionError -> F.bformat Resolve.fmtResolutionError resolutionError
   AppEvaluationError evaluationError -> F.bformat Eval.fmtEvaluationError evaluationError
   AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError

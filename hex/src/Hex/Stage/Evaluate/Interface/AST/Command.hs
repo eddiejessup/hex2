@@ -6,7 +6,7 @@ import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, HexFilePath, Kern, Rule)
+import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, Kern, Rule)
 import Hex.Stage.Interpret.Build.List.Elem (Penalty)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
@@ -142,7 +142,7 @@ data ControlSequenceTarget
   | FontTarget FontFileSpec
   deriving stock (Show, Eq, Generic)
 
-data FontFileSpec = FontFileSpec FontSpecification HexFilePath
+data FontFileSpec = FontFileSpec FontSpecification Q.HexFilePath
   deriving stock (Show, Eq, Generic)
 
 data VariableAssignment

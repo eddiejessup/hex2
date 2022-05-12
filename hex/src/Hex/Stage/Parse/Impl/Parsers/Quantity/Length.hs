@@ -8,7 +8,7 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hexlude
-import Hex.Common.Parse (MonadPrimTokenParse(..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse(..))
 import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 
 parseLength :: MonadPrimTokenParse m => m AST.Length

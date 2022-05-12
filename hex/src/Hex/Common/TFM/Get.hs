@@ -19,7 +19,7 @@ import qualified Formatting as F
 import qualified ASCII
 
 newtype TFMError = TFMError Text
-  deriving stock (Generic, Show)
+  deriving stock (Show, Generic)
 
 fmtTfmError :: Fmt TFMError
 fmtTfmError = "TFM Error: " |%| F.shown

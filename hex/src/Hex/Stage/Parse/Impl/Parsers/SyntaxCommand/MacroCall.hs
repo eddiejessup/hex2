@@ -1,23 +1,23 @@
-module Hex.Stage.Expand.Impl.Parsers.SyntaxCommand.MacroCall where
+module Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.MacroCall where
 
 import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
-import Hex.Common.Parse (MonadPrimTokenParse (..))
-import Hex.Stage.Expand.Interface qualified as Expand
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
+import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
 import Hexlude
 
 -- During a macro call, we must parse the provided arguments.
-parseMacroArguments :: forall m. MonadPrimTokenParse m => ST.MacroParameterSpecification -> m Expand.MacroArgumentList
+parseMacroArguments :: forall m. MonadPrimTokenParse m => ST.MacroParameterSpecification -> m AST.MacroArgumentList
 parseMacroArguments parameterSpec = do
   skipParameterText parameterSpec.preParameterText
-  Expand.MacroArgumentList <$> parseArguments parameterSpec.parameterDelimiterTexts
+  AST.MacroArgumentList <$> parseArguments parameterSpec.parameterDelimiterTexts
   where
-    parseArguments :: Seq ST.ParameterText -> m (Seq Expand.MacroArgument)
+    parseArguments :: Seq ST.ParameterText -> m (Seq AST.MacroArgument)
     parseArguments = \case
       -- If there are no parameters, expect no arguments.
       Seq.Empty -> pure Seq.Empty
@@ -39,7 +39,7 @@ parseMacroArguments parameterSpec = do
               -- version.
               pure $ stripOuterBracePairIfPresent argText
         argsRest <- parseArguments rest
-        pure $ (Expand.MacroArgument arg) <| argsRest
+        pure $ (AST.MacroArgument arg) <| argsRest
 
     -- Check if an argument has an outer '{}' pair that should be stripped, and
     -- do this if so.

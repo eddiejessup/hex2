@@ -120,14 +120,11 @@ data FontDefinition = FontDefinition
   { fontDefChecksum :: Int,
     fontDefDesignSize :: Q.Length,
     fontDefDesignScale :: Q.Length,
-    fontPath :: HexFilePath,
+    fontPath :: Q.HexFilePath,
     fontName :: Text,
     fontNr :: PT.FontNumber
   }
   deriving stock (Show, Generic)
 
 data FontSpecification = NaturalFont | FontAt Q.Length | FontScaled Q.HexInt
-  deriving stock (Show, Eq, Generic)
-
-newtype HexFilePath = HexFilePath FilePath
   deriving stock (Show, Eq, Generic)

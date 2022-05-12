@@ -6,7 +6,7 @@ import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.Macro qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hexlude
-import Hex.Common.Parse (MonadPrimTokenParse(..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse(..))
 
 headToParseAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.Assignment
 headToParseAssignment = go mempty

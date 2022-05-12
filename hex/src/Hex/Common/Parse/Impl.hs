@@ -1,13 +1,9 @@
--- In order to expand syntax-commands into primitive tokens,
--- we need to be able to parse primitive-token streams.
--- This might seem circular, and it is! But because syntax-commands
--- can need to be expanded recursively, this is needed.
-module Hex.Stage.Expand.Impl.Parse where
+module Hex.Common.Parse.Impl where
 
 import Control.Monad.Trans (MonadTrans (..))
 import Hex.Common.HexState.Interface (MonadHexState (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Parse
+import Hex.Common.Parse.Interface
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -25,6 +21,20 @@ mkParseT = ParseT . ExceptT
 
 runParseT :: ParseT m a -> m (Either ParsingError a)
 runParseT = runExceptT . unParseT
+
+-- From the perspective of the parser, ie in a MonadPrimTokenParse context,
+-- we need 'end-of-input' to be an error like any other, so we can make a monoid
+-- of the objects to combine parsers together, for 'alternative' behaviour.
+-- But once we're done with parsing, we might want to treat end-of-input differently,
+-- by returning a 'Nothing', as we might want to behave differently
+-- instead of just failing in this case.
+-- This helper lets us do this.
+runParseTMaybe :: (MonadError e m, AsType ParseUnexpectedError e) => ParseT m a -> m (Maybe a)
+runParseTMaybe p =
+  runParseT p >>= \case
+    Left EndOfInputParsingError -> pure Nothing
+    Left (UnexpectedParsingError e) -> throwError $ injectTyped e
+    Right cmd -> pure $ Just cmd
 
 -- Run a parser, but backtrack the char-source if the parse fails.
 -- (This is why we need the MonadLexTokenSource instance:

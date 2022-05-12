@@ -1,5 +1,6 @@
+module Hex.Common.Parse.Interface where
+
 -- Interface for parsing primitive-token streams.
-module Hex.Common.Parse where
 
 import Formatting qualified as F
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT

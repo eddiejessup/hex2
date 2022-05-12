@@ -6,7 +6,7 @@ import Data.Sequence qualified as Seq
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
-import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
@@ -118,16 +118,16 @@ parseMacroReplacementText = \case
     ST.InhibitedMacroReplacementText <$> parseInhibitedMacroReplacementText
 
 parseInhibitedMacroReplacementText :: forall m. MonadPrimTokenParse m => m ST.InhibitedReplacementText
-parseInhibitedMacroReplacementText = ST.InhibitedReplacementText <$> Par.parseNestedExpr parseNext
+parseInhibitedMacroReplacementText = ST.InhibitedReplacementText . fst <$> Par.parseNestedExpr parseNext
   where
-    parseNext :: m (ST.MacroTextToken, Ordering)
-    parseNext =
+    parseNext :: Int -> m (ST.MacroTextToken, Ordering)
+    parseNext _depth =
       getAnyLexToken >>= \case
         -- If we see a '#', parse the parameter number and return a token
         -- representing the call.
         Lex.CharCatLexToken Lex.LexCharCat {lexCCCat = Code.Parameter} -> do
           textToken <- Par.satisfyLexThen paramNumOrHash
-          pure $ (textToken, EQ)
+          pure (textToken, EQ)
         -- Otherwise, just return the ordinary lex token.
         lexToken ->
           pure (ST.MacroTextLexToken lexToken, Par.lexTokenToGroupDepthChange lexToken)

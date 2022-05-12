@@ -60,6 +60,7 @@ data MarkRegister
   | FirstMark -- \firstmark
   | BottomMark -- \botmark
   | SplitFirstMark -- \splitfirstmark
+  | SplitBotMark -- \splitbotmark
   deriving stock (Show, Eq, Generic)
 
 data ConditionTok

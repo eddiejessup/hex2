@@ -6,8 +6,8 @@ import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
-import Hex.Common.Parse (MonadPrimTokenParse (..))
-import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Quantity.Common qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
@@ -48,7 +48,7 @@ headToParseWriteToStream writePolicy = \case
     empty
 
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
-parseFileName :: MonadPrimTokenParse m => m Box.HexFilePath
+parseFileName :: MonadPrimTokenParse m => m Q.HexFilePath
 parseFileName = do
   Par.skipOptionalSpaces
   fileNameAsciiChars <-
@@ -67,7 +67,7 @@ parseFileName = do
               Nothing
         pure $ Code.codeAsAsciiChar code
   Par.skipSatisfied Par.isSpace
-  pure $ Box.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
+  pure $ Q.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where
     isValidOther = \case
       -- Not in the spec, but let's say these are OK.

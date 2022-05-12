@@ -6,15 +6,19 @@ import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
-import Hex.Common.Parse qualified as Par
+import Hex.Common.Parse.Impl qualified as Par
+import Hex.Common.Parse.Interface qualified as Par
+import Hex.Stage.Evaluate.Impl.Common qualified as Eval
+import Hex.Stage.Evaluate.Impl.SyntaxCommand qualified as Eval
+import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as E
 import Hex.Stage.Expand.Impl.Expand qualified as Expand
-import Hex.Stage.Expand.Impl.Parse qualified as Par
-import Hex.Stage.Expand.Impl.Parsers.SyntaxCommand.MacroCall qualified as Par
 import Hex.Stage.Expand.Interface (ExpansionError (..), MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
 
@@ -36,9 +40,13 @@ newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourc
     )
 
 instance
-  ( Res.MonadResolve (MonadPrimTokenSourceT m),
+  ( Monad m,
+    Res.MonadResolve (MonadPrimTokenSourceT m),
     MonadError e (MonadPrimTokenSourceT m),
     AsType ExpansionError e,
+    AsType Res.ResolutionError e,
+    AsType Eval.EvaluationError e,
+    AsType Par.ParsingError e,
     Lex.MonadLexTokenSource (MonadPrimTokenSourceT m),
     HSt.MonadHexState (MonadPrimTokenSourceT m)
   ) =>
@@ -46,22 +54,24 @@ instance
   where
   getPrimitiveToken = getPrimitiveTokenImpl
 
+  getResolvedToken = getResolvedTokenImpl
+
   getTokenInhibited = Lex.getLexToken
+
+  pushIfState ifState = notImplemented $ "pushIfState " <> show ifState
 
 -- Get the next lex-token from the input, resolve it, and expand it if
 -- necessary.
 -- Note that the lex-token is just returned for debugging really.
 -- It is passed through unchanged from the lex-token-source.
-getPrimitiveTokenImpl ::
+getResolvedTokenImpl ::
   ( Res.MonadResolve m,
     MonadError e m,
-    AsType ExpansionError e,
-    Lex.MonadLexTokenSource m,
-    MonadPrimTokenSource m,
-    HSt.MonadHexState m
+    AsType Res.ResolutionError e,
+    Lex.MonadLexTokenSource m
   ) =>
-  m (Maybe (LexToken, PrimitiveToken))
-getPrimitiveTokenImpl =
+  m (Maybe (Lex.LexToken, ResolvedToken))
+getResolvedTokenImpl =
   Res.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
     Nothing -> pure Nothing
@@ -70,14 +80,43 @@ getPrimitiveTokenImpl =
     Just (lt, errOrResolvedTok) -> case errOrResolvedTok of
       -- If resolution failed, throw an error.
       Left e ->
-        throwError $ injectTyped $ ExpansionResolutionError e
+        throwError $ injectTyped e
+      Right rt ->
+        pure $ Just (lt, rt)
+
+-- Get the next lex-token from the input, resolve it, and expand it if
+-- necessary.
+-- Note that the lex-token is just returned for debugging really.
+-- It is passed through unchanged from the lex-token-source.
+-- In order to expand syntax-commands into primitive tokens,
+-- we need to be able to parse primitive-token streams.
+-- This might seem circular, and it is! But because syntax-commands
+-- can need to be expanded recursively, this is needed.
+-- This is why we require `MonadPrimTokenSource m` in order to implement this
+-- very interface.
+getPrimitiveTokenImpl ::
+  ( Res.MonadResolve m,
+    MonadError e m,
+    AsType ExpansionError e,
+    AsType Res.ResolutionError e,
+    AsType Eval.EvaluationError e,
+    AsType Par.ParsingError e,
+    Lex.MonadLexTokenSource m,
+    MonadPrimTokenSource m,
+    HSt.MonadHexState m
+  ) =>
+  m (Maybe (LexToken, PrimitiveToken))
+getPrimitiveTokenImpl =
+  getResolvedTokenImpl >>= \case
+    Nothing -> pure Nothing
+    Just (lt, rt) -> case rt of
       -- If we resolved to a primitive token, we are done, just return that.
-      Right (PrimitiveToken pt) ->
+      PrimitiveToken pt ->
         pure $ Just (lt, pt)
       -- Otherwise, the token is the head of a syntax-command.
-      Right (SyntaxCommandHeadToken headTok) -> do
+      SyntaxCommandHeadToken headTok -> do
         -- Expand the rest of the command into lex-tokens.
-        lts <- expandSyntaxCommand headTok
+        lts <- parseEvalExpandSyntaxCommand headTok
         -- Insert those resulting lex-tokens back into the input. (It's not this
         -- function's concern, but recall they will be put on the
         -- lex-token-buffer).
@@ -87,68 +126,84 @@ getPrimitiveTokenImpl =
         -- expand again.
         getPrimitiveTokenImpl
 
-runParserDuringExpansion ::
-  (MonadError e m, AsType ExpansionError e) =>
-  Par.ParseT m a ->
-  m a
-runParserDuringExpansion parser =
-  Par.runParseT parser >>= \case
-    Left e -> throwError $ injectTyped $ ExpansionParsingError e
-    Right v -> pure v
-
-expandSyntaxCommand ::
-  (MonadError e m, AsType ExpansionError e, HSt.MonadHexState m, MonadPrimTokenSource m, Lex.MonadLexTokenSource m) =>
+parseEvalExpandSyntaxCommand ::
+  ( MonadError e m,
+    AsType ExpansionError e,
+    AsType Par.ParsingError e,
+    AsType Eval.EvaluationError e,
+    HSt.MonadHexState m,
+    MonadPrimTokenSource m,
+    Lex.MonadLexTokenSource m
+  ) =>
   ST.SyntaxCommandHeadToken ->
   m (Seq Lex.LexToken)
+parseEvalExpandSyntaxCommand headTok = do
+  syntaxCommand <-
+    Par.runParseT (Par.headToParseSyntaxCommand headTok) >>= \case
+      Left e -> throwError $ injectTyped e
+      Right v -> pure v
+  eSyntaxCommand <- Eval.evalSyntaxCommand syntaxCommand
+  expandSyntaxCommand eSyntaxCommand
+
+expandSyntaxCommand ::
+  ( MonadError e m,
+    AsType ExpansionError e,
+    MonadPrimTokenSource m,
+    HSt.MonadHexState m
+  ) =>
+  E.SyntaxCommand ->
+  m (Seq Lex.LexToken)
 expandSyntaxCommand = \case
-  ST.MacroTok macroDefinition -> do
-    args <- runParserDuringExpansion $ Par.parseMacroArguments macroDefinition.parameterSpecification
-    Expand.substituteArgsIntoMacroBody macroDefinition.replacementText args
-  ST.ConditionTok ct -> do
-    Expand.expandConditionToken ct
+  E.CallMacro macroDefinition macroArgumentList -> do
+    Expand.substituteArgsIntoMacroBody macroDefinition.replacementText macroArgumentList
+  E.ApplyConditionHead conditionOutcome -> do
+    Expand.applyConditionOutcome conditionOutcome
     pure mempty
-  -- NumberTok ->
-  --   notImplemented "syntax command NumberTok"
-  -- RomanNumeralTok ->
-  --   notImplemented "syntax command RomanNumeralTok"
-  -- StringTok -> do
-  --   conf <- use $ typed @Conf.Config
-  --   let escapeChar = (Conf.IntParamVal . Conf.lookupIntParameter EscapeChar) conf
-  --   expandString escapeChar <$> parseLexToken
-  -- JobNameTok ->
-  --   notImplemented "syntax command JobNameTok"
-  -- FontNameTok ->
-  --   notImplemented "syntax command FontNameTok"
-  -- MeaningTok ->
-  --   notImplemented "syntax command MeaningTok"
-  -- CSNameTok -> do
-  --   a <- parseCSNameArgs
-  --   singleton <$> expandCSName a
-  -- ExpandAfterTok -> do
-  --   argLT <- takeLexToken
-  --   (_, postArgLTs) <- takeAndExpandResolvedToken
-  --   -- Prepend the unexpanded token.
-  --   pure (argLT <| postArgLTs)
-  -- NoExpandTok ->
-  --   notImplemented "syntax command NoExpandTok"
-  -- MarkRegisterTok _ ->
-  --   notImplemented "syntax command MarkRegisterTok"
-  -- -- \input ⟨file name⟩:
-  -- -- - Expand to no tokens
-  -- -- - Prepare to read from the specified file before looking at any more
-  -- --   tokens from the current source.
-  -- InputTok -> do
-  --   TeXFilePath texPath <- parseFileName
-  --   inputPath texPath
-  --   pure mempty
-  -- EndInputTok ->
-  --   notImplemented "syntax command EndInputTok"
-  -- TheTok -> do
-  --   intQuant <- parseInternalQuantity
-  --   fmap charCodeAsMadeToken <$> texEvaluate intQuant
-  -- ChangeCaseTok direction -> do
-  --   conf <- use $ typed @Conf.Config
-  --   expandChangeCase
-  --     (\c -> Conf.lookupChangeCaseCode direction c conf)
-  --     <$> parseGeneralText
-  t -> notImplemented $ "Expand syntax command, head: " <> show t
+  E.ApplyConditionBody _conditionBodyTok -> do
+    notImplemented "ApplyConditionBody"
+  E.RenderNumber _n ->
+    notImplemented "RenderNumber"
+  E.RenderRomanNumeral _n ->
+    notImplemented "RenderRomanNumeral"
+  E.RenderTokenAsString _lt -> do
+    _escapeCharInt <- HSt.getParameterValue PT.EscapeChar
+    notImplemented "RenderTokenAsString"
+  -- expandString escapeChar lt
+  E.RenderJobName ->
+    notImplemented "RenderJobName"
+  E.RenderFontName _fontRef ->
+    notImplemented "RenderFontName"
+  E.RenderTokenMeaning _lt ->
+    notImplemented "RenderTokenMeaning"
+  E.ParseControlSequence _bytes -> do
+    notImplemented "ParseControlSequence"
+  -- singleton <$> expandCSName a
+  E.ExpandAfter _lt -> do
+    notImplemented "ExpandAfter"
+  -- (_, postArgLTs) <- takeAndExpandResolvedToken
+  -- Prepend the unexpanded token.
+  -- pure (argLT <| postArgLTs)
+  E.NoExpand _lt ->
+    notImplemented "NoExpand"
+  E.GetMarkRegister _ ->
+    notImplemented "GetMarkRegister"
+  -- \input ⟨file name⟩:
+  -- - Expand to no tokens
+  -- - Prepare to read from the specified file before looking at any more
+  --   tokens from the current source.
+  E.OpenInputFile _filePath -> do
+    void $ notImplemented "OpenInputFile"
+    -- inputPath filePath
+    pure mempty
+  E.EndInputFile ->
+    notImplemented "EndInputFile"
+  E.RenderInternalQuantity -> do
+    notImplemented "RenderInternalQuantity"
+  -- fmap charCodeAsMadeToken <$> texEvaluate intQuant
+  E.ChangeCase _vDirection -> do
+    notImplemented "ChangeCase"
+
+-- expandChangeCase
+--   (\c -> Conf.lookupChangeCaseCode direction c conf)
+--   <$> parseGeneralText
+-- c -> notImplemented $ "Expand syntax command, command: " <> show c

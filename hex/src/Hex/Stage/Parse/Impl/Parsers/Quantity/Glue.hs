@@ -5,7 +5,7 @@ import Data.Foldable qualified as Fold
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
-import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par

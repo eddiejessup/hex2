@@ -6,7 +6,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
-import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 

@@ -6,7 +6,7 @@ import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
-import Hex.Common.Parse (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (SawUnexpectedPrimitiveToken), UnexpectedPrimitiveToken (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..), UnexpectedPrimitiveToken (..))
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators

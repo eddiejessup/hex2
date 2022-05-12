@@ -4,8 +4,8 @@ module Hex.Stage.Parse.Impl where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface (MonadHexState)
-import Hex.Common.Parse (ParseUnexpectedError (..), ParsingError (..))
-import Hex.Stage.Expand.Impl.Parse (runParseT)
+import Hex.Common.Parse.Impl (runParseTMaybe)
+import Hex.Common.Parse.Interface (ParseUnexpectedError (..))
 import Hex.Stage.Expand.Interface qualified as Exp
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
@@ -42,14 +42,4 @@ instance
   ) =>
   MonadCommandSource (MonadCommandSourceT m)
   where
-  getCommand = do
-    -- From the perspective of the parser, ie in a MonadPrimTokenSource context,
-    -- we need 'end-of-input' to be an error like any other, so we can make a monoid
-    -- of the objects to combine parsers together, for 'alternative' behaviour.
-    -- But once we're done with parsing, we want to treat end-of-input differently,
-    -- by returning a 'Nothing', as we might want to behave differently
-    -- instead of just failing in this case.
-    runParseT Parsers.Command.parseCommand >>= \case
-      Left EndOfInputParsingError -> pure Nothing
-      Left (UnexpectedParsingError e) -> throwError $ injectTyped e
-      Right cmd -> pure $ Just cmd
+  getCommand = runParseTMaybe Parsers.Command.parseCommand

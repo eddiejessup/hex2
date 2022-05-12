@@ -3,14 +3,13 @@
 module Hex.Stage.Parse.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Stage.Parse.Interface.AST.Quantity
-import Hex.Common.Quantity qualified as Q
+import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Parse.Interface.AST.Quantity
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
-import Hex.Stage.Interpret.Build.Box.Elem (HexFilePath)
 
 data Command
   = ShowToken Lex.LexToken
@@ -78,7 +77,7 @@ data HModeCommand
 data StreamWriteCommand = StreamWriteCommand HexInt WriteText
   deriving stock (Show, Eq, Generic)
 
-data MessageWriteCommand = MessageWriteCommand { messageDest :: PT.StandardOutputSource, messageContents :: ST.ExpandedBalancedText}
+data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputSource, messageContents :: ST.ExpandedBalancedText}
   deriving stock (Show, Eq, Generic)
 
 data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction HexInt
@@ -106,10 +105,10 @@ data ControlSequenceTarget
 -- used.)
 -- For an example of how this might be used, see:
 -- https://tug.org/TUGboat/tb09-3/tb22bechtolsheim.pdf
-data FutureLetDefinition = FutureLetTargetDefinition { tokenToExpand :: Lex.LexToken, letTargetToken :: Lex.LexToken }
+data FutureLetDefinition = FutureLetTargetDefinition {tokenToExpand :: Lex.LexToken, letTargetToken :: Lex.LexToken}
   deriving stock (Show, Eq, Generic)
 
-data FontFileSpec = FontFileSpec { fontSpec :: FontSpecification, fontPath :: HexFilePath }
+data FontFileSpec = FontFileSpec {fontSpec :: FontSpecification, fontPath :: Q.HexFilePath}
   deriving stock (Show, Eq, Generic)
 
 data AssignmentBody
@@ -174,7 +173,7 @@ data NumericVariable
   | MathGlueNumericVariable (QuantVariableAST 'PT.MathGlueQuantity)
   deriving stock (Show, Eq, Generic)
 
-data CodeAssignment = CodeAssignment {codeTableRef :: CodeTableRef, codeValue :: HexInt }
+data CodeAssignment = CodeAssignment {codeTableRef :: CodeTableRef, codeValue :: HexInt}
   deriving stock (Show, Eq, Generic)
 
 data FontSpecification = NaturalFont | FontAt Length | FontScaled HexInt
@@ -226,7 +225,7 @@ data WritePolicy = Immediate | Deferred
 newtype Rule = Rule (Seq (Q.BoxDim, Length))
   deriving stock (Show, Eq, Generic)
 
-data FileStreamAction = Open HexFilePath | Close
+data FileStreamAction = Open Q.HexFilePath | Close
   deriving stock (Show, Eq, Generic)
 
 data FileStreamType = FileInput | FileOutput WritePolicy

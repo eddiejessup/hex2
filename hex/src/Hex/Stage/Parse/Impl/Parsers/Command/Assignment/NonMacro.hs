@@ -4,7 +4,7 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes qualified as Code
 -- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
-import Hex.Common.Parse (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par

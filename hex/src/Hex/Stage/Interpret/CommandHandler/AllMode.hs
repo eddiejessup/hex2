@@ -20,7 +20,7 @@ data InterpretError
   | SawEndBoxInMainVModePara -- "No box to end: in paragraph within main V mode"
   | NoFontSelected
   | UnexpectedEndOfInput
-  deriving stock (Generic, Show)
+  deriving stock (Show, Generic)
 
 fmtInterpretError :: Fmt InterpretError
 fmtInterpretError = F.shown
@@ -108,7 +108,7 @@ handleModeIndependentCommand addVElem = \case
           Eval.ShortDefineTarget charryQuantityType targetValue -> do
             pure $ Just $ Res.PrimitiveToken $ PT.IntRefTok charryQuantityType targetValue
           Eval.ReadTarget _readInt -> do
-            notImplemented ""
+            notImplemented "ReadTarget"
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
             fontDefinition <- HSt.loadFont fontPath fontSpec
             addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition

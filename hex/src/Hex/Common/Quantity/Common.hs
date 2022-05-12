@@ -32,3 +32,6 @@ data BoxDim
   | BoxHeight
   | BoxDepth
   deriving stock (Show, Eq, Generic)
+
+newtype HexFilePath = HexFilePath FilePath
+  deriving stock (Show, Eq, Generic)
