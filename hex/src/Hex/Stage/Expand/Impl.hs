@@ -140,8 +140,8 @@ parseEvalExpandSyntaxCommand ::
 parseEvalExpandSyntaxCommand headTok = do
   syntaxCommand <-
     Par.runParseT (Par.headToParseSyntaxCommand headTok) >>= \case
-      Left e -> throwError $ injectTyped e
-      Right v -> pure v
+      (Left e, _) -> throwError $ injectTyped e
+      (Right v, _) -> pure v
   eSyntaxCommand <- Eval.evalSyntaxCommand syntaxCommand
   expandSyntaxCommand eSyntaxCommand
 

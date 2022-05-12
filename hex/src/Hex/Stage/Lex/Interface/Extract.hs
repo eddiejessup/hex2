@@ -26,9 +26,13 @@ data LexCharCat = LexCharCat
 
 fmtLexCharCat :: Fmt LexCharCat
 fmtLexCharCat =
-  let f1 = F.accessed (.lexCCChar) Code.fmtCharCode
+  let f1 = fmtLexCharCatChar
       f2 = F.accessed (.lexCCCat) Code.fmtCoreCatCode
    in F.parenthesised $ f1 <> F.fconst ", " <> f2
+
+fmtLexCharCatChar :: Fmt LexCharCat
+fmtLexCharCatChar =
+  F.accessed (.lexCCChar) Code.fmtCharCode
 
 data LexToken
   = CharCatLexToken LexCharCat
@@ -39,6 +43,13 @@ fmtLexToken :: Fmt LexToken
 fmtLexToken = later $ \case
   CharCatLexToken lexCC ->
     bformat fmtLexCharCat lexCC
+  ControlSequenceLexToken controlSeq ->
+    bformat fmtControlSequence controlSeq
+
+fmtLexTokenChar :: Fmt LexToken
+fmtLexTokenChar = later $ \case
+  CharCatLexToken lexCC ->
+    bformat fmtLexCharCatChar lexCC
   ControlSequenceLexToken controlSeq ->
     bformat fmtControlSequence controlSeq
 

@@ -1,7 +1,6 @@
 module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation (..))
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
@@ -66,23 +65,23 @@ evalAssignmentBody = \case
 evalVariableAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableAssignment -> m E.VariableAssignment
 evalVariableAssignment = \case
   P.IntVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
-    quantVariableEval <- evalQuantVariable qVar
+    quantVariableEval <- Eval.evalQuantVariableAsVariable qVar
     eTgt <- Eval.evalInt tgt
     pure $ E.IntVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
   P.LengthVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
-    quantVariableEval <- evalQuantVariable qVar
+    quantVariableEval <- Eval.evalQuantVariableAsVariable qVar
     eTgt <- Eval.evalLength tgt
     pure $ E.LengthVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
   P.GlueVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
-    quantVariableEval <- evalQuantVariable qVar
+    quantVariableEval <- Eval.evalQuantVariableAsVariable qVar
     eTgt <- Eval.evalGlue tgt
     pure $ E.GlueVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
   P.MathGlueVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
-    quantVariableEval <- evalQuantVariable qVar
+    quantVariableEval <- Eval.evalQuantVariableAsVariable qVar
     eTgt <- Eval.evalMathGlue tgt
     pure $ E.MathGlueVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
   P.TokenListVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
-    quantVariableEval <- evalQuantVariable qVar
+    quantVariableEval <- Eval.evalQuantVariableAsVariable qVar
     eTgt <- Eval.evalTokenListAssignmentTarget tgt
     pure $ E.TokenListVariableAssignment $ E.QuantVariableAssignment quantVariableEval eTgt
   P.SpecialIntParameterVariableAssignment specialIntParameter hexInt ->
@@ -93,19 +92,19 @@ evalVariableAssignment = \case
 evalVariableModification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableModification -> m E.VariableModification
 evalVariableModification = \case
   P.AdvanceIntVariable var arg -> do
-    eVar <- evalQuantVariable var
+    eVar <- Eval.evalQuantVariableAsVariable var
     eArg <- Eval.evalInt arg
     pure $ E.AdvanceIntVariable eVar eArg
   P.AdvanceLengthVariable var arg -> do
-    eVar <- evalQuantVariable var
+    eVar <- Eval.evalQuantVariableAsVariable var
     eArg <- Eval.evalLength arg
     pure $ E.AdvanceLengthVariable eVar eArg
   P.AdvanceGlueVariable var arg -> do
-    eVar <- evalQuantVariable var
+    eVar <- Eval.evalQuantVariableAsVariable var
     eArg <- Eval.evalGlue arg
     pure $ E.AdvanceGlueVariable eVar eArg
   P.AdvanceMathGlueVariable var arg -> do
-    eVar <- evalQuantVariable var
+    eVar <- Eval.evalQuantVariableAsVariable var
     eArg <- Eval.evalMathGlue arg
     pure $ E.AdvanceMathGlueVariable eVar eArg
   P.ScaleVariable scaleDirection numericVar arg -> do
@@ -115,20 +114,10 @@ evalVariableModification = \case
 
 evalNumericVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.NumericVariable -> m E.NumericVariable
 evalNumericVariable = \case
-  P.IntNumericVariable var -> E.IntNumericVariable <$> evalQuantVariable var
-  P.LengthNumericVariable var -> E.LengthNumericVariable <$> evalQuantVariable var
-  P.GlueNumericVariable var -> E.GlueNumericVariable <$> evalQuantVariable var
-  P.MathGlueNumericVariable var -> E.MathGlueNumericVariable <$> evalQuantVariable var
-
-evalQuantVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.QuantVariableAST a -> m (E.QuantVariableEval a)
-evalQuantVariable = \case
-  P.ParamVar intParam -> pure $ E.ParamVar intParam
-  P.RegisterVar registerLocation -> E.RegisterVar <$> evalRegisterLocation registerLocation
-
-evalRegisterLocation :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.RegisterLocation -> m RegisterLocation
-evalRegisterLocation = \case
-  P.ExplicitRegisterLocation hexInt -> RegisterLocation <$> Eval.evalInt hexInt
-  P.InternalRegisterLocation evalInt -> pure $ RegisterLocation evalInt
+  P.IntNumericVariable var -> E.IntNumericVariable <$> Eval.evalQuantVariableAsVariable var
+  P.LengthNumericVariable var -> E.LengthNumericVariable <$> Eval.evalQuantVariableAsVariable var
+  P.GlueNumericVariable var -> E.GlueNumericVariable <$> Eval.evalQuantVariableAsVariable var
+  P.MathGlueNumericVariable var -> E.MathGlueNumericVariable <$> Eval.evalQuantVariableAsVariable var
 
 evalControlSequenceTarget :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ControlSequenceTarget -> m E.ControlSequenceTarget
 evalControlSequenceTarget = \case

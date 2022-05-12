@@ -1,18 +1,20 @@
 {-# LANGUAGE UndecidableInstances #-}
+
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation)
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, Kern, Rule)
 import Hex.Stage.Interpret.Build.List.Elem (Penalty)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
-import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation)
 
 -- What's the plan here?
 -- I want to do as much evaluation as possible in this stage, but I'm not sure
@@ -155,22 +157,12 @@ data VariableAssignment
   | SpecialLengthParameterVariableAssignment PT.SpecialLengthParameter Q.Length
   deriving stock (Show, Eq, Generic)
 
-data QuantVariableAssignment (q :: PT.QuantityType) = QuantVariableAssignment (QuantVariableEval q) (QuantVariableTargetEval q)
+data QuantVariableAssignment (q :: PT.QuantityType) = QuantVariableAssignment (QuantVariableEval q) (Eval.QuantVariableTargetEval q)
   deriving stock (Generic)
 
-deriving stock instance (Show (QuantVariableEval a), Show (QuantVariableTargetEval a)) => Show (QuantVariableAssignment a)
+deriving stock instance (Show (QuantVariableEval a), Show (Eval.QuantVariableTargetEval a)) => Show (QuantVariableAssignment a)
 
-deriving stock instance (Eq (QuantVariableEval a), Eq (QuantVariableTargetEval a)) => Eq (QuantVariableAssignment a)
-
-type family QuantVariableTargetEval a where
-  QuantVariableTargetEval 'PT.IntQuantity = Q.HexInt
-  QuantVariableTargetEval 'PT.LengthQuantity = Q.Length
-  QuantVariableTargetEval 'PT.GlueQuantity = Q.Glue
-  QuantVariableTargetEval 'PT.MathGlueQuantity = Q.MathGlue
-  QuantVariableTargetEval 'PT.TokenListQuantity = TokenListAssignmentTarget
-
-newtype TokenListAssignmentTarget = TokenListAssignmentTarget ST.InhibitedBalancedText
-  deriving stock (Show, Eq, Generic)
+deriving stock instance (Eq (QuantVariableEval a), Eq (Eval.QuantVariableTargetEval a)) => Eq (QuantVariableAssignment a)
 
 data QuantVariableEval (a :: PT.QuantityType) = ParamVar (Uneval.QuantParam a) | RegisterVar RegisterLocation
   deriving stock (Generic)
@@ -180,10 +172,10 @@ deriving stock instance Show (Uneval.QuantParam a) => Show (QuantVariableEval a)
 deriving stock instance Eq (Uneval.QuantParam a) => Eq (QuantVariableEval a)
 
 data VariableModification
-  = AdvanceIntVariable (QuantVariableEval 'PT.IntQuantity) (QuantVariableTargetEval 'PT.IntQuantity)
-  | AdvanceLengthVariable (QuantVariableEval 'PT.LengthQuantity) (QuantVariableTargetEval 'PT.LengthQuantity)
-  | AdvanceGlueVariable (QuantVariableEval 'PT.GlueQuantity) (QuantVariableTargetEval 'PT.GlueQuantity)
-  | AdvanceMathGlueVariable (QuantVariableEval 'PT.MathGlueQuantity) (QuantVariableTargetEval 'PT.MathGlueQuantity)
+  = AdvanceIntVariable (QuantVariableEval 'PT.IntQuantity) (Eval.QuantVariableTargetEval 'PT.IntQuantity)
+  | AdvanceLengthVariable (QuantVariableEval 'PT.LengthQuantity) (Eval.QuantVariableTargetEval 'PT.LengthQuantity)
+  | AdvanceGlueVariable (QuantVariableEval 'PT.GlueQuantity) (Eval.QuantVariableTargetEval 'PT.GlueQuantity)
+  | AdvanceMathGlueVariable (QuantVariableEval 'PT.MathGlueQuantity) (Eval.QuantVariableTargetEval 'PT.MathGlueQuantity)
   | ScaleVariable Q.VDirection NumericVariable Q.HexInt
   deriving stock (Show, Eq, Generic)
 

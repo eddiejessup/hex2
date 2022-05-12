@@ -1,6 +1,9 @@
 module Hex.Stage.Evaluate.Impl.Quantity where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Impl.Scoped.Parameter qualified as Param
+import Hex.Common.HexState.Impl.Scoped.Register qualified as Reg
+import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation (..))
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
@@ -58,7 +61,7 @@ evalCoercedInt _x = notImplemented "evalCoercedInt"
 
 evalInternalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalInt -> m Q.HexInt
 evalInternalInt = \case
-  P.InternalIntVariable v -> evalInternalIntVariable v
+  P.InternalIntVariable v -> evalQuantVariableAsTarget v
   P.InternalSpecialIntParameter v -> HSt.getSpecialIntParameter v
   P.InternalCodeTableRef v -> evalCodeTableRefAsTarget v
   P.InternalCharToken n -> pure n
@@ -89,8 +92,46 @@ evalCodeTableRefAsTarget codeTableRef = do
     PT.SpaceFactorCodeType -> HSt.getHexCode @_ @Code.SpaceFactorCode eCodeTableRef.codeTableChar <&> Code.toHexInt
     PT.DelimiterCodeType -> HSt.getHexCode @_ @Code.DelimiterCode eCodeTableRef.codeTableChar <&> Code.toHexInt
 
-evalInternalIntVariable :: P.QuantVariableAST 'PT.IntQuantity -> m Q.HexInt
-evalInternalIntVariable = notImplemented "evalInternalIntVariable"
+evalQuantVariableAsVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.QuantVariableAST a -> m (E.QuantVariableEval a)
+evalQuantVariableAsVariable = \case
+  P.ParamVar intParam -> pure $ E.ParamVar intParam
+  P.RegisterVar registerLocation -> E.RegisterVar <$> evalRegisterLocationAsLocation registerLocation
+
+-- | Quite a complicated type signature, but it avoids quite a bit of boilerplate for each quantity type.
+evalQuantVariableAsTarget ::
+  ( MonadError e m,
+    AsType Eval.EvaluationError e,
+    HSt.MonadHexState m,
+    -- This is saying that we require the corresponding parameter type to the
+    -- quantity 'a' (using the 'QuantParam' type family), to fulfil
+    -- 'Param.ScopedHexParameter'. This is so we can perform the
+    -- 'getParameterValue' operation.
+    Param.ScopedHexParameter (P.QuantParam a),
+    -- What we will return will be the *value* type that corresponds to the
+    -- parameter type we just mentioned. For example, a 'length parameter'
+    -- returns values of type 'length'. We will call this variable 'v'.
+    v ~ Param.ScopedHexParameterValue (P.QuantParam a),
+    -- We require this value type 'v' to also fulfil the
+    -- 'Reg.ScopedHexRegisterValue', because this is what we need to perform the
+    -- 'getRegisterValue' operation.
+    Reg.ScopedHexRegisterValue v
+  ) =>
+  -- We are taking a quantity-variable for the quantity 'a' (int, length, glue,
+  -- etc).
+  P.QuantVariableAST a ->
+  -- And we will return that value 'v' which is the value behind the parameter
+  -- type, and also behind the register we want.
+  m v
+evalQuantVariableAsTarget var = do
+  eVar <- evalQuantVariableAsVariable var
+  case eVar of
+    E.ParamVar p -> HSt.getParameterValue p
+    E.RegisterVar loc -> HSt.getRegisterValue loc
+
+evalRegisterLocationAsLocation :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.RegisterLocation -> m RegisterLocation
+evalRegisterLocationAsLocation = \case
+  P.ExplicitRegisterLocation hexInt -> RegisterLocation <$> evalInt hexInt
+  P.InternalRegisterLocation loc -> pure $ RegisterLocation loc
 
 evalFontCharRef :: P.FontCharRef -> m Q.HexInt
 evalFontCharRef = notImplemented "evalFontCharRef"
@@ -149,7 +190,8 @@ evalHModeRule _rule =
 
 evalChar ::
   (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
-  P.CharCodeRef -> m Code.CharCode
+  P.CharCodeRef ->
+  m Code.CharCode
 evalChar = \case
   P.CharRef c -> pure c
   P.CharTokenRef c -> noteRange c
