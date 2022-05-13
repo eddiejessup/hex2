@@ -122,7 +122,7 @@ parseInhibitedMacroReplacementText = ST.InhibitedReplacementText . fst <$> Par.p
   where
     parseNext :: Int -> m (ST.MacroTextToken, Ordering)
     parseNext _depth =
-      getAnyLexToken >>= \case
+      getUnexpandedToken >>= \case
         -- If we see a '#', parse the parameter number and return a token
         -- representing the call.
         Lex.CharCatLexToken Lex.LexCharCat {lexCCCat = Code.Parameter} -> do

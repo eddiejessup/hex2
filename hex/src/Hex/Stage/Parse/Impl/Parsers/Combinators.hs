@@ -6,7 +6,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getAnyPrimitiveToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
@@ -41,7 +41,7 @@ parseHeaded = (getAnyPrimitiveToken >>=)
 
 satisfyLexThen :: MonadPrimTokenParse m => (Lex.LexToken -> Maybe a) -> m a
 satisfyLexThen f = do
-  lt <- getAnyLexToken
+  lt <- getUnexpandedToken
   maybe empty pure (f lt)
 
 satisfyLexIf :: MonadPrimTokenParse m => (Lex.LexToken -> Bool) -> m Lex.LexToken

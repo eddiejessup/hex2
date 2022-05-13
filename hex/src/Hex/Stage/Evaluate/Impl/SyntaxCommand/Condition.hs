@@ -32,8 +32,8 @@ evalIfConditionHeadToEvalHead = \case
     E.IfIntOdd <$> Eval.evalInt n
   P.IfInMode modeAttribute ->
     pure $ E.IfInMode modeAttribute
-  P.IfTokenAttributesEqual tokenAttribute pt1 pt2 ->
-    pure $ E.IfTokenAttributesEqual tokenAttribute pt1 pt2
+  P.IfTokenAttributesEqual tokenAttribute lt1 lt2 ->
+    pure $ E.IfTokenAttributesEqual tokenAttribute lt1 lt2
   P.IfTokensEqual lt1 lt2 ->
     pure $ E.IfTokensEqual lt1 lt2
   P.IfBoxRegisterIs boxRegisterAttribute n ->
@@ -55,7 +55,7 @@ evalIfConditionHeadToBool = \case
     notImplemented "IfInMode"
   -- A control sequence token is considered to have character code 256 and
   -- category code 16.
-  -- This logic is hard to follow literally, because my category codee type
+  -- This logic is hard to follow literally, because my category code type
   -- is an explicit enumeration, not an integer. So I'll just interpret it
   -- as: control sequences are considered equal to each other, and unequal to
   -- all char-cat pairs.
@@ -100,11 +100,11 @@ evalIfConditionHeadToBool = \case
     ordToComp EQ = (==)
 
     eqChars
-      (PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c1 _)))
-      (PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c2 _))) = c1 == c2
+      (Lex.CharCatLexToken (Lex.LexCharCat c1 _))
+      (Lex.CharCatLexToken (Lex.LexCharCat c2 _)) = c1 == c2
     eqChars _ _ = True
 
     eqCats
-      (PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat _ c1)))
-      (PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat _ c2))) = c1 == c2
+      (Lex.CharCatLexToken (Lex.LexCharCat _ c1))
+      (Lex.CharCatLexToken (Lex.LexCharCat _ c2)) = c1 == c2
     eqCats _ _ = True

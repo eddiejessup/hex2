@@ -26,20 +26,20 @@ headToParseSyntaxCommand = \case
   ST.RomanNumeralTok -> do
     AST.RenderRomanNumeral <$> Par.parseInt
   ST.StringTok -> do
-    AST.RenderTokenAsString <$> getAnyLexToken
+    AST.RenderTokenAsTokens <$> getUnexpandedToken
   ST.JobNameTok -> do
     pure $ AST.RenderJobName
   ST.FontNameTok -> do
     AST.RenderFontName <$> (Par.parseHeaded Par.headToParseFontRef)
   ST.MeaningTok -> do
-    AST.RenderTokenMeaning <$> getAnyLexToken
+    AST.RenderTokenMeaning <$> getUnexpandedToken
   ST.CSNameTok -> do
     byteString <- parseCSNameBody
     pure $ AST.ParseControlSequence byteString
   ST.ExpandAfterTok -> do
-    AST.ExpandAfter <$> getAnyLexToken
+    AST.ExpandAfter <$> getUnexpandedToken
   ST.NoExpandTok -> do
-    AST.NoExpand <$> getAnyLexToken
+    AST.NoExpand <$> getUnexpandedToken
   ST.MarkRegisterTok markRegister -> do
     pure $ AST.GetMarkRegister markRegister
   ST.InputTok -> do

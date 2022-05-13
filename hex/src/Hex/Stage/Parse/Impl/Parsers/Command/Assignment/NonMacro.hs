@@ -27,12 +27,12 @@ headToParseNonMacroAssignmentBody = \case
   T.InteractionModeTok mode ->
     pure $ AST.SetInteractionMode mode
   T.LetTok -> do
-    (cs, tgt) <- Par.parseXEqualsY Par.parseCSName (Par.skipOneOptionalSpace >> getAnyLexToken)
+    (cs, tgt) <- Par.parseXEqualsY Par.parseCSName (Par.skipOneOptionalSpace >> getUnexpandedToken)
     pure $ AST.DefineControlSequence cs $ AST.LetTarget tgt
   T.FutureLetTok -> do
     cs <- Par.parseCSName
-    lt1 <- getAnyLexToken
-    lt2 <- getAnyLexToken
+    lt1 <- getUnexpandedToken
+    lt2 <- getUnexpandedToken
     pure $
       AST.DefineControlSequence cs $
         AST.FutureLetTarget $

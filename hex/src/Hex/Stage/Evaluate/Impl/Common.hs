@@ -1,22 +1,22 @@
 module Hex.Stage.Evaluate.Impl.Common where
 
 import ASCII qualified
+import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Lex.Interface.Extract qualified as PT
 import Hexlude
-import qualified Formatting as F
 
 data EvaluationError
   = ValueNotInRange
-  | InvalidTokenInBalancedText PT.PrimitiveToken
+  | InvalidTokenInBalancedText Lex.ControlSequence
   deriving stock (Show, Generic)
 
 fmtEvaluationError :: Fmt EvaluationError
 fmtEvaluationError = F.later $ \case
   ValueNotInRange -> "Value not in range"
-  InvalidTokenInBalancedText pt -> "Invalid token in balanced text: " <> F.bformat PT.fmtPrimitiveToken pt
+  InvalidTokenInBalancedText pt -> "Invalid token in balanced text: " <> F.bformat PT.fmtControlSequence pt
 
 evalExpandedBalancedTextToText ::
   (MonadError e m, AsType EvaluationError e) =>
@@ -24,13 +24,13 @@ evalExpandedBalancedTextToText ::
   m Text
 evalExpandedBalancedTextToText bt = do
   -- For each primitive-token in the expanded-balanced-text.
-  msgAsciiChars <- forM bt.expBalancedTextTokens $ \t ->
+  msgAsciiChars <- forM bt.expBalancedTextTokens $ \lt ->
     -- Get the lex-char-cat from the token, if it is the correct token type.
-    case preview PT.primTokCharCat t of
+    case lt of
       -- If it is the wrong type, throw an error.
-      Nothing -> throwError $ injectTyped $ InvalidTokenInBalancedText t
+      Lex.ControlSequenceLexToken cs -> throwError $ injectTyped $ InvalidTokenInBalancedText cs
       -- Otherwise, convert the char-code to its equivalent ASCII-character.
-      Just lexCharCat ->
+      Lex.CharCatLexToken lexCharCat ->
         pure $ Code.codeAsAsciiChar $ lexCharCat.lexCCChar
   -- Build a text from the list of ASCII-characters.
   pure $ ASCII.charListToText $ toList msgAsciiChars

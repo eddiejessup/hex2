@@ -6,6 +6,7 @@ import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
@@ -43,9 +44,35 @@ getNextCommandLogged = do
   Log.logText $ F.sformat ("Read command: " |%| F.shown) cmd
   pure cmd
 
+data OutputDestination
+  = FileStream Q.HexInt
+  | StandardStream PT.StandardOutputSource
+
+writeToOutput :: Monad m => OutputDestination -> Text -> m ()
+writeToOutput _ _ = pure ()
+    -- let _handle = case stdStream of
+    --       PT.StdOut -> stdout
+    --       PT.StdErr -> stderr
+    -- liftIO $ hPutStrLn _handle expandedText
+    -- fStreams <- use $ typed @Config % #outFileStreams
+    -- let txtTxt = Codes.unsafeCodesAsChars (showExpandedBalancedText eTxt)
+    -- If stream number corresponds to an existing, open file:
+    --     write to file
+    -- Otherwise:
+    --     - Write to log
+    --     - If stream number is >= 0: also write to terminal
+    -- case getFileStream fStreams en of
+    --   Just fStream ->
+    --     liftIO $ hPutStrLn fStream txtTxt
+    --   Nothing -> do
+    -- -- Write to terminal.
+    -- when (en >= 0) $ sLog (BS.C8.pack txtTxt)
+    -- -- Write to log
+    -- logHandle <- use $ typed @Config % #logStream
+    -- liftIO $ hPutStrLn logHandle txtTxt
+
 handleModeIndependentCommand ::
   ( Monad m,
-    MonadIO m,
     HSt.MonadHexState m,
     Lex.MonadLexTokenSource m,
     Log.MonadHexLog m
@@ -58,10 +85,15 @@ handleModeIndependentCommand addVElem = \case
     lift $ Log.logInternalState
     pure DidNotSeeEndBox
   Eval.WriteMessage (Eval.MessageWriteCommand stdStream expandedText) -> do
-    let _handle = case stdStream of
-          PT.StdOut -> stdout
-          PT.StdErr -> stderr
-    liftIO $ hPutStrLn _handle expandedText
+    writeToOutput (StandardStream stdStream) expandedText
+    pure DidNotSeeEndBox
+  Eval.WriteToStream (Eval.StreamWriteCommand n writeText) -> do
+    case writeText of
+      Eval.ImmediateWriteText txt -> do
+        writeToOutput (FileStream n) txt
+      Eval.DeferredWriteText _ ->
+        notImplemented "Write to stream: DeferredWriteText"
+
     pure DidNotSeeEndBox
   Eval.Relax ->
     pure DidNotSeeEndBox
@@ -265,27 +297,6 @@ handleModeIndependentCommand addVElem = \case
       -- If a token was indeed set, put it into the input.
       Just lt -> lift $ Lex.insertLexTokenToSource lt
     pure DidNotSeeEndBox
-  -- Eval.WriteToStream n (Eval.ImmediateWriteText eTxt) -> do
-  --   en <- texEvaluate n
-  --   fStreams <- use $ typed @Config % #outFileStreams
-  --   let txtTxt = Codes.unsafeCodesAsChars (showExpandedBalancedText eTxt)
-  --   -- Write to:
-  --   -- if stream number corresponds to existing, open file:
-  --   --     file
-  --   -- otherwise:
-  --   --     log
-  --   --     unless stream number is negative: terminal
-  --   case getFileStream fStreams en of
-  --     Just fStream ->
-  --       liftIO $ hPutStrLn fStream txtTxt
-  --     Nothing ->
-  --       do
-  --         -- Write to terminal.
-  --         when (en >= 0) $ sLog (BS.C8.pack txtTxt)
-  --         -- Write to log
-  --         logHandle <- use $ typed @Config % #logStream
-  --         liftIO $ hPutStrLn logHandle txtTxt
-  --   pure DidNotSeeEndBox
   -- -- Start a new level of grouping.
   -- Eval.ChangeScope Eval.Positive entryTrig ->
   --   do

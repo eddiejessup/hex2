@@ -7,6 +7,8 @@ import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
 import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
+import Hex.Stage.Interpret.Build.Box.Elem qualified as Elem
+import Hex.Stage.Interpret.Build.List.Elem qualified as Elem
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
@@ -27,21 +29,32 @@ evalModeIndepCmd = \case
   P.Assign P.Assignment {body, scope} -> do
     eBody <- evalAssignmentBody body
     pure $ E.Assign (E.Assignment eBody scope)
-  P.Relax -> notImplemented "evalModeIndepCmd 'Relax'"
-  P.IgnoreSpaces -> notImplemented "evalModeIndepCmd 'IgnoreSpaces'"
-  P.AddPenalty _hexInt -> notImplemented "evalModeIndepCmd 'AddPenalty'"
-  P.AddKern _length -> notImplemented "evalModeIndepCmd 'AddKern'"
-  P.AddMathKern _mathLength -> notImplemented "evalModeIndepCmd 'AddMathKern'"
+  P.Relax -> pure E.Relax
+  P.IgnoreSpaces -> pure E.IgnoreSpaces
+  P.AddPenalty hexInt -> E.AddPenalty . Elem.Penalty <$> Eval.evalInt hexInt
+  P.AddKern length -> E.AddKern . Elem.Kern <$> Eval.evalLength length
+  P.AddMathKern mathLength -> E.AddMathKern <$> Eval.evalMathLength mathLength
   P.RemoveItem _removableItem -> notImplemented "evalModeIndepCmd 'RemoveItem'"
-  P.SetAfterAssignmentToken _lexToken -> notImplemented "evalModeIndepCmd 'SetAfterAssignmentToken'"
-  P.AddToAfterGroupTokens _lexToken -> notImplemented "evalModeIndepCmd 'AddToAfterGroupTokens'"
+  P.SetAfterAssignmentToken lexToken -> pure $ E.SetAfterAssignmentToken lexToken
+  P.AddToAfterGroupTokens lexToken -> pure $ E.AddToAfterGroupTokens lexToken
   P.WriteMessage messageWriteCommand -> E.WriteMessage <$> evalMessageWriteCommand messageWriteCommand
   P.ModifyFileStream _fileStreamModificationCommand -> notImplemented "evalModeIndepCmd 'ModifyFileStream'"
-  P.WriteToStream _streamWriteCommand -> notImplemented "evalModeIndepCmd 'WriteToStream'"
-  P.DoSpecial _expandedBalancedText -> notImplemented "evalModeIndepCmd 'DoSpecial'"
-  P.AddBox _boxPlacement _box -> notImplemented "evalModeIndepCmd 'AddBox'"
-  P.ChangeScope _sign _commandTrigger -> notImplemented "evalModeIndepCmd 'ChangeScope'"
+  P.WriteToStream streamWriteCommand -> E.WriteToStream <$> evalStreamWriteCommand streamWriteCommand
+  P.DoSpecial expandedBalancedText -> pure $ E.DoSpecial expandedBalancedText
+  P.AddBox boxPlacement box -> pure $ E.AddBox boxPlacement box
+  P.ChangeScope sign commandTrigger -> pure $ E.ChangeScope sign commandTrigger
   P.DebugShowState -> pure E.DebugShowState
+
+evalStreamWriteCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.StreamWriteCommand -> m E.StreamWriteCommand
+evalStreamWriteCommand (P.StreamWriteCommand n writeText) =
+  E.StreamWriteCommand <$> Eval.evalInt n <*> evalWriteText writeText
+
+evalWriteText :: (MonadError e m, AsType Eval.EvaluationError e) => P.WriteText -> m E.WriteText
+evalWriteText = \case
+  P.ImmediateWriteText expandedBalancedText ->
+    E.ImmediateWriteText <$> Eval.evalExpandedBalancedTextToText expandedBalancedText
+  P.DeferredWriteText inhibitedBalancedText ->
+    pure $ E.DeferredWriteText inhibitedBalancedText
 
 evalAssignmentBody :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.AssignmentBody -> m E.AssignmentBody
 evalAssignmentBody = \case

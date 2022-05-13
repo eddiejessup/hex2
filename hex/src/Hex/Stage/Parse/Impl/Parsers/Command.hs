@@ -4,7 +4,7 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Tok
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getAnyPrimitiveToken)
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
@@ -19,13 +19,6 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-    ( ($),
-      Monad((>>=)),
-      Functor(fmap),
-      Applicative(pure, (<*>)),
-      (<$>),
-      (.),
-      Alternative(empty) )
 
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
@@ -33,7 +26,7 @@ parseCommand =
     H.Tok.DebugShowState ->
       pure $ AST.ModeIndependentCommand $ AST.DebugShowState
     H.Tok.ShowTokenTok ->
-      AST.ShowToken <$> getAnyLexToken
+      AST.ShowToken <$> getUnexpandedToken
     H.Tok.ShowBoxTok ->
       AST.ShowBox <$> Par.parseInt
     H.Tok.ShowListsTok ->
@@ -69,9 +62,9 @@ parseCommand =
     H.Tok.MathKernTok ->
       AST.ModeIndependentCommand . AST.AddMathKern <$> Par.parseMathLength
     H.Tok.SetAfterAssignmentTokenTok ->
-      AST.ModeIndependentCommand . AST.SetAfterAssignmentToken <$> getAnyLexToken
+      AST.ModeIndependentCommand . AST.SetAfterAssignmentToken <$> getUnexpandedToken
     H.Tok.AddToAfterGroupTokensTok ->
-      AST.ModeIndependentCommand . AST.AddToAfterGroupTokens <$> getAnyLexToken
+      AST.ModeIndependentCommand . AST.AddToAfterGroupTokens <$> getUnexpandedToken
     H.Tok.CloseInputTok ->
       AST.ModeIndependentCommand . AST.ModifyFileStream . AST.FileStreamModificationCommand AST.FileInput AST.Close <$> Par.parseInt
     H.Tok.DoSpecialTok ->

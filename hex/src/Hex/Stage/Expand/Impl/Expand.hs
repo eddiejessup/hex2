@@ -168,19 +168,12 @@ skipUntilElseOrEndif blockTarget = do
         _ ->
           pure (EndedOnElse, EQ)
 
-renderTokenAsString ::
+renderTokenAsTokens ::
   Q.HexInt ->
   Lex.LexToken ->
   Seq Lex.LexToken
-renderTokenAsString escapeCharCodeInt tok =
-  charCodeAsMadeToken <$> case tok of
-    Lex.CharCatLexToken cc ->
-      singleton cc.lexCCChar
-    Lex.ControlSequenceLexToken controlSequence ->
-      let csCodes = Seq.fromList $ Lex.controlSequenceCodes controlSequence
-       in case Code.fromHexInt @Code.CharCode escapeCharCodeInt of
-            Nothing -> csCodes
-            Just escapeCharCode -> escapeCharCode <| csCodes
+renderTokenAsTokens escapeCharCodeInt tok =
+  charCodeAsMadeToken <$> Lex.renderTokenAsCodes escapeCharCodeInt tok
 
 -- For \number, \romannumeral, \string. \meaning, \jobname, and \fontname: Each
 -- character code gets category "other" , except that 32 gets "space".

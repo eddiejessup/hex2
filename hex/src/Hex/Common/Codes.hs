@@ -54,6 +54,9 @@ textAsCharCodes = bytesAsCharCodes . encodeUtf8
 bytesAsCharCodes :: ByteString -> [CharCode]
 bytesAsCharCodes x = BS.unpack x <&> CharCode
 
+codesAsText :: [CharCode] -> Text
+codesAsText cs = decodeUtf8 $ BS.pack $ cs <&> unCharCode
+
 codeInt :: CharCode -> Int
 codeInt = fromIntegral . unCharCode
 

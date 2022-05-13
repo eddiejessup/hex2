@@ -117,7 +117,7 @@ satisfyThenImpl f = do
   src0 <- lift Lex.getSource
   -- Fetch the new primitive-token.
   -- This might cause some expansion, i.e. some stateful changes to the input.
-  pt <- getAnyPrimitiveTokenErrImpl
+  pt <- snd <$> getExpandedTokenErrImpl
   -- Apply our quasi-predicate to the next primitive-token.
   case f pt of
     -- If our predicate fails, reset the source to its original state, i.e. before any expansion happens,
@@ -138,15 +138,15 @@ endOfInputToError prog =
 logLexToken :: Monad m => Lex.LexToken -> ParseT m ()
 logLexToken lt = liftWriter $ W.tell $ ParseLog $ Seq.singleton lt
 
--- Like `getAnyPrimitiveTokenImpl`, but on end-of-input raise an error so the parse fails.
-getAnyPrimitiveTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m PT.PrimitiveToken
-getAnyPrimitiveTokenErrImpl = do
-  (lt, pt) <- endOfInputToError getPrimitiveToken
+-- Like `getExpandedTokenImpl`, but on end-of-input raise an error so the parse fails.
+getExpandedTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m (Lex.LexToken, PT.PrimitiveToken)
+getExpandedTokenErrImpl = do
+  r@(lt, _) <- endOfInputToError getPrimitiveToken
   logLexToken lt
-  pure pt
+  pure r
 
-getAnyLexTokenImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m Lex.LexToken
-getAnyLexTokenImpl = do
+getUnexpandedTokenImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m Lex.LexToken
+getUnexpandedTokenImpl = do
   lt <- endOfInputToError getTokenInhibited
   logLexToken lt
   pure lt
@@ -157,9 +157,9 @@ getAnyLexTokenImpl = do
 -- So instead, I will implement 'MonadPrimTokenParse' for 'ParseT m'.
 
 instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => MonadPrimTokenParse (ParseT m) where
-  getAnyPrimitiveToken = getAnyPrimitiveTokenErrImpl
+  getExpandedToken = getExpandedTokenErrImpl
 
-  getAnyLexToken = getAnyLexTokenImpl
+  getUnexpandedToken = getUnexpandedTokenImpl
 
   satisfyThen = satisfyThenImpl
 

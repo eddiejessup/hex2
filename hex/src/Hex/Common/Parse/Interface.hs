@@ -56,10 +56,18 @@ data UnexpectedLexToken = UnexpectedLexToken {saw :: Lex.LexToken, expected :: T
 -- We just add the 'Monad m, Alternative m' constraints because I know any reasonable use is going to require this,
 -- and it saves typing an extra constraint at the use-site in such cases.
 class (Monad m, Alternative m, MonadPlus m) => MonadPrimTokenParse m where
-  getAnyPrimitiveToken :: m PT.PrimitiveToken
+  getExpandedToken :: m (Lex.LexToken, PT.PrimitiveToken)
 
-  getAnyLexToken :: m Lex.LexToken
+  getUnexpandedToken :: m Lex.LexToken
 
   satisfyThen :: (PT.PrimitiveToken -> Maybe a) -> m a
 
   parseError :: ParseUnexpectedErrorCause -> m a
+
+getAnyPrimitiveToken :: MonadPrimTokenParse m => m PT.PrimitiveToken
+getAnyPrimitiveToken =
+  snd <$> getExpandedToken
+
+getExpandedLexToken :: MonadPrimTokenParse m => m Lex.LexToken
+getExpandedLexToken =
+  fst <$> getExpandedToken

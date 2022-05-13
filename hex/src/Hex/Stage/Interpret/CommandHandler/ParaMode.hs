@@ -33,7 +33,6 @@ buildParaList ::
     MonadCommandSource m,
     HSt.MonadHexState m,
     MonadError e m,
-    MonadIO m,
     AsType AllMode.InterpretError e,
     MonadHexLog m
   ) =>
@@ -64,7 +63,6 @@ handleCommandInParaMode ::
     HSt.MonadHexState m,
     MonadLexTokenSource m,
     MonadError e m,
-    MonadIO m,
     AsType AllMode.InterpretError e,
     Log.MonadHexLog m
   ) =>

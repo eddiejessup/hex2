@@ -209,6 +209,9 @@ noteRange x =
     (injectTyped ValueNotInRange)
     (Code.fromHexInt x)
 
+evalMathLength :: P.MathLength -> m Q.MathLength
+evalMathLength = notImplemented "evalMathLength"
+
 evalMathGlue :: P.MathGlue -> m Q.MathGlue
 evalMathGlue = notImplemented "evalMathGlue"
 

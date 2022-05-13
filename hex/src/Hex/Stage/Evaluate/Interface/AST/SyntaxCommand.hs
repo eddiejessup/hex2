@@ -16,7 +16,7 @@ data SyntaxCommand
   | ApplyConditionBody ST.ConditionBodyTok
   | RenderNumber Q.HexInt
   | RenderRomanNumeral Q.HexInt
-  | RenderTokenAsString Lex.LexToken
+  | RenderTokenAsTokens Lex.LexToken
   | RenderJobName
   | RenderFontName Uneval.FontRef
   | RenderTokenMeaning Lex.LexToken
@@ -43,7 +43,7 @@ data IfConditionHead
   | IfLengthPairTest Q.Length Ordering Q.Length -- \ifdim
   | IfIntOdd Q.HexInt -- \ifodd
   | IfInMode PT.ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
-  | IfTokenAttributesEqual PT.Syn.TokenAttribute PT.PrimitiveToken PT.PrimitiveToken -- \if, \ifcat
+  | IfTokenAttributesEqual PT.Syn.TokenAttribute Lex.LexToken Lex.LexToken -- \if, \ifcat
   | IfTokensEqual Lex.LexToken Lex.LexToken -- \ifx
   | IfBoxRegisterIs PT.BoxRegisterAttribute Q.HexInt -- \ifvoid, \ifhbox, \ifvbox
   | IfInputEnded Q.HexInt -- \ifeof

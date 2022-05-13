@@ -31,7 +31,6 @@ buildMainVList ::
     HSt.MonadHexState m,
     MonadError e m,
     AsType AllMode.InterpretError e,
-    MonadIO m,
     MonadHexLog m
   ) =>
   m H.Inter.B.List.VList
@@ -48,7 +47,6 @@ buildMainVList = execStateT go (H.Inter.B.List.VList Empty)
 handleCommandInMainVMode ::
   forall m e.
   ( Monad m,
-    MonadIO m,
     MonadHexLog m,
     MonadCommandSource m,
     Eval.MonadEvaluate m,

@@ -74,13 +74,13 @@ data ModeIndependentCommand
   | IgnoreSpaces
   | AddPenalty Penalty
   | AddKern Kern
-  | AddMathKern Uneval.MathLength
+  | AddMathKern Q.MathLength
   | RemoveItem PT.RemovableItem
   | SetAfterAssignmentToken Lex.LexToken
   | AddToAfterGroupTokens Lex.LexToken
   | WriteMessage MessageWriteCommand
   | ModifyFileStream Uneval.FileStreamModificationCommand
-  | WriteToStream Uneval.StreamWriteCommand
+  | WriteToStream StreamWriteCommand
   | DoSpecial ST.ExpandedBalancedText
   | AddBox Uneval.BoxPlacement Uneval.Box
   | ChangeScope Q.Sign Uneval.CommandTrigger
@@ -99,6 +99,17 @@ data HModeCommand
   | AddHLeaders Uneval.LeadersSpec
   | AddHRule Rule
   | AddUnwrappedFetchedHBox Uneval.FetchedBoxRef -- \unh{box,copy}
+  deriving stock (Show, Eq, Generic)
+
+data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputSource, messageContents :: Text}
+  deriving stock (Show, Eq, Generic)
+
+data StreamWriteCommand = StreamWriteCommand {streamNumber :: Q.HexInt, writeText :: WriteText }
+  deriving stock (Show, Eq, Generic)
+
+data WriteText
+  = ImmediateWriteText Text
+  | DeferredWriteText ST.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data AssignmentBody
@@ -129,9 +140,6 @@ data CodeValue
   | LowerCaseCodeValue Code.LowerCaseCode
   | SpaceFactorCodeValue Code.SpaceFactorCode
   | DelimiterCodeValue Code.DelimiterCode
-  deriving stock (Show, Eq, Generic)
-
-data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputSource, messageContents :: Text}
   deriving stock (Show, Eq, Generic)
 
 data ControlSequenceTarget

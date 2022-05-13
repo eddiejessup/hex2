@@ -26,8 +26,8 @@ evalSyntaxCommand = \case
     E.RenderNumber <$> Eval.evalInt n
   P.RenderRomanNumeral n ->
     E.RenderRomanNumeral <$> Eval.evalInt n
-  P.RenderTokenAsString lexToken ->
-    pure $ E.RenderTokenAsString lexToken
+  P.RenderTokenAsTokens lexToken ->
+    pure $ E.RenderTokenAsTokens lexToken
   P.RenderJobName ->
     pure $ E.RenderJobName
   P.RenderFontName fontRef ->

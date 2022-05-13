@@ -15,7 +15,7 @@ data IfConditionHead
   | IfLengthPairTest Length Ordering Length -- \ifdim
   | IfIntOdd HexInt -- \ifodd
   | IfInMode PT.ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
-  | IfTokenAttributesEqual PT.Syn.TokenAttribute PT.PrimitiveToken PT.PrimitiveToken -- \if, \ifcat
+  | IfTokenAttributesEqual PT.Syn.TokenAttribute Lex.LexToken Lex.LexToken -- \if, \ifcat
   | IfTokensEqual Lex.LexToken Lex.LexToken -- \ifx
   | IfBoxRegisterIs PT.BoxRegisterAttribute HexInt -- \ifvoid, \ifhbox, \ifvbox
   | IfInputEnded HexInt -- \ifeof
@@ -42,7 +42,7 @@ data SyntaxCommand
   | ApplyConditionBody ST.ConditionBodyTok
   | RenderNumber HexInt
   | RenderRomanNumeral HexInt
-  | RenderTokenAsString Lex.LexToken
+  | RenderTokenAsTokens Lex.LexToken
   | RenderJobName
   | RenderFontName FontRef
   | RenderTokenMeaning Lex.LexToken

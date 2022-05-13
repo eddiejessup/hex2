@@ -63,7 +63,7 @@ headToParseNormalInt =
     -- Case 10, character constant like "`c".
     parseCharLikeCodeInt :: m Word8
     parseCharLikeCodeInt =
-      getAnyLexToken >>= \case
+      getUnexpandedToken >>= \case
         Lex.CharCatLexToken cc ->
           pure $ cc ^. typed @Code.CharCode % typed @Word8
         Lex.ControlSequenceLexToken cs -> do

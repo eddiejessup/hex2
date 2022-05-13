@@ -77,7 +77,10 @@ data HModeCommand
 data StreamWriteCommand = StreamWriteCommand HexInt WriteText
   deriving stock (Show, Eq, Generic)
 
-data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputSource, messageContents :: ST.ExpandedBalancedText}
+data MessageWriteCommand = MessageWriteCommand
+  { messageDest :: PT.StandardOutputSource,
+    messageContents :: ST.ExpandedBalancedText
+  }
   deriving stock (Show, Eq, Generic)
 
 data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction HexInt

@@ -2,7 +2,7 @@ module Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.Condition where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getExpandedLexToken)
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
@@ -28,9 +28,9 @@ parseConditionHead = \case
   ST.IfInModeTok a ->
     pure $ AST.IfConditionHead $ AST.IfInMode a
   ST.IfTokenAttributesEqualTok attr ->
-    AST.IfConditionHead <$> (AST.IfTokenAttributesEqual attr <$> getAnyPrimitiveToken <*> getAnyPrimitiveToken)
+    AST.IfConditionHead <$> (AST.IfTokenAttributesEqual attr <$> getExpandedLexToken <*> getExpandedLexToken)
   ST.IfTokensEqualTok ->
-    AST.IfConditionHead <$> (AST.IfTokensEqual <$> getAnyLexToken <*> getAnyLexToken)
+    AST.IfConditionHead <$> (AST.IfTokensEqual <$> getUnexpandedToken <*> getUnexpandedToken)
   ST.IfBoxRegisterIsTok attr ->
     AST.IfConditionHead <$> (AST.IfBoxRegisterIs attr <$> Par.parseInt)
   ST.IfInputEndedTok ->

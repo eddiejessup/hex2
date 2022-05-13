@@ -1,9 +1,11 @@
 module Hex.Stage.Lex.Interface.Extract where
 
 import Data.ByteString qualified as BS
+import Data.Sequence qualified as Seq
 import Data.Text.Encoding qualified as Tx
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
+import Hex.Common.Quantity qualified as Q
 import Hexlude
 
 newtype ControlSequence = ControlSequence {unControlSequence :: ByteString}
@@ -65,6 +67,19 @@ lexTokCharCat = _Ctor @"CharCatLexToken"
 
 parToken :: LexToken
 parToken = ControlSequenceLexToken $ mkControlSequence $ Code.unsafeCodeFromChar <$> ("par" :: [Char])
+
+renderTokenAsCodes ::
+  Q.HexInt ->
+  LexToken ->
+  Seq Code.CharCode
+renderTokenAsCodes escapeCharCodeInt = \case
+  CharCatLexToken cc ->
+    singleton cc.lexCCChar
+  ControlSequenceLexToken controlSequence ->
+    let csCodes = Seq.fromList $ controlSequenceCodes controlSequence
+     in case Code.fromHexInt @Code.CharCode escapeCharCodeInt of
+          Nothing -> csCodes
+          Just escapeCharCode -> escapeCharCode <| csCodes
 
 data LexState
   = SkippingBlanks
