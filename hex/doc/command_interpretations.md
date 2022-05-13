@@ -69,3 +69,25 @@ This tells us that 'global', when applied to variable modifications like '\advan
 Quote from Texbook:
 
 > Conditionals. When an \if... is expanded, TEX reads ahead as far as nec- essary to determine whether the condition is true or false; and if false, it skips ahead (keeping track of \if...\fi nesting) until finding the \else, \or, or \fi that ends the skipped text. Similarly, when \else, \or, or \fi is expanded, TEX reads to the end of any text that ought to be skipped. The “expansion” of a conditional is empty. (Conditionals always reduce the number of tokens that are seen by later stages of the digestive process, while macros usually increase the number of tokens.)
+
+## \string
+
+From p211:
+
+```tex
+\string⟨lex-token⟩
+```
+
+If ⟨lex-token⟩ is a control-symbol, its expansion is the control symbol name, including \escapechar as an escape character unless the control symbol is  an active character.
+
+Otherwise the ⟨token⟩ is a character token, and its character code is retained as the expanded result.
+
+From p39:
+
+For example, `\string\TeX` produces four tokens:
+
+(\\, Other), (T, Other), (e, Other), (X,Other)
+
+Each character in the token list automatically gets category code “other”, including the backslash that \string inserts to represent an escape character.
+
+However, category "Space" will be assigned to the character ‘␣’ (blank space) if a space character somehow sneaks into the name of a control sequence.

@@ -8,9 +8,12 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
 import Hexlude
 
-newtype ControlSequence = ControlSequence ByteString
+newtype ControlSequence = ControlSequence {unControlSequence :: ByteString}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
+
+controlSequenceCodes :: ControlSequence -> [Code.CharCode]
+controlSequenceCodes cs = BS.unpack (cs.unControlSequence) <&> Code.CharCode
 
 mkControlSequence :: [Codes.CharCode] -> ControlSequence
 mkControlSequence csChars = ControlSequence $ BS.pack $ Codes.unCharCode <$> csChars

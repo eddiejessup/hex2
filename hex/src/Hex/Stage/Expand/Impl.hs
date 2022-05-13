@@ -180,9 +180,9 @@ expandSyntaxCommand = \case
     notImplemented "RenderNumber"
   E.RenderRomanNumeral _n ->
     notImplemented "RenderRomanNumeral"
-  E.RenderTokenAsString _lt -> do
-    _escapeCharInt <- HSt.getParameterValue PT.EscapeChar
-    notImplemented "RenderTokenAsString"
+  E.RenderTokenAsString lt -> do
+    escapeCharInt <- HSt.getParameterValue PT.EscapeChar
+    pure $ Expand.renderTokenAsString escapeCharInt lt
   -- expandString escapeChar lt
   E.RenderJobName ->
     notImplemented "RenderJobName"

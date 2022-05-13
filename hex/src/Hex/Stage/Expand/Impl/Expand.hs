@@ -1,8 +1,10 @@
 module Hex.Stage.Expand.Impl.Expand where
 
 import Data.Sequence qualified as Seq
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as AST
 import Hex.Stage.Expand.Interface (ExpansionError)
 import Hex.Stage.Expand.Interface qualified as Expand
@@ -163,3 +165,34 @@ skipUntilElseOrEndif blockTarget = do
         -- Any other token, just skip and continue unchanged.
         _ ->
           pure (EndedOnElse, EQ)
+
+renderTokenAsString ::
+  Q.HexInt ->
+  Lex.LexToken ->
+  Seq Lex.LexToken
+renderTokenAsString escapeCharCodeInt tok =
+  -- TODO: Handle active characters.
+  case tok of
+    Lex.CharCatLexToken cc ->
+      singleton $ case cc.lexCCCat of
+        Code.Active ->
+           charCodeAsMadeToken cc.lexCCChar
+        _ ->
+          tok
+    Lex.ControlSequenceLexToken controlSequence ->
+      let
+        csCodes = Seq.fromList $ Lex.controlSequenceCodes controlSequence
+        csCodesWithPrefix = case Code.fromHexInt escapeCharCodeInt of
+          Nothing -> csCodes
+          Just escapeCharCode -> escapeCharCode <| csCodes
+       in
+         charCodeAsMadeToken <$> csCodesWithPrefix
+
+-- For \number, \romannumeral, \string. \meaning, \jobname, and \fontname: Each
+-- character code gets category "other" , except that 32 gets "space".
+charCodeAsMadeToken :: Code.CharCode -> Lex.LexToken
+charCodeAsMadeToken c =
+  Lex.CharCatLexToken $
+    Lex.LexCharCat c $ case c of
+      Code.Chr_ ' ' -> Code.Space
+      _ -> Code.Other
