@@ -212,8 +212,8 @@ expandSyntaxCommand = \case
     pure mempty
   E.EndInputFile ->
     notImplemented "EndInputFile"
-  E.RenderInternalQuantity -> do
-    notImplemented "RenderInternalQuantity"
+  E.RenderInternalQuantity internalQuantity -> do
+    pure $ Expand.renderInternalQuantity internalQuantity
   -- fmap charCodeAsMadeToken <$> texEvaluate intQuant
   E.ChangeCase _vDirection -> do
     notImplemented "ChangeCase"

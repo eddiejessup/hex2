@@ -25,6 +25,12 @@ instance Scalable MathGlue where
   shrink :: HexInt -> MathGlue -> MathGlue
   shrink = shrinkMathGlue
 
+fmtMathGlue :: Fmt MathGlue
+fmtMathGlue =
+  "\\muglue " |%| fmtViewed #mgDimen fmtMathLengthWithUnit
+    <> (" plus " |%| fmtViewed #mgStretch fmtPureFlex)
+    <> (" minus " |%| fmtViewed #mgShrink fmtPureFlex)
+
 zeroMathGlue :: MathGlue
 zeroMathGlue = MathGlue zeroMathLength zeroFlex zeroFlex
 

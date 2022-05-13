@@ -48,6 +48,12 @@ fmtCharCode = F.accessed (\code -> (Char.showLitChar $ unsafeCodeAsChar code) ""
 codeFromAsciiChar :: ASCII.Char -> CharCode
 codeFromAsciiChar = CharCode . ASCII.charToWord8
 
+textAsCharCodes :: Text -> [CharCode]
+textAsCharCodes = bytesAsCharCodes . encodeUtf8
+
+bytesAsCharCodes :: ByteString -> [CharCode]
+bytesAsCharCodes x = BS.unpack x <&> CharCode
+
 codeInt :: CharCode -> Int
 codeInt = fromIntegral . unCharCode
 

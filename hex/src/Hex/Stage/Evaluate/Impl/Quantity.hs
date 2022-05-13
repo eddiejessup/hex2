@@ -10,7 +10,6 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
-import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
@@ -214,4 +213,49 @@ evalMathGlue :: P.MathGlue -> m Q.MathGlue
 evalMathGlue = notImplemented "evalMathGlue"
 
 evalTokenListAssignmentTarget :: P.TokenListAssignmentTarget -> m E.TokenListAssignmentTarget
-evalTokenListAssignmentTarget = notImplemented "evalMathGlue"
+evalTokenListAssignmentTarget = notImplemented "evalTokenListAssignmentTarget"
+
+evalInternalQuantity ::
+  (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
+  P.InternalQuantity ->
+  m E.InternalQuantity
+evalInternalQuantity = \case
+  P.InternalIntQuantity internalInt ->
+    E.InternalIntQuantity <$> evalInternalInt internalInt
+  P.InternalLengthQuantity internalLength ->
+    E.InternalLengthQuantity <$> evalInternalLength internalLength
+  P.InternalGlueQuantity internalGlue ->
+    E.InternalGlueQuantity <$> evalInternalGlue internalGlue
+  P.InternalMathGlueQuantity internalMathGlue ->
+    E.InternalMathGlueQuantity <$> evalInternalMathGlue internalMathGlue
+  P.FontQuantity _fontRef ->
+    notImplemented "evalInternalQuantity: FontQuantity"
+  P.TokenListVariableQuantity _tokenListVariable ->
+    notImplemented "evalInternalQuantity: TokenListVariableQuantity"
+
+evalInternalLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalLength -> m Q.Length
+evalInternalLength = \case
+  P.InternalLengthVariable lengthVariable ->
+    evalQuantVariableAsTarget lengthVariable
+  P.InternalSpecialLengthParameter specialLengthParameter ->
+    HSt.getSpecialLengthParameter specialLengthParameter
+  P.InternalFontDimensionRef _fontDimensionRef ->
+    notImplemented "evalInternalLength: InternalFontDimensionRef"
+  P.InternalBoxDimensionRef _boxDimensionRef ->
+    notImplemented "evalInternalLength: InternalBoxDimensionRef"
+  P.LastKern ->
+    notImplemented "evalInternalLength: LastKern"
+
+evalInternalGlue :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalGlue -> m Q.Glue
+evalInternalGlue = \case
+  P.InternalGlueVariable glueVariable ->
+    evalQuantVariableAsTarget glueVariable
+  P.LastGlue ->
+    notImplemented "evalInternalGlue: LastGlue"
+
+evalInternalMathGlue :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalMathGlue -> m Q.MathGlue
+evalInternalMathGlue = \case
+  P.InternalMathGlueVariable mathGlueVariable ->
+    evalQuantVariableAsTarget mathGlueVariable
+  P.LastMathGlue ->
+    notImplemented "evalInternalGlue: LastMathGlue"

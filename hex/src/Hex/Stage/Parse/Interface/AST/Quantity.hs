@@ -217,7 +217,9 @@ data InternalLength
   | LastKern
   deriving stock (Show, Eq, Generic)
 
-data InternalGlue = InternalGlueVariable (QuantVariableAST 'PT.GlueQuantity) | LastGlue
+data InternalGlue
+  = InternalGlueVariable (QuantVariableAST 'PT.GlueQuantity)
+  | LastGlue
   deriving stock (Show, Eq, Generic)
 
 data InternalMathGlue

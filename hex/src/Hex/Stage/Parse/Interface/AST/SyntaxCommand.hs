@@ -6,6 +6,7 @@ import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as PT.Syn
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Parse.Interface.AST.Command (InternalQuantity)
 import Hex.Stage.Parse.Interface.AST.Quantity
 import Hexlude
 
@@ -51,5 +52,5 @@ data SyntaxCommand
   | GetMarkRegister ST.MarkRegister
   | OpenInputFile Q.HexFilePath
   | EndInputFile
-  | RenderInternalQuantity
+  | RenderInternalQuantity InternalQuantity
   | ChangeCase Q.VDirection

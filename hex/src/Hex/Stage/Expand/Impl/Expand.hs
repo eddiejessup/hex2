@@ -1,10 +1,12 @@
 module Hex.Stage.Expand.Impl.Expand where
 
 import Data.Sequence qualified as Seq
+import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as AST
 import Hex.Stage.Expand.Interface (ExpansionError)
 import Hex.Stage.Expand.Interface qualified as Expand
@@ -171,22 +173,14 @@ renderTokenAsString ::
   Lex.LexToken ->
   Seq Lex.LexToken
 renderTokenAsString escapeCharCodeInt tok =
-  -- TODO: Handle active characters.
-  case tok of
+  charCodeAsMadeToken <$> case tok of
     Lex.CharCatLexToken cc ->
-      singleton $ case cc.lexCCCat of
-        Code.Active ->
-           charCodeAsMadeToken cc.lexCCChar
-        _ ->
-          tok
+      singleton cc.lexCCChar
     Lex.ControlSequenceLexToken controlSequence ->
-      let
-        csCodes = Seq.fromList $ Lex.controlSequenceCodes controlSequence
-        csCodesWithPrefix = case Code.fromHexInt escapeCharCodeInt of
-          Nothing -> csCodes
-          Just escapeCharCode -> escapeCharCode <| csCodes
-       in
-         charCodeAsMadeToken <$> csCodesWithPrefix
+      let csCodes = Seq.fromList $ Lex.controlSequenceCodes controlSequence
+       in case Code.fromHexInt @Code.CharCode escapeCharCodeInt of
+            Nothing -> csCodes
+            Just escapeCharCode -> escapeCharCode <| csCodes
 
 -- For \number, \romannumeral, \string. \meaning, \jobname, and \fontname: Each
 -- character code gets category "other" , except that 32 gets "space".
@@ -196,3 +190,25 @@ charCodeAsMadeToken c =
     Lex.LexCharCat c $ case c of
       Code.Chr_ ' ' -> Code.Space
       _ -> Code.Other
+
+renderInternalQuantity :: Eval.InternalQuantity -> Seq Lex.LexToken
+renderInternalQuantity = \case
+  Eval.InternalIntQuantity n ->
+    tokensFromInt n.unHexInt
+  Eval.InternalLengthQuantity length ->
+    tokensFromInt length.unLength
+  Eval.InternalGlueQuantity glue ->
+    tokensFromText (F.sformat Q.fmtGlue glue)
+  Eval.InternalMathGlueQuantity mathGlue ->
+    tokensFromText (F.sformat Q.fmtMathGlue mathGlue)
+  Eval.FontQuantity _fontRef ->
+    notImplemented "render FontQuantity"
+  Eval.TokenListVariableQuantity _tokenList ->
+    notImplemented "render TokenListVariableQuantity"
+  where
+    -- TODO: This is quite a sloppy implementation, using Int's `Show` instance.
+    tokensFromInt :: Int -> Seq Lex.LexToken
+    tokensFromInt n = tokensFromText (show n)
+
+    tokensFromText :: Text -> Seq Lex.LexToken
+    tokensFromText t = Seq.fromList $ charCodeAsMadeToken <$> (Code.textAsCharCodes t)

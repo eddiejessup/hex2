@@ -9,6 +9,7 @@ import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.Condition qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.MacroCall qualified as Par
 import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
 import Hexlude
+import qualified Hex.Stage.Parse.Impl.Parsers.Command as Par
 
 headToParseSyntaxCommand :: MonadPrimTokenParse m => ST.SyntaxCommandHeadToken -> m AST.SyntaxCommand
 headToParseSyntaxCommand = \case
@@ -46,7 +47,7 @@ headToParseSyntaxCommand = \case
   ST.EndInputTok -> do
     pure $ AST.EndInputFile
   ST.TheTok -> do
-    pure $ AST.RenderInternalQuantity
+    AST.RenderInternalQuantity <$> Par.parseHeaded Par.headToParseInternalQuantity
   ST.ChangeCaseTok vDirection -> do
     pure $ AST.ChangeCase vDirection
 

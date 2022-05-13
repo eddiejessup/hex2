@@ -1,11 +1,9 @@
 module Hex.Stage.Lex.Interface.Extract where
 
 import Data.ByteString qualified as BS
-import Data.Generics.Product (getTyped)
 import Data.Text.Encoding qualified as Tx
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Codes qualified as Codes
 import Hexlude
 
 newtype ControlSequence = ControlSequence {unControlSequence :: ByteString}
@@ -15,15 +13,15 @@ newtype ControlSequence = ControlSequence {unControlSequence :: ByteString}
 controlSequenceCodes :: ControlSequence -> [Code.CharCode]
 controlSequenceCodes cs = BS.unpack (cs.unControlSequence) <&> Code.CharCode
 
-mkControlSequence :: [Codes.CharCode] -> ControlSequence
-mkControlSequence csChars = ControlSequence $ BS.pack $ Codes.unCharCode <$> csChars
+mkControlSequence :: [Code.CharCode] -> ControlSequence
+mkControlSequence csChars = ControlSequence $ BS.pack $ Code.unCharCode <$> csChars
 
 fmtControlSequence :: Fmt ControlSequence
-fmtControlSequence = "\\" |%| (F.accessed (Tx.decodeUtf8 . (getTyped @ByteString)) F.stext)
+fmtControlSequence = "\\" |%| (F.accessed (Tx.decodeUtf8 . (.unControlSequence)) F.stext)
 
 data LexCharCat = LexCharCat
-  { lexCCChar :: Codes.CharCode,
-    lexCCCat :: Codes.CoreCatCode
+  { lexCCChar :: Code.CharCode,
+    lexCCCat :: Code.CoreCatCode
   }
   deriving stock (Show, Eq, Generic)
 
@@ -56,17 +54,17 @@ fmtLexTokenChar = later $ \case
   ControlSequenceLexToken controlSeq ->
     bformat fmtControlSequence controlSeq
 
-lexTokCharCode :: AffineTraversal' LexToken Codes.CharCode
-lexTokCharCode = lexTokCharCat % typed @Codes.CharCode
+lexTokCharCode :: AffineTraversal' LexToken Code.CharCode
+lexTokCharCode = lexTokCharCat % typed @Code.CharCode
 
-lexTokCategory :: AffineTraversal' LexToken Codes.CoreCatCode
-lexTokCategory = lexTokCharCat % typed @Codes.CoreCatCode
+lexTokCategory :: AffineTraversal' LexToken Code.CoreCatCode
+lexTokCategory = lexTokCharCat % typed @Code.CoreCatCode
 
 lexTokCharCat :: Prism' LexToken LexCharCat
 lexTokCharCat = _Ctor @"CharCatLexToken"
 
 parToken :: LexToken
-parToken = ControlSequenceLexToken $ mkControlSequence $ Codes.unsafeCodeFromChar <$> ("par" :: [Char])
+parToken = ControlSequenceLexToken $ mkControlSequence $ Code.unsafeCodeFromChar <$> ("par" :: [Char])
 
 data LexState
   = SkippingBlanks

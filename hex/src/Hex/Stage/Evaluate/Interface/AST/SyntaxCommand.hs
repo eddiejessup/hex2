@@ -4,6 +4,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as PT.Syn
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as Uneval
@@ -25,7 +26,7 @@ data SyntaxCommand
   | GetMarkRegister ST.MarkRegister
   | OpenInputFile Q.HexFilePath
   | EndInputFile
-  | RenderInternalQuantity
+  | RenderInternalQuantity Eval.InternalQuantity
   | ChangeCase Q.VDirection
   deriving stock (Show, Eq, Generic)
 

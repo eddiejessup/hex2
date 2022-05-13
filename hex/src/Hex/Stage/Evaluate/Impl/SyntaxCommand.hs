@@ -2,11 +2,11 @@ module Hex.Stage.Evaluate.Impl.SyntaxCommand where
 
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
+import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
+import Hex.Stage.Evaluate.Impl.SyntaxCommand.Condition qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as E
 import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as P
 import Hexlude
-import qualified Hex.Stage.Evaluate.Impl.SyntaxCommand.Condition as Eval
-import qualified Hex.Stage.Evaluate.Impl.Quantity as Eval
 
 evalSyntaxCommand ::
   ( MonadError e m,
@@ -46,7 +46,7 @@ evalSyntaxCommand = \case
     pure $ E.OpenInputFile filePath
   P.EndInputFile ->
     pure $ E.EndInputFile
-  P.RenderInternalQuantity ->
-    pure $ E.RenderInternalQuantity
+  P.RenderInternalQuantity internalQuantity ->
+    E.RenderInternalQuantity <$> Eval.evalInternalQuantity internalQuantity
   P.ChangeCase vDirection ->
     pure $ E.ChangeCase vDirection

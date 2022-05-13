@@ -19,6 +19,13 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
+    ( ($),
+      Monad((>>=)),
+      Functor(fmap),
+      Applicative(pure, (<*>)),
+      (<$>),
+      (.),
+      Alternative(empty) )
 
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =

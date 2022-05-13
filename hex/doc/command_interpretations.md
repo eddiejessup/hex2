@@ -12,7 +12,7 @@ If the token is another control sequence, \cs will acquire the same significance
 sequence.
 
 For example, if you say ‘\let\a=\def’, you could then say ‘\a\b...{...}’ to define
-a macro \b, because \a would behave like TEX’s primitive \def command.
+a macro \b, because \a would behave like Tex’s primitive \def command.
 
 If you say,
 
@@ -38,7 +38,7 @@ the effect is exactly the same as,
 \let\a=\b
 ```
 
-If the token is a single character i.e., a (character code, category code) pair, then the control sequence will behave to a certain extent like that character; but there are some differences. For example, after `\let\zero=0` you can’t use `\zero` in a numerical constant, because TEX requires the tokens in a numerical constant to be digits, after macro expansion; \zero is not a macro, so it doesn’t expand.
+If the token is a single character i.e., a (character code, category code) pair, then the control sequence will behave to a certain extent like that character; but there are some differences. For example, after `\let\zero=0` you can’t use `\zero` in a numerical constant, because Tex requires the tokens in a numerical constant to be digits, after macro expansion; \zero is not a macro, so it doesn’t expand.
 
 ## \advance
 
@@ -68,7 +68,7 @@ This tells us that 'global', when applied to variable modifications like '\advan
 
 Quote from Texbook:
 
-> Conditionals. When an \if... is expanded, TEX reads ahead as far as nec- essary to determine whether the condition is true or false; and if false, it skips ahead (keeping track of \if...\fi nesting) until finding the \else, \or, or \fi that ends the skipped text. Similarly, when \else, \or, or \fi is expanded, TEX reads to the end of any text that ought to be skipped. The “expansion” of a conditional is empty. (Conditionals always reduce the number of tokens that are seen by later stages of the digestive process, while macros usually increase the number of tokens.)
+> Conditionals. When an \if... is expanded, Tex reads ahead as far as nec- essary to determine whether the condition is true or false; and if false, it skips ahead (keeping track of \if...\fi nesting) until finding the \else, \or, or \fi that ends the skipped text. Similarly, when \else, \or, or \fi is expanded, Tex reads to the end of any text that ought to be skipped. The “expansion” of a conditional is empty. (Conditionals always reduce the number of tokens that are seen by later stages of the digestive process, while macros usually increase the number of tokens.)
 
 ## \string
 
@@ -88,6 +88,38 @@ For example, `\string\TeX` produces four tokens:
 
 (\\, Other), (T, Other), (e, Other), (X,Other)
 
-Each character in the token list automatically gets category code “other”, including the backslash that \string inserts to represent an escape character.
+The command creates char-code sequences that are then made into made-lex-tokens. See section 'A'. The backslash that \string inserts to represent an escape character, is made into a lex token by the same rules.
 
-However, category "Space" will be assigned to the character ‘␣’ (blank space) if a space character somehow sneaks into the name of a control sequence.
+## A: Made tokens (\the \number, \romannumeral, \string, \meaning, \jobname, and \fontname)
+
+From p213:
+
+In all of the cases listed so far, `\the` produces a result that is a sequence of ASCII character tokens. Category code “other” is assigned to each token, except that character code 32 gets category “space”.
+
+## \the
+
+```tex
+\the⟨internal quantity⟩
+```
+
+The expansion is a list of tokens representing the current value of one of Tex’s variables.
+
+For example, ‘\the\skip5’ might expand into ‘5.0pt plus 2.0fil’.
+
+\the has many subcases, so we shall discuss them one at a time.
+
+- \the⟨parameter⟩, where ⟨parameter⟩ is a non-token-list parameter.
+- \the⟨register⟩, where ⟨register⟩ is is a non-token-list register location.
+- \the⟨codename⟩⟨8-bit number⟩: For example, \the\mathcode‘/ produces the current (integer) math code value for a slash
+- \the⟨special register⟩
+- \the\fontdimen⟨parameter number⟩⟨font⟩. This produces a dimension; for example, parameter 6 of a font is its “em” value, so ‘\the\fontdimen6\tenrm’ yields ‘10.0pt’ (six tokens).
+- \the\hyphenchar⟨font⟩, \the\skewchar⟨font⟩. These produce the corresponding integer values defined for the specified font.
+- \the\lastpenalty, \the\lastkern, \the\lastskip. These yield the amount of penalty, kerning, glue, or muglue in the final item on the current list, provided that the item is a penalty, kern, or glue, respectively; otherwise they yield ‘0’ or ‘0.0pt’.
+- \the⟨defined character⟩, where ⟨defined character⟩ is a control sequence that has been given an integer value with \chardef or \mathchardef; the result is that integer value, in decimal notation.
+
+These all create char-code sequences that are made into made-lex-tokens. See section 'A'.
+
+There also are cases in which `\the` produces non-character tokens, either a font identifier like \tenrm, or an arbitrary token list:
+
+- \the⟨font⟩ produces a font identifier that selects the specified font. For example, ‘\the\font’ is a control sequence corresponding to the current font.
+- \the⟨token variable⟩ produces a copy of the token list that is the current value of the variable. For example, you can expand ‘\the\everypar’ and ‘\the\toks5’.
