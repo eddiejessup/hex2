@@ -25,9 +25,9 @@ import Hex.Stage.Parse.Impl (MonadCommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hex.Stage.Resolve.Impl (MonadResolveT (..))
 import Hex.Stage.Resolve.Interface (MonadResolve)
+import Hex.Stage.Resolve.Interface qualified as Resolve
 import Hexlude
 import System.IO (hFlush)
-import qualified Hex.Stage.Resolve.Interface as Resolve
 
 data AppEnv = AppEnv
   { appLogHandle :: Handle,
@@ -37,7 +37,8 @@ data AppEnv = AppEnv
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
-    appCharSource :: CharSource
+    appCharSource :: CharSource,
+    appConditionStates :: Expand.ConditionStates
   }
   deriving stock (Generic)
 
@@ -45,7 +46,12 @@ instance {-# OVERLAPPING #-} HasType ByteString AppState where
   typed = typed @CharSource % typed @ByteString
 
 newHexStateWithChars :: ByteString -> AppState
-newHexStateWithChars chrs = AppState HSt.newHexState (newCharSource chrs)
+newHexStateWithChars chrs =
+  AppState
+    { appHexState = HSt.newHexState,
+      appCharSource = newCharSource chrs,
+      appConditionStates = Expand.newConditionStates
+    }
 
 newtype App a = App {unApp :: ReaderT AppEnv (StateT AppState (ExceptT AppError IO)) a}
   deriving newtype

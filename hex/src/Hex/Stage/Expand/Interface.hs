@@ -11,6 +11,7 @@ import Hexlude
 data ExpansionError
   = MacroArgumentSubstitutionError ST.ParameterNumber AST.MacroArgumentList
   | EndOfInputWhileSkipping
+  | UnexpectedConditionBodyToken ST.ConditionBodyTok
   deriving stock (Show, Generic)
 
 fmtExpansionError :: Fmt ExpansionError
@@ -20,11 +21,29 @@ fmtExpansionError = F.later $ \case
     "Failed to find parameter value in macro call, at index " <> F.bformat F.shown argIx <> " of arguments " <> F.bformat F.shown args
   EndOfInputWhileSkipping ->
     "Got to end of input while skipping"
+  UnexpectedConditionBodyToken tok ->
+    "Got unexpected token when not in condition-body: " <> F.bformat F.shown tok
 
 data IfState
   = InUnskippedElseBlock
   | InUnskippedPreElseBlock
   deriving stock (Show, Generic)
+
+data CaseState
+  = InUnskippedPostOrBlock
+  | InUnskippedPostElseBlock
+  deriving stock (Show, Generic)
+
+data ConditionState
+  = IfConditionState IfState
+  | CaseConditionState CaseState
+  deriving stock (Show, Generic)
+
+newtype ConditionStates = ConditionStates {unConditionStates :: [ConditionState]}
+  deriving stock (Show, Generic)
+
+newConditionStates :: ConditionStates
+newConditionStates = ConditionStates []
 
 class Monad m => MonadPrimTokenSource m where
   getTokenInhibited :: m (Maybe Lex.LexToken)
@@ -33,7 +52,11 @@ class Monad m => MonadPrimTokenSource m where
 
   getPrimitiveToken :: m (Maybe (Lex.LexToken, PT.PrimitiveToken))
 
-  pushIfState :: IfState -> m ()
+  pushConditionState :: ConditionState -> m ()
+
+  popConditionState :: m (Maybe ConditionState)
+
+  peekConditionState :: m (Maybe ConditionState)
 
 getResolvedTokenErrorEOF :: (MonadPrimTokenSource m, MonadError e m) => e -> m Res.ResolvedToken
 getResolvedTokenErrorEOF e = do

@@ -74,36 +74,92 @@ applyConditionOutcome = \case
   AST.IfConditionOutcome ifConditionOutcome ->
     case ifConditionOutcome of
       AST.SkipPreElseBlock -> do
-        endedIfBlock <- skipUntilElseOrEndif
-        -- Push a state to prepare for the later 'end-if'.
-        unless endedIfBlock $ Expand.pushIfState Expand.InUnskippedElseBlock
+        skipEndCause <- skipUntilElseOrEndif ElseOrEndif
+        case skipEndCause of
+          EndedOnElse ->
+            -- Push a state to prepare for the later 'end-if'.
+            Expand.pushConditionState (Expand.IfConditionState Expand.InUnskippedElseBlock)
+          EndedOnEndIf ->
+            pure ()
       AST.SkipElseBlock -> do
-        Expand.pushIfState Expand.InUnskippedPreElseBlock
+        Expand.pushConditionState (Expand.IfConditionState Expand.InUnskippedPreElseBlock)
   AST.CaseConditionOutcome _n ->
     notImplemented "Expand case-condition-head"
+
+applyConditionBody ::
+  forall m e.
+  ( MonadError e m,
+    AsType ExpansionError e,
+    Expand.MonadPrimTokenSource m
+  ) =>
+  ST.ConditionBodyTok ->
+  m ()
+applyConditionBody bodyToken = do
+  conditionState <- Expand.peekConditionState
+  condState <- case conditionState of
+    Nothing -> throwError $ injectTyped $ Expand.UnexpectedConditionBodyToken bodyToken
+    Just condState -> pure condState
+  case bodyToken of
+    ST.EndIf ->
+      void $ Expand.popConditionState
+    ST.Else ->
+      case condState of
+        Expand.IfConditionState Expand.InUnskippedPreElseBlock ->
+          skipUntilEndOfCondition
+        Expand.CaseConditionState Expand.InUnskippedPostOrBlock ->
+          skipUntilEndOfCondition
+        Expand.IfConditionState Expand.InUnskippedElseBlock ->
+          err
+        Expand.CaseConditionState Expand.InUnskippedPostElseBlock ->
+          err
+    ST.Or ->
+      case condState of
+        Expand.IfConditionState _ ->
+          err
+        Expand.CaseConditionState Expand.InUnskippedPostOrBlock ->
+          skipUntilEndOfCondition
+        Expand.CaseConditionState Expand.InUnskippedPostElseBlock ->
+          err
+  where
+    err = throwError $ injectTyped $ Expand.UnexpectedConditionBodyToken bodyToken
+
+    skipUntilEndOfCondition =
+      skipUntilElseOrEndif OnlyEndIf >>= \case
+        EndedOnElse -> panic "Impossible!"
+        EndedOnEndIf -> pure ()
+
+data SkipStopCondition
+  = ElseOrEndif
+  | OnlyEndIf
+
+data SkipEndCause
+  = EndedOnEndIf
+  | EndedOnElse
 
 skipUntilElseOrEndif ::
   forall e m.
   (Expand.MonadPrimTokenSource m, MonadError e m, AsType ExpansionError e) =>
-  m Bool
-skipUntilElseOrEndif = do
+  SkipStopCondition ->
+  m SkipEndCause
+skipUntilElseOrEndif blockTarget = do
   snd <$> Par.parseNestedExpr parseNext
   where
     parseNext depth =
       Expand.getResolvedTokenErrorEOF (injectTyped Expand.EndOfInputWhileSkipping) >>= \case
         -- If we see an 'if', increment the condition depth.
         Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
-          pure (False, GT)
+          pure (EndedOnElse, GT)
         -- If we see an 'end-if', decrement the condition depth.
         Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf)) ->
-          pure (True, LT)
+          pure (EndedOnEndIf, LT)
         -- If we see an 'else' and are at top condition depth, and our
-        -- target block is post-else, we are done skipping tokens.
+        -- target block is an else block, we are done skipping tokens.
         Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
-          | depth == 1 -> do
-              pure (False, LT)
+          | depth == 1,
+            ElseOrEndif <- blockTarget -> do
+              pure (EndedOnElse, LT)
         -- (we ignore 'else's even if it is syntactically wrong, if it's
         -- outside our block of interest.)
         -- Any other token, just skip and continue unchanged.
         _ ->
-          pure (False, EQ)
+          pure (EndedOnElse, EQ)

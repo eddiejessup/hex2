@@ -21,6 +21,7 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
+import qualified Hex.Stage.Expand.Interface as Expand
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype
@@ -48,7 +49,9 @@ instance
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
     Lex.MonadLexTokenSource (MonadPrimTokenSourceT m),
-    HSt.MonadHexState (MonadPrimTokenSourceT m)
+    HSt.MonadHexState (MonadPrimTokenSourceT m),
+    MonadState s m,
+    HasType (Expand.ConditionStates) s
   ) =>
   MonadPrimTokenSource (MonadPrimTokenSourceT m)
   where
@@ -58,7 +61,18 @@ instance
 
   getTokenInhibited = Lex.getLexToken
 
-  pushIfState ifState = notImplemented $ "pushIfState " <> show ifState
+  pushConditionState condState = modifying' conditionStatesLens (cons condState)
+
+  peekConditionState = use (conditionStatesLens % to headMay)
+
+  popConditionState = use (conditionStatesLens % to uncons) >>= \case
+      Nothing -> pure Nothing
+      Just (condState, rest) -> do
+        assign' conditionStatesLens rest
+        pure (Just condState)
+
+conditionStatesLens :: HasType Expand.ConditionStates s => Lens' s [Expand.ConditionState]
+conditionStatesLens = typed @Expand.ConditionStates % #unConditionStates
 
 -- Get the next lex-token from the input, resolve it, and expand it if
 -- necessary.
@@ -159,8 +173,9 @@ expandSyntaxCommand = \case
   E.ApplyConditionHead conditionOutcome -> do
     Expand.applyConditionOutcome conditionOutcome
     pure mempty
-  E.ApplyConditionBody _conditionBodyTok -> do
-    notImplemented "ApplyConditionBody"
+  E.ApplyConditionBody conditionBodyTok -> do
+    Expand.applyConditionBody conditionBodyTok
+    pure mempty
   E.RenderNumber _n ->
     notImplemented "RenderNumber"
   E.RenderRomanNumeral _n ->
