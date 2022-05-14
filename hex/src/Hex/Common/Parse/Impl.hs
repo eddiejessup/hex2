@@ -107,8 +107,7 @@ parseErrorEndOfInput = ParseT $ throwE EndOfInputParsingError
 -- The most common case, applies to all failures except end-of-input.
 parseErrorImpl :: (MonadHexState m) => ParseUnexpectedErrorCause -> ParseT m a
 parseErrorImpl e = do
-  lastLexTok <- lift getLastFetchedLexTok
-  ParseT $ throwE $ UnexpectedParsingError $ ParseUnexpectedError lastLexTok e
+  ParseT $ throwE $ UnexpectedParsingError $ ParseUnexpectedError e
 
 -- - We need MonadLexTokenSource because it lets us get at the underlying char-source, for resetting state.
 -- - We need MonadPrimTokenSource to get primitive-tokens to inspect.

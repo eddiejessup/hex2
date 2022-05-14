@@ -6,6 +6,7 @@ import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
 import Hex.Common.HexState.Impl.Scoped.Parameter (ScopedHexParameter (..))
 import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue (..))
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
+import Hex.Common.HexState.Interface.Grouped qualified as Grouped
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
@@ -51,10 +52,9 @@ class Monad m => MonadHexState m where
 
   setAfterAssignmentToken :: Lex.LexToken -> m ()
 
-  -- Support stuff for parsing.
-  setLastFetchedLexTok :: Lex.LexToken -> m ()
+  pushGroup :: Maybe Grouped.ScopedGroupType -> m ()
 
-  getLastFetchedLexTok :: m (Maybe Lex.LexToken)
+  popGroup :: m ()
 
 instance MonadHexState m => MonadHexState (StateT a m) where
   getParameterValue x = lift $ getParameterValue x
@@ -75,8 +75,8 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   popAfterAssignmentToken = lift popAfterAssignmentToken
   setAfterAssignmentToken x = lift $ setAfterAssignmentToken x
   setSymbol x y z = lift $ setSymbol x y z
-  setLastFetchedLexTok x = lift $ setLastFetchedLexTok x
-  getLastFetchedLexTok = lift getLastFetchedLexTok
+  pushGroup x = lift $ pushGroup x
+  popGroup = lift popGroup
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do

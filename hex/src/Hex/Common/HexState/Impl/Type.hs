@@ -16,9 +16,7 @@ data HexState = HexState
     specialInts :: Map PT.SpecialIntParameter Q.HexInt,
     specialLengths :: Map PT.SpecialLengthParameter Q.Length,
     afterAssignmentToken :: Maybe Lex.LexToken,
-    groupScopes :: GroupScopes,
-    -- Just for parsing support help.
-    lastFetchedLexTok :: Maybe Lex.LexToken
+    groupScopes :: GroupScopes
   }
   deriving stock (Generic)
 
@@ -40,8 +38,7 @@ newHexState =
       specialLengths = Param.newSpecialLengthParameters,
       outFileStreams = mempty,
       afterAssignmentToken = Nothing,
-      groupScopes = newGroupScopes,
-      lastFetchedLexTok = Nothing
+      groupScopes = newGroupScopes
     }
 
 stateSpecialLengthParamLens :: PT.SpecialLengthParameter -> Lens' HexState Q.Length

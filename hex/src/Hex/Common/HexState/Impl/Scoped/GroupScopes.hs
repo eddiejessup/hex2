@@ -2,9 +2,9 @@ module Hex.Common.HexState.Impl.Scoped.GroupScopes where
 
 import Formatting qualified as F
 import Hex.Common.HexState.Impl.Scoped.Group
-import Hex.Common.HexState.Impl.Scoped.Group qualified as Group
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope, newGlobalScope)
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
+import Hex.Common.HexState.Interface.Grouped qualified as Group
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hexlude
 import Optics.Core qualified as O
@@ -22,10 +22,19 @@ data GroupScopes = GroupScopes
 newGroupScopes :: GroupScopes
 newGroupScopes = GroupScopes {globalScope = newGlobalScope, groups = []}
 
+pushGroup :: Maybe Group.ScopedGroupType -> GroupScopes -> GroupScopes
+pushGroup groupType =
+  #groups %~ O.cons (newGroup groupType)
+
+popGroup :: GroupScopes -> Maybe (HexGroup, GroupScopes)
+popGroup groupScopes =
+  groupScopes ^. #groups % to O.uncons <&> \(poppedGroup, postPopGroups) ->
+    (poppedGroup, groupScopes & #groups .~ postPopGroups)
+
 fmtGroupScopes :: Fmt GroupScopes
 fmtGroupScopes =
   mconcat
-    [ fmtListWithHeading "Groups" (.groups) Group.fmtGroupWithoutScopeDetails,
+    [ fmtListWithHeading "Groups" (.groups) fmtGroupWithoutScopeDetails,
       F.accessed seenLocalScope Scope.fmtScope |%| "\n"
     ]
 

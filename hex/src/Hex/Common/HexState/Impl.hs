@@ -7,15 +7,21 @@ import Data.Text qualified as Tx
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
 import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.C
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes)
+import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as GroupScopes
 import Hex.Common.HexState.Impl.Scoped.Parameter (ScopedHexParameter (..))
 import Hex.Common.HexState.Impl.Scoped.Parameter qualified as Sc.P
+import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue)
+import Hex.Common.HexState.Impl.Scoped.Register qualified as Sc.R
+import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation)
 import Hex.Common.HexState.Impl.Scoped.Symbol qualified as Sc.Sym
 import Hex.Common.HexState.Impl.Type
 import Hex.Common.HexState.Interface
+import Hex.Common.HexState.Interface.Grouped qualified as Group
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
@@ -25,15 +31,12 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 import System.FilePath qualified as FilePath
-import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue)
-import qualified Hex.Common.HexState.Impl.Scoped.Register as Sc.R
-import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation)
-import qualified Hex.Common.HexState.Impl.Font as HSt.Font
 
 data HexStateError
   = FontNotFound
   | BadPath Text
   | CharacterCodeNotFound
+  | PoppedEmptyGroups
   deriving stock (Show, Generic)
 
 fmtHexStateError :: Fmt HexStateError
@@ -128,11 +131,13 @@ instance
         tfmChar <- note (injectTyped CharacterCodeNotFound) $ fontMetrics ^. #characters % at' (fromIntegral $ Code.unCharCode chrCode)
         let toLen :: TFM.LengthDesignSize -> Q.Length
             toLen = TFM.lengthFromFontDesignSize fontMetrics
-        pure $ Just
-          (tfmChar ^. #width % to toLen,
-           tfmChar ^. #height % to toLen,
-           tfmChar ^. #depth % to toLen,
-           tfmChar ^. #italicCorrection % to toLen)
+        pure $
+          Just
+            ( tfmChar ^. #width % to toLen,
+              tfmChar ^. #height % to toLen,
+              tfmChar ^. #depth % to toLen,
+              tfmChar ^. #italicCorrection % to toLen
+            )
 
   loadFont ::
     Q.HexFilePath ->
@@ -175,13 +180,15 @@ instance
     assign' (typed @HexState % #afterAssignmentToken) Nothing
     pure v
 
-  setLastFetchedLexTok :: Lex.LexToken -> MonadHexStateImplT m ()
-  setLastFetchedLexTok t =
-    assign' (typed @HexState % #lastFetchedLexTok) (Just t)
+  pushGroup :: Maybe Group.ScopedGroupType -> MonadHexStateImplT m ()
+  pushGroup mayScopedGroupType = modifyGroupScopes $ GroupScopes.pushGroup mayScopedGroupType
 
-  getLastFetchedLexTok :: MonadHexStateImplT m (Maybe Lex.LexToken)
-  getLastFetchedLexTok =
-    use (typed @HexState % #lastFetchedLexTok)
+  popGroup :: MonadHexStateImplT m ()
+  popGroup = do
+    use (typed @HexState % #groupScopes % to GroupScopes.popGroup) >>= \case
+      Nothing -> throwError (injectTyped PoppedEmptyGroups)
+      Just (_poppedGroup, newGroupScopes) -> do
+        assign' (typed @HexState % #groupScopes) newGroupScopes
 
 modifyGroupScopes :: (MonadState st m, HasType HexState st) => (GroupScopes -> GroupScopes) -> m ()
 modifyGroupScopes = modifying' (typed @HexState % #groupScopes)

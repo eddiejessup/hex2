@@ -3,6 +3,7 @@ module Hex.Stage.Interpret.CommandHandler.AllMode where
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
@@ -297,11 +298,10 @@ handleModeIndependentCommand addVElem = \case
       -- If a token was indeed set, put it into the input.
       Just lt -> lift $ Lex.insertLexTokenToSource lt
     pure DidNotSeeEndBox
-  -- -- Start a new level of grouping.
-  -- Eval.ChangeScope Eval.Positive entryTrig ->
-  --   do
-  --     modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope (LocalStructureGroup entryTrig))
-  --     pure DidNotSeeEndBox
+  -- Start a new level of grouping.
+  Eval.ChangeScope Q.Positive entryTrigger -> do
+    HSt.pushGroup (Just (HSt.Group.LocalStructurScopeGroup entryTrigger))
+    pure DidNotSeeEndBox
   -- -- Do the appropriate finishing actions, undo the
   -- -- effects of non-global assignments, and leave the
   -- -- group. Maybe leave the current mode.
@@ -320,7 +320,7 @@ handleModeIndependentCommand addVElem = \case
   --     -- Undo the effects of non-global
   --     -- assignments without leaving the
   --     -- current mode.
-  --     ScopeGroup _ (LocalStructureGroup entryTrig) -> do
+  --     ScopeGroup _ (LocalStructurScopeGroup entryTrig) -> do
   --       when (entryTrig /= exitTrig)
   --         $ throwError
   --         $ injectTyped

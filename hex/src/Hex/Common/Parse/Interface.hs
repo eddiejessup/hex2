@@ -18,15 +18,13 @@ fmtParsingError = F.later $ \case
   UnexpectedParsingError e -> F.bformat fmtParseUnexpectedError e
 
 data ParseUnexpectedError = ParseUnexpectedError
-  { lastSeenTok :: Maybe Lex.LexToken,
-    err :: ParseUnexpectedErrorCause
+  { err :: ParseUnexpectedErrorCause
   }
   deriving stock (Show, Eq, Generic)
 
 fmtParseUnexpectedError :: Fmt ParseUnexpectedError
 fmtParseUnexpectedError =
   "ParseUnexpectedError: " |%| F.accessed (.err) F.shown
-    <> (", last seen token: " |%| F.accessed (.lastSeenTok) (F.maybed "None" Lex.fmtLexToken))
 
 data ParseUnexpectedErrorCause
   = ParseExplicitFailure
