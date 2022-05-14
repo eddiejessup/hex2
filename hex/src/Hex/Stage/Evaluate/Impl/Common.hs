@@ -4,6 +4,7 @@ import ASCII qualified
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as LT
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as PT
 import Hexlude
@@ -18,13 +19,13 @@ fmtEvaluationError = F.later $ \case
   ValueNotInRange -> "Value not in range"
   InvalidTokenInBalancedText pt -> "Invalid token in balanced text: " <> F.bformat PT.fmtControlSequence pt
 
-evalExpandedBalancedTextToText ::
+evalBalancedTextToText ::
   (MonadError e m, AsType EvaluationError e) =>
-  ST.ExpandedBalancedText ->
+  LT.BalancedText ->
   m Text
-evalExpandedBalancedTextToText bt = do
+evalBalancedTextToText bt = do
   -- For each primitive-token in the expanded-balanced-text.
-  msgAsciiChars <- forM bt.expBalancedTextTokens $ \lt ->
+  msgAsciiChars <- forM bt.unBalancedText $ \lt ->
     -- Get the lex-char-cat from the token, if it is the correct token type.
     case lt of
       -- If it is the wrong type, throw an error.
@@ -34,3 +35,9 @@ evalExpandedBalancedTextToText bt = do
         pure $ Code.codeAsAsciiChar $ lexCharCat.lexCCChar
   -- Build a text from the list of ASCII-characters.
   pure $ ASCII.charListToText $ toList msgAsciiChars
+
+evalExpandedBalancedTextToText ::
+  (MonadError e m, AsType EvaluationError e) =>
+  ST.ExpandedBalancedText ->
+  m Text
+evalExpandedBalancedTextToText ebt = evalBalancedTextToText (ebt.unExpandedBalancedText)

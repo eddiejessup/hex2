@@ -4,6 +4,7 @@ import Control.Monad.Combinators qualified as PC
 import Data.ByteString qualified as BS
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..), UnexpectedPrimitiveToken (..))
@@ -216,69 +217,69 @@ headToParseInternalGlue =
 -- (Also, 'special' quantities are kept here too, because they are similar to
 -- variables.)
 
-headToParseIntVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.IntQuantity)
+headToParseIntVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'Q.IntQuantity)
 headToParseIntVariable = \case
   T.IntParamVarTok p ->
-    pure (AST.ParamVar p)
-  T.IntRefTok (T.QuantityType T.IntQuantity) n ->
+    pure (AST.ParamVar (HSt.Param.IntQuantParam p))
+  T.IntRefTok (T.QuantityType Q.IntQuantity) n ->
     pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-  T.RegisterVariableTok T.IntQuantity ->
+  T.RegisterVariableTok Q.IntQuantity ->
     AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
   _ ->
     empty
 
-headToParseLengthVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.LengthQuantity)
+headToParseLengthVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'Q.LengthQuantity)
 headToParseLengthVariable = \case
-  T.LenParamVarTok p ->
-    pure (AST.ParamVar p)
-  T.IntRefTok (T.QuantityType T.LengthQuantity) n ->
+  T.LengthParamVarTok p ->
+    pure (AST.ParamVar (HSt.Param.LengthQuantParam p))
+  T.IntRefTok (T.QuantityType Q.LengthQuantity) n ->
     pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-  T.RegisterVariableTok T.LengthQuantity ->
+  T.RegisterVariableTok Q.LengthQuantity ->
     AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
   _ ->
     empty
 
-headToParseGlueVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.GlueQuantity)
+headToParseGlueVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'Q.GlueQuantity)
 headToParseGlueVariable = \case
   T.GlueParamVarTok p ->
-    pure (AST.ParamVar p)
-  T.IntRefTok (T.QuantityType T.GlueQuantity) n ->
+    pure (AST.ParamVar (HSt.Param.GlueQuantParam p))
+  T.IntRefTok (T.QuantityType Q.GlueQuantity) n ->
     pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-  T.RegisterVariableTok T.GlueQuantity ->
+  T.RegisterVariableTok Q.GlueQuantity ->
     AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
   _ ->
     empty
 
-headToParseMathGlueVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.MathGlueQuantity)
+headToParseMathGlueVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'Q.MathGlueQuantity)
 headToParseMathGlueVariable = \case
   T.MathGlueParamVarTok p ->
-    pure (AST.ParamVar p)
-  T.IntRefTok (T.QuantityType T.MathGlueQuantity) n ->
+    pure (AST.ParamVar (HSt.Param.MathGlueQuantParam p))
+  T.IntRefTok (T.QuantityType Q.MathGlueQuantity) n ->
     pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-  T.RegisterVariableTok T.MathGlueQuantity ->
+  T.RegisterVariableTok Q.MathGlueQuantity ->
     AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
   _ ->
     empty
 
-headToParseTokenListVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'T.TokenListQuantity)
+headToParseTokenListVariable :: MonadPrimTokenParse m => T.PrimitiveToken -> m (AST.QuantVariableAST 'Q.TokenListQuantity)
 headToParseTokenListVariable = \case
   T.TokenListParamVarTok p ->
-    pure (AST.ParamVar p)
-  T.IntRefTok (T.QuantityType T.TokenListQuantity) n ->
+    pure (AST.ParamVar (HSt.Param.TokenListQuantParam p))
+  T.IntRefTok (T.QuantityType Q.TokenListQuantity) n ->
     pure $ AST.RegisterVar $ AST.InternalRegisterLocation n
-  T.RegisterVariableTok T.TokenListQuantity ->
+  T.RegisterVariableTok Q.TokenListQuantity ->
     AST.RegisterVar . AST.ExplicitRegisterLocation <$> parseInt
   _ ->
     empty
 
-headToParseSpecialInt :: MonadPrimTokenParse m => T.PrimitiveToken -> m T.SpecialIntParameter
+headToParseSpecialInt :: MonadPrimTokenParse m => T.PrimitiveToken -> m HSt.Param.SpecialIntParameter
 headToParseSpecialInt = \case
   T.SpecialIntParameterTok p ->
     pure p
   _ ->
     empty
 
-headToParseSpecialLength :: MonadPrimTokenParse m => T.PrimitiveToken -> m T.SpecialLengthParameter
+headToParseSpecialLength :: MonadPrimTokenParse m => T.PrimitiveToken -> m HSt.Param.SpecialLengthParameter
 headToParseSpecialLength = \case
   T.SpecialLengthParameterTok p ->
     pure p

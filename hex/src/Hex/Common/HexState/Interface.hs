@@ -1,14 +1,16 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 module Hex.Common.HexState.Interface where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
-import Hex.Common.HexState.Impl.Scoped.Parameter (ScopedHexParameter (..))
 import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue (..))
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
+import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
@@ -16,21 +18,21 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
 class Monad m => MonadHexState m where
-  getParameterValue :: ScopedHexParameter p => p -> m (ScopedHexParameterValue p)
+  getParameterValue :: Param.QuantParam q -> m (Var.QuantVariableTarget q)
 
-  setParameterValue :: ScopedHexParameter p => p -> (ScopedHexParameterValue p) -> PT.ScopeFlag -> m ()
+  setParameterValue :: Param.QuantParam q -> (Var.QuantVariableTarget q) -> PT.ScopeFlag -> m ()
 
   getRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> m r
 
   setRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> r -> PT.ScopeFlag -> m ()
 
-  getSpecialIntParameter :: PT.SpecialIntParameter -> m Q.HexInt
+  getSpecialIntParameter :: Param.SpecialIntParameter -> m Q.HexInt
 
-  getSpecialLengthParameter :: PT.SpecialLengthParameter -> m Q.Length
+  getSpecialLengthParameter :: Param.SpecialLengthParameter -> m Q.Length
 
-  setSpecialIntParameter :: PT.SpecialIntParameter -> Q.HexInt -> m ()
+  setSpecialIntParameter :: Param.SpecialIntParameter -> Q.HexInt -> m ()
 
-  setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> m ()
+  setSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> m ()
 
   getHexCode :: MutableHexCode c => Codes.CharCode -> m c
 
@@ -80,7 +82,7 @@ instance MonadHexState m => MonadHexState (StateT a m) where
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do
-  boxWidth <- getParameterValue @_ @PT.LengthParameter PT.ParIndent
+  boxWidth <- getParameterValue (Param.LengthQuantParam Param.ParIndent)
   pure $
     H.Inter.B.List.HVListElem $
       H.Inter.B.List.VListBaseElem $
@@ -93,15 +95,16 @@ getParIndentBox = do
             }
 
 modifyParameterValue ::
-  (MonadHexState m, ScopedHexParameter p) =>
-  p ->
-  ( ScopedHexParameterValue p ->
-    ScopedHexParameterValue p
+  forall (q :: Q.QuantityType) m.
+  (MonadHexState m) =>
+  Param.QuantParam q ->
+  ( Var.QuantVariableTarget q ->
+    Var.QuantVariableTarget q
   ) ->
   PT.ScopeFlag ->
   m ()
 modifyParameterValue p f scopeFlag = do
-  currentVal <- getParameterValue p
+  currentVal <- getParameterValue @_ @q p
   setParameterValue p (f currentVal) scopeFlag
 
 modifyRegisterValue ::
@@ -114,19 +117,26 @@ modifyRegisterValue loc f scopeFlag = do
   currentVal <- getRegisterValue loc
   setRegisterValue loc (f currentVal) scopeFlag
 
-advanceParameterValue :: (MonadHexState m, ScopedHexParameter p) => p -> (ScopedHexParameterValue p) -> PT.ScopeFlag -> m ()
+advanceParameterValue ::
+  forall q m.
+  (MonadHexState m, Semigroup (Var.QuantVariableTarget q)) =>
+  Param.QuantParam q ->
+  Var.QuantVariableTarget q ->
+  PT.ScopeFlag ->
+  m ()
 advanceParameterValue p plusVal =
-  modifyParameterValue p (\v -> v <> plusVal)
+  modifyParameterValue @q p (\v -> v <> plusVal)
 
 scaleParameterValue ::
-  (MonadHexState m, ScopedHexParameter p) =>
-  p ->
+  forall q m.
+  (MonadHexState m, Q.Scalable (Var.QuantVariableTarget q)) =>
+  Param.QuantParam q ->
   Q.VDirection ->
   Q.HexInt ->
   PT.ScopeFlag ->
   m ()
 scaleParameterValue p scaleDirection arg scopeFlag =
-  modifyParameterValue p (Q.scaleInDirection scaleDirection arg) scopeFlag
+  modifyParameterValue @q p (Q.scaleInDirection scaleDirection arg) scopeFlag
 
 advanceRegisterValue ::
   (MonadHexState m, ScopedHexRegisterValue r) =>

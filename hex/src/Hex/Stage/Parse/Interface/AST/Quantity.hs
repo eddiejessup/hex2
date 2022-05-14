@@ -3,6 +3,7 @@
 module Hex.Stage.Parse.Interface.AST.Quantity where
 
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -158,27 +159,22 @@ data MathGlue
 data MathFlex = FiniteMathFlex MathLength | FilMathFlex InfFlexOfOrder
   deriving stock (Show, Eq, Generic)
 
-type family QuantParam (a :: PT.QuantityType) where
-  QuantParam 'PT.IntQuantity = PT.IntParameter
-  QuantParam 'PT.LengthQuantity = PT.LengthParameter
-  QuantParam 'PT.GlueQuantity = PT.GlueParameter
-  QuantParam 'PT.MathGlueQuantity = PT.MathGlueParameter
-  QuantParam 'PT.TokenListQuantity = PT.TokenListParameter
-
 -- Internal quantities.
-data QuantVariableAST (a :: PT.QuantityType) = ParamVar (QuantParam a) | RegisterVar RegisterLocation
+data QuantVariableAST (a :: Q.QuantityType)
+  = ParamVar (HSt.Param.QuantParam a)
+  | RegisterVar RegisterLocation
   deriving stock (Generic)
 
-deriving stock instance Show (QuantParam a) => Show (QuantVariableAST a)
+deriving stock instance Show (HSt.Param.QuantParam a) => Show (QuantVariableAST a)
 
-deriving stock instance Eq (QuantParam a) => Eq (QuantVariableAST a)
+deriving stock instance Eq (HSt.Param.QuantParam a) => Eq (QuantVariableAST a)
 
 data RegisterLocation = ExplicitRegisterLocation HexInt | InternalRegisterLocation Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 data InternalInt
-  = InternalIntVariable (QuantVariableAST 'PT.IntQuantity)
-  | InternalSpecialIntParameter PT.SpecialIntParameter
+  = InternalIntVariable (QuantVariableAST 'Q.IntQuantity)
+  | InternalSpecialIntParameter HSt.Param.SpecialIntParameter
   | InternalCodeTableRef CodeTableRef
   | InternalCharToken Q.HexInt
   | InternalMathCharToken Q.HexInt
@@ -215,19 +211,19 @@ data FontDimensionRef = FontDimensionRef HexInt FontRef
   deriving stock (Show, Eq, Generic)
 
 data InternalLength
-  = InternalLengthVariable (QuantVariableAST 'PT.LengthQuantity)
-  | InternalSpecialLengthParameter PT.SpecialLengthParameter
+  = InternalLengthVariable (QuantVariableAST 'Q.LengthQuantity)
+  | InternalSpecialLengthParameter HSt.Param.SpecialLengthParameter
   | InternalFontDimensionRef FontDimensionRef
   | InternalBoxDimensionRef BoxDimensionRef
   | LastKern
   deriving stock (Show, Eq, Generic)
 
 data InternalGlue
-  = InternalGlueVariable (QuantVariableAST 'PT.GlueQuantity)
+  = InternalGlueVariable (QuantVariableAST 'Q.GlueQuantity)
   | LastGlue
   deriving stock (Show, Eq, Generic)
 
 data InternalMathGlue
-  = InternalMathGlueVariable (QuantVariableAST 'PT.MathGlueQuantity)
+  = InternalMathGlueVariable (QuantVariableAST 'Q.MathGlueQuantity)
   | LastMathGlue
   deriving stock (Show, Eq, Generic)

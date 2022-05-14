@@ -7,6 +7,7 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hexlude
+import qualified Hex.Common.HexState.Interface.TokenList as HSt.TL
 
 parseGeneralText :: MonadPrimTokenParse m => m a -> m a
 parseGeneralText parseBalancedText = do
@@ -29,7 +30,7 @@ skipBeginGroupIfNeeded = \case
 parseExpandedBalancedText :: MonadPrimTokenParse m => BalancedTextContext -> m T.ExpandedBalancedText
 parseExpandedBalancedText ctx = do
   skipBeginGroupIfNeeded ctx
-  T.ExpandedBalancedText . fst <$> parseNestedExprExpanded
+  T.ExpandedBalancedText . HSt.TL.BalancedText . fst <$> parseNestedExprExpanded
   where
     parseNestedExprExpanded = parseNestedExpr $ \_depth -> do
       lt <- getExpandedLexToken
@@ -40,7 +41,7 @@ parseExpandedBalancedText ctx = do
 parseInhibitedBalancedText :: MonadPrimTokenParse m => BalancedTextContext -> m T.InhibitedBalancedText
 parseInhibitedBalancedText ctx = do
   skipBeginGroupIfNeeded ctx
-  T.InhibitedBalancedText . fst <$> parseNestedExprInhibited
+  T.InhibitedBalancedText . HSt.TL.BalancedText . fst <$> parseNestedExprInhibited
   where
     -- Note that we get lex-tokens, so we parse without resolving.
     parseNestedExprInhibited = parseNestedExpr $ \_depth -> do

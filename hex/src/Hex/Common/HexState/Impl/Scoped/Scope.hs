@@ -7,7 +7,7 @@ import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
 import Hex.Common.HexState.Interface.Resolve (SymbolMap)
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Parameters qualified as Param
+import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -36,10 +36,10 @@ data Scope = Scope
     spaceFactorCodes :: CharCodeMap Code.SpaceFactorCode,
     delimiterCodes :: CharCodeMap Code.DelimiterCode,
     -- Parameters.
-    intParameters :: Map PT.IntParameter Q.HexInt,
-    lengthParameters :: Map PT.LengthParameter Q.Length,
-    glueParameters :: Map PT.GlueParameter Q.Glue,
-    mathGlueParameters :: Map PT.MathGlueParameter Q.MathGlue,
+    intParameters :: Map Param.IntParameter Q.HexInt,
+    lengthParameters :: Map Param.LengthParameter Q.Length,
+    glueParameters :: Map Param.GlueParameter Q.Glue,
+    mathGlueParameters :: Map Param.MathGlueParameter Q.MathGlue,
     --   tokenListParameters :: Map TokenListParameter BalancedText
     -- Registers.
     intRegister :: RegisterMap Q.HexInt,
@@ -111,9 +111,9 @@ fmtScope =
     <> (fmtMapWithHeading "Uppercase codes" (.upperCaseCodes) Code.fmtCharCode Code.fmtUpperCaseCode)
     <> (fmtMapWithHeading "Space-factor codes" (.spaceFactorCodes) Code.fmtCharCode Code.fmtSpaceFactorCode)
     <> (fmtMapWithHeading "Delimiter codes" (.delimiterCodes) Code.fmtCharCode Code.fmtDelimiterCode)
-    <> (fmtMapWithHeading "Int parameters" (.intParameters) PT.fmtIntParameter Q.fmtHexInt)
-    <> (fmtMapWithHeading "Length parameters" (.lengthParameters) PT.fmtLengthParameter Q.fmtLengthWithUnit)
-    <> (fmtMapWithHeading "Glue parameters" (.glueParameters) PT.fmtGlueParameter Q.fmtGlue)
+    <> (fmtMapWithHeading "Int parameters" (.intParameters) Param.fmtIntParameter Q.fmtHexInt)
+    <> (fmtMapWithHeading "Length parameters" (.lengthParameters) Param.fmtLengthParameter Q.fmtLengthWithUnit)
+    <> (fmtMapWithHeading "Glue parameters" (.glueParameters) Param.fmtGlueParameter Q.fmtGlue)
     <> (fmtMapWithHeading "Int registers" (.intRegister) fmtRegisterLocation Q.fmtHexInt)
     <> (fmtMapWithHeading "Length registers" (.lengthRegister) fmtRegisterLocation Q.fmtLengthWithUnit)
     <> (fmtMapWithHeading "Glue registers" (.glueRegister) fmtRegisterLocation Q.fmtGlue)

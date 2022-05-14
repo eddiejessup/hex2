@@ -4,9 +4,9 @@ module Hex.Stage.Expand.Impl where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Parse.Impl qualified as Par
 import Hex.Common.Parse.Interface qualified as Par
@@ -15,13 +15,13 @@ import Hex.Stage.Evaluate.Impl.SyntaxCommand qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as E
 import Hex.Stage.Expand.Impl.Expand qualified as Expand
 import Hex.Stage.Expand.Interface (ExpansionError (..), MonadPrimTokenSource (..))
+import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
-import qualified Hex.Stage.Expand.Interface as Expand
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype
@@ -65,7 +65,8 @@ instance
 
   peekConditionState = use (conditionStatesLens % to headMay)
 
-  popConditionState = use (conditionStatesLens % to uncons) >>= \case
+  popConditionState =
+    use (conditionStatesLens % to uncons) >>= \case
       Nothing -> pure Nothing
       Just (condState, rest) -> do
         assign' conditionStatesLens rest
@@ -181,7 +182,7 @@ expandSyntaxCommand = \case
   E.RenderRomanNumeral _n ->
     notImplemented "RenderRomanNumeral"
   E.RenderTokenAsTokens lt -> do
-    escapeCharInt <- HSt.getParameterValue PT.EscapeChar
+    escapeCharInt <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.EscapeChar)
     pure $ Expand.renderTokenAsTokens escapeCharInt lt
   -- expandString escapeChar lt
   E.RenderJobName ->

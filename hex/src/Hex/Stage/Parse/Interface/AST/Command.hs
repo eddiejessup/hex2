@@ -10,6 +10,7 @@ import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Quantity
 import Hexlude
+import qualified Hex.Common.HexState.Interface.Parameter as HSt.Param
 
 data Command
   = ShowToken Lex.LexToken
@@ -133,11 +134,11 @@ data AssignmentBody
   deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
-  = TokenListAssignmentVar (QuantVariableAST 'PT.TokenListQuantity)
+  = TokenListAssignmentVar (QuantVariableAST 'Q.TokenListQuantity)
   | TokenListAssignmentText ST.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
-data QuantVariableAssignment (q :: PT.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTargetAST q)
+data QuantVariableAssignment (q :: Q.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTargetAST q)
   deriving stock (Generic)
 
 deriving stock instance (Show (QuantVariableAST a), Show (QuantVariableTargetAST a)) => Show (QuantVariableAssignment a)
@@ -145,35 +146,35 @@ deriving stock instance (Show (QuantVariableAST a), Show (QuantVariableTargetAST
 deriving stock instance (Eq (QuantVariableAST a), Eq (QuantVariableTargetAST a)) => Eq (QuantVariableAssignment a)
 
 type family QuantVariableTargetAST a where
-  QuantVariableTargetAST 'PT.IntQuantity = HexInt
-  QuantVariableTargetAST 'PT.LengthQuantity = Length
-  QuantVariableTargetAST 'PT.GlueQuantity = Glue
-  QuantVariableTargetAST 'PT.MathGlueQuantity = MathGlue
-  QuantVariableTargetAST 'PT.TokenListQuantity = TokenListAssignmentTarget
+  QuantVariableTargetAST 'Q.IntQuantity = HexInt
+  QuantVariableTargetAST 'Q.LengthQuantity = Length
+  QuantVariableTargetAST 'Q.GlueQuantity = Glue
+  QuantVariableTargetAST 'Q.MathGlueQuantity = MathGlue
+  QuantVariableTargetAST 'Q.TokenListQuantity = TokenListAssignmentTarget
 
 data VariableAssignment
-  = IntVariableAssignment (QuantVariableAssignment 'PT.IntQuantity)
-  | LengthVariableAssignment (QuantVariableAssignment 'PT.LengthQuantity)
-  | GlueVariableAssignment (QuantVariableAssignment 'PT.GlueQuantity)
-  | MathGlueVariableAssignment (QuantVariableAssignment 'PT.MathGlueQuantity)
-  | TokenListVariableAssignment (QuantVariableAssignment 'PT.TokenListQuantity)
-  | SpecialIntParameterVariableAssignment PT.SpecialIntParameter HexInt
-  | SpecialLengthParameterVariableAssignment PT.SpecialLengthParameter Length
+  = IntVariableAssignment (QuantVariableAssignment 'Q.IntQuantity)
+  | LengthVariableAssignment (QuantVariableAssignment 'Q.LengthQuantity)
+  | GlueVariableAssignment (QuantVariableAssignment 'Q.GlueQuantity)
+  | MathGlueVariableAssignment (QuantVariableAssignment 'Q.MathGlueQuantity)
+  | TokenListVariableAssignment (QuantVariableAssignment 'Q.TokenListQuantity)
+  | SpecialIntParameterVariableAssignment HSt.Param.SpecialIntParameter HexInt
+  | SpecialLengthParameterVariableAssignment HSt.Param.SpecialLengthParameter Length
   deriving stock (Show, Eq, Generic)
 
 data VariableModification
-  = AdvanceIntVariable (QuantVariableAST 'PT.IntQuantity) (QuantVariableTargetAST 'PT.IntQuantity)
-  | AdvanceLengthVariable (QuantVariableAST 'PT.LengthQuantity) (QuantVariableTargetAST 'PT.LengthQuantity)
-  | AdvanceGlueVariable (QuantVariableAST 'PT.GlueQuantity) (QuantVariableTargetAST 'PT.GlueQuantity)
-  | AdvanceMathGlueVariable (QuantVariableAST 'PT.MathGlueQuantity) (QuantVariableTargetAST 'PT.MathGlueQuantity)
+  = AdvanceIntVariable (QuantVariableAST 'Q.IntQuantity) (QuantVariableTargetAST 'Q.IntQuantity)
+  | AdvanceLengthVariable (QuantVariableAST 'Q.LengthQuantity) (QuantVariableTargetAST 'Q.LengthQuantity)
+  | AdvanceGlueVariable (QuantVariableAST 'Q.GlueQuantity) (QuantVariableTargetAST 'Q.GlueQuantity)
+  | AdvanceMathGlueVariable (QuantVariableAST 'Q.MathGlueQuantity) (QuantVariableTargetAST 'Q.MathGlueQuantity)
   | ScaleVariable Q.VDirection NumericVariable HexInt
   deriving stock (Show, Eq, Generic)
 
 data NumericVariable
-  = IntNumericVariable (QuantVariableAST 'PT.IntQuantity)
-  | LengthNumericVariable (QuantVariableAST 'PT.LengthQuantity)
-  | GlueNumericVariable (QuantVariableAST 'PT.GlueQuantity)
-  | MathGlueNumericVariable (QuantVariableAST 'PT.MathGlueQuantity)
+  = IntNumericVariable (QuantVariableAST 'Q.IntQuantity)
+  | LengthNumericVariable (QuantVariableAST 'Q.LengthQuantity)
+  | GlueNumericVariable (QuantVariableAST 'Q.GlueQuantity)
+  | MathGlueNumericVariable (QuantVariableAST 'Q.MathGlueQuantity)
   deriving stock (Show, Eq, Generic)
 
 data CodeAssignment = CodeAssignment {codeTableRef :: CodeTableRef, codeValue :: HexInt}
@@ -214,7 +215,7 @@ data InternalQuantity
   | InternalGlueQuantity InternalGlue
   | InternalMathGlueQuantity InternalMathGlue
   | FontQuantity FontRef
-  | TokenListVariableQuantity (QuantVariableAST 'PT.TokenListQuantity)
+  | TokenListVariableQuantity (QuantVariableAST 'Q.TokenListQuantity)
   deriving stock (Show, Eq, Generic)
 
 data WriteText

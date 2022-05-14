@@ -7,10 +7,10 @@ import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
-import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface qualified as Lex
@@ -51,26 +51,27 @@ data OutputDestination
 
 writeToOutput :: Monad m => OutputDestination -> Text -> m ()
 writeToOutput _ _ = pure ()
-    -- let _handle = case stdStream of
-    --       PT.StdOut -> stdout
-    --       PT.StdErr -> stderr
-    -- liftIO $ hPutStrLn _handle expandedText
-    -- fStreams <- use $ typed @Config % #outFileStreams
-    -- let txtTxt = Codes.unsafeCodesAsChars (showExpandedBalancedText eTxt)
-    -- If stream number corresponds to an existing, open file:
-    --     write to file
-    -- Otherwise:
-    --     - Write to log
-    --     - If stream number is >= 0: also write to terminal
-    -- case getFileStream fStreams en of
-    --   Just fStream ->
-    --     liftIO $ hPutStrLn fStream txtTxt
-    --   Nothing -> do
-    -- -- Write to terminal.
-    -- when (en >= 0) $ sLog (BS.C8.pack txtTxt)
-    -- -- Write to log
-    -- logHandle <- use $ typed @Config % #logStream
-    -- liftIO $ hPutStrLn logHandle txtTxt
+
+-- let _handle = case stdStream of
+--       PT.StdOut -> stdout
+--       PT.StdErr -> stderr
+-- liftIO $ hPutStrLn _handle expandedText
+-- fStreams <- use $ typed @Config % #outFileStreams
+-- let txtTxt = Codes.unsafeCodesAsChars (showExpandedBalancedText eTxt)
+-- If stream number corresponds to an existing, open file:
+--     write to file
+-- Otherwise:
+--     - Write to log
+--     - If stream number is >= 0: also write to terminal
+-- case getFileStream fStreams en of
+--   Just fStream ->
+--     liftIO $ hPutStrLn fStream txtTxt
+--   Nothing -> do
+-- -- Write to terminal.
+-- when (en >= 0) $ sLog (BS.C8.pack txtTxt)
+-- -- Write to log
+-- logHandle <- use $ typed @Config % #logStream
+-- liftIO $ hPutStrLn logHandle txtTxt
 
 handleModeIndependentCommand ::
   ( Monad m,
@@ -170,33 +171,33 @@ handleModeIndependentCommand addVElem = \case
         case ass of
           Eval.IntVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
             case var of
-              Eval.ParamVar intParam ->
+              HSt.Var.ParamVar intParam ->
                 HSt.setParameterValue intParam tgt scope
-              Eval.RegisterVar registerLoc ->
+              HSt.Var.RegisterVar registerLoc ->
                 HSt.setRegisterValue registerLoc tgt scope
           Eval.LengthVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
             case var of
-              Eval.ParamVar lengthParam ->
+              HSt.Var.ParamVar lengthParam ->
                 HSt.setParameterValue lengthParam tgt scope
-              Eval.RegisterVar registerLoc ->
+              HSt.Var.RegisterVar registerLoc ->
                 HSt.setRegisterValue registerLoc tgt scope
           Eval.GlueVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
             case var of
-              Eval.ParamVar glueParam ->
+              HSt.Var.ParamVar glueParam ->
                 HSt.setParameterValue glueParam tgt scope
-              Eval.RegisterVar registerLoc ->
+              HSt.Var.RegisterVar registerLoc ->
                 HSt.setRegisterValue registerLoc tgt scope
           Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment var _tgt) ->
             case var of
-              Eval.ParamVar _mathGlueParam ->
+              HSt.Var.ParamVar _mathGlueParam ->
                 notImplemented "MathGlueVariableAssignment, parameter-variable"
-              Eval.RegisterVar _registerLoc ->
+              HSt.Var.RegisterVar _registerLoc ->
                 notImplemented "MathGlueVariableAssignment, register-variable"
           Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment var _tgt) ->
             case var of
-              Eval.ParamVar _tokenListParam ->
+              HSt.Var.ParamVar _tokenListParam ->
                 notImplemented "TokenListVariableAssignment, parameter-variable"
-              Eval.RegisterVar _registerLoc ->
+              HSt.Var.RegisterVar _registerLoc ->
                 notImplemented "TokenListVariableAssignment, register-variable"
           Eval.SpecialIntParameterVariableAssignment param tgt ->
             HSt.setSpecialIntParameter param tgt
@@ -206,53 +207,53 @@ handleModeIndependentCommand addVElem = \case
         case modCommand of
           Eval.AdvanceIntVariable var plusVal ->
             case var of
-              Eval.ParamVar param ->
+              HSt.Var.ParamVar param ->
                 HSt.advanceParameterValue param plusVal scope
-              Eval.RegisterVar registerLoc ->
+              HSt.Var.RegisterVar registerLoc ->
                 HSt.advanceRegisterValue registerLoc plusVal scope
           Eval.AdvanceLengthVariable var plusVal ->
             case var of
-              Eval.ParamVar param ->
+              HSt.Var.ParamVar param ->
                 HSt.advanceParameterValue param plusVal scope
-              Eval.RegisterVar registerLoc ->
+              HSt.Var.RegisterVar registerLoc ->
                 HSt.advanceRegisterValue registerLoc plusVal scope
           Eval.AdvanceGlueVariable var plusVal ->
             case var of
-              Eval.ParamVar param ->
+              HSt.Var.ParamVar param ->
                 HSt.advanceParameterValue param plusVal scope
-              Eval.RegisterVar registerLoc ->
+              HSt.Var.RegisterVar registerLoc ->
                 HSt.advanceRegisterValue registerLoc plusVal scope
           Eval.AdvanceMathGlueVariable var plusVal ->
             case var of
-              Eval.ParamVar param ->
+              HSt.Var.ParamVar param ->
                 HSt.advanceParameterValue param plusVal scope
-              Eval.RegisterVar registerLoc ->
+              HSt.Var.RegisterVar registerLoc ->
                 HSt.advanceRegisterValue registerLoc plusVal scope
           Eval.ScaleVariable scaleDirection numVar scaleVal ->
             case numVar of
               Eval.IntNumericVariable var ->
                 case var of
-                  Eval.ParamVar param ->
+                  HSt.Var.ParamVar param ->
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
-                  Eval.RegisterVar registerLoc ->
+                  HSt.Var.RegisterVar registerLoc ->
                     HSt.scaleRegisterValue PT.IntNumericQuantity registerLoc scaleDirection scaleVal scope
               Eval.LengthNumericVariable var ->
                 case var of
-                  Eval.ParamVar param ->
+                  HSt.Var.ParamVar param ->
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
-                  Eval.RegisterVar registerLoc ->
+                  HSt.Var.RegisterVar registerLoc ->
                     HSt.scaleRegisterValue PT.LengthNumericQuantity registerLoc scaleDirection scaleVal scope
               Eval.GlueNumericVariable var ->
                 case var of
-                  Eval.ParamVar param ->
+                  HSt.Var.ParamVar param ->
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
-                  Eval.RegisterVar registerLoc ->
+                  HSt.Var.RegisterVar registerLoc ->
                     HSt.scaleRegisterValue PT.GlueNumericQuantity registerLoc scaleDirection scaleVal scope
               Eval.MathGlueNumericVariable var ->
                 case var of
-                  Eval.ParamVar param ->
+                  HSt.Var.ParamVar param ->
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
-                  Eval.RegisterVar registerLoc ->
+                  HSt.Var.RegisterVar registerLoc ->
                     HSt.scaleRegisterValue PT.MathGlueNumericQuantity registerLoc scaleDirection scaleVal scope
       --   Eval.SelectFont fNr ->
       --     do

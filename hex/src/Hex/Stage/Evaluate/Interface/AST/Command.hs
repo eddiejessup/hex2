@@ -3,11 +3,12 @@
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, Kern, Rule)
 import Hex.Stage.Interpret.Build.List.Elem (Penalty)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -104,7 +105,7 @@ data HModeCommand
 data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputSource, messageContents :: Text}
   deriving stock (Show, Eq, Generic)
 
-data StreamWriteCommand = StreamWriteCommand {streamNumber :: Q.HexInt, writeText :: WriteText }
+data StreamWriteCommand = StreamWriteCommand {streamNumber :: Q.HexInt, writeText :: WriteText}
   deriving stock (Show, Eq, Generic)
 
 data WriteText
@@ -155,33 +156,33 @@ data FontFileSpec = FontFileSpec FontSpecification Q.HexFilePath
   deriving stock (Show, Eq, Generic)
 
 data VariableAssignment
-  = IntVariableAssignment (QuantVariableAssignment 'PT.IntQuantity)
-  | LengthVariableAssignment (QuantVariableAssignment 'PT.LengthQuantity)
-  | GlueVariableAssignment (QuantVariableAssignment 'PT.GlueQuantity)
-  | MathGlueVariableAssignment (QuantVariableAssignment 'PT.MathGlueQuantity)
-  | TokenListVariableAssignment (QuantVariableAssignment 'PT.TokenListQuantity)
-  | SpecialIntParameterVariableAssignment PT.SpecialIntParameter Q.HexInt
-  | SpecialLengthParameterVariableAssignment PT.SpecialLengthParameter Q.Length
+  = IntVariableAssignment (QuantVariableAssignment 'Q.IntQuantity)
+  | LengthVariableAssignment (QuantVariableAssignment 'Q.LengthQuantity)
+  | GlueVariableAssignment (QuantVariableAssignment 'Q.GlueQuantity)
+  | MathGlueVariableAssignment (QuantVariableAssignment 'Q.MathGlueQuantity)
+  | TokenListVariableAssignment (QuantVariableAssignment 'Q.TokenListQuantity)
+  | SpecialIntParameterVariableAssignment HSt.Param.SpecialIntParameter Q.HexInt
+  | SpecialLengthParameterVariableAssignment HSt.Param.SpecialLengthParameter Q.Length
   deriving stock (Show, Eq, Generic)
 
-data QuantVariableAssignment (q :: PT.QuantityType) = QuantVariableAssignment (Eval.QuantVariableEval q) (Eval.QuantVariableTargetEval q)
+data QuantVariableAssignment (q :: Q.QuantityType) = QuantVariableAssignment (HSt.Var.QuantVariable q) (HSt.Var.QuantVariableTarget q)
   deriving stock (Generic)
 
-deriving stock instance (Show (Eval.QuantVariableEval a), Show (Eval.QuantVariableTargetEval a)) => Show (QuantVariableAssignment a)
+deriving stock instance (Show (HSt.Var.QuantVariable a), Show (HSt.Var.QuantVariableTarget a)) => Show (QuantVariableAssignment a)
 
-deriving stock instance (Eq (Eval.QuantVariableEval a), Eq (Eval.QuantVariableTargetEval a)) => Eq (QuantVariableAssignment a)
+deriving stock instance (Eq (HSt.Var.QuantVariable a), Eq (HSt.Var.QuantVariableTarget a)) => Eq (QuantVariableAssignment a)
 
 data VariableModification
-  = AdvanceIntVariable (Eval.QuantVariableEval 'PT.IntQuantity) (Eval.QuantVariableTargetEval 'PT.IntQuantity)
-  | AdvanceLengthVariable (Eval.QuantVariableEval 'PT.LengthQuantity) (Eval.QuantVariableTargetEval 'PT.LengthQuantity)
-  | AdvanceGlueVariable (Eval.QuantVariableEval 'PT.GlueQuantity) (Eval.QuantVariableTargetEval 'PT.GlueQuantity)
-  | AdvanceMathGlueVariable (Eval.QuantVariableEval 'PT.MathGlueQuantity) (Eval.QuantVariableTargetEval 'PT.MathGlueQuantity)
+  = AdvanceIntVariable (HSt.Var.QuantVariable 'Q.IntQuantity) (HSt.Var.QuantVariableTarget 'Q.IntQuantity)
+  | AdvanceLengthVariable (HSt.Var.QuantVariable 'Q.LengthQuantity) (HSt.Var.QuantVariableTarget 'Q.LengthQuantity)
+  | AdvanceGlueVariable (HSt.Var.QuantVariable 'Q.GlueQuantity) (HSt.Var.QuantVariableTarget 'Q.GlueQuantity)
+  | AdvanceMathGlueVariable (HSt.Var.QuantVariable 'Q.MathGlueQuantity) (HSt.Var.QuantVariableTarget 'Q.MathGlueQuantity)
   | ScaleVariable Q.VDirection NumericVariable Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 data NumericVariable
-  = IntNumericVariable (Eval.QuantVariableEval 'PT.IntQuantity)
-  | LengthNumericVariable (Eval.QuantVariableEval 'PT.LengthQuantity)
-  | GlueNumericVariable (Eval.QuantVariableEval 'PT.GlueQuantity)
-  | MathGlueNumericVariable (Eval.QuantVariableEval 'PT.MathGlueQuantity)
+  = IntNumericVariable (HSt.Var.QuantVariable 'Q.IntQuantity)
+  | LengthNumericVariable (HSt.Var.QuantVariable 'Q.LengthQuantity)
+  | GlueNumericVariable (HSt.Var.QuantVariable 'Q.GlueQuantity)
+  | MathGlueNumericVariable (HSt.Var.QuantVariable 'Q.MathGlueQuantity)
   deriving stock (Show, Eq, Generic)

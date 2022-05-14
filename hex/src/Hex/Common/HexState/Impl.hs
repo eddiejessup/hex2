@@ -13,7 +13,6 @@ import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.C
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes)
 import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as GroupScopes
-import Hex.Common.HexState.Impl.Scoped.Parameter (ScopedHexParameter (..))
 import Hex.Common.HexState.Impl.Scoped.Parameter qualified as Sc.P
 import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue)
 import Hex.Common.HexState.Impl.Scoped.Register qualified as Sc.R
@@ -22,8 +21,10 @@ import Hex.Common.HexState.Impl.Scoped.Symbol qualified as Sc.Sym
 import Hex.Common.HexState.Impl.Type
 import Hex.Common.HexState.Interface
 import Hex.Common.HexState.Interface.Grouped qualified as Group
+import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Common.TFM.Types qualified as TFM
@@ -70,10 +71,10 @@ instance
   ) =>
   MonadHexState (MonadHexStateImplT m)
   where
-  getParameterValue :: ScopedHexParameter p => p -> (MonadHexStateImplT m) (ScopedHexParameterValue p)
+  getParameterValue :: (Param.QuantParam q) -> (MonadHexStateImplT m) (Var.QuantVariableTarget q)
   getParameterValue p = getGroupScopesProperty (Sc.P.localParameterValue p)
 
-  setParameterValue :: ScopedHexParameter p => p -> ScopedHexParameterValue p -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setParameterValue :: (Param.QuantParam q) -> Var.QuantVariableTarget q -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setParameterValue param value scopeFlag =
     modifyGroupScopes $ Sc.P.setParameterValue param value scopeFlag
 
@@ -84,16 +85,16 @@ instance
   setRegisterValue param value scopeFlag = do
     modifyGroupScopes $ Sc.R.setRegisterValue param value scopeFlag
 
-  getSpecialIntParameter :: PT.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
+  getSpecialIntParameter :: Param.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
   getSpecialIntParameter p = use $ typed @HexState % stateSpecialIntParamLens p
 
-  getSpecialLengthParameter :: PT.SpecialLengthParameter -> (MonadHexStateImplT m) Q.Length
+  getSpecialLengthParameter :: Param.SpecialLengthParameter -> (MonadHexStateImplT m) Q.Length
   getSpecialLengthParameter p = use $ typed @HexState % stateSpecialLengthParamLens p
 
-  setSpecialIntParameter :: PT.SpecialIntParameter -> Q.HexInt -> (MonadHexStateImplT m) ()
+  setSpecialIntParameter :: Param.SpecialIntParameter -> Q.HexInt -> (MonadHexStateImplT m) ()
   setSpecialIntParameter p v = assign' (typed @HexState % stateSpecialIntParamLens p) v
 
-  setSpecialLengthParameter :: PT.SpecialLengthParameter -> Q.Length -> (MonadHexStateImplT m) ()
+  setSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> (MonadHexStateImplT m) ()
   setSpecialLengthParameter p v = assign' (typed @HexState % stateSpecialLengthParamLens p) v
 
   getHexCode :: MutableHexCode c => Code.CharCode -> (MonadHexStateImplT m) c
@@ -221,6 +222,6 @@ readFontInfo ::
   m HSt.Font.FontInfo
 readFontInfo fontPath = do
   fontMetrics <- TFM.parseTFMFile fontPath
-  hyphenChar <- getParameterValue PT.DefaultHyphenChar
-  skewChar <- getParameterValue PT.DefaultSkewChar
+  hyphenChar <- getParameterValue (Param.IntQuantParam Param.DefaultHyphenChar)
+  skewChar <- getParameterValue (Param.IntQuantParam Param.DefaultSkewChar)
   pure HSt.Font.FontInfo {fontMetrics, hyphenChar, skewChar}

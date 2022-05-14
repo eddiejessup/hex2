@@ -4,11 +4,13 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
+import Hex.Common.HexState.Interface.Parameter
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
+
 import Hexlude
 
 _cs :: [Char] -> H.Res.ControlSymbol
@@ -212,27 +214,27 @@ initialSymbolMap =
       (_cs "showboxdepth", primTok $ IntParamVarTok ShowBoxDepth),
       (_cs "errorcontextlines", primTok $ IntParamVarTok ErrorContextLines),
       -- Length parameters.
-      (_cs "hfuzz", primTok $ LenParamVarTok HFuzz),
-      (_cs "vfuzz", primTok $ LenParamVarTok VFuzz),
-      (_cs "overfullrule", primTok $ LenParamVarTok OverfullRule),
-      (_cs "emergencystretch", primTok $ LenParamVarTok EmergencyStretch),
-      (_cs "hsize", primTok $ LenParamVarTok HSize),
-      (_cs "vsize", primTok $ LenParamVarTok VSize),
-      (_cs "maxdepth", primTok $ LenParamVarTok MaxDepth),
-      (_cs "splitmaxdepth", primTok $ LenParamVarTok SplitMaxDepth),
-      (_cs "boxmaxdepth", primTok $ LenParamVarTok BoxMaxDepth),
-      (_cs "lineskiplimit", primTok $ LenParamVarTok LineSkipLimit),
-      (_cs "delimitershortfall", primTok $ LenParamVarTok DelimiterShortfall),
-      (_cs "nulldelimiterspace", primTok $ LenParamVarTok NullDelimiterSpace),
-      (_cs "scriptspace", primTok $ LenParamVarTok ScriptSpace),
-      (_cs "mathsurround", primTok $ LenParamVarTok MathSurround),
-      (_cs "predisplaysize", primTok $ LenParamVarTok PreDisplaySize),
-      (_cs "displaywidth", primTok $ LenParamVarTok DisplayWidth),
-      (_cs "displayindent", primTok $ LenParamVarTok DisplayIndent),
-      (_cs "parindent", primTok $ LenParamVarTok ParIndent),
-      (_cs "hangindent", primTok $ LenParamVarTok HangIndent),
-      (_cs "hoffset", primTok $ LenParamVarTok HOffset),
-      (_cs "voffset", primTok $ LenParamVarTok VOffset),
+      (_cs "hfuzz", primTok $ LengthParamVarTok HFuzz),
+      (_cs "vfuzz", primTok $ LengthParamVarTok VFuzz),
+      (_cs "overfullrule", primTok $ LengthParamVarTok OverfullRule),
+      (_cs "emergencystretch", primTok $ LengthParamVarTok EmergencyStretch),
+      (_cs "hsize", primTok $ LengthParamVarTok HSize),
+      (_cs "vsize", primTok $ LengthParamVarTok VSize),
+      (_cs "maxdepth", primTok $ LengthParamVarTok MaxDepth),
+      (_cs "splitmaxdepth", primTok $ LengthParamVarTok SplitMaxDepth),
+      (_cs "boxmaxdepth", primTok $ LengthParamVarTok BoxMaxDepth),
+      (_cs "lineskiplimit", primTok $ LengthParamVarTok LineSkipLimit),
+      (_cs "delimitershortfall", primTok $ LengthParamVarTok DelimiterShortfall),
+      (_cs "nulldelimiterspace", primTok $ LengthParamVarTok NullDelimiterSpace),
+      (_cs "scriptspace", primTok $ LengthParamVarTok ScriptSpace),
+      (_cs "mathsurround", primTok $ LengthParamVarTok MathSurround),
+      (_cs "predisplaysize", primTok $ LengthParamVarTok PreDisplaySize),
+      (_cs "displaywidth", primTok $ LengthParamVarTok DisplayWidth),
+      (_cs "displayindent", primTok $ LengthParamVarTok DisplayIndent),
+      (_cs "parindent", primTok $ LengthParamVarTok ParIndent),
+      (_cs "hangindent", primTok $ LengthParamVarTok HangIndent),
+      (_cs "hoffset", primTok $ LengthParamVarTok HOffset),
+      (_cs "voffset", primTok $ LengthParamVarTok VOffset),
       -- Glue parameters.
       (_cs "baselineskip", primTok $ GlueParamVarTok BaselineSkip),
       (_cs "lineskip", primTok $ GlueParamVarTok LineSkip),
@@ -279,19 +281,19 @@ initialSymbolMap =
       (_cs "pageshrink", primTok $ SpecialLengthParameterTok PageShrink),
       (_cs "pagedepth", primTok $ SpecialLengthParameterTok PageDepth),
       -- Register reference type prefixes.
-      (_cs "count", primTok $ RegisterVariableTok IntQuantity),
-      (_cs "dimen", primTok $ RegisterVariableTok LengthQuantity),
-      (_cs "skip", primTok $ RegisterVariableTok GlueQuantity),
-      (_cs "muskip", primTok $ RegisterVariableTok MathGlueQuantity),
-      (_cs "toks", primTok $ RegisterVariableTok TokenListQuantity),
+      (_cs "count", primTok $ RegisterVariableTok Q.IntQuantity),
+      (_cs "dimen", primTok $ RegisterVariableTok Q.LengthQuantity),
+      (_cs "skip", primTok $ RegisterVariableTok Q.GlueQuantity),
+      (_cs "muskip", primTok $ RegisterVariableTok Q.MathGlueQuantity),
+      (_cs "toks", primTok $ RegisterVariableTok Q.TokenListQuantity),
       -- Short-hand definition heads.
       (_cs "chardef", primTok $ ShortDefHeadTok CharQuantity),
       (_cs "mathchardef", primTok $ ShortDefHeadTok MathCharQuantity),
-      (_cs "countdef", primTok $ ShortDefHeadTok $ QuantityType IntQuantity),
-      (_cs "dimendef", primTok $ ShortDefHeadTok $ QuantityType LengthQuantity),
-      (_cs "skipdef", primTok $ ShortDefHeadTok $ QuantityType GlueQuantity),
-      (_cs "muskipdef", primTok $ ShortDefHeadTok $ QuantityType MathGlueQuantity),
-      (_cs "toksdef", primTok $ ShortDefHeadTok $ QuantityType TokenListQuantity),
+      (_cs "countdef", primTok $ ShortDefHeadTok $ QuantityType Q.IntQuantity),
+      (_cs "dimendef", primTok $ ShortDefHeadTok $ QuantityType Q.LengthQuantity),
+      (_cs "skipdef", primTok $ ShortDefHeadTok $ QuantityType Q.GlueQuantity),
+      (_cs "muskipdef", primTok $ ShortDefHeadTok $ QuantityType Q.MathGlueQuantity),
+      (_cs "toksdef", primTok $ ShortDefHeadTok $ QuantityType Q.TokenListQuantity),
       -- Modify variables.
       (_cs "advance", primTok AdvanceVarTok),
       (_cs "multiply", primTok $ ScaleVarTok Q.Upward),

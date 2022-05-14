@@ -2,6 +2,7 @@ module Hex.Stage.Interpret.CommandHandler.MainVMode where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
@@ -120,10 +121,9 @@ setAndBreakHListToHBoxes ::
   m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBoxElemSeq))
 setAndBreakHListToHBoxes hList =
   do
-    hSize <- HSt.getParameterValue PT.HSize
-
-    lineTol <- HSt.getParameterValue PT.Tolerance
-    linePen <- HSt.getParameterValue PT.LinePenalty
+    hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
+    lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
+    linePen <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
     let lineHLists = H.Inter.B.List.H.Para.breakGreedy hSize lineTol linePen hList
 
     -- TODO: Get these.
@@ -155,11 +155,11 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
     -- Otherwise:
     --    \lineskip
     -- Then set \prevdepth to the depth of the new box.
-    prevDepth <- HSt.getSpecialLengthParameter PT.PrevDepth
-    blineGlue <- HSt.getParameterValue PT.BaselineSkip
-    skipLimit <- HSt.getParameterValue PT.LineSkipLimit
-    skip <- HSt.getParameterValue PT.LineSkip
-    HSt.setSpecialLengthParameter PT.PrevDepth (H.Inter.B.Box.boxDepth b)
+    prevDepth <- HSt.getSpecialLengthParameter HSt.Param.PrevDepth
+    blineGlue <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.BaselineSkip)
+    skipLimit <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.LineSkipLimit)
+    skip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.LineSkip)
+    HSt.setSpecialLengthParameter HSt.Param.PrevDepth (H.Inter.B.Box.boxDepth b)
     pure $
       H.Inter.B.List.VList $
         if (prevDepth ^. typed @Int) <= -(Q.oneKPt ^. typed @Int)

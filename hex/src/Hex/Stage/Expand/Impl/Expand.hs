@@ -5,6 +5,7 @@ import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as AST
@@ -48,7 +49,7 @@ substituteArgsIntoMacroBody replacementText argsList =
         Nothing ->
           throwError $ injectTyped $ Expand.MacroArgumentSubstitutionError argIx argsList
         Just arg ->
-          pure $ arg.unMacroArgument.unInhibitedBalancedText
+          pure $ arg.unMacroArgument.unInhibitedBalancedText.unBalancedText
 
 -- If the condition is an 'if':
 -- If true:

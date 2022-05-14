@@ -4,6 +4,7 @@ import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.LT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
@@ -45,7 +46,7 @@ parseMacroArguments parameterSpec = do
     -- do this if so.
     -- If we got an empty argument, can consider this to 'strip' to itself.
     stripOuterBracePairIfPresent :: ST.InhibitedBalancedText -> ST.InhibitedBalancedText
-    stripOuterBracePairIfPresent original@(ST.InhibitedBalancedText outer) = case outer of
+    stripOuterBracePairIfPresent original@(ST.InhibitedBalancedText (HSt.LT.BalancedText outer)) = case outer of
       -- Must have at least 2 tokens.
       -- First token must be a '{'.
       -- The last token must be a '}'.
@@ -54,7 +55,7 @@ parseMacroArguments parameterSpec = do
         | Par.lexTokenHasCategory Code.BeginGroup a
             && Par.lexTokenHasCategory Code.EndGroup z
             && hasValidGrouping inner ->
-            ST.InhibitedBalancedText inner
+            ST.InhibitedBalancedText $ HSt.LT.BalancedText inner
       _ ->
         original
 
@@ -69,7 +70,7 @@ parseUndelimitedArgumentTokens = do
     -- Note that we are throwing away the surrounding braces of the argument.
     Lex.CharCatLexToken Lex.LexCharCat {lexCCCat = Code.BeginGroup} ->
       Par.parseInhibitedBalancedText Par.AlreadySeenBeginGroup
-    t -> pure $ ST.InhibitedBalancedText (singleton t)
+    t -> pure $ ST.InhibitedBalancedText $ HSt.LT.BalancedText (singleton t)
 
 -- Get the shortest, possibly empty, properly nested sequence of tokens,
 -- followed by the delimiter tokens. In the delimiter, category codes,
@@ -91,7 +92,7 @@ parseDelimitedArgumentTokens delims = go Empty
       if hasValidGrouping argTokensNew
         then -- If the argument has valid grouping, then we are done, that is the
         -- argument.
-          pure $ ST.InhibitedBalancedText argTokensNew
+          pure $ ST.InhibitedBalancedText $ HSt.LT.BalancedText argTokensNew
         else -- Otherwise, add the 'red herring' delimiters we just parsed and
         -- continue extending the argument token-sequence.
           go (argTokensNew <> delims)
