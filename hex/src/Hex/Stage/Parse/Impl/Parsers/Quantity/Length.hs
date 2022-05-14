@@ -12,7 +12,7 @@ import Hex.Common.Parse.Interface (MonadPrimTokenParse(..))
 import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 
 parseLength :: MonadPrimTokenParse m => m AST.Length
-parseLength = Par.parseSigned parseUnsignedLength
+parseLength = AST.Length <$> Par.parseSigned parseUnsignedLength
 
 parseUnsignedLength :: MonadPrimTokenParse m => m AST.UnsignedLength
 parseUnsignedLength =

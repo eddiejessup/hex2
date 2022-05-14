@@ -1,5 +1,6 @@
 module Hex.Common.Quantity.Glue where
 
+import Data.Ratio qualified as Ratio
 import Formatting qualified as F
 import Hex.Common.Quantity.Length
 import Hex.Common.Quantity.Number
@@ -39,7 +40,7 @@ invertGlue :: Glue -> Glue
 invertGlue (Glue d str shr) = Glue (invert d) str shr
 
 -- \fil
-filStretchGlue :: Length -> Glue
+filStretchGlue :: InfLength -> Glue
 filStretchGlue x = Glue {gDimen = mempty, gStretch = filFlex x, gShrink = zeroFlex}
 
 fixedGlue :: Length -> Glue
@@ -67,7 +68,9 @@ shrinkGlue i (Glue dim str shr) =
 
 -- PureFlex
 
-data PureFlex = FinitePureFlex Length | InfPureFlex InfLengthOfOrder
+data PureFlex
+  = FinitePureFlex Length
+  | InfPureFlex InfFlexOfOrder
   deriving stock (Show, Eq, Generic)
 
 instance Semigroup PureFlex where
@@ -82,43 +85,31 @@ instance Monoid PureFlex where
 zeroFlex :: PureFlex
 zeroFlex = FinitePureFlex zeroLength
 
-flexPt :: Rational -> PureFlex
-flexPt = FinitePureFlex . pt
-
-filFlexPt :: Rational -> PureFlex
-filFlexPt = filFlex . pt
-
-filFlex :: Length -> PureFlex
-filFlex x = InfPureFlex (InfLengthOfOrder Fil1 x)
+filFlex :: InfLength -> PureFlex
+filFlex x = InfPureFlex (InfFlexOfOrder x Fil1)
 
 scalePureFlex :: HexInt -> PureFlex -> PureFlex
 scalePureFlex i = \case
   FinitePureFlex x -> FinitePureFlex $ scaleLength i x
-  InfPureFlex x -> InfPureFlex $ scaleInfLengthOfOrder i x
+  InfPureFlex x -> InfPureFlex $ scaleInfFlexOfOrder i x
 
 shrinkPureFlex :: HexInt -> PureFlex -> PureFlex
 shrinkPureFlex i = \case
   FinitePureFlex x -> FinitePureFlex $ shrinkLength i x
-  InfPureFlex x -> InfPureFlex $ shrinkInfLengthOfOrder i x
+  InfPureFlex x -> InfPureFlex $ shrinkInfFlexOfOrder i x
 
 fmtPureFlex :: Fmt PureFlex
 fmtPureFlex = F.later $ \case
   FinitePureFlex ln -> F.bformat fmtLengthWithUnit ln
-  InfPureFlex ln -> F.bformat fmtInfLengthOfOrder ln
+  InfPureFlex ln -> F.bformat fmtInfFlexOfOrder ln
 
 -- Net Flex.
 
-data NetFlex = NetFlex {finiteFlex :: Length, fil1Flex, fil2Flex, fil3Flex :: Length}
+data NetFlex = NetFlex {finiteFlex :: Length, fil1Flex, fil2Flex, fil3Flex :: InfLength}
   deriving stock (Show, Generic)
 
-netFlexPt :: Rational -> NetFlex
-netFlexPt = pureAsNetFlex . flexPt
-
-filNetFlexPt :: Rational -> NetFlex
-filNetFlexPt = pureAsNetFlex . filFlexPt
-
 zeroNetFlex :: NetFlex
-zeroNetFlex = NetFlex zeroLength zeroLength zeroLength zeroLength
+zeroNetFlex = NetFlex zeroLength zeroInfLength zeroInfLength zeroInfLength
 
 instance Semigroup NetFlex where
   (NetFlex a1 b1 c1 d1) <> (NetFlex a2 b2 c2 d2) = NetFlex (a1 <> a2) (b1 <> b2) (c1 <> c2) (d1 <> d2)
@@ -132,16 +123,16 @@ instance Group NetFlex where
 pureAsNetFlex :: PureFlex -> NetFlex
 pureAsNetFlex = \case
   FinitePureFlex len -> mempty {finiteFlex = len}
-  InfPureFlex (InfLengthOfOrder order infLen) -> case order of
+  InfPureFlex (InfFlexOfOrder infLen order) -> case order of
     Fil1 -> mempty {fil1Flex = infLen}
     Fil2 -> mempty {fil2Flex = infLen}
     Fil3 -> mempty {fil3Flex = infLen}
 
 highestNetFlexOrder :: NetFlex -> PureFlex
 highestNetFlexOrder flex
-  | flex ^. #fil3Flex /= zeroLength = InfPureFlex (InfLengthOfOrder Fil3 (flex ^. #fil3Flex))
-  | flex ^. #fil2Flex /= zeroLength = InfPureFlex (InfLengthOfOrder Fil2 (flex ^. #fil2Flex))
-  | flex ^. #fil1Flex /= zeroLength = InfPureFlex (InfLengthOfOrder Fil1 (flex ^. #fil1Flex))
+  | flex ^. #fil3Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex ^. #fil3Flex) Fil3)
+  | flex ^. #fil2Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex ^. #fil2Flex) Fil2)
+  | flex ^. #fil1Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex ^. #fil1Flex) Fil1)
   | otherwise = FinitePureFlex (flex ^. #finiteFlex)
 
 -- BiNetFlex.
@@ -160,32 +151,69 @@ asBiNetFlex g = BiNetFlex (g ^. #gStretch % to pureAsNetFlex) (g ^. #gShrink % t
 
 -- Inf length of specified order.
 
-data InfLengthOrder = Fil1 | Fil2 | Fil3
+data InfFlexOrder = Fil1 | Fil2 | Fil3
   deriving stock (Show, Generic, Eq, Ord)
 
-fmtInfLengthOrder :: Fmt InfLengthOrder
-fmtInfLengthOrder = F.later $ \case
+fmtInfFlexOrder :: Fmt InfFlexOrder
+fmtInfFlexOrder = F.later $ \case
   Fil1 -> "fil"
   Fil2 -> "fill"
   Fil3 -> "filll"
 
-data InfLengthOfOrder = InfLengthOfOrder InfLengthOrder Length
+newtype InfLength = InfLength {unInfLength :: Int}
+  deriving stock (Show, Generic)
+  deriving newtype (Eq, Ord)
+  deriving (Semigroup, Monoid, Group) via (Sum Int)
+  deriving (Scalable) via (HexInt)
+
+zeroInfLength :: InfLength
+zeroInfLength = mempty
+
+-- You can use fractional multiples of infinity like ‘3.25fil’, as long as you
+-- stick to fewer than 16,384 fil-units. Tex actually does its calculations with
+-- integer multiples of 2^−16 fil (or fill or filll);
+bigFilLength :: InfLength
+bigFilLength = InfLength (2 ^ (16 :: Int))
+
+scaleInfLengthByRational :: Rational -> InfLength -> InfLength
+scaleInfLengthByRational factor infLen =
+  InfLength $ scaleIntByRational factor infLen.unInfLength
+
+fromBigFils :: Rational -> InfLength
+fromBigFils factor =
+  scaleInfLengthByRational factor bigFilLength
+
+infLengthRatio :: InfLength -> InfLength -> Rational
+infLengthRatio a b =
+  let lenToInteger = view (typed @Int % to (fromIntegral @Int @Integer))
+   in lenToInteger a Ratio.% lenToInteger b
+
+fmtInfLengthMagnitude :: Fmt InfLength
+fmtInfLengthMagnitude = F.accessed lengthInFils fmtRational
+  where
+    lengthInFils :: InfLength -> Rational
+    lengthInFils filLen = infLengthRatio filLen bigFilLength
+
+fmtInfLengthWithUnit :: Fmt InfLength
+fmtInfLengthWithUnit = fmtInfLengthMagnitude |%| "filunits"
+
+data InfFlexOfOrder = InfFlexOfOrder InfLength InfFlexOrder
   deriving stock (Show, Eq, Generic)
 
-instance Semigroup InfLengthOfOrder where
-  a@(InfLengthOfOrder orderA da) <> b@(InfLengthOfOrder orderB db) =
+instance Semigroup InfFlexOfOrder where
+  a@(InfFlexOfOrder da orderA) <> b@(InfFlexOfOrder db orderB) =
     case compare orderA orderB of
       LT -> b
       GT -> a
-      EQ -> InfLengthOfOrder orderA (da <> db)
+      EQ -> InfFlexOfOrder (da <> db) orderA
 
-scaleInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
-scaleInfLengthOfOrder i (InfLengthOfOrder order infLen) =
-  InfLengthOfOrder order (scaleLength i infLen)
+scaleInfFlexOfOrder :: HexInt -> InfFlexOfOrder -> InfFlexOfOrder
+scaleInfFlexOfOrder i (InfFlexOfOrder infLen order) =
+  InfFlexOfOrder (scale i infLen) order
 
-shrinkInfLengthOfOrder :: HexInt -> InfLengthOfOrder -> InfLengthOfOrder
-shrinkInfLengthOfOrder i (InfLengthOfOrder order infLen) =
-  InfLengthOfOrder order (shrinkLength i infLen)
+shrinkInfFlexOfOrder :: HexInt -> InfFlexOfOrder -> InfFlexOfOrder
+shrinkInfFlexOfOrder i (InfFlexOfOrder infLen order) =
+  InfFlexOfOrder (shrink i infLen) order
 
-fmtInfLengthOfOrder :: Fmt InfLengthOfOrder
-fmtInfLengthOfOrder = fmtViewed (typed @Length) fmtLengthMagnitude <> F.fconst " " <> fmtViewed (typed @InfLengthOrder) fmtInfLengthOrder
+fmtInfFlexOfOrder :: Fmt InfFlexOfOrder
+fmtInfFlexOfOrder = fmtViewed (typed @InfLength) fmtInfLengthMagnitude <> F.fconst " " <> fmtViewed (typed @InfFlexOrder) fmtInfFlexOrder

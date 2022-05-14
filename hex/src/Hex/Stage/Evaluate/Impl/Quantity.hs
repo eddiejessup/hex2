@@ -1,5 +1,7 @@
 module Hex.Stage.Evaluate.Impl.Quantity where
 
+import Data.List qualified as List
+import Data.Ratio qualified as Ratio
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.Scoped.Parameter qualified as Param
 import Hex.Common.HexState.Impl.Scoped.Register qualified as Reg
@@ -17,21 +19,23 @@ import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
 
 evalSignedValue ::
-  Functor m =>
+  (Monad m, Group b) =>
   (a -> m b) ->
   P.Signed a ->
-  m (Q.Signed b)
+  m b
 evalSignedValue evalU (P.Signed signs u) = do
-  Q.Signed (evalSigns signs) <$> evalU u
+  let eSign = evalSigns signs
+  eU <- evalU u
+  case eSign of
+    Q.Positive -> pure eU
+    Q.Negative -> pure $ invert eU
   where
     evalSigns :: [Q.Sign] -> Q.Sign
     evalSigns = mconcat
 
 evalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.HexInt -> m Q.HexInt
 evalInt n = do
-  evalSignedValue evalUnsignedInt n.unInt >>= \case
-    Q.Signed Q.Positive x -> pure x
-    Q.Signed Q.Negative x -> pure $ invert x
+  evalSignedValue evalUnsignedInt n.unInt
 
 evalUnsignedInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.UnsignedInt -> m Q.HexInt
 evalUnsignedInt = \case
@@ -40,20 +44,20 @@ evalUnsignedInt = \case
 
 evalNormalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.NormalInt -> m Q.HexInt
 evalNormalInt = \case
-  P.IntConstant intConstantDigits -> pure $ evalIntConstantDigits intConstantDigits
+  P.IntConstant intConstantDigits -> pure $ Q.HexInt $ evalIntConstantDigits intConstantDigits
   P.CharLikeCode word8 -> pure $ Q.HexInt $ word8ToInt word8
   P.InternalInt internalInt -> evalInternalInt internalInt
 
-evalIntConstantDigits :: P.IntConstantDigits -> Q.HexInt
+evalIntConstantDigits :: P.IntConstantDigits -> Int
 evalIntConstantDigits x =
   let baseInt = case x.intBase of
         P.Base8 -> 8
         P.Base10 -> 10
         P.Base16 -> 16
-   in digitsToHexInt baseInt (word8ToInt <$> x.digits)
+   in digitsToInt baseInt (word8ToInt <$> x.digits)
 
 word8ToInt :: Word8 -> Int
-word8ToInt = fromEnum
+word8ToInt = fromIntegral
 
 evalCoercedInt :: p -> a
 evalCoercedInt _x = notImplemented "evalCoercedInt"
@@ -137,15 +141,106 @@ evalFontCharRef = notImplemented "evalFontCharRef"
 
 -- | Convert a list of digits in some base, into the integer they represent in
 -- that base.
-digitsToHexInt :: Int -> [Int] -> Q.HexInt
-digitsToHexInt base digs =
-  Q.HexInt $ foldl' (\a b -> a * base + b) 0 digs
+digitsToInt :: Int -> [Int] -> Int
+digitsToInt base digs =
+  foldl' (\a b -> a * base + b) 0 digs
 
-evalLength :: P.Length -> m Q.Length
-evalLength = notImplemented "evalLength"
+evalLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Length -> m Q.Length
+evalLength len = do
+  evalSignedValue evalUnsignedLength len.unLength
 
-evalGlue :: P.Glue -> m Q.Glue
-evalGlue = notImplemented "evalGlue"
+evalUnsignedLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.UnsignedLength -> m Q.Length
+evalUnsignedLength = \case
+  P.NormalLengthAsULength normalLength ->
+    evalNormalLength normalLength
+  P.CoercedLength (P.InternalGlueAsLength internalGlue) ->
+    (.gDimen) <$> evalInternalGlue internalGlue
+
+evalNormalLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.NormalLength -> m Q.Length
+evalNormalLength = \case
+  P.LengthSemiConstant factor unit -> do
+    eFactor <- evalFactor factor
+    eUnit <- evalUnit unit
+    pure $ Q.scaleLengthByRational eFactor eUnit
+  P.InternalLength internalLength -> evalInternalLength internalLength
+
+evalFactor :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Factor -> m Rational
+evalFactor = \case
+  P.NormalIntFactor normalInt -> do
+    hexInt <- evalNormalInt normalInt
+    pure $ fromIntegral @Int @Rational hexInt.unHexInt
+  P.DecimalFractionFactor decimalFraction -> pure $ evalDecimalFraction decimalFraction
+
+evalDecimalFraction :: P.DecimalFraction -> Rational
+evalDecimalFraction v =
+  let wholeNr = decDigitsToInt v.wholeDigits
+
+      fraction =
+        (decDigitsToInt v.fracDigits)
+          Ratio.% (10 ^ List.length v.fracDigits)
+   in -- Convert the whole number to a rational, and add it to the fraction.
+
+      (fromIntegral @Integer @Rational wholeNr) + fraction
+  where
+    decDigitsToInt words =
+      fromIntegral @Int @Integer $ digitsToInt 10 $ word8ToInt <$> words
+
+evalUnit :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Unit -> m Q.Length
+evalUnit = \case
+  P.PhysicalUnit physicalUnitFrame physicalUnit -> do
+    eFrame <- evalPhysicalUnitFrame physicalUnitFrame
+    let eUnit = Q.inScaledPoint physicalUnit
+    pure $ Q.scaleLengthByRational eFrame eUnit
+  P.InternalUnit internalUnit -> do
+    evalInternalUnit internalUnit
+
+evalPhysicalUnitFrame :: (MonadHexState m) => P.PhysicalUnitFrame -> m Rational
+evalPhysicalUnitFrame = \case
+  P.MagnifiedFrame ->
+    pure 1.0
+  P.TrueFrame -> do
+    _mag <- HSt.getParameterValue PT.Mag
+    notImplemented "evalPhysicalUnitFrame: MagnifiedFrame"
+
+evalInternalUnit :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalUnit -> m Q.Length
+evalInternalUnit = \case
+  P.Em -> notImplemented "evalInternalUnit: Em"
+  P.Ex -> notImplemented "evalInternalUnit: Ex"
+  P.InternalIntUnit internalInt ->
+    Q.lengthFromHexInt <$> evalInternalInt internalInt
+  P.InternalLengthUnit internalLength ->
+    evalInternalLength internalLength
+  P.InternalGlueUnit internalGlue ->
+    (.gDimen) <$> evalInternalGlue internalGlue
+
+evalGlue :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Glue -> m Q.Glue
+evalGlue = \case
+  P.ExplicitGlue explicitGlueSpec -> evalExplicitGlueSpec explicitGlueSpec
+  P.InternalGlue signedInternalGlue -> evalSignedValue evalInternalGlue signedInternalGlue
+
+evalExplicitGlueSpec :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.ExplicitGlueSpec -> m Q.Glue
+evalExplicitGlueSpec P.ExplicitGlueSpec {egLength, egStretch, egShrink} = do
+  gDimen <- evalLength egLength
+  gStretch <- evalMayFlex egStretch
+  gShrink <- evalMayFlex egShrink
+  pure $ Q.Glue {gDimen, gStretch, gShrink}
+  where
+    evalMayFlex = \case
+      Nothing -> pure Q.zeroFlex
+      Just flex -> evalPureFlex flex
+
+evalPureFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.PureFlex -> m Q.PureFlex
+evalPureFlex = \case
+  P.FinitePureFlex finiteFlexLength -> Q.FinitePureFlex <$> evalLength finiteFlexLength
+  P.InfPureFlex infFlexOfOrder -> Q.InfPureFlex <$> evalInfFlexOfOrder infFlexOfOrder
+
+evalInfFlexOfOrder :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InfFlexOfOrder -> m Q.InfFlexOfOrder
+evalInfFlexOfOrder (P.InfFlexOfOrder signedFactor infFlexOrder) = do
+  -- Wrap/unwrap via a 'Sum' newtype, to get the 'Sum' instance of 'Group', so
+  -- we get the negative of the rational when needed.
+  (Sum factorRational) <- evalSignedValue (fmap Sum . evalFactor) signedFactor
+  let factorInfLength = Q.fromBigFils factorRational
+  pure $ Q.InfFlexOfOrder factorInfLength infFlexOrder
 
 evalRule ::
   P.Rule ->

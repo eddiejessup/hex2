@@ -66,7 +66,7 @@ finaliseHList (H.Inter.B.List.HList elems@(elemInit :|> lastElem)) =
     finishingElems =
       Empty
         :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ Q.HexInt Q.tenK)
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue (Q.filStretchGlue Q.onePt))
+        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue (Q.filStretchGlue Q.bigFilLength))
         :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ Q.HexInt $ -Q.tenK)
 
 newtype Line = Line {unLine :: Seq H.Inter.B.List.HListElem}

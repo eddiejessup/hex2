@@ -1,8 +1,8 @@
 module Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Types where
 
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
-import Hex.Common.Quantity qualified as Q
 import Hexlude
 
 data BreakItem
@@ -17,7 +17,7 @@ hListElemToBreakItem :: (Maybe H.Inter.B.List.HListElem, H.Inter.B.List.HListEle
 hListElemToBreakItem = \case
   (Just x, H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue g), _)
     | not (hListElemisDiscardable x) ->
-      Just $ GlueBreak g
+        Just $ GlueBreak g
   (_, H.Inter.B.List.HVListElem (H.Inter.B.List.VListBaseElem (H.Inter.B.Box.ElemKern k)), Just (H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue _))) ->
     Just $ KernBreak k
   (_, H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty p), _) ->

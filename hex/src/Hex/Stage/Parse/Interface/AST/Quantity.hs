@@ -42,13 +42,16 @@ data CoercedInt
   deriving stock (Show, Eq, Generic)
 
 -- Length.
-type Length = Signed UnsignedLength
+
+newtype Length = Length {unLength :: Signed UnsignedLength}
+  deriving stock (Show, Eq, Generic)
 
 zeroLength :: Length
 zeroLength =
-  Signed [Q.Positive] $
-    NormalLengthAsULength $
-      LengthSemiConstant zeroFactor scaledPointUnit
+  Length $
+    Signed [Q.Positive] $
+      NormalLengthAsULength $
+        LengthSemiConstant zeroFactor scaledPointUnit
 
 data UnsignedLength
   = NormalLengthAsULength NormalLength
@@ -125,24 +128,26 @@ data Glue
   | InternalGlue (Signed InternalGlue)
   deriving stock (Show, Eq, Generic)
 
-data ExplicitGlueSpec = ExplicitGlueSpec {egLength :: Length, egStretch :: Maybe Flex, egShrink :: Maybe Flex}
+data ExplicitGlueSpec = ExplicitGlueSpec {egLength :: Length, egStretch :: Maybe PureFlex, egShrink :: Maybe PureFlex}
   deriving stock (Show, Eq, Generic)
 
-data Flex = FiniteFlex Length | FilFlex FilLength
+data PureFlex
+  = FinitePureFlex Length
+  | InfPureFlex InfFlexOfOrder
   deriving stock (Show, Eq, Generic)
 
-oneFilFlex, minusOneFilFlex, oneFillFlex :: Flex
-oneFilFlex = FilFlex oneFil
-minusOneFilFlex = FilFlex minusOneFil
-oneFillFlex = FilFlex oneFill
+oneFilFlex, minusOneFilFlex, oneFillFlex :: PureFlex
+oneFilFlex = InfPureFlex oneFil
+minusOneFilFlex = InfPureFlex minusOneFil
+oneFillFlex = InfPureFlex oneFill
 
-data FilLength = FilLength (Signed Factor) Q.InfLengthOrder
+data InfFlexOfOrder = InfFlexOfOrder (Signed Factor) Q.InfFlexOrder
   deriving stock (Show, Eq, Generic)
 
-oneFil, minusOneFil, oneFill :: FilLength
-oneFil = FilLength (Signed [Q.Positive] oneFactor) Q.Fil1
-minusOneFil = FilLength (Signed [Q.Negative] oneFactor) Q.Fil1
-oneFill = FilLength (Signed [Q.Positive] oneFactor) Q.Fil2
+oneFil, minusOneFil, oneFill :: InfFlexOfOrder
+oneFil = InfFlexOfOrder (Signed [Q.Positive] oneFactor) Q.Fil1
+minusOneFil = InfFlexOfOrder (Signed [Q.Negative] oneFactor) Q.Fil1
+oneFill = InfFlexOfOrder (Signed [Q.Positive] oneFactor) Q.Fil2
 
 -- Math glue.
 data MathGlue
@@ -150,7 +155,7 @@ data MathGlue
   | InternalMathGlue (Signed InternalMathGlue)
   deriving stock (Show, Eq, Generic)
 
-data MathFlex = FiniteMathFlex MathLength | FilMathFlex FilLength
+data MathFlex = FiniteMathFlex MathLength | FilMathFlex InfFlexOfOrder
   deriving stock (Show, Eq, Generic)
 
 type family QuantParam (a :: PT.QuantityType) where

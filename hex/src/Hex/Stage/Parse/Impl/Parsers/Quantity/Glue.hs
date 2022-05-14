@@ -52,12 +52,12 @@ parseGlue =
 parseExplicitGlueSpec :: MonadPrimTokenParse m => m AST.ExplicitGlueSpec
 parseExplicitGlueSpec = do
   len <- Par.parseLength
-  stretch <- parseFlex [Chr_ 'p', Chr_ 'l', Chr_ 'u', Chr_ 's']
-  shrink <- parseFlex [Chr_ 'm', Chr_ 'i', Chr_ 'n', Chr_ 'u', Chr_ 's']
+  stretch <- parsePureFlex [Chr_ 'p', Chr_ 'l', Chr_ 'u', Chr_ 's']
+  shrink <- parsePureFlex [Chr_ 'm', Chr_ 'i', Chr_ 'n', Chr_ 'u', Chr_ 's']
   pure $ AST.ExplicitGlueSpec len stretch shrink
 
-parseFlex :: MonadPrimTokenParse m => [Code.CharCode] -> m (Maybe AST.Flex)
-parseFlex s =
+parsePureFlex :: MonadPrimTokenParse m => [Code.CharCode] -> m (Maybe AST.PureFlex)
+parsePureFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
       Par.skipOptionalSpaces $> Nothing
@@ -66,12 +66,12 @@ parseFlex s =
     parsePresentFlex = do
       Par.skipKeyword s
       PC.choice
-        [ AST.FiniteFlex <$> Par.parseLength,
-          AST.FilFlex <$> parseFilLength
+        [ AST.FinitePureFlex <$> Par.parseLength,
+          AST.InfPureFlex <$> parseInfFlexOfOrder
         ]
 
-parseFilLength :: MonadPrimTokenParse m => m AST.FilLength
-parseFilLength = do
+parseInfFlexOfOrder :: MonadPrimTokenParse m => m AST.InfFlexOfOrder
+parseInfFlexOfOrder = do
   factor <- Par.parseSigned Par.parseFactor
   Par.skipKeyword [Chr_ 'f', Chr_ 'i']
   order <-
@@ -82,6 +82,7 @@ parseFilLength = do
       3 -> pure Q.Fil3
       _ -> empty
   Par.skipOptionalSpaces
-  pure $ AST.FilLength factor order
+  pure $ AST.InfFlexOfOrder factor order
   where
-    parseNrLs = Fold.length <$> PC.some (Par.skipSatisfied $ Par.matchNonActiveCharacterUncased (Chr_ 'l'))
+    parseNrLs =
+      Fold.length <$> PC.some (Par.skipSatisfied $ Par.matchNonActiveCharacterUncased (Chr_ 'l'))

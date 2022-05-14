@@ -16,17 +16,24 @@ newtype Length = Length {unLength :: Int}
   deriving (Semigroup, Monoid, Group) via (Sum Int)
   deriving (Scalable) via (HexInt)
 
+lengthFromHexInt :: HexInt -> Length
+lengthFromHexInt n = Length (n.unHexInt)
+
 -- | Scale a length by some integer. No rounding happens, ie no information is
 -- lost (assuming no overflow).
+
+-- | Scale an int by a rational number, rounding the result to the nearest
+-- integer.
+scaleIntByRational :: Rational -> Int -> Int
+scaleIntByRational d p =
+  let spRational = fromIntegral @Int @Rational p
+   in round @Rational @Int (d * spRational)
 
 -- | Scale a length by a rational number, rounding the result to the nearest
 -- integer.
 scaleLengthByRational :: Rational -> Length -> Length
-scaleLengthByRational d (Length p) =
-  let spRational = fromIntegral @Int @Rational p
-      resultRational = d * spRational
-      resultInt = round @Rational @Int resultRational
-   in Length resultInt
+scaleLengthByRational d p =
+  Length $ scaleIntByRational d p.unLength
 
 -- | Scale a length by a HexInt.
 scaleLength :: HexInt -> Length -> Length
@@ -47,7 +54,6 @@ lengthRatio a b =
 
 -- Concepts.
 ------------
-
 
 -- Physical units.
 -- ---------------
@@ -127,9 +133,12 @@ inScaledPoint u = case u of
 -- Display.
 -- --------
 
+fmtRational :: Fmt Rational
+fmtRational = F.later $ \r ->
+  F.bformat F.shortest (fromRational @Fixed.Centi $ r)
+
 fmtLengthMagnitude :: Fmt Length
-fmtLengthMagnitude = F.later $ \len ->
-  F.bformat F.shortest (fromRational @Fixed.Centi $ lengthInPoints len)
+fmtLengthMagnitude = F.accessed lengthInPoints fmtRational
   where
     lengthInPoints :: Length -> Rational
     lengthInPoints len = lengthRatio len pointLength
