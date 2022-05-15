@@ -302,27 +302,23 @@ handleModeIndependentCommand addVElem = \case
     pure DidNotSeeEndBox
   -- Start a new level of grouping.
   Eval.ChangeScope Q.Positive entryTrigger -> do
-    HSt.pushGroup (Just (HSt.Group.LocalStructurScopeGroup entryTrigger))
+    HSt.pushGroup (Just (HSt.Group.LocalStructureScopeGroup entryTrigger))
     pure DidNotSeeEndBox
   -- -- Do the appropriate finishing actions, undo the
   -- -- effects of non-global assignments, and leave the
   -- -- group. Maybe leave the current mode.
-  -- Eval.ChangeScope Eval.Negative exitTrig -> do
+  Eval.ChangeScope Q.Negative exitTrigger -> do
   --   prePopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
-  --   (group, poppedConfig) <- uses (typed @Config) popGroup >>= \case
-  --     Nothing ->
-  --       throwError $ injectTyped $ ConfigError "No group to leave"
-  --     Just v ->
-  --       pure v
-  --   assign' (typed @Config) poppedConfig
   --   postPopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
   --   when (prePopCurrentFontNr /= postPopCurrentFontNr) $ do
   --     addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection (fromMaybe 0 postPopCurrentFontNr)
+    HSt.popGroup exitTrigger
+    pure DidNotSeeEndBox
   --   case group of
   --     -- Undo the effects of non-global
   --     -- assignments without leaving the
   --     -- current mode.
-  --     ScopeGroup _ (LocalStructurScopeGroup entryTrig) -> do
+  --     ScopeGroup _ (LocalStructureScopeGroup entryTrig) -> do
   --       when (entryTrig /= exitTrig)
   --         $ throwError
   --         $ injectTyped

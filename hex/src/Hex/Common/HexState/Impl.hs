@@ -10,6 +10,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.C
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
+import Hex.Common.HexState.Impl.Scoped.Group qualified as Group
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes)
 import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as GroupScopes
 import Hex.Common.HexState.Impl.Scoped.Parameter qualified as Sc.P
@@ -18,7 +19,8 @@ import Hex.Common.HexState.Impl.Scoped.Symbol qualified as Sc.Sym
 import Hex.Common.HexState.Impl.Type
 import Hex.Common.HexState.Interface
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
-import Hex.Common.HexState.Interface.Grouped qualified as Group
+import Hex.Common.HexState.Interface.Grouped qualified as Grouped
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as Reg
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
@@ -37,6 +39,7 @@ data HexStateError
   | BadPath Text
   | CharacterCodeNotFound
   | PoppedEmptyGroups
+  | UnmatchedLocalStructureTrigger
   deriving stock (Show, Generic)
 
 fmtHexStateError :: Fmt HexStateError
@@ -178,15 +181,20 @@ instance
     assign' (typed @HexState % #afterAssignmentToken) Nothing
     pure v
 
-  pushGroup :: Maybe Group.ScopedGroupType -> MonadHexStateImplT m ()
+  pushGroup :: Maybe Grouped.ScopedGroupType -> MonadHexStateImplT m ()
   pushGroup mayScopedGroupType = modifyGroupScopes $ GroupScopes.pushGroup mayScopedGroupType
 
-  popGroup :: MonadHexStateImplT m ()
-  popGroup = do
+  popGroup :: HSt.Grouped.LocalStructureTrigger -> MonadHexStateImplT m ()
+  popGroup exitTrigger = do
     use (typed @HexState % #groupScopes % to GroupScopes.popGroup) >>= \case
       Nothing -> throwError (injectTyped PoppedEmptyGroups)
-      Just (_poppedGroup, newGroupScopes) -> do
-        assign' (typed @HexState % #groupScopes) newGroupScopes
+      Just (poppedGroup, newGroupScopes) -> do
+        case poppedGroup of
+          Group.ScopeGroup (Group.GroupScope _scope (Grouped.LocalStructureScopeGroup entryTrigger))
+            | entryTrigger == exitTrigger ->
+                assign' (typed @HexState % #groupScopes) newGroupScopes
+          _ ->
+            throwError (injectTyped (UnmatchedLocalStructureTrigger))
 
 modifyGroupScopes :: (MonadState st m, HasType HexState st) => (GroupScopes -> GroupScopes) -> m ()
 modifyGroupScopes = modifying' (typed @HexState % #groupScopes)

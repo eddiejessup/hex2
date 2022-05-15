@@ -41,7 +41,7 @@ evalModeIndepCmd = \case
   P.WriteToStream streamWriteCommand -> E.WriteToStream <$> evalStreamWriteCommand streamWriteCommand
   P.DoSpecial expandedBalancedText -> pure $ E.DoSpecial expandedBalancedText
   P.AddBox boxPlacement box -> pure $ E.AddBox boxPlacement box
-  P.ChangeScope sign commandTrigger -> pure $ E.ChangeScope sign commandTrigger
+  P.ChangeScope sign localStructureTrigger -> pure $ E.ChangeScope sign localStructureTrigger
   P.DebugShowState -> pure E.DebugShowState
 
 evalStreamWriteCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.StreamWriteCommand -> m E.StreamWriteCommand

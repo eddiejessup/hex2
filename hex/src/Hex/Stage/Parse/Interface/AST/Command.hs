@@ -3,6 +3,8 @@
 module Hex.Stage.Parse.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
@@ -10,7 +12,6 @@ import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Quantity
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Parameter as HSt.Param
 
 data Command
   = ShowToken Lex.LexToken
@@ -47,7 +48,7 @@ data ModeIndependentCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial ST.ExpandedBalancedText
   | AddBox BoxPlacement Box
-  | ChangeScope Q.Sign CommandTrigger
+  | ChangeScope Q.Sign HSt.Grouped.LocalStructureTrigger
   | DebugShowState
   deriving stock (Show, Eq, Generic)
 
@@ -204,9 +205,6 @@ data FetchedBoxRef = FetchedBoxRef HexInt PT.BoxFetchMode
   deriving stock (Show, Eq, Generic)
 
 data LeadersSpec = LeadersSpec PT.LeadersType BoxOrRule Glue
-  deriving stock (Show, Eq, Generic)
-
-data CommandTrigger = CharCommandTrigger | CSCommandTrigger
   deriving stock (Show, Eq, Generic)
 
 data InternalQuantity

@@ -55,7 +55,7 @@ class Monad m => MonadHexState m where
 
   pushGroup :: Maybe Grouped.ScopedGroupType -> m ()
 
-  popGroup :: m ()
+  popGroup :: Grouped.LocalStructureTrigger -> m ()
 
 instance MonadHexState m => MonadHexState (StateT a m) where
   getParameterValue x = lift $ getParameterValue x
@@ -77,7 +77,7 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   setAfterAssignmentToken x = lift $ setAfterAssignmentToken x
   setSymbol x y z = lift $ setSymbol x y z
   pushGroup x = lift $ pushGroup x
-  popGroup = lift popGroup
+  popGroup x = lift $ popGroup x
 
 getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
 getParIndentBox = do

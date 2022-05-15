@@ -3,6 +3,7 @@
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
@@ -84,7 +85,7 @@ data ModeIndependentCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial ST.ExpandedBalancedText
   | AddBox Uneval.BoxPlacement Uneval.Box
-  | ChangeScope Q.Sign Uneval.CommandTrigger
+  | ChangeScope Q.Sign HSt.Group.LocalStructureTrigger
   | DebugShowState
   deriving stock (Show, Eq, Generic)
 

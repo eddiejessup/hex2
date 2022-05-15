@@ -2,14 +2,13 @@ module Hex.Stage.Parse.Impl.Parsers.Command where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as H.Tok
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getAnyPrimitiveToken)
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
-import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Stream qualified as Par
@@ -23,94 +22,94 @@ import Hexlude
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
   getAnyPrimitiveToken >>= \case
-    H.Tok.DebugShowState ->
+    PT.DebugShowState ->
       pure $ AST.ModeIndependentCommand $ AST.DebugShowState
-    H.Tok.ShowTokenTok ->
+    PT.ShowTokenTok ->
       AST.ShowToken <$> getUnexpandedToken
-    H.Tok.ShowBoxTok ->
+    PT.ShowBoxTok ->
       AST.ShowBox <$> Par.parseInt
-    H.Tok.ShowListsTok ->
+    PT.ShowListsTok ->
       pure AST.ShowLists
-    H.Tok.ShowTheInternalQuantityTok ->
-      AST.ShowTheInternalQuantity <$> Par.parseHeaded headToParseInternalQuantity
-    H.Tok.ShipOutTok ->
-      AST.ShipOut <$> Par.parseHeaded Par.headToParseBox
-    H.Tok.MarkTok ->
+    PT.ShowTheInternalQuantityTok ->
+      AST.ShowTheInternalQuantity <$> parseHeaded headToParseInternalQuantity
+    PT.ShipOutTok ->
+      AST.ShipOut <$> parseHeaded Par.headToParseBox
+    PT.MarkTok ->
       AST.AddMark <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
-    H.Tok.StartParagraphTok _indent ->
+    PT.StartParagraphTok _indent ->
       pure $ AST.StartParagraph _indent
-    H.Tok.EndParagraphTok ->
+    PT.EndParagraphTok ->
       pure AST.EndParagraph
     t
-      | Par.primTokenHasCategory Code.Space t ->
+      | primTokenHasCategory Code.Space t ->
           pure AST.AddSpace
-      | Par.primTokenHasCategory Code.BeginGroup t ->
-          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Positive AST.CharCommandTrigger
-      | Par.primTokenHasCategory Code.EndGroup t ->
-          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Negative AST.CharCommandTrigger
-      | Par.primTokenHasCategory Code.MathShift t ->
+      | primTokenHasCategory Code.BeginGroup t ->
+          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Positive HSt.Group.LocalStructureCharTrigger
+      | primTokenHasCategory Code.EndGroup t ->
+          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Negative HSt.Group.LocalStructureCharTrigger
+      | primTokenHasCategory Code.MathShift t ->
           pure $ AST.HModeCommand AST.EnterMathMode
-    H.Tok.RelaxTok ->
+    PT.RelaxTok ->
       pure $ AST.ModeIndependentCommand AST.Relax
-    H.Tok.IgnoreSpacesTok -> do
-      Par.skipOptionalSpaces
+    PT.IgnoreSpacesTok -> do
+      skipOptionalSpaces
       pure $ AST.ModeIndependentCommand AST.IgnoreSpaces
-    H.Tok.PenaltyTok ->
+    PT.PenaltyTok ->
       AST.ModeIndependentCommand . AST.AddPenalty <$> Par.parseInt
-    H.Tok.KernTok ->
+    PT.KernTok ->
       AST.ModeIndependentCommand . AST.AddKern <$> Par.parseLength
-    H.Tok.MathKernTok ->
+    PT.MathKernTok ->
       AST.ModeIndependentCommand . AST.AddMathKern <$> Par.parseMathLength
-    H.Tok.SetAfterAssignmentTokenTok ->
+    PT.SetAfterAssignmentTokenTok ->
       AST.ModeIndependentCommand . AST.SetAfterAssignmentToken <$> getUnexpandedToken
-    H.Tok.AddToAfterGroupTokensTok ->
+    PT.AddToAfterGroupTokensTok ->
       AST.ModeIndependentCommand . AST.AddToAfterGroupTokens <$> getUnexpandedToken
-    H.Tok.CloseInputTok ->
+    PT.CloseInputTok ->
       AST.ModeIndependentCommand . AST.ModifyFileStream . AST.FileStreamModificationCommand AST.FileInput AST.Close <$> Par.parseInt
-    H.Tok.DoSpecialTok ->
+    PT.DoSpecialTok ->
       AST.ModeIndependentCommand . AST.DoSpecial <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
-    H.Tok.RemoveItemTok i ->
+    PT.RemoveItemTok i ->
       pure $ AST.ModeIndependentCommand $ AST.RemoveItem i
-    H.Tok.MessageTok str ->
+    PT.MessageTok str ->
       AST.ModeIndependentCommand . AST.WriteMessage . AST.MessageWriteCommand str <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
-    H.Tok.OpenInputTok ->
+    PT.OpenInputTok ->
       AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.parseOpenFileStream AST.FileInput
-    H.Tok.ImmediateTok -> do
+    PT.ImmediateTok -> do
       AST.ModeIndependentCommand
-        <$> Par.parseHeaded
-          ( Par.choiceFlap
+        <$> parseHeaded
+          ( choiceFlap
               [ fmap AST.ModifyFileStream . Par.headToParseOpenOutput AST.Immediate,
                 fmap AST.ModifyFileStream . Par.headToParseCloseOutput AST.Immediate,
                 fmap AST.WriteToStream . Par.headToParseWriteToStream AST.Immediate
               ]
           )
-    H.Tok.ModedCommand axis (H.Tok.ShiftedBoxTok direction) -> do
+    PT.ModedCommand axis (PT.ShiftedBoxTok direction) -> do
       placement <- AST.ShiftedPlacement axis direction <$> Par.parseLength
-      AST.ModeIndependentCommand . AST.AddBox placement <$> Par.parseHeaded Par.headToParseBox
+      AST.ModeIndependentCommand . AST.AddBox placement <$> parseHeaded Par.headToParseBox
     -- Change scope.
-    H.Tok.ChangeScopeCSTok sign ->
-      pure $ AST.ModeIndependentCommand $ AST.ChangeScope sign AST.CSCommandTrigger
-    H.Tok.ControlSpaceTok ->
+    PT.ChangeScopeCSTok sign ->
+      pure $ AST.ModeIndependentCommand $ AST.ChangeScope sign HSt.Group.LocalStructureCSTrigger
+    PT.ControlSpaceTok ->
       pure $ AST.HModeCommand AST.AddControlSpace
-    H.Tok.ItalicCorrectionTok ->
+    PT.ItalicCorrectionTok ->
       pure $ AST.HModeCommand AST.AddItalicCorrection
-    H.Tok.DiscretionaryHyphenTok ->
+    PT.DiscretionaryHyphenTok ->
       pure $ AST.HModeCommand AST.AddDiscretionaryHyphen
-    H.Tok.AccentTok -> do
+    PT.AccentTok -> do
       nr <- Par.parseInt
       assignments <- PC.many Par.parseNonSetBoxAssignment
-      chrTok <- PC.optional (Par.parseHeaded headToParseCharCodeRef)
+      chrTok <- PC.optional (parseHeaded headToParseCharCodeRef)
       pure $ AST.HModeCommand $ AST.AddAccentedCharacter nr assignments chrTok
-    H.Tok.DiscretionaryTextTok -> do
+    PT.DiscretionaryTextTok -> do
       dText <-
         AST.DiscretionaryText
           <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
           <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
           <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
       pure $ AST.HModeCommand $ AST.AddDiscretionaryText dText
-    H.Tok.EndTok ->
+    PT.EndTok ->
       pure $ AST.VModeCommand AST.End
-    H.Tok.DumpTok ->
+    PT.DumpTok ->
       pure $ AST.VModeCommand AST.Dump
     t ->
       PC.choice
@@ -130,7 +129,7 @@ parseCommand =
           AST.VModeCommand . AST.AddUnwrappedFetchedVBox <$> Par.headToParseFetchedBoxRef Q.Vertical t
         ]
 
-headToParseInternalQuantity :: MonadPrimTokenParse m => H.Tok.PrimitiveToken -> m AST.InternalQuantity
+headToParseInternalQuantity :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.InternalQuantity
 headToParseInternalQuantity =
   choiceFlap
     [ fmap AST.InternalIntQuantity <$> Par.headToParseInternalInt,
@@ -141,15 +140,15 @@ headToParseInternalQuantity =
       fmap AST.TokenListVariableQuantity <$> Par.headToParseTokenListVariable
     ]
 
-headToParseCharCodeRef :: MonadPrimTokenParse m => H.Tok.PrimitiveToken -> m AST.CharCodeRef
+headToParseCharCodeRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.CharCodeRef
 headToParseCharCodeRef = \case
-  T.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Letter)) ->
+  PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Letter)) ->
     pure $ AST.CharRef c
-  T.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Other)) ->
+  PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Other)) ->
     pure $ AST.CharRef c
-  T.IntRefTok T.CharQuantity i ->
+  PT.IntRefTok PT.CharQuantity i ->
     pure $ AST.CharTokenRef i
-  T.ControlCharTok ->
+  PT.ControlCharTok ->
     AST.CharCodeNrRef <$> Par.parseCharCodeInt
   _ ->
     empty
