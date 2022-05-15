@@ -1,13 +1,13 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+
 module Hex.Common.HexState.Interface where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
-import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue (..))
-import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as Param
+import Hex.Common.HexState.Interface.Register qualified as Reg
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Variable qualified as Var
@@ -20,11 +20,11 @@ import Hexlude
 class Monad m => MonadHexState m where
   getParameterValue :: Param.QuantParam q -> m (Var.QuantVariableTarget q)
 
-  setParameterValue :: Param.QuantParam q -> (Var.QuantVariableTarget q) -> PT.ScopeFlag -> m ()
+  setParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> PT.ScopeFlag -> m ()
 
-  getRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> m r
+  getRegisterValue :: Reg.QuantRegisterLocation q -> m (Var.QuantVariableTarget q)
 
-  setRegisterValue :: ScopedHexRegisterValue r => Scope.RegisterLocation -> r -> PT.ScopeFlag -> m ()
+  setRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> PT.ScopeFlag -> m ()
 
   getSpecialIntParameter :: Param.SpecialIntParameter -> m Q.HexInt
 
@@ -96,7 +96,7 @@ getParIndentBox = do
 
 modifyParameterValue ::
   forall (q :: Q.QuantityType) m.
-  (MonadHexState m) =>
+  MonadHexState m =>
   Param.QuantParam q ->
   ( Var.QuantVariableTarget q ->
     Var.QuantVariableTarget q
@@ -108,9 +108,11 @@ modifyParameterValue p f scopeFlag = do
   setParameterValue p (f currentVal) scopeFlag
 
 modifyRegisterValue ::
-  (MonadHexState m, ScopedHexRegisterValue r) =>
-  Scope.RegisterLocation ->
-  (r -> r) ->
+  MonadHexState m =>
+  Reg.QuantRegisterLocation q ->
+  ( Var.QuantVariableTarget q ->
+    Var.QuantVariableTarget q
+  ) ->
   PT.ScopeFlag ->
   m ()
 modifyRegisterValue loc f scopeFlag = do
@@ -139,29 +141,20 @@ scaleParameterValue p scaleDirection arg scopeFlag =
   modifyParameterValue @q p (Q.scaleInDirection scaleDirection arg) scopeFlag
 
 advanceRegisterValue ::
-  (MonadHexState m, ScopedHexRegisterValue r) =>
-  Scope.RegisterLocation ->
-  r ->
+  (MonadHexState m, Semigroup (Var.QuantVariableTarget q)) =>
+  Reg.QuantRegisterLocation q ->
+  Var.QuantVariableTarget q ->
   PT.ScopeFlag ->
   m ()
 advanceRegisterValue loc plusVal =
   modifyRegisterValue loc (\v -> v <> plusVal)
 
 scaleRegisterValue ::
-  (MonadHexState m) =>
-  PT.NumericQuantityType ->
-  Scope.RegisterLocation ->
+  (MonadHexState m, Q.Scalable (Var.QuantVariableTarget q)) =>
+  Reg.QuantRegisterLocation q ->
   Q.VDirection ->
   Q.HexInt ->
   PT.ScopeFlag ->
   m ()
-scaleRegisterValue qType loc scaleDirection arg scopeFlag =
-  case qType of
-    PT.IntNumericQuantity ->
-      modifyRegisterValue loc (Q.scaleInDirection @Q.HexInt scaleDirection arg) scopeFlag
-    PT.LengthNumericQuantity ->
-      modifyRegisterValue loc (Q.scaleInDirection @Q.Length scaleDirection arg) scopeFlag
-    PT.GlueNumericQuantity ->
-      modifyRegisterValue loc (Q.scaleInDirection @Q.Glue scaleDirection arg) scopeFlag
-    PT.MathGlueNumericQuantity ->
-      modifyRegisterValue loc (Q.scaleInDirection @Q.MathGlue scaleDirection arg) scopeFlag
+scaleRegisterValue qLoc scaleDirection arg scopeFlag =
+  modifyRegisterValue qLoc (Q.scaleInDirection scaleDirection arg) scopeFlag

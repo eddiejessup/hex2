@@ -236,25 +236,25 @@ handleModeIndependentCommand addVElem = \case
                   HSt.Var.ParamVar param ->
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
                   HSt.Var.RegisterVar registerLoc ->
-                    HSt.scaleRegisterValue PT.IntNumericQuantity registerLoc scaleDirection scaleVal scope
+                    HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
               Eval.LengthNumericVariable var ->
                 case var of
                   HSt.Var.ParamVar param ->
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
                   HSt.Var.RegisterVar registerLoc ->
-                    HSt.scaleRegisterValue PT.LengthNumericQuantity registerLoc scaleDirection scaleVal scope
+                    HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
               Eval.GlueNumericVariable var ->
                 case var of
                   HSt.Var.ParamVar param ->
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
                   HSt.Var.RegisterVar registerLoc ->
-                    HSt.scaleRegisterValue PT.GlueNumericQuantity registerLoc scaleDirection scaleVal scope
+                    HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
               Eval.MathGlueNumericVariable var ->
                 case var of
                   HSt.Var.ParamVar param ->
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
                   HSt.Var.RegisterVar registerLoc ->
-                    HSt.scaleRegisterValue PT.MathGlueNumericQuantity registerLoc scaleDirection scaleVal scope
+                    HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
       --   Eval.SelectFont fNr ->
       --     do
       --       selectFont fNr scope

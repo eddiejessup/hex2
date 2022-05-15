@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 module Hex.Common.HexState.Impl.Scoped.Scope where
 
 import Data.Map.Strict qualified as Map
@@ -10,17 +11,13 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hexlude
-
-newtype RegisterLocation = RegisterLocation {unRegisterLocation :: Q.HexInt}
-  deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord)
-
-fmtRegisterLocation :: Fmt RegisterLocation
-fmtRegisterLocation = F.squared (F.accessed (.unRegisterLocation) Q.fmtHexInt)
+import Hex.Common.HexState.Interface.Register
+import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 
 type CharCodeMap v = Map Code.CharCode v
 
-type RegisterMap v = Map RegisterLocation v
+type family RegisterMap (q :: Q.QuantityType) where
+  RegisterMap q = Map RegisterLocation (QuantVariableTarget q)
 
 data Scope = Scope
   { -- Fonts.
@@ -42,10 +39,10 @@ data Scope = Scope
     mathGlueParameters :: Map Param.MathGlueParameter Q.MathGlue,
     --   tokenListParameters :: Map TokenListParameter BalancedText
     -- Registers.
-    intRegister :: RegisterMap Q.HexInt,
-    lengthRegister :: RegisterMap Q.Length,
-    glueRegister :: RegisterMap Q.Glue,
-    mathGlueRegister :: RegisterMap Q.MathGlue
+    intRegister :: RegisterMap 'Q.IntQuantity,
+    lengthRegister :: RegisterMap 'Q.LengthQuantity,
+    glueRegister :: RegisterMap 'Q.GlueQuantity,
+    mathGlueRegister :: RegisterMap 'Q.MathGlueQuantity
     --   tokenListRegister :: RegisterMap BalancedText,
     --   boxRegister :: RegisterMap (B.Box B.BoxContents),
   }

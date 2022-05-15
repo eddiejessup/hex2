@@ -2,10 +2,11 @@
 
 module Hex.Stage.Parse.Interface.AST.Quantity where
 
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hexlude
+import qualified Hex.Common.HexState.Interface.Register as HSt.Reg
 
 data Signed a = Signed [Q.Sign] a
   deriving stock (Show, Eq, Generic)
@@ -160,16 +161,18 @@ data MathFlex = FiniteMathFlex MathLength | FilMathFlex InfFlexOfOrder
   deriving stock (Show, Eq, Generic)
 
 -- Internal quantities.
-data QuantVariableAST (a :: Q.QuantityType)
-  = ParamVar (HSt.Param.QuantParam a)
-  | RegisterVar RegisterLocation
+data QuantVariableAST (q :: Q.QuantityType)
+  = ParamVar (HSt.Param.QuantParam q)
+  | RegisterVar (QuantRegisterLocation q)
   deriving stock (Generic)
 
-deriving stock instance Show (HSt.Param.QuantParam a) => Show (QuantVariableAST a)
+deriving stock instance Show (HSt.Param.QuantParam q) => Show (QuantVariableAST q)
 
-deriving stock instance Eq (HSt.Param.QuantParam a) => Eq (QuantVariableAST a)
+deriving stock instance Eq (HSt.Param.QuantParam q) => Eq (QuantVariableAST q)
 
-data RegisterLocation = ExplicitRegisterLocation HexInt | InternalRegisterLocation Q.HexInt
+data QuantRegisterLocation (q :: Q.QuantityType)
+  = ExplicitRegisterLocation (HSt.Reg.QuantRegisterType q) HexInt
+  | InternalRegisterLocation (HSt.Reg.QuantRegisterLocation q)
   deriving stock (Show, Eq, Generic)
 
 data InternalInt

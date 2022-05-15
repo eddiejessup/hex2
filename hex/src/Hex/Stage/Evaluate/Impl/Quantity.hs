@@ -3,11 +3,11 @@ module Hex.Stage.Evaluate.Impl.Quantity where
 import Data.List qualified as List
 import Data.Ratio qualified as Ratio
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Impl.Scoped.Register qualified as Reg
-import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation (..))
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
+import Hex.Common.HexState.Interface.Register qualified as Hst.Reg
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.TokenList (BalancedText)
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
@@ -105,8 +105,7 @@ evalQuantVariableAsVariable = \case
 evalQuantVariableAsTarget ::
   ( MonadError e m,
     AsType Eval.EvaluationError e,
-    HSt.MonadHexState m,
-    Reg.ScopedHexRegisterValue (HSt.Var.QuantVariableTarget a)
+    HSt.MonadHexState m
   ) =>
   P.QuantVariableAST a ->
   m (HSt.Var.QuantVariableTarget a)
@@ -115,10 +114,18 @@ evalQuantVariableAsTarget =
     HSt.Var.ParamVar p -> HSt.getParameterValue p
     HSt.Var.RegisterVar loc -> HSt.getRegisterValue loc
 
-evalRegisterLocationAsLocation :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.RegisterLocation -> m RegisterLocation
+evalRegisterLocationAsLocation ::
+  ( MonadError e m,
+    AsType Eval.EvaluationError e,
+    HSt.MonadHexState m
+  ) =>
+  P.QuantRegisterLocation q ->
+  m (HSt.Reg.QuantRegisterLocation q)
 evalRegisterLocationAsLocation = \case
-  P.ExplicitRegisterLocation hexInt -> RegisterLocation <$> evalInt hexInt
-  P.InternalRegisterLocation loc -> pure $ RegisterLocation loc
+  P.ExplicitRegisterLocation regType n ->
+    Hst.Reg.QuantRegisterLocation regType . Hst.Reg.RegisterLocation <$> evalInt n
+  P.InternalRegisterLocation loc ->
+    pure loc
 
 evalFontCharRef :: P.FontCharRef -> m Q.HexInt
 evalFontCharRef = notImplemented "evalFontCharRef"

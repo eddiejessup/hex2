@@ -14,14 +14,13 @@ import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes)
 import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as GroupScopes
 import Hex.Common.HexState.Impl.Scoped.Parameter qualified as Sc.P
-import Hex.Common.HexState.Impl.Scoped.Register (ScopedHexRegisterValue)
 import Hex.Common.HexState.Impl.Scoped.Register qualified as Sc.R
-import Hex.Common.HexState.Impl.Scoped.Scope (RegisterLocation)
 import Hex.Common.HexState.Impl.Scoped.Symbol qualified as Sc.Sym
 import Hex.Common.HexState.Impl.Type
 import Hex.Common.HexState.Interface
 import Hex.Common.HexState.Interface.Grouped qualified as Group
 import Hex.Common.HexState.Interface.Parameter qualified as Param
+import Hex.Common.HexState.Interface.Register qualified as Reg
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Variable qualified as Var
@@ -78,10 +77,10 @@ instance
   setParameterValue param value scopeFlag =
     modifyGroupScopes $ Sc.P.setParameterValue param value scopeFlag
 
-  getRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> MonadHexStateImplT m r
+  getRegisterValue :: Reg.QuantRegisterLocation q -> MonadHexStateImplT m (Var.QuantVariableTarget q)
   getRegisterValue r = getGroupScopesProperty (Sc.R.localRegisterValue r)
 
-  setRegisterValue :: ScopedHexRegisterValue r => RegisterLocation -> r -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setRegisterValue :: Reg.QuantRegisterLocation q -> (Var.QuantVariableTarget q) -> PT.ScopeFlag -> MonadHexStateImplT m ()
   setRegisterValue param value scopeFlag = do
     modifyGroupScopes $ Sc.R.setRegisterValue param value scopeFlag
 
