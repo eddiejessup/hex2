@@ -27,7 +27,8 @@ fmtParseUnexpectedError =
   "ParseUnexpectedError: " |%| F.accessed (.err) F.shown
 
 data ParseUnexpectedErrorCause
-  = ParseExplicitFailure
+  = ParseDefaultFailure
+  | ParseExplicitFailure Text
   | SawUnexpectedPrimitiveToken UnexpectedPrimitiveToken
   | SawUnexpectedLexToken UnexpectedLexToken
   deriving stock (Show, Eq, Generic)
@@ -61,6 +62,9 @@ class (Monad m, Alternative m, MonadPlus m) => MonadPrimTokenParse m where
   satisfyThen :: (PT.PrimitiveToken -> Maybe a) -> m a
 
   parseError :: ParseUnexpectedErrorCause -> m a
+
+parseFailure :: MonadPrimTokenParse m => Text -> m a
+parseFailure = parseError . ParseExplicitFailure
 
 getAnyPrimitiveToken :: MonadPrimTokenParse m => m PT.PrimitiveToken
 getAnyPrimitiveToken =

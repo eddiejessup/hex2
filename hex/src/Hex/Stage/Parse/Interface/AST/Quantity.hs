@@ -2,12 +2,12 @@
 
 module Hex.Stage.Parse.Interface.AST.Quantity where
 
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Register as HSt.Reg
-import qualified Hex.Common.Codes as Code
 
 data Signed a = Signed [Q.Sign] a
   deriving stock (Show, Eq, Generic)
@@ -106,7 +106,9 @@ newtype CoercedLength = InternalGlueAsLength InternalGlue
   deriving stock (Show, Eq, Generic)
 
 -- Math-length.
-type MathLength = Signed UnsignedMathLength
+
+newtype MathLength = MathLength {unMathLength :: Signed UnsignedMathLength}
+  deriving stock (Show, Eq, Generic)
 
 data UnsignedMathLength
   = NormalMathLengthAsUMathLength NormalMathLength
@@ -119,7 +121,9 @@ data NormalMathLength
     MathLengthSemiConstant Factor MathUnit
   deriving stock (Show, Eq, Generic)
 
-data MathUnit = Mu | InternalMathGlueAsUnit InternalMathGlue
+data MathUnit
+  = Mu
+  | InternalMathGlueAsUnit InternalMathGlue
   deriving stock (Show, Eq, Generic)
 
 newtype CoercedMathLength = InternalMathGlueAsMathLength InternalMathGlue
@@ -154,11 +158,13 @@ oneFill = InfFlexOfOrder (Signed [Q.Positive] oneFactor) Q.Fil2
 
 -- Math glue.
 data MathGlue
-  = ExplicitMathGlue MathLength (Maybe MathFlex) (Maybe MathFlex)
+  = ExplicitMathGlue MathLength (Maybe PureMathFlex) (Maybe PureMathFlex)
   | InternalMathGlue (Signed InternalMathGlue)
   deriving stock (Show, Eq, Generic)
 
-data MathFlex = FiniteMathFlex MathLength | FilMathFlex InfFlexOfOrder
+data PureMathFlex
+  = FinitePureMathFlex MathLength
+  | InfPureMathFlex InfFlexOfOrder
   deriving stock (Show, Eq, Generic)
 
 -- Internal quantities.

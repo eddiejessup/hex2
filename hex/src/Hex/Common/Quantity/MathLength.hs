@@ -1,14 +1,24 @@
 module Hex.Common.Quantity.MathLength where
 
+import Formatting qualified as F
+import Hex.Common.Quantity.Length (scaleIntByRational)
 import Hex.Common.Quantity.Number
 import Hexlude
-import qualified Formatting as F
 
 newtype MathLength = MathLength {unMathLength :: Int}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
   deriving (Scalable) via (HexInt)
+
+-- Verified empirically, by observing that the smallest usable 'muskip' is
+-- ~2^-16 mu.
+muLength :: MathLength
+muLength = MathLength (2 ^ (16 :: Int))
+
+scaleMathLengthByRational :: Rational -> MathLength -> MathLength
+scaleMathLengthByRational d p =
+  MathLength $ scaleIntByRational d p.unMathLength
 
 zeroMathLength :: MathLength
 zeroMathLength = mempty

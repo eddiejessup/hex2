@@ -2,15 +2,15 @@ module Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
-import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
+import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
-import Hex.Common.Parse.Interface (MonadPrimTokenParse(..))
 
 parseMathLength :: MonadPrimTokenParse m => m AST.MathLength
-parseMathLength = Par.parseSigned parseUnsignedMathLength
+parseMathLength = AST.MathLength <$> Par.parseSigned parseUnsignedMathLength
 
 parseUnsignedMathLength :: MonadPrimTokenParse m => m AST.UnsignedMathLength
 parseUnsignedMathLength =

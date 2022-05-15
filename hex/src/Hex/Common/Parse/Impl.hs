@@ -82,7 +82,7 @@ instance MonadTrans ParseT where
 -- therefore specialised to the particular Hex case.
 -- (We are implementing a backtracking parser.)
 instance (Lex.MonadLexTokenSource m, MonadHexState m) => Alternative (ParseT m) where
-  empty = parseErrorImpl ParseExplicitFailure
+  empty = parseErrorImpl ParseDefaultFailure
 
   (<|>) :: ParseT m a -> ParseT m a -> ParseT m a
   a <|> b = do

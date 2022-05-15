@@ -96,7 +96,6 @@ handleModeIndependentCommand addVElem = \case
         writeToOutput (FileStream n) txt
       Eval.DeferredWriteText _ ->
         notImplemented "Write to stream: DeferredWriteText"
-
     pure DidNotSeeEndBox
   Eval.Relax ->
     pure DidNotSeeEndBox
@@ -188,12 +187,12 @@ handleModeIndependentCommand addVElem = \case
                 HSt.setParameterValue glueParam tgt scope
               HSt.Var.RegisterVar registerLoc ->
                 HSt.setRegisterValue registerLoc tgt scope
-          Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment var _tgt) ->
+          Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
             case var of
-              HSt.Var.ParamVar _mathGlueParam ->
-                notImplemented "MathGlueVariableAssignment, parameter-variable"
-              HSt.Var.RegisterVar _registerLoc ->
-                notImplemented "MathGlueVariableAssignment, register-variable"
+              HSt.Var.ParamVar mathGlueParam ->
+                HSt.setParameterValue mathGlueParam tgt scope
+              HSt.Var.RegisterVar registerLoc ->
+                HSt.setRegisterValue registerLoc tgt scope
           Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment var _tgt) ->
             case var of
               HSt.Var.ParamVar _tokenListParam ->

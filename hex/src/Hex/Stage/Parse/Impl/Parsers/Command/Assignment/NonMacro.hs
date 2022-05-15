@@ -4,13 +4,14 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes qualified as Code
 -- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Stream qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
@@ -114,18 +115,18 @@ headToParseModifyVariable = \case
         do
           var <- Par.parseHeaded Par.headToParseGlueVariable
           skipOptionalBy
-          AST.AdvanceGlueVariable var <$> Par.parseGlue
-          -- , do
-          --     var <- Par.parseHeaded Par.headToParseMathGlueVariable
-          --     skipOptionalBy
-          --     AST.AdvanceMathGlueVariable var <$> Par.parseMathGlue
+          AST.AdvanceGlueVariable var <$> Par.parseGlue,
+        do
+          var <- Par.parseHeaded Par.headToParseMathGlueVariable
+          skipOptionalBy
+          AST.AdvanceMathGlueVariable var <$> Par.parseMathGlue
       ]
   T.ScaleVarTok d -> do
     var <- parseNumericVariable
     skipOptionalBy
     AST.ScaleVariable d var <$> Par.parseInt
   _ ->
-    empty
+    parseFailure "headToParseModifyVariable"
 
 parseNumericVariable :: MonadPrimTokenParse m => m AST.NumericVariable
 parseNumericVariable =
@@ -155,9 +156,9 @@ headToParseVariableAssignment t =
       do
         (var, tgt) <- Par.parseXEqualsY (Par.headToParseGlueVariable t) Par.parseGlue
         pure $ AST.GlueVariableAssignment $ AST.QuantVariableAssignment var tgt,
-      -- do
-      --   (var, tgt) <- Par.parseXEqualsY (Par.headToParseMathGlueVariable t) Par.parseMathGlue
-      --   pure $ AST.MathGlueVariableAssignment $ AST.QuantVariableAssignment var tgt,
+      do
+        (var, tgt) <- Par.parseXEqualsY (Par.headToParseMathGlueVariable t) Par.parseMathGlue
+        pure $ AST.MathGlueVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
         (var, tgt) <- Par.parseXEqualsY (Par.headToParseTokenListVariable t) parseTokenListTarget
         pure $ AST.TokenListVariableAssignment $ AST.QuantVariableAssignment var tgt,

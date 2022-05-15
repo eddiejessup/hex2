@@ -214,10 +214,11 @@ evalExplicitGlueSpec P.ExplicitGlueSpec {egLength, egStretch, egShrink} = do
   gStretch <- evalMayFlex egStretch
   gShrink <- evalMayFlex egShrink
   pure $ Q.Glue {gDimen, gStretch, gShrink}
-  where
-    evalMayFlex = \case
-      Nothing -> pure Q.zeroFlex
-      Just flex -> evalPureFlex flex
+
+evalMayFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => Maybe P.PureFlex -> m Q.PureFlex
+evalMayFlex = \case
+  Nothing -> pure Q.zeroFlex
+  Just flex -> evalPureFlex flex
 
 evalPureFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.PureFlex -> m Q.PureFlex
 evalPureFlex = \case
@@ -294,11 +295,49 @@ noteRange x =
     (injectTyped ValueNotInRange)
     (Code.fromHexInt x)
 
-evalMathLength :: P.MathLength -> m Q.MathLength
-evalMathLength = notImplemented "evalMathLength"
+evalMathLength :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.MathLength -> m Q.MathLength
+evalMathLength mathLength = evalSignedValue (evalUnsignedMathLength) (mathLength.unMathLength)
 
-evalMathGlue :: P.MathGlue -> m Q.MathGlue
-evalMathGlue = notImplemented "evalMathGlue"
+evalUnsignedMathLength :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.UnsignedMathLength -> m Q.MathLength
+evalUnsignedMathLength = \case
+  P.NormalMathLengthAsUMathLength normalMathLength -> evalNormalMathLength normalMathLength
+  P.CoercedMathLength coercedMathLength -> evalCoercedMathLength coercedMathLength
+
+evalNormalMathLength :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.NormalMathLength -> m Q.MathLength
+evalNormalMathLength = \case
+  P.MathLengthSemiConstant factor mathUnit -> do
+    eFactor <- evalFactor factor
+    eMathUnit <- evalMathUnit mathUnit
+    pure $ Q.scaleMathLengthByRational eFactor eMathUnit
+
+evalMathUnit :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.MathUnit -> m Q.MathLength
+evalMathUnit = \case
+  P.Mu ->
+    pure Q.muLength
+  P.InternalMathGlueAsUnit internalMathGlue ->
+    (.mgDimen) <$> evalInternalMathGlue internalMathGlue
+
+evalCoercedMathLength :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.CoercedMathLength -> m Q.MathLength
+evalCoercedMathLength = \case
+  P.InternalMathGlueAsMathLength internalMathGlue ->
+    (.mgDimen) <$> evalInternalMathGlue internalMathGlue
+
+evalMathGlue :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.MathGlue -> m Q.MathGlue
+evalMathGlue = \case
+  P.ExplicitMathGlue mathLength mayMathStretch mayMathShrink -> do
+    Q.MathGlue <$> evalMathLength mathLength <*> evalMayMathFlex mayMathStretch <*> evalMayMathFlex mayMathShrink
+  P.InternalMathGlue signedInternalMathGlue -> do
+    evalSignedValue evalInternalMathGlue signedInternalMathGlue
+
+evalMayMathFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => Maybe P.PureMathFlex -> m Q.PureMathFlex
+evalMayMathFlex = \case
+  Nothing -> pure Q.zeroMathFlex
+  Just flex -> evalPureMathFlex flex
+
+evalPureMathFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.PureMathFlex -> m Q.PureMathFlex
+evalPureMathFlex = \case
+  P.FinitePureMathFlex finiteFlexMathLength -> Q.FinitePureMathFlex <$> evalMathLength finiteFlexMathLength
+  P.InfPureMathFlex infFlexOfOrder -> Q.InfPureMathFlex <$> evalInfFlexOfOrder infFlexOfOrder
 
 evalTokenListAssignmentTarget :: P.TokenListAssignmentTarget -> m BalancedText
 evalTokenListAssignmentTarget = notImplemented "evalTokenListAssignmentTarget"
