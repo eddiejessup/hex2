@@ -27,7 +27,7 @@ data SyntaxCommand
   | OpenInputFile Q.HexFilePath
   | EndInputFile
   | RenderInternalQuantity Eval.InternalQuantity
-  | ChangeCase Q.VDirection
+  | ChangeCase Q.VDirection ST.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data ConditionOutcome = IfConditionOutcome IfOutcome | CaseConditionOutcome Q.HexInt

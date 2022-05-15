@@ -366,6 +366,7 @@ newCaseCodes destCase = initialiseCharCodeMap f
       _ -> NoCaseChange
 
 newtype LowerCaseCode = LowerCaseCode ChangeCaseCode
+  deriving stock (Generic)
   deriving newtype (Show, Eq, HexCode)
 
 fmtLowerCaseCode :: Fmt LowerCaseCode
@@ -376,6 +377,7 @@ newLowercaseCodes :: Map CharCode LowerCaseCode
 newLowercaseCodes = LowerCaseCode <$> newCaseCodes ASCII.LowerCase
 
 newtype UpperCaseCode = UpperCaseCode ChangeCaseCode
+  deriving stock (Generic)
   deriving newtype (Show, Eq, HexCode)
 
 fmtUpperCaseCode :: Fmt UpperCaseCode

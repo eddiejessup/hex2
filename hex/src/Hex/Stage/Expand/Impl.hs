@@ -3,13 +3,16 @@
 module Hex.Stage.Expand.Impl where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Impl qualified as Par
 import Hex.Common.Parse.Interface qualified as Par
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.SyntaxCommand qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as E
@@ -85,7 +88,7 @@ getResolvedTokenImpl ::
     AsType Res.ResolutionError e,
     Lex.MonadLexTokenSource m
   ) =>
-  m (Maybe (Lex.LexToken, ResolvedToken))
+  m (Maybe (LexToken, ResolvedToken))
 getResolvedTokenImpl =
   Res.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
@@ -151,7 +154,7 @@ parseEvalExpandSyntaxCommand ::
     Lex.MonadLexTokenSource m
   ) =>
   ST.SyntaxCommandHeadToken ->
-  m (Seq Lex.LexToken)
+  m (Seq LexToken)
 parseEvalExpandSyntaxCommand headTok = do
   syntaxCommand <-
     Par.runParseT (Par.headToParseSyntaxCommand headTok) >>= \case
@@ -167,7 +170,7 @@ expandSyntaxCommand ::
     HSt.MonadHexState m
   ) =>
   E.SyntaxCommand ->
-  m (Seq Lex.LexToken)
+  m (Seq LexToken)
 expandSyntaxCommand = \case
   E.CallMacro macroDefinition macroArgumentList -> do
     Expand.substituteArgsIntoMacroBody macroDefinition.replacementText macroArgumentList
@@ -215,11 +218,21 @@ expandSyntaxCommand = \case
     notImplemented "EndInputFile"
   E.RenderInternalQuantity internalQuantity -> do
     pure $ Expand.renderInternalQuantity internalQuantity
-  -- fmap charCodeAsMadeToken <$> texEvaluate intQuant
-  E.ChangeCase _vDirection -> do
-    notImplemented "ChangeCase"
-
--- expandChangeCase
---   (\c -> Conf.lookupChangeCaseCode direction c conf)
---   <$> parseGeneralText
--- c -> notImplemented $ "Expand syntax command, command: " <> show c
+  E.ChangeCase vDirection inhibText ->
+    forM (inhibText.unInhibitedBalancedText.unBalancedText) $ \lt ->
+      case lt of
+        Lex.ControlSequenceLexToken _ ->
+          pure lt
+        Lex.CharCatLexToken lexCharCat -> do
+          changeCaseCode <- case vDirection of
+            Q.Upward -> do
+              ucCode <- HSt.getHexCode (Code.CUpperCaseCodeType) lexCharCat.lexCCChar
+              pure $ ucCode ^. typed @Code.ChangeCaseCode
+            Q.Downward -> do
+              lcCode <- HSt.getHexCode (Code.CLowerCaseCodeType) lexCharCat.lexCCChar
+              pure $ lcCode ^. typed @Code.ChangeCaseCode
+          pure $ case changeCaseCode of
+            Code.NoCaseChange ->
+              lt
+            Code.ChangeToCode uc ->
+              lt & _Typed @Lex.LexCharCat % typed @Code.CharCode .~ uc

@@ -53,4 +53,4 @@ data SyntaxCommand
   | OpenInputFile Q.HexFilePath
   | EndInputFile
   | RenderInternalQuantity InternalQuantity
-  | ChangeCase Q.VDirection
+  | ChangeCase Q.VDirection ST.InhibitedBalancedText

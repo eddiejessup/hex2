@@ -48,5 +48,5 @@ evalSyntaxCommand = \case
     pure $ E.EndInputFile
   P.RenderInternalQuantity internalQuantity ->
     E.RenderInternalQuantity <$> Eval.evalInternalQuantity internalQuantity
-  P.ChangeCase vDirection ->
-    pure $ E.ChangeCase vDirection
+  P.ChangeCase vDirection inhibText ->
+    pure $ E.ChangeCase vDirection inhibText

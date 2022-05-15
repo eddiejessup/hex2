@@ -10,6 +10,7 @@ import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.MacroCall qualified as Par
 import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
 import Hexlude
 import qualified Hex.Stage.Parse.Impl.Parsers.Command as Par
+import qualified Hex.Stage.Parse.Impl.Parsers.BalancedText as Par
 
 headToParseSyntaxCommand :: MonadPrimTokenParse m => ST.SyntaxCommandHeadToken -> m AST.SyntaxCommand
 headToParseSyntaxCommand = \case
@@ -21,35 +22,34 @@ headToParseSyntaxCommand = \case
       AST.ApplyConditionHead <$> Par.parseConditionHead conditionHeadTok
     ST.ConditionBodyTok conditionBodyTok ->
       pure $ AST.ApplyConditionBody conditionBodyTok
-  ST.NumberTok -> do
+  ST.NumberTok ->
     AST.RenderNumber <$> Par.parseInt
-  ST.RomanNumeralTok -> do
+  ST.RomanNumeralTok ->
     AST.RenderRomanNumeral <$> Par.parseInt
-  ST.StringTok -> do
+  ST.StringTok ->
     AST.RenderTokenAsTokens <$> getUnexpandedToken
-  ST.JobNameTok -> do
+  ST.JobNameTok ->
     pure $ AST.RenderJobName
-  ST.FontNameTok -> do
+  ST.FontNameTok ->
     AST.RenderFontName <$> (Par.parseHeaded Par.headToParseFontRef)
-  ST.MeaningTok -> do
+  ST.MeaningTok ->
     AST.RenderTokenMeaning <$> getUnexpandedToken
-  ST.CSNameTok -> do
-    byteString <- parseCSNameBody
-    pure $ AST.ParseControlSequence byteString
-  ST.ExpandAfterTok -> do
+  ST.CSNameTok ->
+    AST.ParseControlSequence <$> parseCSNameBody
+  ST.ExpandAfterTok ->
     AST.ExpandAfter <$> getUnexpandedToken
-  ST.NoExpandTok -> do
+  ST.NoExpandTok ->
     AST.NoExpand <$> getUnexpandedToken
-  ST.MarkRegisterTok markRegister -> do
+  ST.MarkRegisterTok markRegister ->
     pure $ AST.GetMarkRegister markRegister
-  ST.InputTok -> do
+  ST.InputTok ->
     AST.OpenInputFile <$> Par.parseFileName
-  ST.EndInputTok -> do
+  ST.EndInputTok ->
     pure $ AST.EndInputFile
-  ST.TheTok -> do
+  ST.TheTok ->
     AST.RenderInternalQuantity <$> Par.parseHeaded Par.headToParseInternalQuantity
-  ST.ChangeCaseTok vDirection -> do
-    pure $ AST.ChangeCase vDirection
+  ST.ChangeCaseTok vDirection ->
+    AST.ChangeCase vDirection <$> (Par.parseInhibitedGeneralText Par.ExpectingBeginGroup)
 
 parseCSNameBody :: m ByteString
 parseCSNameBody = notImplemented "parseCSNameBody"
