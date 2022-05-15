@@ -3,38 +3,24 @@ module Hex.Common.HexState.Impl.Scoped.Code where
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, localCompleteProperty, setScopedMapValue)
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope (..))
+import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hexlude
 
-class Code.HexCode c => MutableHexCode c where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode c)
+setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setHexCode = \case
+  Code.CCatCodeType -> setScopedMapValue #catCodes
+  Code.CMathCodeType -> setScopedMapValue #mathCodes
+  Code.CUpperCaseCodeType -> setScopedMapValue #upperCaseCodes
+  Code.CLowerCaseCodeType -> setScopedMapValue #lowerCaseCodes
+  Code.CSpaceFactorCodeType -> setScopedMapValue #spaceFactorCodes
+  Code.CDelimiterCodeType -> setScopedMapValue #delimiterCodes
 
-instance MutableHexCode Code.CatCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.CatCode)
-  scopeCodeMapLens = #catCodes
-
-instance MutableHexCode Code.MathCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.MathCode)
-  scopeCodeMapLens = #mathCodes
-
-instance MutableHexCode Code.UpperCaseCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.UpperCaseCode)
-  scopeCodeMapLens = #upperCaseCodes
-
-instance MutableHexCode Code.LowerCaseCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.LowerCaseCode)
-  scopeCodeMapLens = #lowerCaseCodes
-
-instance MutableHexCode Code.SpaceFactorCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.SpaceFactorCode)
-  scopeCodeMapLens = #spaceFactorCodes
-
-instance MutableHexCode Code.DelimiterCode where
-  scopeCodeMapLens :: Lens' Scope (Map Code.CharCode Code.DelimiterCode)
-  scopeCodeMapLens = #delimiterCodes
-
-setHexCode :: MutableHexCode c => Code.CharCode -> c -> PT.ScopeFlag -> GroupScopes -> GroupScopes
-setHexCode = setScopedMapValue scopeCodeMapLens
-
-localHexCode :: MutableHexCode c => Code.CharCode -> GroupScopes -> c
-localHexCode p = localCompleteProperty (scopeCodeMapLens % at' p)
+localHexCode :: Code.CCodeType c -> Code.CharCode -> GroupScopes -> HSt.Code.CodeTableTarget c
+localHexCode ccodeType p = case ccodeType of
+  Code.CCatCodeType -> localCompleteProperty (#catCodes % at' p)
+  Code.CMathCodeType -> localCompleteProperty (#mathCodes % at' p)
+  Code.CUpperCaseCodeType -> localCompleteProperty (#upperCaseCodes % at' p)
+  Code.CLowerCaseCodeType -> localCompleteProperty (#lowerCaseCodes % at' p)
+  Code.CSpaceFactorCodeType -> localCompleteProperty (#spaceFactorCodes % at' p)
+  Code.CDelimiterCodeType -> localCompleteProperty (#delimiterCodes % at' p)

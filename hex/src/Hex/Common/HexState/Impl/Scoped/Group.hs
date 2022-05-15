@@ -3,8 +3,8 @@ module Hex.Common.HexState.Impl.Scoped.Group where
 import Formatting qualified as F
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope)
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
-import Hexlude
 import Hex.Common.HexState.Interface.Grouped (ScopedGroupType)
+import Hexlude
 
 -- | A group is a weaker idea than a scope.
 -- Some groups introduce a scope, but some don't.

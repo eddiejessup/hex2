@@ -3,8 +3,7 @@
 module Hex.Common.HexState.Interface where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Codes qualified as Codes
-import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
+import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as Reg
@@ -34,9 +33,9 @@ class Monad m => MonadHexState m where
 
   setSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> m ()
 
-  getHexCode :: MutableHexCode c => Codes.CharCode -> m c
+  getHexCode :: Code.CCodeType c -> Code.CharCode -> m (HSt.Code.CodeTableTarget c)
 
-  setHexCode :: MutableHexCode c => Code.CharCode -> c -> PT.ScopeFlag -> m ()
+  setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> PT.ScopeFlag -> m ()
 
   resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
 
@@ -46,7 +45,7 @@ class Monad m => MonadHexState m where
 
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
 
-  currentFontCharacter :: Codes.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
+  currentFontCharacter :: Code.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
 
   currentFontSpaceGlue :: m (Maybe Q.Glue)
 
@@ -67,8 +66,8 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
   setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
   setSpecialLengthParameter x y = lift $ setSpecialLengthParameter x y
-  getHexCode x = lift $ getHexCode x
-  setHexCode x y z = lift $ setHexCode x y z
+  getHexCode x y = lift $ getHexCode x y
+  setHexCode w x y z = lift $ setHexCode w x y z
   resolveSymbol x = lift $ resolveSymbol x
   loadFont x y = lift $ loadFont x y
   selectFont x y = lift $ selectFont x y

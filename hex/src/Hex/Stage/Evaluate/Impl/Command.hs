@@ -2,7 +2,6 @@ module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
@@ -165,22 +164,22 @@ evalCodeAssignment codeAssignment = do
   vInt <- Eval.evalInt codeAssignment.codeValue
   -- Map the value to the appropriate type, given the code-type.
   codeValue <- case codeAssignment.codeTableRef.codeType of
-    PT.CategoryCodeType ->
+    Code.CatCodeType ->
       E.CatCodeValue
         <$> Eval.noteRange @Code.CatCode vInt
-    PT.MathCodeType -> do
+    Code.MathCodeType -> do
       E.MathCodeValue
         <$> Eval.noteRange @Code.MathCode vInt
-    PT.UpperCaseCodeType -> do
+    Code.UpperCaseCodeType -> do
       E.UpperCaseCodeValue
         <$> Eval.noteRange @Code.UpperCaseCode vInt
-    PT.LowerCaseCodeType -> do
+    Code.LowerCaseCodeType -> do
       E.LowerCaseCodeValue
         <$> Eval.noteRange @Code.LowerCaseCode vInt
-    PT.SpaceFactorCodeType -> do
+    Code.SpaceFactorCodeType -> do
       E.SpaceFactorCodeValue
         <$> Eval.noteRange @Code.SpaceFactorCode vInt
-    PT.DelimiterCodeType -> do
+    Code.DelimiterCodeType -> do
       E.DelimiterCodeValue
         <$> Eval.noteRange @Code.DelimiterCode vInt
   pure $ E.CodeAssignment codeIx codeValue

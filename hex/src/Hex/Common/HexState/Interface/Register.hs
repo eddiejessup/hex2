@@ -8,7 +8,8 @@ newtype RegisterLocation = RegisterLocation {unRegisterLocation :: Q.HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
 
-data QuantRegisterLocation (q :: Q.QuantityType) = QuantRegisterLocation (QuantRegisterType q) RegisterLocation
+data QuantRegisterLocation (q :: Q.QuantityType)
+  = QuantRegisterLocation (QuantRegisterType q) RegisterLocation
 
 data QuantRegisterType (q :: Q.QuantityType) where
   IntQuantRegisterType :: QuantRegisterType 'Q.IntQuantity

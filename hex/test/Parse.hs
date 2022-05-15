@@ -171,11 +171,11 @@ intTests =
               (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalSpecialIntParameter SpaceFactorHexInt),
           testCase "Internal, code-table reference" $
             assertParseSuccess
-              [ CodeTypeTok CategoryCodeType,
+              [ CodeTypeTok CatCodeType,
                 UnresolvedTok (CharCatLexToken (LexCharCat (Chr_ '1') Other))
               ]
               parseInt
-              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalCodeTableRef $ CodeTableRef CategoryCodeType nr1ConstAST),
+              (HexInt $ Signed [] $ NormalUnsignedInt $ InternalInt $ InternalCodeTableRef $ CodeTableRef CatCodeType nr1ConstAST),
           testCase "Internal, char token" $
             assertParseSuccess
               [ IntRefTok CharQuantity 1

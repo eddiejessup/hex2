@@ -2,6 +2,7 @@ module Hex.Stage.Interpret.CommandHandler.AllMode where
 
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Resolve qualified as Res
@@ -156,17 +157,17 @@ handleModeIndependentCommand addVElem = \case
       Eval.AssignCode (Eval.CodeAssignment idxChar codeVal) ->
         case codeVal of
           Eval.CatCodeValue catCode ->
-            HSt.setHexCode idxChar catCode scope
+            HSt.setHexCode Code.CCatCodeType idxChar catCode scope
           Eval.MathCodeValue mathCode ->
-            HSt.setHexCode idxChar mathCode scope
+            HSt.setHexCode Code.CMathCodeType idxChar mathCode scope
           Eval.UpperCaseCodeValue upperCaseCode ->
-            HSt.setHexCode idxChar upperCaseCode scope
+            HSt.setHexCode Code.CUpperCaseCodeType idxChar upperCaseCode scope
           Eval.LowerCaseCodeValue lowerCaseCode ->
-            HSt.setHexCode idxChar lowerCaseCode scope
+            HSt.setHexCode Code.CLowerCaseCodeType idxChar lowerCaseCode scope
           Eval.SpaceFactorCodeValue spaceFactorCode ->
-            HSt.setHexCode idxChar spaceFactorCode scope
+            HSt.setHexCode Code.CSpaceFactorCodeType idxChar spaceFactorCode scope
           Eval.DelimiterCodeValue delimiterCode ->
-            HSt.setHexCode idxChar delimiterCode scope
+            HSt.setHexCode Code.CDelimiterCodeType idxChar delimiterCode scope
       Eval.SetVariable ass ->
         case ass of
           Eval.IntVariableAssignment (Eval.QuantVariableAssignment var tgt) ->

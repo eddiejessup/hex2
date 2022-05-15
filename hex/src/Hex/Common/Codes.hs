@@ -410,3 +410,26 @@ newspaceFactorCodes = initialiseCharCodeMap $ SpaceFactorCode . f
     f c
       | asciiPred ASCII.Pred.isUpper c = Q.HexInt 999
       | otherwise = Q.HexInt 1000
+
+-- Common.
+
+data CodeType
+  = CatCodeType
+  | MathCodeType
+  | UpperCaseCodeType
+  | LowerCaseCodeType
+  | SpaceFactorCodeType
+  | DelimiterCodeType
+  deriving stock (Show, Eq, Generic)
+
+data CCodeType (c :: CodeType) where
+  CCatCodeType :: CCodeType 'CatCodeType
+  CMathCodeType :: CCodeType 'MathCodeType
+  CUpperCaseCodeType :: CCodeType 'UpperCaseCodeType
+  CLowerCaseCodeType :: CCodeType 'LowerCaseCodeType
+  CSpaceFactorCodeType :: CCodeType 'SpaceFactorCodeType
+  CDelimiterCodeType :: CCodeType 'DelimiterCodeType
+
+deriving stock instance Show (CCodeType q)
+
+deriving stock instance Eq (CCodeType q)

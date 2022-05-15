@@ -8,7 +8,6 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
-import Hex.Common.HexState.Impl.Scoped.Code (MutableHexCode)
 import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.C
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes)
@@ -18,6 +17,7 @@ import Hex.Common.HexState.Impl.Scoped.Register qualified as Sc.R
 import Hex.Common.HexState.Impl.Scoped.Symbol qualified as Sc.Sym
 import Hex.Common.HexState.Impl.Type
 import Hex.Common.HexState.Interface
+import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Grouped qualified as Group
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as Reg
@@ -96,13 +96,11 @@ instance
   setSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> (MonadHexStateImplT m) ()
   setSpecialLengthParameter p v = assign' (typed @HexState % stateSpecialLengthParamLens p) v
 
-  getHexCode :: MutableHexCode c => Code.CharCode -> (MonadHexStateImplT m) c
-  getHexCode p = getGroupScopesProperty (Sc.C.localHexCode p)
+  getHexCode :: Code.CCodeType c -> Code.CharCode -> (MonadHexStateImplT m) (HSt.Code.CodeTableTarget c)
+  getHexCode t p = getGroupScopesProperty (Sc.C.localHexCode t p)
 
-  setHexCode :: MutableHexCode c => Code.CharCode -> c -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  setHexCode idxCode code scopeFlag = do
-    -- logText $ sformat ("setHexCode: " |%| Code.fmtCharCode |%| " -> " |%| F.shown) idxCode code
-    modifyGroupScopes $ Sc.C.setHexCode idxCode code scopeFlag
+  setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> PT.ScopeFlag -> MonadHexStateImplT m ()
+  setHexCode t idxCode code scopeFlag = modifyGroupScopes $ Sc.C.setHexCode t idxCode code scopeFlag
 
   resolveSymbol :: ControlSymbol -> (MonadHexStateImplT m) (Maybe ResolvedToken)
   resolveSymbol p = getGroupScopesProperty (Sc.Sym.localResolvedToken p)

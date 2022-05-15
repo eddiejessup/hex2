@@ -8,9 +8,9 @@ module Hex.Common.Quantity
   )
 where
 
+import Hex.Common.Quantity.Common
 import Hex.Common.Quantity.Glue
 import Hex.Common.Quantity.Length
 import Hex.Common.Quantity.MathGlue
 import Hex.Common.Quantity.MathLength
 import Hex.Common.Quantity.Number
-import Hex.Common.Quantity.Common

@@ -1,12 +1,11 @@
 module Hex.Common.HexState.Interface.Resolve.SyntaxToken where
 
+import ASCII qualified
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified ASCII
-import qualified Hex.Common.HexState.Interface.TokenList as HSt.TL
-
 
 newtype InhibitedBalancedText = InhibitedBalancedText {unInhibitedBalancedText :: HSt.TL.BalancedText}
   deriving stock (Show, Generic)

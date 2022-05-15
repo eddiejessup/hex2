@@ -4,9 +4,9 @@ import ASCII qualified
 import ASCII.Char qualified
 import Formatting qualified as F
 import Hex.Common.Codes
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hexlude
 
 data AssignPrefixTok
@@ -90,15 +90,6 @@ data ModedCommandPrimitiveToken
 
 data SyntaxCommandArg
   = EndCSNameTok -- \endcsname
-  deriving stock (Show, Eq, Generic)
-
-data CodeType
-  = CategoryCodeType
-  | MathCodeType
-  | UpperCaseCodeType
-  | LowerCaseCodeType
-  | SpaceFactorCodeType
-  | DelimiterCodeType
   deriving stock (Show, Eq, Generic)
 
 data CharryQuantityType

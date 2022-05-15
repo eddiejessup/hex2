@@ -8,7 +8,6 @@ import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.Register qualified as Hst.Reg
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.TokenList (BalancedText)
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
@@ -90,12 +89,12 @@ evalCodeTableRefAsTarget :: (MonadError e m, AsType Eval.EvaluationError e, Mona
 evalCodeTableRefAsTarget codeTableRef = do
   eCodeTableRef <- evalCodeTableRefAsRef codeTableRef
   case eCodeTableRef.codeTableType of
-    PT.CategoryCodeType -> HSt.getHexCode @_ @Code.CatCode eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.MathCodeType -> HSt.getHexCode @_ @Code.MathCode eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.UpperCaseCodeType -> HSt.getHexCode @_ @Code.UpperCaseCode eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.LowerCaseCodeType -> HSt.getHexCode @_ @Code.LowerCaseCode eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.SpaceFactorCodeType -> HSt.getHexCode @_ @Code.SpaceFactorCode eCodeTableRef.codeTableChar <&> Code.toHexInt
-    PT.DelimiterCodeType -> HSt.getHexCode @_ @Code.DelimiterCode eCodeTableRef.codeTableChar <&> Code.toHexInt
+    Code.CatCodeType -> HSt.getHexCode Code.CCatCodeType eCodeTableRef.codeTableChar <&> Code.toHexInt
+    Code.MathCodeType -> HSt.getHexCode Code.CMathCodeType eCodeTableRef.codeTableChar <&> Code.toHexInt
+    Code.UpperCaseCodeType -> HSt.getHexCode Code.CUpperCaseCodeType eCodeTableRef.codeTableChar <&> Code.toHexInt
+    Code.LowerCaseCodeType -> HSt.getHexCode Code.CLowerCaseCodeType eCodeTableRef.codeTableChar <&> Code.toHexInt
+    Code.SpaceFactorCodeType -> HSt.getHexCode Code.CSpaceFactorCodeType eCodeTableRef.codeTableChar <&> Code.toHexInt
+    Code.DelimiterCodeType -> HSt.getHexCode Code.CDelimiterCodeType eCodeTableRef.codeTableChar <&> Code.toHexInt
 
 evalQuantVariableAsVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.QuantVariableAST a -> m (HSt.Var.QuantVariable a)
 evalQuantVariableAsVariable = \case

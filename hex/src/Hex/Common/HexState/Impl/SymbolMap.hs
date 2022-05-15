@@ -3,14 +3,13 @@ module Hex.Common.HexState.Impl.SymbolMap where
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Parameter
+import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
-
 import Hexlude
 
 _cs :: [Char] -> H.Res.ControlSymbol
@@ -299,12 +298,12 @@ initialSymbolMap =
       (_cs "multiply", primTok $ ScaleVarTok Q.Upward),
       (_cs "divide", primTok $ ScaleVarTok Q.Downward),
       -- Code types.
-      (_cs "catcode", primTok $ CodeTypeTok CategoryCodeType),
-      (_cs "mathcode", primTok $ CodeTypeTok MathCodeType),
-      (_cs "lccode", primTok $ CodeTypeTok $ LowerCaseCodeType),
-      (_cs "uccode", primTok $ CodeTypeTok $ UpperCaseCodeType),
-      (_cs "sfcode", primTok $ CodeTypeTok SpaceFactorCodeType),
-      (_cs "delcode", primTok $ CodeTypeTok DelimiterCodeType),
+      (_cs "catcode", primTok $ CodeTypeTok Code.CatCodeType),
+      (_cs "mathcode", primTok $ CodeTypeTok Code.MathCodeType),
+      (_cs "lccode", primTok $ CodeTypeTok $ Code.LowerCaseCodeType),
+      (_cs "uccode", primTok $ CodeTypeTok $ Code.UpperCaseCodeType),
+      (_cs "sfcode", primTok $ CodeTypeTok Code.SpaceFactorCodeType),
+      (_cs "delcode", primTok $ CodeTypeTok Code.DelimiterCodeType),
       -- Alias tokens.
       (_cs "let", primTok LetTok),
       (_cs "futurelet", primTok FutureLetTok),

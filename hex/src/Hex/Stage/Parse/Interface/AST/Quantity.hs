@@ -7,6 +7,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 import qualified Hex.Common.HexState.Interface.Register as HSt.Reg
+import qualified Hex.Common.Codes as Code
 
 data Signed a = Signed [Q.Sign] a
   deriving stock (Show, Eq, Generic)
@@ -188,7 +189,7 @@ data InternalInt
   | Badness
   deriving stock (Show, Eq, Generic)
 
-data CodeTableRef = CodeTableRef {codeType :: PT.CodeType, codeIndex :: CharCodeInt}
+data CodeTableRef = CodeTableRef {codeType :: Code.CodeType, codeIndex :: CharCodeInt}
   deriving stock (Show, Eq, Generic)
 
 -- | Newtype wrapper to represent HexInts that represent a char-code.

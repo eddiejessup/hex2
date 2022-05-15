@@ -1,18 +1,19 @@
 {-# LANGUAGE UndecidableInstances #-}
+
 module Hex.Common.HexState.Impl.Scoped.Scope where
 
 import Data.Map.Strict qualified as Map
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
+import Hex.Common.HexState.Interface.Parameter qualified as Param
+import Hex.Common.HexState.Interface.Register
 import Hex.Common.HexState.Interface.Resolve (SymbolMap)
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Parameter qualified as Param
+import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
 import Hexlude
-import Hex.Common.HexState.Interface.Register
-import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 
 type CharCodeMap v = Map Code.CharCode v
 
@@ -111,9 +112,11 @@ fmtScope =
     <> (fmtMapWithHeading "Int parameters" (.intParameters) Param.fmtIntParameter Q.fmtHexInt)
     <> (fmtMapWithHeading "Length parameters" (.lengthParameters) Param.fmtLengthParameter Q.fmtLengthWithUnit)
     <> (fmtMapWithHeading "Glue parameters" (.glueParameters) Param.fmtGlueParameter Q.fmtGlue)
+    <> (fmtMapWithHeading "Math-glue parameters" (.mathGlueParameters) Param.fmtMathGlueParameter Q.fmtMathGlue)
     <> (fmtMapWithHeading "Int registers" (.intRegister) fmtRegisterLocation Q.fmtHexInt)
     <> (fmtMapWithHeading "Length registers" (.lengthRegister) fmtRegisterLocation Q.fmtLengthWithUnit)
     <> (fmtMapWithHeading "Glue registers" (.glueRegister) fmtRegisterLocation Q.fmtGlue)
+    <> (fmtMapWithHeading "Math-glue registers" (.mathGlueRegister) fmtRegisterLocation Q.fmtMathGlue)
 
 -- If we have two scopes, one nested inside another, we want to consider the
 -- effective scope seen in the inner scope.
