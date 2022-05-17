@@ -25,13 +25,13 @@ fmtExpansionError = F.later $ \case
     "Got unexpected token when not in condition-body: " <> F.bformat F.shown tok
 
 data IfState
-  = InUnskippedElseBlock
-  | InUnskippedPreElseBlock
+  = InSelectedElseIfBlock
+  | InSelectedPreElseIfBlock
   deriving stock (Show, Generic)
 
 data CaseState
-  = InUnskippedPostOrBlock
-  | InUnskippedPostElseBlock
+  = InSelectedOrCaseBlock
+  | InSelectedElseCaseBlock
   deriving stock (Show, Generic)
 
 data ConditionState

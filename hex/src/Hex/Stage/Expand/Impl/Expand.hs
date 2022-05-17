@@ -76,20 +76,52 @@ applyConditionOutcome ::
   AST.ConditionOutcome ->
   m ()
 applyConditionOutcome = \case
-  AST.IfConditionOutcome ifConditionOutcome ->
-    case ifConditionOutcome of
-      AST.SkipPreElseBlock -> do
-        skipEndCause <- skipUntilElseOrEndif ElseOrEndif
-        case skipEndCause of
-          EndedOnElse ->
-            -- Push a state to prepare for the later 'end-if'.
-            Expand.pushConditionState (Expand.IfConditionState Expand.InUnskippedElseBlock)
-          EndedOnEndIf ->
-            pure ()
-      AST.SkipElseBlock -> do
-        Expand.pushConditionState (Expand.IfConditionState Expand.InUnskippedPreElseBlock)
-  AST.CaseConditionOutcome _n ->
-    notImplemented "Expand case-condition-head"
+  AST.IfConditionOutcome AST.SkipPreElseBlock ->
+    skipUntilElseOrEndif ElseOrEndif getPresentResolvedToken >>= \case
+      Nothing ->
+        pure ()
+      Just newState ->
+        -- Push a state to prepare for the later 'end-if'.
+        Expand.pushConditionState (Expand.IfConditionState newState)
+  AST.IfConditionOutcome AST.SkipElseBlock ->
+    Expand.pushConditionState (Expand.IfConditionState Expand.InSelectedPreElseIfBlock)
+  AST.CaseConditionOutcome tgtBlock ->
+    skipUpToCaseBlock tgtBlock getPresentResolvedToken >>= \case
+      Nothing -> pure ()
+      Just newState ->
+        Expand.pushConditionState (Expand.CaseConditionState newState)
+
+skipUpToCaseBlock ::
+  forall m.
+  Monad m =>
+  Q.HexInt ->
+  (m Res.ResolvedToken) ->
+  m (Maybe Expand.CaseState)
+skipUpToCaseBlock tgtBlock getNextToken = go Q.zeroInt 1
+  where
+    go :: Q.HexInt -> Int -> m (Maybe Expand.CaseState)
+    go currentCaseBlock depth
+      | depth == 1,
+        currentCaseBlock == tgtBlock =
+          -- If we are at top condition depth,
+          pure $ Just Expand.InSelectedOrCaseBlock
+      | otherwise =
+          getNextToken >>= \case
+            Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
+              go currentCaseBlock $ succ depth
+            Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf))
+              | depth == 1 ->
+                  pure Nothing
+              | otherwise ->
+                  go currentCaseBlock $ pred depth
+            Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
+              | depth == 1 ->
+                  pure $ Just Expand.InSelectedElseCaseBlock
+            Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Or))
+              | depth == 1 ->
+                  go (succ currentCaseBlock) depth
+            _ ->
+              go currentCaseBlock depth
 
 applyConditionBody ::
   forall m e.
@@ -109,65 +141,68 @@ applyConditionBody bodyToken = do
       void $ Expand.popConditionState
     ST.Else ->
       case condState of
-        Expand.IfConditionState Expand.InUnskippedPreElseBlock ->
+        Expand.IfConditionState Expand.InSelectedPreElseIfBlock ->
           skipUntilEndOfCondition
-        Expand.CaseConditionState Expand.InUnskippedPostOrBlock ->
+        Expand.CaseConditionState Expand.InSelectedOrCaseBlock ->
           skipUntilEndOfCondition
-        Expand.IfConditionState Expand.InUnskippedElseBlock ->
+        Expand.IfConditionState Expand.InSelectedElseIfBlock ->
           err
-        Expand.CaseConditionState Expand.InUnskippedPostElseBlock ->
+        Expand.CaseConditionState Expand.InSelectedElseCaseBlock ->
           err
     ST.Or ->
       case condState of
         Expand.IfConditionState _ ->
           err
-        Expand.CaseConditionState Expand.InUnskippedPostOrBlock ->
+        Expand.CaseConditionState Expand.InSelectedOrCaseBlock ->
           skipUntilEndOfCondition
-        Expand.CaseConditionState Expand.InUnskippedPostElseBlock ->
+        Expand.CaseConditionState Expand.InSelectedElseCaseBlock ->
           err
   where
     err = throwError $ injectTyped $ Expand.UnexpectedConditionBodyToken bodyToken
 
     skipUntilEndOfCondition =
-      skipUntilElseOrEndif OnlyEndIf >>= \case
-        EndedOnElse -> panic "Impossible!"
-        EndedOnEndIf -> pure ()
+      skipUntilElseOrEndif OnlyEndIf getPresentResolvedToken >>= \case
+        Just _ -> panic "Impossible!"
+        Nothing -> pure ()
 
 data SkipStopCondition
   = ElseOrEndif
   | OnlyEndIf
 
-data SkipEndCause
-  = EndedOnEndIf
-  | EndedOnElse
+getPresentResolvedToken ::
+  forall m e.
+  (Expand.MonadPrimTokenSource m, MonadError e m, AsType ExpansionError e) =>
+  m Res.ResolvedToken
+getPresentResolvedToken = Expand.getResolvedTokenErrorEOF (injectTyped Expand.EndOfInputWhileSkipping)
 
 skipUntilElseOrEndif ::
-  forall e m.
-  (Expand.MonadPrimTokenSource m, MonadError e m, AsType ExpansionError e) =>
+  forall m.
+  Monad m =>
   SkipStopCondition ->
-  m SkipEndCause
-skipUntilElseOrEndif blockTarget = do
+  m Res.ResolvedToken ->
+  m (Maybe Expand.IfState)
+skipUntilElseOrEndif blockTarget getNextToken = do
   snd <$> Par.parseNestedExpr parseNext
   where
     parseNext depth =
-      Expand.getResolvedTokenErrorEOF (injectTyped Expand.EndOfInputWhileSkipping) >>= \case
+      getNextToken <&> \case
         -- If we see an 'if', increment the condition depth.
         Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
-          pure (EndedOnElse, GT)
+          (Nothing, GT)
         -- If we see an 'end-if', decrement the condition depth.
         Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf)) ->
-          pure (EndedOnEndIf, LT)
+          (Nothing, LT)
         -- If we see an 'else' and are at top condition depth, and our
         -- target block is an else block, we are done skipping tokens.
         Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
           | depth == 1,
-            ElseOrEndif <- blockTarget -> do
-              pure (EndedOnElse, LT)
+            ElseOrEndif <- blockTarget ->
+              (Just Expand.InSelectedElseIfBlock, LT)
         -- (we ignore 'else's even if it is syntactically wrong, if it's
         -- outside our block of interest.)
         -- Any other token, just skip and continue unchanged.
         _ ->
-          pure (EndedOnElse, EQ)
+          (Nothing, EQ)
 
 renderTokenAsTokens ::
   Q.HexInt ->
