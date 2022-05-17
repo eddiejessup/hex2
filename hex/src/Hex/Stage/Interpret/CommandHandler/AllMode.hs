@@ -129,7 +129,7 @@ handleModeIndependentCommand addVElem = \case
               Lex.CharCatLexToken charCat ->
                 pure $ Just $ Res.PrimitiveToken $ PT.LetCharCat charCat
               -- If the target is a control sequence, then try to resolve that symbol.
-              Lex.ControlSequenceLexToken controlSequence -> do
+              Lex.ControlSequenceLexToken controlSequence ->
                 HSt.resolveSymbol (Res.ControlSequenceSymbol controlSequence) >>= \case
                   -- If the target symbol does not exist, then do nothing, i.e.
                   -- assign no new control sequence. (I am basing this on the

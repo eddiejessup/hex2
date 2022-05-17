@@ -7,6 +7,7 @@ import Data.Text qualified as Tx
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexEnv.Interface qualified as Env
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.C
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
@@ -33,10 +34,10 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 import System.FilePath qualified as FilePath
-import qualified Hex.Common.HexEnv.Interface as Env
 
 data HexStateError
-  = FontNotFound
+  = FontNotFound Q.HexFilePath
+  | MissingFontNumber
   | BadPath Text
   | CharacterCodeNotFound
   | PoppedEmptyGroups
@@ -148,39 +149,34 @@ instance
     Q.HexFilePath ->
     H.Inter.B.Box.FontSpecification ->
     MonadHexStateImplT m H.Inter.B.Box.FontDefinition
-  loadFont path spec = do
-    log $ F.sformat ("loadFont: " |%| F.string) (path ^. typed @FilePath)
+  loadFont fontPath spec = do
     searchDirs <- know (typed @[FilePath])
-    log $ F.sformat ("searchDirs: " |%| F.list F.string) searchDirs
-    absPath <- Env.findFilePath
+    absPath <-
+      Env.findFilePath
         (Env.WithImplicitExtension "tfm")
         searchDirs
-        (path ^. typed @FilePath)
-        >>= note (injectTyped FontNotFound)
-    log $ F.sformat ("Found font path: " |%| F.string) absPath
+        (fontPath ^. typed @FilePath)
+        >>= note (injectTyped (FontNotFound fontPath))
 
     fontInfo <- readFontInfo absPath
 
-    case spec of
-      H.Inter.B.Box.NaturalFont -> pure ()
-      H.Inter.B.Box.FontAt _ -> notImplemented "font-at"
-      H.Inter.B.Box.FontScaled _ -> notImplemented "font-scaled"
+    let designScale = H.Inter.B.Box.fontSpecToDesignScale fontInfo.fontMetrics.designFontSize spec
 
     mayLastKey <- use $ typed @HexState % #fontInfos % to Map.lookupMax
-    let newKey = case mayLastKey of
+    let fontNr = case mayLastKey of
           Nothing -> PT.FontNumber $ Q.HexInt 0
           Just (i, _) -> succ i
-    assign' (typed @HexState % #fontInfos % at' newKey) (Just fontInfo)
+    assign' (typed @HexState % #fontInfos % at' fontNr) (Just fontInfo)
 
     let fontName = Tx.pack $ FilePath.takeBaseName absPath
     pure
       H.Inter.B.Box.FontDefinition
-        { H.Inter.B.Box.fontDefChecksum = 0,
-          H.Inter.B.Box.fontDefDesignSize = Q.zeroLength,
-          H.Inter.B.Box.fontDefDesignScale = Q.zeroLength,
-          H.Inter.B.Box.fontNr = newKey,
-          H.Inter.B.Box.fontPath = path,
-          H.Inter.B.Box.fontName = fontName
+        { fontDefChecksum = fontInfo.fontMetrics.checksum,
+          fontDefDesignSize = fontInfo.fontMetrics.designFontSize,
+          fontDefDesignScale = designScale,
+          fontNr,
+          fontPath,
+          fontName
         }
 
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> MonadHexStateImplT m ()
@@ -225,11 +221,11 @@ currentFontInfo = do
   getGroupScopesProperty Sc.Font.localCurrentFontNr >>= \case
     -- No set font number is a Nothing.
     Nothing -> pure Nothing
-    Just fNr -> do
+    Just fNr ->
       -- But a set font number that's absent from the fontInfo map is a proper
       -- error.
       use (typed @HexState % stateFontInfoLens fNr) >>= \case
-        Nothing -> throwError (injectTyped FontNotFound)
+        Nothing -> throwError (injectTyped MissingFontNumber)
         x -> pure x
 
 readFontInfo ::

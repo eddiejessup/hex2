@@ -117,7 +117,7 @@ newtype FontSelection = FontSelection PT.FontNumber
   deriving stock (Show, Generic)
 
 data FontDefinition = FontDefinition
-  { fontDefChecksum :: Int,
+  { fontDefChecksum :: Word32,
     fontDefDesignSize :: Q.Length,
     fontDefDesignScale :: Q.Length,
     fontPath :: Q.HexFilePath,
@@ -126,5 +126,18 @@ data FontDefinition = FontDefinition
   }
   deriving stock (Show, Generic)
 
-data FontSpecification = NaturalFont | FontAt Q.Length | FontScaled Q.HexInt
+data FontSpecification
+  = NaturalFont
+  | FontAt Q.Length
+  | FontScaled Q.HexInt
   deriving stock (Show, Eq, Generic)
+
+fontSpecToDesignScale :: Q.Length -> FontSpecification -> Q.Length
+fontSpecToDesignScale designSize = \case
+  NaturalFont ->
+    designSize
+  FontAt length ->
+    length
+  FontScaled scaleFactor ->
+    let scaleFactorRational = Q.intRatio scaleFactor (Q.HexInt 1000)
+    in Q.scaleLengthByRational scaleFactorRational designSize

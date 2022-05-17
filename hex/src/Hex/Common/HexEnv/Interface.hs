@@ -15,7 +15,8 @@ newHexEnv logHandle =
   HexEnv
     { logHandle,
       searchDirs =
-        [ "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/cm/"
+        [ "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/cm/",
+          "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/knuth-lib"
         ]
     }
 

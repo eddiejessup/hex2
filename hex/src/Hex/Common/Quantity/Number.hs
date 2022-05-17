@@ -3,6 +3,7 @@ module Hex.Common.Quantity.Number where
 import Formatting qualified as F
 import Hex.Common.Quantity.Common
 import Hexlude
+import qualified Data.Ratio as Ratio
 
 class Group a => Scalable a where
   scale :: HexInt -> a -> a
@@ -37,6 +38,12 @@ scaleHexInt arg v = HexInt (arg.unHexInt * v.unHexInt)
 -- changes if you change the sign of either operand.
 shrinkHexInt :: HexInt -> HexInt -> HexInt
 shrinkHexInt arg v = HexInt (v.unHexInt `quot` arg.unHexInt)
+
+-- Find the ratio between two ints.
+intRatio :: HexInt -> HexInt -> Rational
+intRatio a b =
+  let intToInteger = view (typed @Int % to (fromIntegral @Int @Integer))
+   in intToInteger a Ratio.% intToInteger b
 
 fmtHexInt :: Fmt HexInt
 fmtHexInt = "H." |%| F.accessed (.unHexInt) F.shown
