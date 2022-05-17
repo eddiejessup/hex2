@@ -33,6 +33,7 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 import System.FilePath qualified as FilePath
+import qualified Hex.Common.HexEnv.Interface as Env
 
 data HexStateError
   = FontNotFound
@@ -57,6 +58,7 @@ newtype MonadHexStateImplT m a = MonadHexStateImplT {unMonadHexStateImplT :: m a
       Monad,
       MonadIO,
       MonadState st,
+      MonadReader r,
       MonadError e,
       MonadHexLog
     )
@@ -67,6 +69,8 @@ instance
     MonadIO (MonadHexStateImplT m),
     MonadState st (MonadHexStateImplT m),
     HasType HexState st,
+    MonadReader r (MonadHexStateImplT m),
+    HasType [FilePath] r,
     MonadError e (MonadHexStateImplT m),
     AsType HexStateError e,
     AsType TFM.TFMError e
@@ -145,24 +149,35 @@ instance
     H.Inter.B.Box.FontSpecification ->
     MonadHexStateImplT m H.Inter.B.Box.FontDefinition
   loadFont path spec = do
-    let filePath = path ^. typed @FilePath
-    fontInfo <- readFontInfo filePath
+    log $ F.sformat ("loadFont: " |%| F.string) (path ^. typed @FilePath)
+    searchDirs <- know (typed @[FilePath])
+    log $ F.sformat ("searchDirs: " |%| F.list F.string) searchDirs
+    absPath <- Env.findFilePath
+        (Env.WithImplicitExtension "tfm")
+        searchDirs
+        (path ^. typed @FilePath)
+        >>= note (injectTyped FontNotFound)
+    log $ F.sformat ("Found font path: " |%| F.string) absPath
+
+    fontInfo <- readFontInfo absPath
+
     case spec of
       H.Inter.B.Box.NaturalFont -> pure ()
       H.Inter.B.Box.FontAt _ -> notImplemented "font-at"
       H.Inter.B.Box.FontScaled _ -> notImplemented "font-scaled"
+
     mayLastKey <- use $ typed @HexState % #fontInfos % to Map.lookupMax
     let newKey = case mayLastKey of
           Nothing -> PT.FontNumber $ Q.HexInt 0
           Just (i, _) -> succ i
     assign' (typed @HexState % #fontInfos % at' newKey) (Just fontInfo)
 
-    let fontName = Tx.pack $ FilePath.takeBaseName filePath
+    let fontName = Tx.pack $ FilePath.takeBaseName absPath
     pure
       H.Inter.B.Box.FontDefinition
-        { H.Inter.B.Box.fontDefChecksum = notImplemented "loadFont: Checksum",
-          H.Inter.B.Box.fontDefDesignSize = notImplemented "loadFont: DesignSize",
-          H.Inter.B.Box.fontDefDesignScale = notImplemented "loadFont: DesignScale",
+        { H.Inter.B.Box.fontDefChecksum = 0,
+          H.Inter.B.Box.fontDefDesignSize = Q.zeroLength,
+          H.Inter.B.Box.fontDefDesignScale = Q.zeroLength,
           H.Inter.B.Box.fontNr = newKey,
           H.Inter.B.Box.fontPath = path,
           H.Inter.B.Box.fontName = fontName

@@ -2,6 +2,7 @@ module Hex.Run.App where
 
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Common.HexEnv.Interface qualified as HEnv
 import Hex.Common.HexState.Impl (MonadHexStateImplT (..))
 import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Type qualified as HSt
@@ -29,12 +30,6 @@ import Hex.Stage.Resolve.Interface qualified as Resolve
 import Hexlude
 import System.IO (hFlush)
 
-data AppEnv = AppEnv
-  { appLogHandle :: Handle,
-    searchDirectories :: [FilePath]
-  }
-  deriving stock (Generic)
-
 data AppState = AppState
   { appHexState :: HSt.HexState,
     appCharSource :: CharSource,
@@ -53,7 +48,7 @@ newHexStateWithChars chrs =
       appConditionStates = Expand.newConditionStates
     }
 
-newtype App a = App {unApp :: ReaderT AppEnv (StateT AppState (ExceptT AppError IO)) a}
+newtype App a = App {unApp :: ReaderT HEnv.HexEnv (StateT AppState (ExceptT AppError IO)) a}
   deriving newtype
     ( Functor,
       Applicative,
@@ -61,7 +56,7 @@ newtype App a = App {unApp :: ReaderT AppEnv (StateT AppState (ExceptT AppError 
       MonadIO,
       MonadError AppError,
       MonadState AppState,
-      MonadReader AppEnv
+      MonadReader HEnv.HexEnv
     )
   deriving (MonadHexState) via (MonadHexStateImplT App)
   deriving (MonadCharCatSource) via (MonadCharCatSourceT App)
@@ -97,7 +92,7 @@ fmtAppError = F.later $ \case
   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
 
 instance MonadHexLog App where
-  logText msg = do
+  log msg = do
     logFileHandle <- know $ typed @Handle
     liftIO $ hPutStrLn logFileHandle msg
 
@@ -110,27 +105,16 @@ instance MonadHexLog App where
 runAppGivenState ::
   AppState ->
   App a ->
-  AppEnv ->
+  HEnv.HexEnv ->
   IO (Either AppError (a, AppState))
 runAppGivenState appState app appEnv =
   let x = runReaderT app.unApp appEnv
    in runExceptT $ runStateT x appState
 
-newAppEnv :: Handle -> AppEnv
-newAppEnv appLogHandle =
-  AppEnv {appLogHandle, searchDirectories = []}
-
--- | Set up the enironment in this 'with'-style, to ensure we clean up the log
--- handle when we're finished.
-withAppEnv :: (AppEnv -> IO a) -> IO a
-withAppEnv k = do
-  withFile "log.txt" WriteMode $ \appLogHandle -> do
-    k $ newAppEnv appLogHandle
-
 runAppGivenEnv ::
   ByteString ->
   App a ->
-  AppEnv ->
+  HEnv.HexEnv ->
   IO (Either AppError (a, AppState))
 runAppGivenEnv bs app appEnv = do
   let appState = newHexStateWithChars bs
@@ -141,9 +125,9 @@ runApp ::
   App a ->
   IO (Either AppError (a, AppState))
 runApp bs app =
-  withAppEnv $ \appEnv -> do
+  HEnv.withHexEnv $ \appEnv -> do
     a <- runAppGivenEnv bs app appEnv
-    hFlush appEnv.appLogHandle
+    hFlush appEnv.logHandle
     pure a
 
 evalApp :: ByteString -> App a -> IO (Either AppError a)

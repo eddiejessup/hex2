@@ -42,7 +42,7 @@ import Formatting qualified as F
 import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)
-import Protolude hiding (isDigit, isLower, isSpace, isUpper, length, notImplemented, to, uncons, unsnoc, words, (%))
+import Protolude hiding (isDigit, isLower, isSpace, isUpper, length, notImplemented, to, uncons, unsnoc, words, (%), log)
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a

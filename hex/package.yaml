@@ -23,6 +23,7 @@ library:
     - bytestring
     - cereal
     - containers
+    - directory
     - filepath
     - formatting
     - generic-optics

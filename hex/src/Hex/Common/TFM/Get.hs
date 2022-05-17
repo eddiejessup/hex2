@@ -1,9 +1,11 @@
 module Hex.Common.TFM.Get where
 
+import ASCII qualified
 import Control.Arrow (left)
 import Data.ByteString qualified as BS
 import Data.Serialize qualified as Ser
 import Data.Text qualified as Tx
+import Formatting qualified as F
 import Hex.Common.TFM.Get.CharInfo qualified as TFM.Get.CharInfo
 import Hex.Common.TFM.Get.Character qualified as TFM.Get.Character
 import Hex.Common.TFM.Get.Common qualified as TFM.Get.Common
@@ -15,8 +17,6 @@ import Hex.Common.TFM.Get.Recipe qualified as TFM.Get.Recipe
 import Hex.Common.TFM.Get.TableParams qualified as TFM.Get.TableParams
 import Hex.Common.TFM.Types
 import Hexlude
-import qualified Formatting as F
-import qualified ASCII
 
 newtype TFMError = TFMError Text
   deriving stock (Show, Generic)
@@ -30,8 +30,11 @@ parseTFMFile path =
     Left err -> throwError $ injectTyped $ TFMError err
     Right v -> pure v
 
-parseTFMFileIO :: FilePath -> IO (Either (Identity TFMError) Font)
-parseTFMFileIO path = runExceptT (parseTFMFile path)
+parseTFMFileIO :: FilePath -> IO Font
+parseTFMFileIO path =
+  runExceptT (parseTFMFile path) >>= \case
+    Left (Identity err) -> panic $ F.sformat fmtTfmError err
+    Right v -> pure v
 
 parseTFMBytes :: ByteString -> Either Text Font
 parseTFMBytes bs = do

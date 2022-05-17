@@ -47,5 +47,5 @@ instance
   where
   getCommand = do
     (mayCmd, pLog) <- runParseTMaybe Parsers.Command.parseCommand
-    Log.logText $ F.sformat ("Parsed command: " |%| fmtParseLog) pLog
+    Log.log $ F.sformat ("Parsed command: " |%| fmtParseLog) pLog
     pure mayCmd

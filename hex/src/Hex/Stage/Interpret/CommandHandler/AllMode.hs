@@ -43,7 +43,7 @@ getNextCommandLogged ::
   m Eval.Command
 getNextCommandLogged = do
   cmd <- Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
-  Log.logText $ F.sformat ("Read command: " |%| F.shown) cmd
+  -- Log.log $ F.sformat ("Read command: " |%| F.shown) cmd
   pure cmd
 
 data OutputDestination
