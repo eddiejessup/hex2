@@ -26,6 +26,6 @@ parseNormalMathLength =
 parseMathUnit :: MonadPrimTokenParse m => m AST.MathUnit
 parseMathUnit =
   PC.choice
-    [ skipKeyword [Chr_ 'm', Chr_ 'u'] >> skipOneOptionalSpace $> AST.Mu
+    [ skipKeyword Expanding [Chr_ 'm', Chr_ 'u'] >> skipOneOptionalSpace Expanding $> AST.Mu
     -- , skipOptionalSpaces *> (AST.InternalMathGlueAsUnit <$> parseHeaded headToParseInternalMathGlue)
     ]

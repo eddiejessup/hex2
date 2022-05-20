@@ -1,3 +1,4 @@
+{-# LANGUAGE UndecidableInstances #-}
 module Hex.Common.Parse.Impl where
 
 import Control.Monad.Trans (MonadTrans (..))
@@ -11,6 +12,7 @@ import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
 
 newtype ParseLog = ParseLog {unParseLog :: Seq Lex.LexToken}
   deriving stock (Show)
@@ -28,6 +30,12 @@ fmtParseLog = F.accessed unParseLog fmtLexTokenSeq
 -- That is why we have the extra `ExceptT ParsingError` layer.
 newtype ParseT m a = ParseT {unParseT :: ExceptT ParsingError (W.WriterT ParseLog m) a}
   deriving newtype (Functor, Applicative, Monad, MonadError ParsingError)
+
+instance Log.MonadHexLog m => Log.MonadHexLog (ParseT m) where
+    log x = lift $ Log.log x
+
+    logInternalState = lift Log.logInternalState
+
 
 mkParseT :: Monad m => m (Either ParsingError a, ParseLog) -> ParseT m a
 mkParseT ma = ParseT $ ExceptT $ W.writerT ma
@@ -109,25 +117,6 @@ parseErrorImpl :: (MonadHexState m) => ParseUnexpectedErrorCause -> ParseT m a
 parseErrorImpl e = do
   ParseT $ throwE $ UnexpectedParsingError $ ParseUnexpectedError e
 
--- - We need MonadLexTokenSource because it lets us get at the underlying char-source, for resetting state.
--- - We need MonadPrimTokenSource to get primitive-tokens to inspect.
-satisfyThenImpl :: (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => (PT.PrimitiveToken -> Maybe a) -> ParseT m a
-satisfyThenImpl f = do
-  src0 <- lift Lex.getSource
-  -- Fetch the new primitive-token.
-  -- This might cause some expansion, i.e. some stateful changes to the input.
-  pt <- snd <$> getExpandedTokenErrImpl
-  -- Apply our quasi-predicate to the next primitive-token.
-  case f pt of
-    -- If our predicate fails, reset the source to its original state, i.e. before any expansion happens,
-    -- and declare that we failed.
-    Nothing -> do
-      lift $ Lex.putSource src0
-      parseErrorImpl $ SawUnexpectedPrimitiveToken (UnexpectedPrimitiveToken {saw = pt, expected = "Unknown"})
-    -- If our predicate succeeds, then return the value.
-    Just v ->
-      pure v
-
 -- Take a program that returns a 'Maybe a', with `Nothing` representing end-of-input, and
 -- map that `Nothing` into an end-of-input error.
 endOfInputToError :: Monad m => m (Maybe a) -> ParseT m a
@@ -138,9 +127,9 @@ logLexToken :: Monad m => Lex.LexToken -> ParseT m ()
 logLexToken lt = liftWriter $ W.tell $ ParseLog $ Seq.singleton lt
 
 -- Like `getExpandedTokenImpl`, but on end-of-input raise an error so the parse fails.
-getExpandedTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m (Lex.LexToken, PT.PrimitiveToken)
+getExpandedTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m, Log.MonadHexLog m) => ParseT m (Lex.LexToken, PT.PrimitiveToken)
 getExpandedTokenErrImpl = do
-  r@(lt, _) <- endOfInputToError getPrimitiveToken
+  r@(lt, _) <- lift (Log.log "getExpandedTokenErrImpl\n") >> endOfInputToError getPrimitiveToken
   logLexToken lt
   pure r
 
@@ -155,11 +144,9 @@ getUnexpandedTokenImpl = do
 -- but this would be a lot of typing for each parser.
 -- So instead, I will implement 'MonadPrimTokenParse' for 'ParseT m'.
 
-instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => MonadPrimTokenParse (ParseT m) where
-  getExpandedToken = getExpandedTokenErrImpl
+instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m, Log.MonadHexLog (ParseT m), Log.MonadHexLog m) => MonadPrimTokenParse (ParseT m) where
+  getExpandedToken = (Log.log "getExpandedToken-class\n") >> getExpandedTokenErrImpl
 
   getUnexpandedToken = getUnexpandedTokenImpl
-
-  satisfyThen = satisfyThenImpl
 
   parseError = parseErrorImpl

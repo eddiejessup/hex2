@@ -10,6 +10,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken (..)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Resolve.Interface (MonadResolve (..), ResolutionError (..))
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
 
 newtype MonadResolveT m a = MonadResolveT {unMonadResolveT :: m a}
   deriving newtype
@@ -25,11 +26,12 @@ newtype MonadResolveT m a = MonadResolveT {unMonadResolveT :: m a}
 
 instance
   ( Monad (MonadResolveT m),
-    HSt.MonadHexState (MonadResolveT m)
+    HSt.MonadHexState (MonadResolveT m),
+    Log.MonadHexLog (MonadResolveT m)
   ) =>
   MonadResolve (MonadResolveT m)
   where
-  resolveLexToken lt = do
+  resolveLexToken lt = Log.log ("resolveLexToken: " <> show lt) >>
     resolveToken lt <&> \case
       Nothing -> Left $ ResolutionError lt
       Just rt -> Right rt

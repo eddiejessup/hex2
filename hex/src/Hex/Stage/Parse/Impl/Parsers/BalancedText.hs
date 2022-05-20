@@ -2,16 +2,16 @@ module Hex.Stage.Parse.Impl.Parsers.BalancedText where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as T
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getExpandedLexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hexlude
-import qualified Hex.Common.HexState.Interface.TokenList as HSt.TL
 
 parseGeneralText :: MonadPrimTokenParse m => m a -> m a
 parseGeneralText parseBalancedText = do
-  skipFiller
+  skipFillerExpanding
   parseBalancedText
 
 parseExpandedGeneralText :: MonadPrimTokenParse m => BalancedTextContext -> m T.ExpandedBalancedText
@@ -25,7 +25,7 @@ data BalancedTextContext = AlreadySeenBeginGroup | ExpectingBeginGroup
 skipBeginGroupIfNeeded :: MonadPrimTokenParse m => BalancedTextContext -> m ()
 skipBeginGroupIfNeeded = \case
   AlreadySeenBeginGroup -> pure ()
-  ExpectingBeginGroup -> skipSatisfied $ primTokenHasCategory Code.BeginGroup
+  ExpectingBeginGroup -> skipSatisfied getExpandedLexToken $ lexTokenHasCategory Code.BeginGroup
 
 parseExpandedBalancedText :: MonadPrimTokenParse m => BalancedTextContext -> m T.ExpandedBalancedText
 parseExpandedBalancedText ctx = do

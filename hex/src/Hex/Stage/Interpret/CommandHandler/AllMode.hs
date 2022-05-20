@@ -37,8 +37,7 @@ getNextCommandLogged ::
   ( Eval.MonadEvaluate m,
     Par.MonadCommandSource m,
     MonadError e m,
-    AsType InterpretError e,
-    Log.MonadHexLog m
+    AsType InterpretError e
   ) =>
   m Eval.Command
 getNextCommandLogged = do
@@ -307,10 +306,10 @@ handleModeIndependentCommand addVElem = \case
   -- -- effects of non-global assignments, and leave the
   -- -- group. Maybe leave the current mode.
   Eval.ChangeScope Q.Negative exitTrigger -> do
-  --   prePopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
-  --   postPopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
-  --   when (prePopCurrentFontNr /= postPopCurrentFontNr) $ do
-  --     addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection (fromMaybe 0 postPopCurrentFontNr)
+    --   prePopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
+    --   postPopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
+    --   when (prePopCurrentFontNr /= postPopCurrentFontNr) $ do
+    --     addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection (fromMaybe 0 postPopCurrentFontNr)
     HSt.popGroup exitTrigger
     pure DidNotSeeEndBox
   --   case group of

@@ -9,20 +9,20 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
 import Hexlude
 
-parseRelation :: MonadPrimTokenParse m => m Ordering
-parseRelation = satisfyThen $ \t ->
+parseRelationExpanding :: MonadPrimTokenParse m => m Ordering
+parseRelationExpanding = Par.satisfyThen getExpandedLexToken $ \t ->
   if
-      | Par.isOnly (Par.primTokCatChar Code.Other) (Code.Chr_ '<') t -> Just LT
-      | Par.isOnly (Par.primTokCatChar Code.Other) (Code.Chr_ '>') t -> Just GT
-      | Par.isOnly (Par.primTokCatChar Code.Other) (Code.Chr_ '=') t -> Just EQ
+      | Par.isOnly (Par.lexTokenCatChar Code.Other) (Code.Chr_ '<') t -> Just LT
+      | Par.isOnly (Par.lexTokenCatChar Code.Other) (Code.Chr_ '>') t -> Just GT
+      | Par.isOnly (Par.lexTokenCatChar Code.Other) (Code.Chr_ '=') t -> Just EQ
       | otherwise -> Nothing
 
 parseConditionHead :: MonadPrimTokenParse m => ST.ConditionHeadTok -> m AST.ConditionHead
 parseConditionHead = \case
   ST.IfIntPairTestTok ->
-    AST.IfConditionHead <$> (AST.IfIntPairTest <$> Par.parseInt <*> parseRelation <*> Par.parseInt)
+    AST.IfConditionHead <$> (AST.IfIntPairTest <$> Par.parseInt <*> parseRelationExpanding <*> Par.parseInt)
   ST.IfLengthPairTestTok ->
-    AST.IfConditionHead <$> (AST.IfLengthPairTest <$> Par.parseLength <*> parseRelation <*> Par.parseLength)
+    AST.IfConditionHead <$> (AST.IfLengthPairTest <$> Par.parseLength <*> parseRelationExpanding <*> Par.parseLength)
   ST.IfIntOddTok ->
     AST.IfConditionHead <$> (AST.IfIntOdd <$> Par.parseInt)
   ST.IfInModeTok a ->

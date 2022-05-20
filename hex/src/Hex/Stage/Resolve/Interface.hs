@@ -19,7 +19,7 @@ class (Monad m) => MonadResolve m where
 -- If we can resolve lex-tokens, and we have a source of lex-tokens, we can
 -- provide a stream of resolved-tokens.
 getMayResolvedToken :: (MonadResolve m, MonadLexTokenSource m) => m (Maybe (Lex.LexToken, Either ResolutionError ResolvedToken))
-getMayResolvedToken = do
+getMayResolvedToken =
   -- Get a lex token.
   getLexToken >>= \case
     -- If no lex token, return nothing.

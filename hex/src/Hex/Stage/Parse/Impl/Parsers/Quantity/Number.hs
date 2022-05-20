@@ -8,8 +8,9 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..), UnexpectedPrimitiveToken (..), parseFailure)
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..), UnexpectedPrimitiveToken (..), getExpandedLexToken, getExpandedPrimitiveToken, parseFailure)
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
@@ -20,16 +21,16 @@ parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
   where
     parseOptionalSigns :: m [Q.Sign]
     parseOptionalSigns = do
-      skipOptionalSpaces
-      PC.sepEndBy (satisfyThen signToPos) skipOptionalSpaces
+      skipOptionalSpaces Expanding
+      PC.sepEndBy (satisfyThen getExpandedLexToken signToPos) (skipOptionalSpaces Expanding)
       where
         signToPos t
-          | isOnly (primTokCatChar Code.Other) (Code.Chr_ '+') t = Just Q.Positive
-          | isOnly (primTokCatChar Code.Other) (Code.Chr_ '-') t = Just Q.Negative
+          | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '+') t = Just Q.Positive
+          | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '-') t = Just Q.Negative
           | otherwise = Nothing
 
 parseInt :: MonadPrimTokenParse m => m AST.HexInt
-parseInt = AST.HexInt <$> parseSigned (parseHeaded headToParseUnsignedInt)
+parseInt = AST.HexInt <$> parseSigned (getExpandedPrimitiveToken >>= headToParseUnsignedInt)
 
 headToParseUnsignedInt :: MonadPrimTokenParse m => PrimitiveToken -> m AST.UnsignedInt
 headToParseUnsignedInt headTok =
@@ -42,22 +43,22 @@ headToParseUnsignedInt headTok =
 headToParseNormalInt :: forall m. MonadPrimTokenParse m => PrimitiveToken -> m AST.NormalInt
 headToParseNormalInt =
   choiceFlap
-    [ \t -> headToParseConstantInt t <* skipOneOptionalSpace,
+    [ \t -> liftLexHead headToParseConstantInt t <* skipOneOptionalSpace Expanding,
       fmap AST.InternalInt <$> headToParseInternalInt
     ]
   where
-    headToParseConstantInt :: PrimitiveToken -> m AST.NormalInt
+    headToParseConstantInt :: LexToken -> m AST.NormalInt
     headToParseConstantInt t
       | Just w1 <- decCharToWord t = do
-          remainingWs <- PC.many (satisfyThen decCharToWord)
+          remainingWs <- PC.many (satisfyThen getExpandedLexToken decCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base10 (w1 : remainingWs)
-      | isOnly (primTokCatChar Code.Other) (Code.Chr_ '"') t = do
-          hexDigits <- PC.some (satisfyThen hexCharToWord)
+      | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '"') t = do
+          hexDigits <- PC.some (satisfyThen getExpandedLexToken hexCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base16 hexDigits
-      | isOnly (primTokCatChar Code.Other) (Code.Chr_ '\'') t = do
-          octDigits <- PC.some (satisfyThen octCharToWord)
+      | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '\'') t = do
+          octDigits <- PC.some (satisfyThen getExpandedLexToken octCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base8 octDigits
-      | isOnly (primTokCatChar Code.Other) (Code.Chr_ '`') t =
+      | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '`') t =
           AST.CharLikeCode <$> parseCharLikeCodeInt
       | otherwise =
           parseFailure "headToParseConstantInt"
@@ -79,17 +80,17 @@ headToParseNormalInt =
             Nothing ->
               parseFailure "parseCharLikeCodeInt"
 
-decCharToWord :: PrimitiveToken -> Maybe Word8
+decCharToWord :: LexToken -> Maybe Word8
 decCharToWord = fromCatChar Code.Other H.Ascii.fromDecDigit
 
-hexCharToWord :: PrimitiveToken -> Maybe Word8
-hexCharToWord pt = fromCatChar Code.Other H.Ascii.fromUpHexDigit pt <|> fromCatChar Code.Letter H.Ascii.fromUpHexAF pt
+hexCharToWord :: LexToken -> Maybe Word8
+hexCharToWord lt = fromCatChar Code.Other H.Ascii.fromUpHexDigit lt <|> fromCatChar Code.Letter H.Ascii.fromUpHexAF lt
 
-octCharToWord :: PrimitiveToken -> Maybe Word8
+octCharToWord :: LexToken -> Maybe Word8
 octCharToWord = fromCatChar Code.Other H.Ascii.fromOctDigit
 
-fromCatChar :: Code.CoreCatCode -> (Word8 -> Maybe a) -> PrimitiveToken -> Maybe a
-fromCatChar cat fromWord pt = (pt ^? primTokCatChar cat % typed @Word8) >>= fromWord
+fromCatChar :: Code.CoreCatCode -> (Word8 -> Maybe a) -> LexToken -> Maybe a
+fromCatChar cat fromWord lt = (lt ^? lexTokenCatChar cat % typed @Word8) >>= fromWord
 
 headToParseInternalInt :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.InternalInt
 headToParseInternalInt =
@@ -142,7 +143,7 @@ headToParseMathCharToken = \case
 headToParseFontCharRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.FontCharRef
 headToParseFontCharRef = \case
   PT.FontCharTok c ->
-    AST.FontCharRef c <$> parseHeaded headToParseFontRef
+    AST.FontCharRef c <$> (getExpandedPrimitiveToken >>= headToParseFontRef)
   _ ->
     parseFailure "headToParseFontCharRef"
 
@@ -188,7 +189,7 @@ headToParseInternalLength =
 headToParseFontDimensionRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.FontDimensionRef
 headToParseFontDimensionRef = \case
   PT.FontDimensionTok ->
-    AST.FontDimensionRef <$> parseInt <*> parseHeaded headToParseFontRef
+    AST.FontDimensionRef <$> parseInt <*> (getExpandedPrimitiveToken >>= headToParseFontRef)
   _ ->
     parseFailure "headToParseFontDimensionRef"
 

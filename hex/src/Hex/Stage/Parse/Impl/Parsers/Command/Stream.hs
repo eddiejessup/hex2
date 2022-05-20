@@ -4,13 +4,13 @@ import ASCII qualified
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity.Common qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
-import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
@@ -18,7 +18,7 @@ import Hexlude
 parseOpenFileStream :: MonadPrimTokenParse m => AST.FileStreamType -> m AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =
   do
-    (n, fileName) <- Par.parseXEqualsY Par.parseInt parseFileName
+    (n, fileName) <- parseXEqualsY Expanding Par.parseInt parseFileName
     pure $ AST.FileStreamModificationCommand fileStreamType (AST.Open fileName) n
 
 headToParseOpenOutput :: MonadPrimTokenParse m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
@@ -50,14 +50,14 @@ headToParseWriteToStream writePolicy = \case
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
 parseFileName :: MonadPrimTokenParse m => m Q.HexFilePath
 parseFileName = do
-  Par.skipOptionalSpaces
+  skipOptionalSpaces Expanding
   fileNameAsciiChars <-
     PC.some $
-      satisfyThen $ \pt -> do
+      satisfyThen Par.getExpandedLexToken $ \lt -> do
         -- First check that we get a char-cat (with ^?)
         -- and that it has the right properties.
         code <-
-          pt ^? PT.primTokCharCat >>= \case
+          lt ^? Lex.lexTokCharCat >>= \case
             Lex.LexCharCat c Code.Letter ->
               Just c
             Lex.LexCharCat c Code.Other
@@ -66,7 +66,7 @@ parseFileName = do
             _ ->
               Nothing
         pure $ Code.codeAsAsciiChar code
-  Par.skipSatisfied Par.isSpace
+  skipSatisfied Par.getExpandedLexToken lexTokenIsSpace
   pure $ Q.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where
     isValidOther = \case

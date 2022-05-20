@@ -25,6 +25,7 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype
@@ -54,13 +55,14 @@ instance
     Lex.MonadLexTokenSource (MonadPrimTokenSourceT m),
     HSt.MonadHexState (MonadPrimTokenSourceT m),
     MonadState s m,
-    HasType (Expand.ConditionStates) s
+    HasType (Expand.ConditionStates) s,
+    MonadHexLog m
   ) =>
   MonadPrimTokenSource (MonadPrimTokenSourceT m)
   where
-  getPrimitiveToken = getPrimitiveTokenImpl
+  getPrimitiveToken = Log.log "getPrimitiveToken-class" >>  getPrimitiveTokenImpl
 
-  getResolvedToken = getResolvedTokenImpl
+  getResolvedToken = Log.log "getResolvedToken-class" >> getResolvedTokenImpl
 
   getTokenInhibited = Lex.getLexToken
 
@@ -86,10 +88,11 @@ getResolvedTokenImpl ::
   ( Res.MonadResolve m,
     MonadError e m,
     AsType Res.ResolutionError e,
-    Lex.MonadLexTokenSource m
+    Lex.MonadLexTokenSource m,
+    Log.MonadHexLog m
   ) =>
   m (Maybe (LexToken, ResolvedToken))
-getResolvedTokenImpl =
+getResolvedTokenImpl = Log.log "getResolvedTokenImpl\n" >>
   Res.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
     Nothing -> pure Nothing
@@ -121,13 +124,14 @@ getPrimitiveTokenImpl ::
     AsType Par.ParsingError e,
     Lex.MonadLexTokenSource m,
     MonadPrimTokenSource m,
-    HSt.MonadHexState m
+    HSt.MonadHexState m,
+    MonadHexLog m
   ) =>
   m (Maybe (LexToken, PrimitiveToken))
-getPrimitiveTokenImpl =
+getPrimitiveTokenImpl = Log.log "getPrimitiveTokenImpl\n" >>
   getResolvedTokenImpl >>= \case
     Nothing -> pure Nothing
-    Just (lt, rt) -> case rt of
+    Just (lt, rt) -> Log.log ("rt: " <> show rt) >> case rt of
       -- If we resolved to a primitive token, we are done, just return that.
       PrimitiveToken pt ->
         pure $ Just (lt, pt)
@@ -142,7 +146,7 @@ getPrimitiveTokenImpl =
         -- Try to read a primitive token again. Note that the new lex-tokens
         -- might themselves introduce a syntax command, so we might need to
         -- expand again.
-        getPrimitiveTokenImpl
+        Log.log "getPrimitiveTokenImpl-recurse\n" >> getPrimitiveTokenImpl
 
 parseEvalExpandSyntaxCommand ::
   ( MonadError e m,
@@ -151,7 +155,8 @@ parseEvalExpandSyntaxCommand ::
     AsType Eval.EvaluationError e,
     HSt.MonadHexState m,
     MonadPrimTokenSource m,
-    Lex.MonadLexTokenSource m
+    Lex.MonadLexTokenSource m,
+    MonadHexLog m
   ) =>
   ST.SyntaxCommandHeadToken ->
   m (Seq LexToken)

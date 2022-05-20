@@ -16,7 +16,6 @@ data ExpansionError
 
 fmtExpansionError :: Fmt ExpansionError
 fmtExpansionError = F.later $ \case
-  -- ExpansionResolutionError e -> "Failed to resolve while expanding: " <> F.bformat Res.fmtResolutionError e
   MacroArgumentSubstitutionError argIx args ->
     "Failed to find parameter value in macro call, at index " <> F.bformat F.shown argIx <> " of arguments " <> F.bformat F.shown args
   EndOfInputWhileSkipping ->

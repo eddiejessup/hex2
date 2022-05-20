@@ -6,8 +6,9 @@ import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
@@ -46,7 +47,7 @@ parseGlue :: MonadPrimTokenParse m => m AST.Glue
 parseGlue =
   PC.choice
     [ AST.ExplicitGlue <$> parseExplicitGlueSpec,
-      AST.InternalGlue <$> Par.parseSigned (Par.parseHeaded Par.headToParseInternalGlue)
+      AST.InternalGlue <$> Par.parseSigned (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalGlue)
     ]
 
 parseExplicitGlueSpec :: MonadPrimTokenParse m => m AST.ExplicitGlueSpec
@@ -60,11 +61,11 @@ parsePureFlex :: MonadPrimTokenParse m => [Code.CharCode] -> m (Maybe AST.PureFl
 parsePureFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
-      Par.skipOptionalSpaces $> Nothing
+      skipOptionalSpaces Expanding $> Nothing
     ]
   where
     parsePresentFlex = do
-      Par.skipKeyword s
+      skipKeyword Expanding s
       PC.choice
         [ AST.FinitePureFlex <$> Par.parseLength,
           AST.InfPureFlex <$> parseInfFlexOfOrder
@@ -73,7 +74,7 @@ parsePureFlex s =
 parseInfFlexOfOrder :: MonadPrimTokenParse m => m AST.InfFlexOfOrder
 parseInfFlexOfOrder = do
   factor <- Par.parseSigned Par.parseFactor
-  Par.skipKeyword [Chr_ 'f', Chr_ 'i']
+  skipKeyword Expanding [Chr_ 'f', Chr_ 'i']
   order <-
     parseNrLs >>= \case
       0 -> panic "impossible"
@@ -81,8 +82,8 @@ parseInfFlexOfOrder = do
       2 -> pure Q.Fil2
       3 -> pure Q.Fil3
       _ -> empty
-  Par.skipOptionalSpaces
+  skipOptionalSpaces Expanding
   pure $ AST.InfFlexOfOrder factor order
   where
     parseNrLs =
-      Fold.length <$> PC.some (Par.skipSatisfied $ Par.matchNonActiveCharacterUncased (Chr_ 'l'))
+      Fold.length <$> PC.some (skipSatisfied Par.getExpandedLexToken $ matchNonActiveCharacterUncased (Chr_ 'l'))

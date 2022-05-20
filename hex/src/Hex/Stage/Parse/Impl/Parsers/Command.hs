@@ -4,7 +4,8 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getAnyPrimitiveToken)
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
@@ -21,7 +22,7 @@ import Hexlude
 
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
-  getAnyPrimitiveToken >>= \case
+  Par.getExpandedPrimitiveToken >>= \case
     PT.DebugShowState ->
       pure $ AST.ModeIndependentCommand $ AST.DebugShowState
     PT.ShowTokenTok ->
@@ -31,9 +32,9 @@ parseCommand =
     PT.ShowListsTok ->
       pure AST.ShowLists
     PT.ShowTheInternalQuantityTok ->
-      AST.ShowTheInternalQuantity <$> parseHeaded headToParseInternalQuantity
+      AST.ShowTheInternalQuantity <$> (Par.getExpandedPrimitiveToken >>= headToParseInternalQuantity)
     PT.ShipOutTok ->
-      AST.ShipOut <$> parseHeaded Par.headToParseBox
+      AST.ShipOut <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseBox)
     PT.MarkTok ->
       AST.AddMark <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
     PT.StartParagraphTok _indent ->
@@ -52,7 +53,7 @@ parseCommand =
     PT.RelaxTok ->
       pure $ AST.ModeIndependentCommand AST.Relax
     PT.IgnoreSpacesTok -> do
-      skipOptionalSpaces
+      skipOptionalSpaces Expanding
       pure $ AST.ModeIndependentCommand AST.IgnoreSpaces
     PT.PenaltyTok ->
       AST.ModeIndependentCommand . AST.AddPenalty <$> Par.parseInt
@@ -76,16 +77,17 @@ parseCommand =
       AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.parseOpenFileStream AST.FileInput
     PT.ImmediateTok -> do
       AST.ModeIndependentCommand
-        <$> parseHeaded
-          ( choiceFlap
-              [ fmap AST.ModifyFileStream . Par.headToParseOpenOutput AST.Immediate,
-                fmap AST.ModifyFileStream . Par.headToParseCloseOutput AST.Immediate,
-                fmap AST.WriteToStream . Par.headToParseWriteToStream AST.Immediate
-              ]
-          )
+        <$> ( Par.getExpandedPrimitiveToken
+                >>= ( choiceFlap
+                        [ fmap AST.ModifyFileStream . Par.headToParseOpenOutput AST.Immediate,
+                          fmap AST.ModifyFileStream . Par.headToParseCloseOutput AST.Immediate,
+                          fmap AST.WriteToStream . Par.headToParseWriteToStream AST.Immediate
+                        ]
+                    )
+            )
     PT.ModedCommand axis (PT.ShiftedBoxTok direction) -> do
       placement <- AST.ShiftedPlacement axis direction <$> Par.parseLength
-      AST.ModeIndependentCommand . AST.AddBox placement <$> parseHeaded Par.headToParseBox
+      AST.ModeIndependentCommand . AST.AddBox placement <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseBox)
     -- Change scope.
     PT.ChangeScopeCSTok sign ->
       pure $ AST.ModeIndependentCommand $ AST.ChangeScope sign HSt.Group.LocalStructureCSTrigger
@@ -98,7 +100,7 @@ parseCommand =
     PT.AccentTok -> do
       nr <- Par.parseInt
       assignments <- PC.many Par.parseNonSetBoxAssignment
-      chrTok <- PC.optional (parseHeaded headToParseCharCodeRef)
+      chrTok <- PC.optional (Par.getExpandedPrimitiveToken >>= headToParseCharCodeRef)
       pure $ AST.HModeCommand $ AST.AddAccentedCharacter nr assignments chrTok
     PT.DiscretionaryTextTok -> do
       dText <-

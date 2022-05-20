@@ -3,13 +3,14 @@ module Hex.Stage.Parse.Impl.Parsers.Quantity.Length where
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
-import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
-import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Parse.Impl.Parsers.Combinators
+import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
+import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
-import Hex.Common.Parse.Interface (MonadPrimTokenParse(..))
-import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 
 parseLength :: MonadPrimTokenParse m => m AST.Length
 parseLength = AST.Length <$> Par.parseSigned parseUnsignedLength
@@ -18,14 +19,14 @@ parseUnsignedLength :: MonadPrimTokenParse m => m AST.UnsignedLength
 parseUnsignedLength =
   PC.choice
     [ AST.NormalLengthAsULength <$> parseNormalLength,
-      AST.CoercedLength . AST.InternalGlueAsLength <$> Par.parseHeaded Par.headToParseInternalGlue
+      AST.CoercedLength . AST.InternalGlueAsLength <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalGlue)
     ]
 
 parseNormalLength :: MonadPrimTokenParse m => m AST.NormalLength
 parseNormalLength =
   PC.choice
     [ AST.LengthSemiConstant <$> parseFactor <*> parseUnit,
-      AST.InternalLength <$> Par.parseHeaded Par.headToParseInternalLength
+      AST.InternalLength <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalLength)
     ]
 
 -- NOTE: The parser order matters because TeX's grammar is ambiguous: '2.2'
@@ -35,43 +36,43 @@ parseFactor :: MonadPrimTokenParse m => m AST.Factor
 parseFactor =
   PC.choice
     [ AST.DecimalFractionFactor <$> parseRationalConstant,
-      AST.NormalIntFactor <$> Par.parseHeaded Par.headToParseNormalInt
+      AST.NormalIntFactor <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseNormalInt)
     ]
 
 parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
 parseRationalConstant = do
-  wholeDigits <- PC.many (satisfyThen Par.decCharToWord)
-  Par.skipSatisfied $ \t -> case t ^? PT.primTokCharCat of
+  wholeDigits <- PC.many (satisfyThen Par.getExpandedLexToken Par.decCharToWord)
+  skipSatisfied Par.getExpandedLexToken $ \t -> case t ^? Lex.lexTokCharCat of
     Just cc ->
       let chrCode = cc ^. typed @Code.CharCode
        in (cc ^. typed @Code.CoreCatCode == Code.Other) && (chrCode == Code.Chr_ ',' || chrCode == Code.Chr_ '.')
     Nothing -> False
-  fracDigits <- PC.many (satisfyThen Par.decCharToWord)
+  fracDigits <- PC.many (satisfyThen Par.getExpandedLexToken Par.decCharToWord)
   pure $ AST.DecimalFraction {AST.wholeDigits, AST.fracDigits}
 
 parseUnit :: MonadPrimTokenParse m => m AST.Unit
 parseUnit =
   PC.choice
-    [ Par.skipOptionalSpaces *> (AST.InternalUnit <$> parseInternalUnit),
-      (AST.PhysicalUnit <$> parseFrame <*> parsePhysicalUnitLit) <* Par.skipOneOptionalSpace
+    [ (skipOptionalSpaces Expanding) *> (AST.InternalUnit <$> parseInternalUnit),
+      (AST.PhysicalUnit <$> parseFrame <*> parsePhysicalUnitLit) <* skipOneOptionalSpace Expanding
     ]
   where
     parseInternalUnit =
       PC.choice
-        [ parseInternalUnitLit <* Par.skipOneOptionalSpace,
-          AST.InternalIntUnit <$> Par.parseHeaded Par.headToParseInternalInt,
-          AST.InternalLengthUnit <$> Par.parseHeaded Par.headToParseInternalLength,
-          AST.InternalGlueUnit <$> Par.parseHeaded Par.headToParseInternalGlue
+        [ parseInternalUnitLit <* skipOneOptionalSpace Expanding,
+          AST.InternalIntUnit <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalInt),
+          AST.InternalLengthUnit <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalLength),
+          AST.InternalGlueUnit <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalGlue)
         ]
 
     parseInternalUnitLit =
       PC.choice
-        [ Par.skipKeyword [Chr_ 'e', Chr_ 'm'] $> AST.Em,
-          Par.skipKeyword [Chr_ 'e', Chr_ 'x'] $> AST.Ex
+        [ skipKeyword Expanding [Chr_ 'e', Chr_ 'm'] $> AST.Em,
+          skipKeyword Expanding [Chr_ 'e', Chr_ 'x'] $> AST.Ex
         ]
 
     parseFrame =
-      Par.parseOptionalKeyword [Chr_ 't', Chr_ 'r', Chr_ 'u', Chr_ 'e'] <&> \case
+      parseOptionalKeyword Expanding [Chr_ 't', Chr_ 'r', Chr_ 'u', Chr_ 'e'] <&> \case
         True -> AST.TrueFrame
         False -> AST.MagnifiedFrame
 
@@ -83,13 +84,13 @@ parseUnit =
     -- initial space, which would also need backtracking.
     parsePhysicalUnitLit =
       PC.choice
-        [ Par.skipKeyword [Chr_ 'b', Chr_ 'p'] $> Q.BigPoint,
-          Par.skipKeyword [Chr_ 'c', Chr_ 'c'] $> Q.Cicero,
-          Par.skipKeyword [Chr_ 'c', Chr_ 'm'] $> Q.Centimetre,
-          Par.skipKeyword [Chr_ 'd', Chr_ 'd'] $> Q.Didot,
-          Par.skipKeyword [Chr_ 'i', Chr_ 'n'] $> Q.Inch,
-          Par.skipKeyword [Chr_ 'm', Chr_ 'm'] $> Q.Millimetre,
-          Par.skipKeyword [Chr_ 'p', Chr_ 'c'] $> Q.Pica,
-          Par.skipKeyword [Chr_ 'p', Chr_ 't'] $> Q.Point,
-          Par.skipKeyword [Chr_ 's', Chr_ 'p'] $> Q.ScaledPoint
+        [ skipKeyword Expanding [Chr_ 'b', Chr_ 'p'] $> Q.BigPoint,
+          skipKeyword Expanding [Chr_ 'c', Chr_ 'c'] $> Q.Cicero,
+          skipKeyword Expanding [Chr_ 'c', Chr_ 'm'] $> Q.Centimetre,
+          skipKeyword Expanding [Chr_ 'd', Chr_ 'd'] $> Q.Didot,
+          skipKeyword Expanding [Chr_ 'i', Chr_ 'n'] $> Q.Inch,
+          skipKeyword Expanding [Chr_ 'm', Chr_ 'm'] $> Q.Millimetre,
+          skipKeyword Expanding [Chr_ 'p', Chr_ 'c'] $> Q.Pica,
+          skipKeyword Expanding [Chr_ 'p', Chr_ 't'] $> Q.Point,
+          skipKeyword Expanding [Chr_ 's', Chr_ 'p'] $> Q.ScaledPoint
         ]

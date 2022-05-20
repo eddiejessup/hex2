@@ -123,3 +123,34 @@ There also are cases in which `\the` produces non-character tokens, either a fon
 
 - \the⟨font⟩ produces a font identifier that selects the specified font. For example, ‘\the\font’ is a control sequence corresponding to the current font.
 - \the⟨token variable⟩ produces a copy of the token list that is the current value of the variable. For example, you can expand ‘\the\everypar’ and ‘\the\toks5’.
+
+## Expansion inhibition
+
+Expansion is suppressed at the following times:
+
+- Deleting tokens during error recovery
+- Skipping ignored conditional text.
+- Reading macro arguments
+- Reading the name of a control sequence defined by:
+  - \let
+  - \futurelet
+  - \def, \gdef, \edef, \xdef
+  - \chardef, \mathchardef, \countdef, \dimendef, \skipdef, \muskipdef, \toksdef
+  - \read
+  - \font
+- Reading arguments for:
+  - \expandafter
+  - \noexpand
+  - \string
+  - \meaning
+  - \let
+  - \futurelet
+  - \ifx
+  - \show
+  - \afterassignment
+  - \aftergroup
+- Reading macro definition parameter text of a \def, \gdef, \edef, or \xdef
+- Reading the replacement text of a \def or \gdef or \read; or the text of a token variable like \everypar or \toks0; or the token list for \uppercase or \lowercase or \write. (The token list for \write will be expanded later, when it is actually output to a file.)
+- Reading the preamble of an alignment, except after a token for the primitive command \span or when reading the ⟨glue⟩ after \tabskip.
+- Just after a $_3 token that begins math mode, to see if another $_3 follows
+- Just after a ‘_12 token that begins an alphabetic constant

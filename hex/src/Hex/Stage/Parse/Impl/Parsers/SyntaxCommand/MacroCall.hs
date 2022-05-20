@@ -8,9 +8,9 @@ import Hex.Common.HexState.Interface.TokenList qualified as HSt.LT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
-import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
 import Hexlude
+import Hex.Stage.Parse.Impl.Parsers.Combinators
 
 -- During a macro call, we must parse the provided arguments.
 parseMacroArguments :: forall m. MonadPrimTokenParse m => ST.MacroParameterSpecification -> m AST.MacroArgumentList
@@ -52,8 +52,8 @@ parseMacroArguments parameterSpec = do
       -- The last token must be a '}'.
       -- The stripped argument must have valid grouping.
       a :<| (inner :|> z)
-        | Par.lexTokenHasCategory Code.BeginGroup a
-            && Par.lexTokenHasCategory Code.EndGroup z
+        | lexTokenHasCategory Code.BeginGroup a
+            && lexTokenHasCategory Code.EndGroup z
             && hasValidGrouping inner ->
             ST.InhibitedBalancedText $ HSt.LT.BalancedText inner
       _ ->
@@ -65,7 +65,7 @@ parseMacroArguments parameterSpec = do
 parseUndelimitedArgumentTokens :: forall m. MonadPrimTokenParse m => m ST.InhibitedBalancedText
 parseUndelimitedArgumentTokens = do
   -- Skip blank tokens (assumed to mean spaces).
-  PC.skipMany $ Par.satisfyLexIf (Par.lexTokenHasCategory Code.Space)
+  PC.skipMany $ satisfyIf getUnexpandedToken (lexTokenHasCategory Code.Space)
   getUnexpandedToken >>= \case
     -- Note that we are throwing away the surrounding braces of the argument.
     Lex.CharCatLexToken Lex.LexCharCat {lexCCCat = Code.BeginGroup} ->
@@ -85,7 +85,7 @@ parseDelimitedArgumentTokens delims = go Empty
     go argTokensAccum = do
       -- Parse tokens until we see the delimiter tokens, then add what we grab
       -- to our accumulating argument.
-      newArgTokens <- Seq.fromList <$> PC.manyTill getUnexpandedToken (skipSatisfiedLexTokens delims)
+      newArgTokens <- Seq.fromList <$> PC.manyTill getUnexpandedToken (skipUnexpandedLexTokens delims)
       -- Consider the new 'total sequence' of tokens.
       let argTokensNew = argTokensAccum <> newArgTokens
       -- Check if that new sequence is a valid group.
@@ -100,13 +100,10 @@ parseDelimitedArgumentTokens delims = go Empty
 -- | Parse a sequence of lex-tokens, asserting that the result matched the
 -- contents of a parameter-text.
 skipParameterText :: MonadPrimTokenParse m => ST.ParameterText -> m ()
-skipParameterText (ST.ParameterText lexTokens) = skipSatisfiedLexTokens lexTokens
+skipParameterText (ST.ParameterText lexTokens) = skipUnexpandedLexTokens lexTokens
 
-skipSatisfiedLexTokens :: forall m. MonadPrimTokenParse m => Seq Lex.LexToken -> m ()
-skipSatisfiedLexTokens ts = forM_ ts satisfyLexEquals
-  where
-    satisfyLexEquals :: Lex.LexToken -> m ()
-    satisfyLexEquals t = Par.skipSatisfiedLex (== t)
+skipUnexpandedLexTokens :: forall m. MonadPrimTokenParse m => Seq Lex.LexToken -> m ()
+skipUnexpandedLexTokens ts = forM_ ts (satisfyLexEquals NotExpanding)
 
 -- For some expression consisting of tokens that might increase or decrease the grouping, such as a parentheses,
 -- Compute the final depth of the expression, and the number of matched groups we saw.
@@ -118,10 +115,10 @@ nrExpressions = foldM next (0, 0)
       -- depth, decreases it, or leaves it unchanged.
       -- If we enter a group, then increase our current depth, but
       -- leave our expression-count unchanged.
-      | Par.lexTokenHasCategory Code.BeginGroup t =
+      | lexTokenHasCategory Code.BeginGroup t =
           Just (succ dpth, nrExprs)
       -- If we finish a group, consider our new depth.
-      | Par.lexTokenHasCategory Code.EndGroup t =
+      | lexTokenHasCategory Code.EndGroup t =
           let newDepth = pred dpth
            in if
                   -- The only way we could see a depth below zero is if we see a

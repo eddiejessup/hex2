@@ -6,6 +6,7 @@ import Formatting qualified as F
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
 
 data ParsingError
   = EndOfInputParsingError
@@ -54,20 +55,18 @@ data UnexpectedLexToken = UnexpectedLexToken {saw :: Lex.LexToken, expected :: T
 -- In the 'parser' case, we want to raise an error on end-of-input.
 -- We just add the 'Monad m, Alternative m' constraints because I know any reasonable use is going to require this,
 -- and it saves typing an extra constraint at the use-site in such cases.
-class (Monad m, Alternative m, MonadPlus m) => MonadPrimTokenParse m where
+class (Monad m, Alternative m, MonadPlus m, Log.MonadHexLog m) => MonadPrimTokenParse m where
   getExpandedToken :: m (Lex.LexToken, PT.PrimitiveToken)
 
   getUnexpandedToken :: m Lex.LexToken
-
-  satisfyThen :: (PT.PrimitiveToken -> Maybe a) -> m a
 
   parseError :: ParseUnexpectedErrorCause -> m a
 
 parseFailure :: MonadPrimTokenParse m => Text -> m a
 parseFailure = parseError . ParseExplicitFailure
 
-getAnyPrimitiveToken :: MonadPrimTokenParse m => m PT.PrimitiveToken
-getAnyPrimitiveToken =
+getExpandedPrimitiveToken :: MonadPrimTokenParse m => m PT.PrimitiveToken
+getExpandedPrimitiveToken =
   snd <$> getExpandedToken
 
 getExpandedLexToken :: MonadPrimTokenParse m => m Lex.LexToken

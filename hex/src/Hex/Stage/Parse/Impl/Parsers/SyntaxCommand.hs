@@ -2,15 +2,15 @@ module Hex.Stage.Parse.Impl.Parsers.SyntaxCommand where
 
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
-import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
+import Hex.Common.Parse.Interface qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.Command qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Stream qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.Condition qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.MacroCall qualified as Par
 import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
 import Hexlude
-import qualified Hex.Stage.Parse.Impl.Parsers.Command as Par
-import qualified Hex.Stage.Parse.Impl.Parsers.BalancedText as Par
 
 headToParseSyntaxCommand :: MonadPrimTokenParse m => ST.SyntaxCommandHeadToken -> m AST.SyntaxCommand
 headToParseSyntaxCommand = \case
@@ -31,7 +31,7 @@ headToParseSyntaxCommand = \case
   ST.JobNameTok ->
     pure $ AST.RenderJobName
   ST.FontNameTok ->
-    AST.RenderFontName <$> (Par.parseHeaded Par.headToParseFontRef)
+    AST.RenderFontName <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseFontRef)
   ST.MeaningTok ->
     AST.RenderTokenMeaning <$> getUnexpandedToken
   ST.CSNameTok ->
@@ -47,7 +47,7 @@ headToParseSyntaxCommand = \case
   ST.EndInputTok ->
     pure $ AST.EndInputFile
   ST.TheTok ->
-    AST.RenderInternalQuantity <$> Par.parseHeaded Par.headToParseInternalQuantity
+    AST.RenderInternalQuantity <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalQuantity)
   ST.ChangeCaseTok vDirection ->
     AST.ChangeCase vDirection <$> (Par.parseInhibitedGeneralText Par.ExpectingBeginGroup)
 

@@ -1,19 +1,19 @@
 module Hex.Stage.Parse.Impl.Parsers.Command.Assignment where
 
-import Hex.Stage.Parse.Interface.AST.Command qualified as AST
-import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.Macro qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro qualified as Par
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import Hex.Common.Parse.Interface (MonadPrimTokenParse(..), getAnyPrimitiveToken)
 
 headToParseAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.Assignment
 headToParseAssignment = go mempty
   where
     go prefixes = \case
       T.AssignPrefixTok prefix ->
-        getAnyPrimitiveToken >>= go (prefixes :|> prefix)
+        Par.getExpandedPrimitiveToken >>= go (prefixes :|> prefix)
       T.DefineMacroTok defGlobalType defExpandType -> do
         body <- Par.parseMacroBody defExpandType prefixes
         pure $
@@ -39,7 +39,7 @@ headToParseAssignment = go mempty
 -- other than \setbox.
 parseNonSetBoxAssignment :: MonadPrimTokenParse m => m AST.Assignment
 parseNonSetBoxAssignment =
-  Par.parseHeaded headToParseAssignment >>= \case
+  Par.getExpandedPrimitiveToken >>= headToParseAssignment >>= \case
     AST.Assignment (AST.SetBoxRegister _ _) _ ->
       empty
     a -> pure a
