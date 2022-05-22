@@ -192,14 +192,14 @@
     <code-reference>
     <chardef-token>
     <mathchardef-token>
-    <fontchar-reference>
+    <fontspecialchar-reference>
     \lastpenalty
     <extra-special-integer>
 
 <code-reference>
     <codename> <8-bit-number>
 
-<fontchar-reference>
+<fontspecialchar-reference>
     \hyphenchar <font>
     \skewchar <font>
 
@@ -407,7 +407,7 @@
 
 <font-assignment>
     <fontdimen-reference> <equals> <dimen>
-    <fontchar-reference> <equals> <number>
+    <fontspecialchar-reference> <equals> <number>
 
 <hyphenation-assignment>
     \hyphenation <general-text>

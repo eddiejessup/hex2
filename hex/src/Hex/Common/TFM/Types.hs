@@ -22,6 +22,28 @@ data Font = Font
   }
   deriving stock (Show, Generic)
 
+nullFont :: Font
+nullFont = Font {
+  checksum = 0,
+  designFontSize = Q.zeroLength,
+  characterCodingScheme = Nothing,
+  family = Nothing,
+  params = nullFontParams,
+  ligKerns = [],
+  characters = mempty
+}
+  where
+    nullFontParams = FontParams
+      { slant = 0.0,
+        spacing = zeroLengthDesignSize,
+        spaceStretch = zeroLengthDesignSize,
+        spaceShrink = zeroLengthDesignSize,
+        xHeight = zeroLengthDesignSize,
+        quad = zeroLengthDesignSize,
+        extraSpace = zeroLengthDesignSize,
+        extraParams = Nothing
+      }
+
 fmtFont :: Fmt Font
 fmtFont =
   ("Checksum: " |%| F.accessed (.checksum) fmtChecksum |%| "\n")

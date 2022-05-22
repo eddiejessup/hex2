@@ -74,7 +74,7 @@ headToParseNonMacroAssignmentBody = \case
         fmap AST.SelectFont <$> Par.headToParseFontRefToken,
         headToParseSetFamilyMember,
         headToParseSetFontDimension,
-        headToParseSetFontChar,
+        headToParseSetFontSpecialChar,
         headToParseSetBoxDimension
       ]
       t
@@ -192,10 +192,10 @@ headToParseSetFontDimension t = do
   (var, val) <- parseXEqualsY Expanding (Par.headToParseFontDimensionRef t) Par.parseLength
   pure $ AST.SetFontDimension var val
 
-headToParseSetFontChar :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
-headToParseSetFontChar t = do
-  (var, val) <- parseXEqualsY Expanding (Par.headToParseFontCharRef t) Par.parseInt
-  pure $ AST.SetFontChar var val
+headToParseSetFontSpecialChar :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
+headToParseSetFontSpecialChar t = do
+  (var, val) <- parseXEqualsY Expanding (Par.headToParseFontSpecialCharRef t) Par.parseInt
+  pure $ AST.SetFontSpecialChar var val
 
 headToParseSetBoxDimension :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseSetBoxDimension t = do

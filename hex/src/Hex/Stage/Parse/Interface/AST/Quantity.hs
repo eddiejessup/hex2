@@ -188,7 +188,7 @@ data InternalInt
   | InternalCodeTableRef CodeTableRef
   | InternalCharToken Q.HexInt
   | InternalMathCharToken Q.HexInt
-  | InternalFontCharRef FontCharRef
+  | InternalFontSpecialCharRef FontSpecialCharRef
   | LastPenalty
   | ParShape
   | InputLineNr
@@ -202,7 +202,7 @@ data CodeTableRef = CodeTableRef {codeType :: Code.CodeType, codeIndex :: CharCo
 newtype CharCodeInt = CharCodeInt {unCharCodeInt :: HexInt}
   deriving stock (Show, Eq, Generic)
 
-data FontCharRef = FontCharRef PT.FontChar FontRef
+data FontSpecialCharRef = FontSpecialCharRef PT.FontSpecialChar FontRef
   deriving stock (Show, Eq, Generic)
 
 data FontRef

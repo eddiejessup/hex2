@@ -1,13 +1,16 @@
 module Hex.Common.HexState.Impl.Type where
 
+import Data.Map.Strict qualified as Map
 import Formatting qualified as F
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, fmtGroupScopes, newGroupScopes)
+import Hex.Common.HexState.Impl.Scoped.Scope (nullFontNumber)
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Hex.Common.HexState.Impl.Scoped.Font as Sc.Font
 
 data HexState = HexState
   { fontInfos :: Map PT.FontNumber HSt.Font.FontInfo,
@@ -33,13 +36,15 @@ fmtHexState =
 newHexState :: HexState
 newHexState =
   HexState
-    { fontInfos = mempty,
+    { fontInfos = newFontInfos,
       specialInts = Param.newSpecialIntParameters,
       specialLengths = Param.newSpecialLengthParameters,
       outFileStreams = mempty,
       afterAssignmentToken = Nothing,
       groupScopes = newGroupScopes
     }
+  where
+    newFontInfos = Map.fromList [(nullFontNumber, HSt.Font.nullFontInfo)]
 
 stateSpecialLengthParamLens :: Param.SpecialLengthParameter -> Lens' HexState Q.Length
 stateSpecialLengthParamLens p = #specialLengths % at' p % non Q.zeroLength
@@ -55,3 +60,25 @@ fmtSpecialInts = F.shown
 
 fmtSpecialLengths :: Fmt (Map Param.SpecialLengthParameter Q.Length)
 fmtSpecialLengths = F.shown
+
+getGroupScopesProperty ::
+  (MonadState st m, HasType HexState st) => (GroupScopes -> a) -> m a
+getGroupScopesProperty groupScopesGetter =
+  use $ typed @HexState % #groupScopes % to groupScopesGetter
+
+currentFontInfoImpl ::
+  ( MonadState st m,
+    HasType HexState st
+  ) =>
+  m (Maybe HSt.Font.FontInfo)
+currentFontInfoImpl = do
+  fNr <- currentFontNumberImpl
+  use (typed @HexState % stateFontInfoLens fNr)
+
+currentFontNumberImpl ::
+  ( MonadState st m,
+    HasType HexState st
+  ) =>
+  m PT.FontNumber
+currentFontNumberImpl =
+  getGroupScopesProperty Sc.Font.localCurrentFontNr

@@ -10,6 +10,7 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, Kern, Rule)
 import Hex.Stage.Interpret.Build.List.Elem (Penalty)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -125,7 +126,7 @@ data AssignmentBody
   | SetBoxRegister Uneval.HexInt Uneval.Box
   | -- Global assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
-  | SetFontChar Uneval.FontCharRef Uneval.HexInt
+  | SetFontSpecialChar E.FontSpecialCharRef Q.HexInt
   | SetHyphenation ST.InhibitedBalancedText
   | SetHyphenationPatterns ST.InhibitedBalancedText
   | SetBoxDimension Uneval.BoxDimensionRef Uneval.Length

@@ -127,7 +127,7 @@ data AssignmentBody
   | SetBoxRegister HexInt Box
   | -- -- Global assignments.
     SetFontDimension FontDimensionRef Length
-  | SetFontChar FontCharRef HexInt
+  | SetFontSpecialChar FontSpecialCharRef HexInt
   | SetHyphenation ST.InhibitedBalancedText
   | SetHyphenationPatterns ST.InhibitedBalancedText
   | SetBoxDimension BoxDimensionRef Length

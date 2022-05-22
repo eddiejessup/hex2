@@ -5,8 +5,19 @@ import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Types qualified as TFM
 import Hexlude
 
-data FontInfo = FontInfo {fontMetrics :: TFM.Font, hyphenChar :: Q.HexInt, skewChar :: Q.HexInt}
+data FontInfo = FontInfo
+  { fontMetrics :: TFM.Font,
+    hyphenChar :: Q.HexInt,
+    skewChar :: Q.HexInt
+  }
   deriving stock (Show, Generic)
+
+nullFontInfo :: FontInfo
+nullFontInfo = FontInfo
+  { fontMetrics = TFM.nullFont,
+    hyphenChar = Q.HexInt (-1),
+    skewChar = Q.HexInt (-1)
+  }
 
 fmtFontInfo :: Fmt FontInfo
 fmtFontInfo =

@@ -2,9 +2,11 @@ module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
+import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
 import Hex.Stage.Interpret.Build.Box.Elem qualified as Elem
 import Hex.Stage.Interpret.Build.List.Elem qualified as Elem
@@ -68,11 +70,20 @@ evalAssignmentBody = \case
   P.SetParShape hexInt lengths -> pure $ E.SetParShape hexInt lengths
   P.SetBoxRegister hexInt box -> pure $ E.SetBoxRegister hexInt box
   P.SetFontDimension fontDimensionRef length -> pure $ E.SetFontDimension fontDimensionRef length
-  P.SetFontChar fontCharRef hexInt -> pure $ E.SetFontChar fontCharRef hexInt
+  P.SetFontSpecialChar fontSpecialCharRef fontSpecialCharTgt -> E.SetFontSpecialChar <$> (evalFontSpecialCharRef fontSpecialCharRef) <*> Eval.evalInt fontSpecialCharTgt
   P.SetHyphenation inhibitedBalancedText -> pure $ E.SetHyphenation inhibitedBalancedText
   P.SetHyphenationPatterns inhibitedBalancedText -> pure $ E.SetHyphenationPatterns inhibitedBalancedText
   P.SetBoxDimension boxDimensionRef length -> pure $ E.SetBoxDimension boxDimensionRef length
   P.SetInteractionMode interactionMode -> pure $ E.SetInteractionMode interactionMode
+
+evalFontSpecialCharRef :: HSt.MonadHexState m => P.FontSpecialCharRef -> m E.FontSpecialCharRef
+evalFontSpecialCharRef (P.FontSpecialCharRef fontSpecialChar fontNr) = E.FontSpecialCharRef fontSpecialChar <$> evalFontRef fontNr
+
+evalFontRef :: HSt.MonadHexState m => P.FontRef -> m PT.FontNumber
+evalFontRef = \case
+  P.FontTokenRef fontNumber -> pure fontNumber
+  P.CurrentFontRef -> HSt.currentFontNumber
+  P.FamilyMemberFontRef _familyMember -> notImplemented "evalFontRef: FamilyMemberFontRef"
 
 evalVariableAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableAssignment -> m E.VariableAssignment
 evalVariableAssignment = \case

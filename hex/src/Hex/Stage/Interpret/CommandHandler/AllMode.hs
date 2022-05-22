@@ -12,6 +12,7 @@ import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
+import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface qualified as Lex
@@ -281,14 +282,8 @@ handleModeIndependentCommand addVElem = \case
       --           modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
       --           extractedBox <- extractExplicitBox eSpec boxType
       --           modifying' (typed @Config) $ setBoxRegister eLhsIdx extractedBox scope
-      --   Eval.SetFontChar (Eval.FontCharRef fontChar fontRef) charRef ->
-      --     do
-      --       fNr <- texEvaluate fontRef
-      --       eCharRef <- texEvaluate charRef
-      --       let updateFontChar f = case fontChar of
-      --             Eval.SkewChar -> f {skewChar = eCharRef}
-      --             Eval.HyphenChar -> f {hyphenChar = eCharRef}
-      --       modifyFont fNr updateFontChar
+      Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
+        HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef
       assignment ->
         notImplemented $ "Assignment body: " <> show assignment
     -- Now that we're done with an assignment, see whether any

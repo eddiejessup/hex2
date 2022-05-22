@@ -70,7 +70,7 @@ evalInternalInt = \case
   P.InternalCodeTableRef v -> evalCodeTableRefAsTarget v
   P.InternalCharToken n -> pure n
   P.InternalMathCharToken n -> pure n
-  P.InternalFontCharRef v -> evalFontCharRef v
+  P.InternalFontSpecialCharRef v -> evalFontSpecialCharRef v
   P.LastPenalty -> notImplemented "evalInternalInt: LastPenalty"
   P.ParShape -> notImplemented "evalInternalInt: ParShape"
   P.InputLineNr -> notImplemented "evalInternalInt: InputLineNr"
@@ -126,8 +126,8 @@ evalRegisterLocationAsLocation = \case
   P.InternalRegisterLocation loc ->
     pure loc
 
-evalFontCharRef :: P.FontCharRef -> m Q.HexInt
-evalFontCharRef = notImplemented "evalFontCharRef"
+evalFontSpecialCharRef :: P.FontSpecialCharRef -> m Q.HexInt
+evalFontSpecialCharRef = notImplemented "evalFontSpecialCharRef"
 
 -- | Convert a list of digits in some base, into the integer they represent in
 -- that base.

@@ -47,11 +47,6 @@ data HexStateError
 fmtHexStateError :: Fmt HexStateError
 fmtHexStateError = F.shown
 
-getGroupScopesProperty ::
-  (MonadState st m, HasType HexState st) => (GroupScopes -> a) -> m a
-getGroupScopesProperty groupScopesGetter =
-  use $ typed @HexState % #groupScopes % to groupScopesGetter
-
 newtype MonadHexStateImplT m a = MonadHexStateImplT {unMonadHexStateImplT :: m a}
   deriving newtype
     ( Functor,
@@ -117,34 +112,6 @@ instance
   setSymbol symbol target scopeFlag =
     modifyGroupScopes $ Sc.Sym.setSymbol symbol target scopeFlag
 
-  currentFontSpaceGlue :: (MonadHexStateImplT m) (Maybe Q.Glue)
-  currentFontSpaceGlue = do
-    currentFontInfo >>= \case
-      Nothing -> pure Nothing
-      Just fInfo -> do
-        let font = HSt.Font.fontMetrics fInfo
-        let spacing = TFM.fontLengthParamLength font (TFM.spacing . TFM.params)
-        let gStretch = Q.FinitePureFlex $ TFM.fontLengthParamLength font (TFM.spaceStretch . TFM.params)
-        let gShrink = Q.FinitePureFlex $ TFM.fontLengthParamLength font (TFM.spaceShrink . TFM.params)
-        pure $ Just $ Q.Glue {Q.gDimen = spacing, Q.gStretch, Q.gShrink}
-
-  currentFontCharacter :: Code.CharCode -> MonadHexStateImplT m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
-  currentFontCharacter chrCode = do
-    currentFontInfo >>= \case
-      Nothing -> pure Nothing
-      Just fInfo -> do
-        let fontMetrics = HSt.Font.fontMetrics fInfo
-        tfmChar <- note (injectTyped CharacterCodeNotFound) $ fontMetrics ^. #characters % at' (fromIntegral $ Code.unCharCode chrCode)
-        let toLen :: TFM.LengthDesignSize -> Q.Length
-            toLen = TFM.lengthFromFontDesignSize fontMetrics
-        pure $
-          Just
-            ( tfmChar ^. #width % to toLen,
-              tfmChar ^. #height % to toLen,
-              tfmChar ^. #depth % to toLen,
-              tfmChar ^. #italicCorrection % to toLen
-            )
-
   loadFont ::
     Q.HexFilePath ->
     H.Inter.B.Box.FontSpecification ->
@@ -179,9 +146,48 @@ instance
           fontName
         }
 
+  currentFontNumber :: MonadHexStateImplT m PT.FontNumber
+  currentFontNumber = currentFontNumberImpl
+
+  currentFontSpaceGlue :: (MonadHexStateImplT m) (Maybe Q.Glue)
+  currentFontSpaceGlue = do
+    fInfo <- currentFontInfo
+    let fontMetrics = fInfo.fontMetrics
+    let spacing = TFM.fontLengthParamLength fontMetrics (TFM.spacing . TFM.params)
+    let gStretch = Q.FinitePureFlex $ TFM.fontLengthParamLength fontMetrics (TFM.spaceStretch . TFM.params)
+    let gShrink = Q.FinitePureFlex $ TFM.fontLengthParamLength fontMetrics (TFM.spaceShrink . TFM.params)
+    pure $ Just $ Q.Glue {Q.gDimen = spacing, Q.gStretch, Q.gShrink}
+
+  currentFontCharacter :: Code.CharCode -> MonadHexStateImplT m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
+  currentFontCharacter chrCode = do
+    fInfo <- currentFontInfo
+    let fontMetrics = fInfo.fontMetrics
+    tfmChar <-
+      note (injectTyped CharacterCodeNotFound) $
+        fontMetrics ^. #characters % at' (Code.codeInt chrCode)
+    let toLen :: TFM.LengthDesignSize -> Q.Length
+        toLen = TFM.lengthFromFontDesignSize fontMetrics
+    pure $
+      Just
+        ( toLen (tfmChar.width),
+          toLen (tfmChar.height),
+          toLen (tfmChar.depth),
+          toLen (tfmChar.italicCorrection)
+        )
+
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> MonadHexStateImplT m ()
-  selectFont fNr scopeFlag =
-    modifyGroupScopes $ Sc.Font.setCurrentFontNr fNr scopeFlag
+  selectFont fontNumber scopeFlag =
+    modifyGroupScopes $ Sc.Font.setCurrentFontNr fontNumber scopeFlag
+
+  setFontSpecialCharacter :: PT.FontSpecialChar -> PT.FontNumber -> Q.HexInt -> MonadHexStateImplT m ()
+  setFontSpecialCharacter fontSpecialChar fontNumber value = do
+    let fontSpecialCharLens = case fontSpecialChar of
+          PT.HyphenChar -> #hyphenChar
+          PT.SkewChar -> #skewChar
+    use (typed @HexState % #fontInfos % at' fontNumber) >>= \case
+      Nothing -> throwError $ injectTyped MissingFontNumber
+      Just _ -> pure ()
+    assign' (typed @HexState % #fontInfos % at' fontNumber %? fontSpecialCharLens) value
 
   setAfterAssignmentToken :: Lex.LexToken -> MonadHexStateImplT m ()
   setAfterAssignmentToken t = assign' (typed @HexState % #afterAssignmentToken) (Just t)
@@ -216,17 +222,10 @@ currentFontInfo ::
     MonadError e m,
     AsType HexStateError e
   ) =>
-  m (Maybe HSt.Font.FontInfo)
-currentFontInfo = do
-  getGroupScopesProperty Sc.Font.localCurrentFontNr >>= \case
-    -- No set font number is a Nothing.
-    Nothing -> pure Nothing
-    Just fNr ->
-      -- But a set font number that's absent from the fontInfo map is a proper
-      -- error.
-      use (typed @HexState % stateFontInfoLens fNr) >>= \case
-        Nothing -> throwError (injectTyped MissingFontNumber)
-        x -> pure x
+  m HSt.Font.FontInfo
+currentFontInfo =
+  currentFontInfoImpl
+    >>= note (injectTyped MissingFontNumber)
 
 readFontInfo ::
   ( MonadIO m,

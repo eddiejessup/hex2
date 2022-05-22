@@ -337,8 +337,8 @@ initialSymbolMap =
       (_cs "read", primTok ReadTok),
       -- Font.
       (_cs "font", primTok FontTok),
-      (_cs "hyphenchar", primTok $ FontCharTok HyphenChar),
-      (_cs "skewchar", primTok $ FontCharTok SkewChar),
+      (_cs "hyphenchar", primTok $ FontSpecialCharTok HyphenChar),
+      (_cs "skewchar", primTok $ FontSpecialCharTok SkewChar),
       -- Hyphenation.
       (_cs "hyphenation", primTok HyphenationTok),
       (_cs "patterns", primTok HyphenationPatternsTok),

@@ -66,7 +66,7 @@ data BoxRegisterAttribute
   | IsVoid
   deriving stock (Show, Eq, Generic)
 
-data FontChar
+data FontSpecialChar
   = HyphenChar -- \hyphenchar
   | SkewChar -- \skewchar
   deriving stock (Show, Eq, Generic)
@@ -276,7 +276,7 @@ data PrimitiveToken
   | FontTok -- \font
   -- Involved in global assignments.
   -- > Setting properties of a font.
-  | FontCharTok FontChar
+  | FontSpecialCharTok FontSpecialChar
   | -- > Configuring hyphenation.
     HyphenationTok -- \hyphenation
   | HyphenationPatternsTok -- \patterns

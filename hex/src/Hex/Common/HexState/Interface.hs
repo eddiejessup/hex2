@@ -45,6 +45,10 @@ class Monad m => MonadHexState m where
 
   selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
 
+  currentFontNumber :: m PT.FontNumber
+
+  setFontSpecialCharacter :: PT.FontSpecialChar -> PT.FontNumber -> Q.HexInt -> m ()
+
   currentFontCharacter :: Code.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
 
   currentFontSpaceGlue :: m (Maybe Q.Glue)
@@ -71,6 +75,8 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   resolveSymbol x = lift $ resolveSymbol x
   loadFont x y = lift $ loadFont x y
   selectFont x y = lift $ selectFont x y
+  setFontSpecialCharacter x y z = lift $ setFontSpecialCharacter x y z
+  currentFontNumber = lift currentFontNumber
   currentFontCharacter x = lift $ currentFontCharacter x
   currentFontSpaceGlue = lift currentFontSpaceGlue
   popAfterAssignmentToken = lift popAfterAssignmentToken

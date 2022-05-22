@@ -106,7 +106,7 @@ headToParseInternalInt =
       fmap AST.InternalCodeTableRef <$> headToParseCodeTableRef,
       fmap AST.InternalCharToken <$> headToParseCharToken,
       fmap AST.InternalMathCharToken <$> headToParseMathCharToken,
-      fmap AST.InternalFontCharRef <$> headToParseFontCharRef
+      fmap AST.InternalFontSpecialCharRef <$> headToParseFontSpecialCharRef
     ]
 
 headToParseCoercedInt :: MonadPrimTokenParse m => PrimitiveToken -> m AST.CoercedInt
@@ -140,12 +140,12 @@ headToParseMathCharToken = \case
   _ ->
     parseFailure "headToParseMathCharToken"
 
-headToParseFontCharRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.FontCharRef
-headToParseFontCharRef = \case
-  PT.FontCharTok c ->
-    AST.FontCharRef c <$> (getExpandedPrimitiveToken >>= headToParseFontRef)
+headToParseFontSpecialCharRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.FontSpecialCharRef
+headToParseFontSpecialCharRef = \case
+  PT.FontSpecialCharTok c ->
+    AST.FontSpecialCharRef c <$> (getExpandedPrimitiveToken >>= headToParseFontRef)
   _ ->
-    parseFailure "headToParseFontCharRef"
+    parseFailure "headToParseFontSpecialCharRef"
 
 headToParseFontRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.FontRef
 headToParseFontRef =

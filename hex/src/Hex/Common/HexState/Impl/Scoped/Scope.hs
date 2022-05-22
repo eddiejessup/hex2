@@ -49,10 +49,13 @@ data Scope = Scope
   }
   deriving stock (Show, Generic)
 
+nullFontNumber :: PT.FontNumber
+nullFontNumber = PT.FontNumber Q.zeroInt
+
 newGlobalScope :: Scope
 newGlobalScope =
   Scope
-    { currentFontNr = Nothing,
+    { currentFontNr = Just nullFontNumber,
       -- familyMemberFonts = mempty
       symbolMap = initialSymbolMap,
       catCodes = Code.newCatCodes,
