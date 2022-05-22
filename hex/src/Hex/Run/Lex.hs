@@ -1,12 +1,11 @@
 module Hex.Run.Lex where
 
 import Formatting qualified as F
-import Hex.Run.App (App)
 import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
 import Hex.Stage.Lex.Interface.Extract
 import Hexlude
 
-lexAll :: App [LexToken]
+lexAll :: MonadLexTokenSource m => m [LexToken]
 lexAll = go
   where
     go =

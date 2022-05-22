@@ -1,50 +1,35 @@
+{-# OPTIONS_GHC -Wno-missing-methods #-}
+
 module Categorise where
 
-import Hex.Stage.Categorise.Impl
-import Hex.Stage.Categorise.Types
 import Hex.Common.Codes
 import Hex.Common.HexState.Interface
+import Hex.Run.Categorise
+import Hex.Stage.Categorise.Impl
+import Hex.Stage.Categorise.Interface
 import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
 
-newtype Error = Error EndOfInput
-  deriving stock (Show, Generic)
+newtype TestApp a = TestApp {unTestApp :: State ByteString a}
+  deriving stock (Generic)
+  deriving newtype (Functor, Applicative, Monad, MonadState ByteString)
+  deriving (MonadCharCatSource) via (MonadCharCatSourceT TestApp)
 
-newtype Mon m a = Mon {unMon :: m a}
-  deriving stock (Show, Generic)
-  deriving newtype (Functor, Applicative, Monad)
+codeToCat :: CharCode -> CatCode
+codeToCat = \case
+  Chr_ '\\' -> Escape
+  Chr_ ' ' -> CoreCatCode Space
+  Chr_ '%' -> Comment
+  Chr_ '\n' -> EndOfLine
+  Chr_ '^' -> CoreCatCode Superscript
+  Chr_ 'a' -> CoreCatCode Letter
+  Chr_ 'b' -> CoreCatCode Letter
+  _ -> CoreCatCode Other
 
-instance Monad m => MonadHexState (Mon m) where
-  getIntParameter = panic "NotImplemented"
-
-  getLengthParameter = panic "NotImplemented"
-
-  getGlueParameter = panic "NotImplemented"
-
-  getSpecialLengthParameter = panic "NotImplemented"
-
-  setSpecialLengthParameter = panic "NotImplemented"
-
-  getCategory c = pure $ case c of
-    Chr_ '\\' -> Escape
-    Chr_ ' ' -> CoreCatCode Space
-    Chr_ '%' -> Comment
-    Chr_ '\n' -> EndOfLine
-    Chr_ '^' -> CoreCatCode Superscript
-    Chr_ 'a' -> CoreCatCode Letter
-    Chr_ 'b' -> CoreCatCode Letter
-    _ -> CoreCatCode Other
-
-  resolveSymbol = panic "NotImplemented"
-
-  loadFont = panic "NotImplemented"
-
-  selectFont = panic "NotImplemented"
-
-  currentFontCharacter = panic "NotImplemented"
-
-  currentFontSpaceGlue = panic "NotImplemented"
+instance MonadHexState TestApp where
+  getHexCode CCatCodeType code = pure $ codeToCat code
+  getHexCode _ _ = notImplemented "getHexCode"
 
 tests :: TestTree
 tests =
@@ -57,63 +42,61 @@ tests =
       testCase "Triod down" triodDown
     ]
 
+runTestApp :: ByteString -> TestApp a -> a
+runTestApp bs app = evalState (unTestApp app) bs
+
+testCategoriseAll :: ByteString -> [RawCharCat]
+testCategoriseAll bs = runTestApp bs categoriseAll
+
 usual :: Assertion
-usual = do
-  res <- unMon $ charsToCharCats "aa"
+usual =
   assertEqual
     ""
-    res
+    (testCategoriseAll "aa")
     [ RawCharCat (Chr_ 'a') (CoreCatCode Letter),
       RawCharCat (Chr_ 'a') (CoreCatCode Letter)
     ]
 
 oneCaret :: Assertion
 oneCaret = do
-  res <- unMon $ charsToCharCats "^"
   assertEqual
     ""
-    res
+    (testCategoriseAll "^")
     [ RawCharCat (Chr_ '^') (CoreCatCode Superscript)
     ]
-  res2 <- unMon $ charsToCharCats "^a"
   assertEqual
     ""
-    res2
+    (testCategoriseAll "^a")
     [ RawCharCat (Chr_ '^') (CoreCatCode Superscript),
       RawCharCat (Chr_ 'a') (CoreCatCode Letter)
     ]
 
 twoCarets :: Assertion
 twoCarets = do
-  res <- unMon $ charsToCharCats "^^"
   assertEqual
     ""
-    res
+    (testCategoriseAll "^^")
     [ RawCharCat (Chr_ '^') (CoreCatCode Superscript),
       RawCharCat (Chr_ '^') (CoreCatCode Superscript)
     ]
 
 triodUp :: Assertion
 triodUp = do
-  res <- unMon $ charsToCharCats "^^?"
   assertEqual
     ""
-    res
+    (testCategoriseAll "^^?")
     [ RawCharCat (CharCode (63 + 64)) (CoreCatCode Other)
     ]
 
 triodDown :: Assertion
 triodDown = do
-  res <- unMon $ charsToCharCats "^^A"
   assertEqual
     ""
-    res
+    (testCategoriseAll "^^A")
     [ RawCharCat (CharCode (65 - 64)) (CoreCatCode Other)
     ]
-
-  res2 <- unMon $ charsToCharCats "^^^"
   assertEqual
     ""
-    res2
+    (testCategoriseAll "^^^")
     [ RawCharCat (CharCode (94 - 64)) (CoreCatCode Other)
     ]

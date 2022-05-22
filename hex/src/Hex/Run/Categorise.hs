@@ -1,11 +1,10 @@
 module Hex.Run.Categorise where
 
 import Formatting qualified as F
-import Hex.Run.App
 import Hex.Stage.Categorise.Interface (MonadCharCatSource (..), RawCharCat (..), fmtRawCharCat)
 import Hexlude
 
-categoriseAll :: App [RawCharCat]
+categoriseAll :: MonadCharCatSource m => m [RawCharCat]
 categoriseAll = go
   where
     go =
