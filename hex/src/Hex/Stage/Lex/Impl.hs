@@ -3,6 +3,7 @@
 module Hex.Stage.Lex.Impl where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Categorise.Interface qualified as Cat
 import Hex.Stage.Lex.Impl.CharSource qualified as Impl
@@ -31,7 +32,8 @@ instance
     MonadError e (MonadLexTokenSourceT m),
     AsType Lex.LexError e,
     Cat.MonadCharCatSource (MonadLexTokenSourceT m),
-    HSt.MonadHexState (MonadLexTokenSourceT m)
+    HSt.MonadHexState (MonadLexTokenSourceT m),
+    Log.MonadHexLog (MonadLexTokenSourceT m)
   ) =>
   MonadLexTokenSource (MonadLexTokenSourceT m)
   where

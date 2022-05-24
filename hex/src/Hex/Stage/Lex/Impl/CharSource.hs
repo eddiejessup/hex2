@@ -8,6 +8,8 @@ import Hex.Stage.Lex.Interface.CharSource (CharSource)
 import Hex.Stage.Lex.Interface.CharSource qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
+import qualified Formatting as F
 
 extractLexToken ::
   forall e m st.
@@ -17,7 +19,8 @@ extractLexToken ::
     MonadError e m,
     AsType Lex.LexError e,
     Cat.MonadCharCatSource m,
-    HSt.MonadHexState m
+    HSt.MonadHexState m,
+    Log.MonadHexLog m
   ) =>
   m (Maybe Lex.LexToken)
 extractLexToken = do
@@ -28,6 +31,7 @@ extractLexToken = do
     -- If there is at least one lex-token, put the rest back, and return the first one.
     lt :<| ltRest -> do
       assign' (typed @CharSource % typed @(Seq Lex.LexToken)) ltRest
+      Log.log $ "Fetched lex-token from buffer: " <> F.sformat Lex.fmtLexToken lt
       pure $ Just lt
     -- If there is no lex-token...
     Empty -> do
@@ -39,7 +43,8 @@ extractLexToken = do
         Right Nothing ->
           pure Nothing
         Right (Just (lt, newLexState)) -> do
-          modifying' (typed @CharSource) $ #sourceLexState !~ newLexState
+          assign' (typed @CharSource % #sourceLexState) newLexState
+          Log.log $ "Fetched lex-token from source: " <> F.sformat Lex.fmtLexToken lt
           pure $ Just lt
 
 -- Insert in reverse order, so, we insert the "r" of "relax" last, so we pop "r" next.
