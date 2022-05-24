@@ -39,12 +39,13 @@ getNextCommandLogged ::
   ( Eval.MonadEvaluate m,
     Par.MonadCommandSource m,
     MonadError e m,
-    AsType InterpretError e
+    AsType InterpretError e,
+    Log.MonadHexLog m
   ) =>
   m Eval.Command
 getNextCommandLogged = do
   cmd <- Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
-  -- Log.log $ F.sformat ("Read command: " |%| F.shown) cmd
+  Log.log $ F.sformat ("Read command: " |%| F.shown) cmd
   pure cmd
 
 data OutputDestination

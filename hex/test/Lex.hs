@@ -3,9 +3,12 @@
 module Lex where
 
 import Categorise qualified as Test.Cat
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes
 import Hex.Common.HexState.Interface (MonadHexState (..))
 import Hex.Run.Lex (lexAll)
+import Hex.Stage.Categorise.Impl qualified as Cat
+import Hex.Stage.Categorise.Interface qualified as Cat
 import Hex.Stage.Lex.Impl.Extract (extractToken)
 import Hex.Stage.Lex.Interface
 import Hex.Stage.Lex.Interface.Extract
@@ -22,12 +25,17 @@ newTestAppState bs = TestAppState bs LineBegin
 newtype TestApp a = TestApp {unTestApp :: State TestAppState a}
   deriving stock (Generic)
   deriving newtype (Functor, Applicative, Monad, MonadState TestAppState)
+  deriving (Cat.MonadCharCatSource) via (Cat.MonadCharCatSourceT TestApp)
 
 runTestApp :: ByteString -> TestApp a -> a
 runTestApp bs app = evalState (unTestApp app) (newTestAppState bs)
 
 testLexAll :: ByteString -> [LexToken]
 testLexAll bs = runTestApp bs lexAll
+
+instance Log.MonadHexLog TestApp where
+  log _ = pure ()
+  logInternalState = pure ()
 
 instance MonadHexState TestApp where
   getHexCode CCatCodeType code = pure $ Test.Cat.codeToCat code
@@ -36,14 +44,13 @@ instance MonadHexState TestApp where
 extractLexToken :: TestApp (Maybe LexToken)
 extractLexToken = do
   s <- get
-  runExceptT @(Identity LexError) (extractToken s.lexState s.chars) >>= \case
+  runExceptT @(Identity LexError) (extractToken s.lexState) >>= \case
     Left e ->
       panic $ show e
     Right Nothing ->
       pure Nothing
-    Right (Just (lt, newLexState, newChars)) -> do
+    Right (Just (lt, newLexState)) -> do
       assign' (#lexState) newLexState
-      assign' (#chars) newChars
       pure $ Just lt
 
 instance MonadLexTokenSource TestApp where

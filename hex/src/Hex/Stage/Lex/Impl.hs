@@ -4,6 +4,7 @@ module Hex.Stage.Lex.Impl where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Stage.Categorise.Interface qualified as Cat
 import Hex.Stage.Lex.Impl.CharSource qualified as Impl
 import Hex.Stage.Lex.Interface
 import Hex.Stage.Lex.Interface.CharSource
@@ -18,6 +19,7 @@ newtype MonadLexTokenSourceT m a = MonadLexTokenSourceT {unMonadLexTokenSourceT 
       MonadIO,
       MonadState st,
       MonadError e,
+      Cat.MonadCharCatSource,
       HSt.MonadHexState,
       MonadHexLog
     )
@@ -28,6 +30,7 @@ instance
     HasType CharSource st,
     MonadError e (MonadLexTokenSourceT m),
     AsType Lex.LexError e,
+    Cat.MonadCharCatSource (MonadLexTokenSourceT m),
     HSt.MonadHexState (MonadLexTokenSourceT m)
   ) =>
   MonadLexTokenSource (MonadLexTokenSourceT m)

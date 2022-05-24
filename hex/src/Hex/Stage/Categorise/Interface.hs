@@ -18,3 +18,5 @@ fmtRawCharCat =
 
 class Monad m => MonadCharCatSource m where
   getCharCat :: m (Maybe RawCharCat)
+
+  peekCharCat :: m (Maybe RawCharCat)

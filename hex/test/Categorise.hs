@@ -2,6 +2,7 @@
 
 module Categorise where
 
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes
 import Hex.Common.HexState.Interface
 import Hex.Run.Categorise
@@ -26,6 +27,10 @@ codeToCat = \case
   Chr_ 'a' -> CoreCatCode Letter
   Chr_ 'b' -> CoreCatCode Letter
   _ -> CoreCatCode Other
+
+instance Log.MonadHexLog TestApp where
+  log _ = pure ()
+  logInternalState = pure ()
 
 instance MonadHexState TestApp where
   getHexCode CCatCodeType code = pure $ codeToCat code

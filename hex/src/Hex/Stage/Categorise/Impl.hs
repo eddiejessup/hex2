@@ -4,10 +4,12 @@ module Hex.Stage.Categorise.Impl where
 
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.ByteString qualified as BS
+import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Stage.Categorise.Interface (MonadCharCatSource (..), RawCharCat (..))
+import Hex.Stage.Categorise.Interface (MonadCharCatSource (..), RawCharCat (..), fmtRawCharCat)
 import Hexlude
 
 extractCharCat ::
@@ -53,15 +55,22 @@ instance
   ( Monad (MonadCharCatSourceT m),
     MonadState st (MonadCharCatSourceT m),
     HasType ByteString st,
-    HSt.MonadHexState (MonadCharCatSourceT m)
+    HSt.MonadHexState (MonadCharCatSourceT m),
+    Log.MonadHexLog (MonadCharCatSourceT m)
   ) =>
   MonadCharCatSource (MonadCharCatSourceT m)
   where
   -- Lift 'extractCharCat' into a stateful context.
-  getCharCat = do
-    bs <- use (typed @ByteString)
-    extractCharCat bs >>= \case
+  getCharCat =
+    use (typed @ByteString) >>= extractCharCat >>= \case
       Nothing -> pure Nothing
-      Just (c, bs') -> do
-        assign' (typed @ByteString) bs'
+      Just (c, newBS) -> do
+        Log.log $ "Fetched raw-char-cat: " <> F.sformat fmtRawCharCat c
+        assign' (typed @ByteString) newBS
+        pure $ Just c
+
+  peekCharCat =
+    use (typed @ByteString) >>= extractCharCat >>= \case
+      Nothing -> pure Nothing
+      Just (c, _newBS) ->
         pure $ Just c
