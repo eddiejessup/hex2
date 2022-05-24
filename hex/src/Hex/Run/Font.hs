@@ -1,7 +1,8 @@
 module Hex.Run.Font where
 
 import Hex.Common.HexState.Interface
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
+import Hex.Common.HexState.Interface.Font (FontNumber)
+import Hex.Common.HexState.Interface.Grouped (ScopeFlag (..))
 import Hex.Common.Quantity.Common qualified as Q
 import Hex.Run.App
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box

@@ -1,6 +1,7 @@
 module Hex.Stage.Parse.Impl.Parsers.Command.Assignment where
 
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.Macro qualified as Par
@@ -8,21 +9,21 @@ import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-headToParseAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.Assignment
+headToParseAssignment :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.Assignment
 headToParseAssignment = go mempty
   where
     go prefixes = \case
-      T.AssignPrefixTok prefix ->
+      PT.AssignPrefixTok prefix ->
         Par.getExpandedPrimitiveToken >>= go (prefixes :|> prefix)
-      T.DefineMacroTok defGlobalType defExpandType -> do
+      PT.DefineMacroTok defGlobalType defExpandType -> do
         body <- Par.parseMacroBody defExpandType prefixes
         pure $
           AST.Assignment
             { body,
               scope =
-                if defGlobalType == T.Global || T.GlobalTok `elem` prefixes
-                  then T.Global
-                  else T.Local
+                if defGlobalType == HSt.Grouped.Global || PT.GlobalTok `elem` prefixes
+                  then HSt.Grouped.Global
+                  else HSt.Grouped.Local
             }
       t -> do
         body <- Par.headToParseNonMacroAssignmentBody t
@@ -30,9 +31,9 @@ headToParseAssignment = go mempty
           AST.Assignment
             { body,
               scope =
-                if T.GlobalTok `elem` prefixes
-                  then T.Global
-                  else T.Local
+                if PT.GlobalTok `elem` prefixes
+                  then HSt.Grouped.Global
+                  else HSt.Grouped.Local
             }
 
 -- ⟨optional assignments⟩ stands for zero or more ⟨assignment⟩ commands

@@ -2,8 +2,8 @@ module Hex.Stage.Interpret.Build.Box.Elem where
 
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Codes
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.Quantity qualified as Q
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hexlude
 
 -- Box elements.
@@ -113,7 +113,7 @@ fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> F.prefixed "\\c" f
 charBoxChar :: CharBox -> Char
 charBoxChar = view $ #unCharacter % #contents % to Codes.unsafeCodeAsChar
 
-newtype FontSelection = FontSelection PT.FontNumber
+newtype FontSelection = FontSelection HSt.Font.FontNumber
   deriving stock (Show, Generic)
 
 data FontDefinition = FontDefinition
@@ -122,7 +122,7 @@ data FontDefinition = FontDefinition
     fontDefDesignScale :: Q.Length,
     fontPath :: Q.HexFilePath,
     fontName :: Text,
-    fontNr :: PT.FontNumber
+    fontNr :: HSt.Font.FontNumber
   }
   deriving stock (Show, Generic)
 
@@ -140,4 +140,4 @@ fontSpecToDesignScale designSize = \case
     length
   FontScaled scaleFactor ->
     let scaleFactorRational = Q.intRatio scaleFactor (Q.HexInt 1000)
-    in Q.scaleLengthByRational scaleFactorRational designSize
+     in Q.scaleLengthByRational scaleFactorRational designSize

@@ -2,7 +2,6 @@ module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
@@ -66,7 +65,7 @@ evalAssignmentBody = \case
   P.ModifyVariable variableModification -> E.ModifyVariable <$> evalVariableModification variableModification
   P.AssignCode codeAssignment -> E.AssignCode <$> evalCodeAssignment codeAssignment
   P.SelectFont _fontNumber -> pure $ E.SelectFont $ _fontNumber
-  P.SetFamilyMember _familyMember _fontRef -> pure $ E.SetFamilyMember _familyMember _fontRef
+  P.SetFamilyMember familyMember fontRef -> E.SetFamilyMember <$> Eval.evalFamilyMember familyMember <*> Eval.evalFontRef fontRef
   P.SetParShape hexInt lengths -> pure $ E.SetParShape hexInt lengths
   P.SetBoxRegister hexInt box -> pure $ E.SetBoxRegister hexInt box
   P.SetFontDimension fontDimensionRef length -> pure $ E.SetFontDimension fontDimensionRef length
@@ -77,13 +76,7 @@ evalAssignmentBody = \case
   P.SetInteractionMode interactionMode -> pure $ E.SetInteractionMode interactionMode
 
 evalFontSpecialCharRef :: HSt.MonadHexState m => P.FontSpecialCharRef -> m E.FontSpecialCharRef
-evalFontSpecialCharRef (P.FontSpecialCharRef fontSpecialChar fontNr) = E.FontSpecialCharRef fontSpecialChar <$> evalFontRef fontNr
-
-evalFontRef :: HSt.MonadHexState m => P.FontRef -> m PT.FontNumber
-evalFontRef = \case
-  P.FontTokenRef fontNumber -> pure fontNumber
-  P.CurrentFontRef -> HSt.currentFontNumber
-  P.FamilyMemberFontRef _familyMember -> notImplemented "evalFontRef: FamilyMemberFontRef"
+evalFontSpecialCharRef (P.FontSpecialCharRef fontSpecialChar fontNr) = E.FontSpecialCharRef fontSpecialChar <$> Eval.evalFontRef fontNr
 
 evalVariableAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableAssignment -> m E.VariableAssignment
 evalVariableAssignment = \case

@@ -4,6 +4,7 @@ import Control.Monad.Combinators qualified as PC
 import Data.ByteString qualified as BS
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
@@ -157,7 +158,7 @@ headToParseFontRef =
       fmap AST.FamilyMemberFontRef <$> headToParseFamilyMember
     ]
 
-headToParseFontRefToken :: MonadPrimTokenParse m => PT.PrimitiveToken -> m PT.FontNumber
+headToParseFontRefToken :: MonadPrimTokenParse m => PT.PrimitiveToken -> m HSt.Font.FontNumber
 headToParseFontRefToken = \case
   PT.FontRefToken n -> pure n
   _ -> parseFailure "headToParseFontRefToken"

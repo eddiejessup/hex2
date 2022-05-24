@@ -3,6 +3,7 @@
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve qualified as Res
@@ -17,6 +18,7 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
+import qualified Hex.Common.HexState.Interface.Grouped as HSt.Grouped
 
 -- What's the plan here?
 -- I want to do as much evaluation as possible in this stage, but I'm not sure
@@ -68,7 +70,7 @@ data AlignmentMaterial
 data DesiredLength
   deriving stock (Show, Eq, Generic)
 
-data Assignment = Assignment {body :: AssignmentBody, scope :: PT.ScopeFlag}
+data Assignment = Assignment {body :: AssignmentBody, scope :: HSt.Grouped.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
 data ModeIndependentCommand
@@ -120,8 +122,8 @@ data AssignmentBody
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont PT.FontNumber
-  | SetFamilyMember Uneval.FamilyMember Uneval.FontRef
+  | SelectFont HSt.Font.FontNumber
+  | SetFamilyMember HSt.Font.FamilyMember HSt.Font.FontNumber
   | SetParShape Uneval.HexInt [Uneval.Length]
   | SetBoxRegister Uneval.HexInt Uneval.Box
   | -- Global assignments.

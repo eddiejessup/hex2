@@ -4,6 +4,8 @@ import ASCII qualified
 import ASCII.Char qualified
 import Formatting qualified as F
 import Hex.Common.Codes
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -23,11 +25,6 @@ data IndentFlag
 data ExpandDefFlag
   = ExpandDef
   | InhibitDef
-  deriving stock (Show, Eq, Generic)
-
-data ScopeFlag
-  = Global
-  | Local
   deriving stock (Show, Eq, Generic)
 
 data StandardOutputSource
@@ -65,19 +62,6 @@ data BoxRegisterAttribute
   | HasHorizontalBox
   | IsVoid
   deriving stock (Show, Eq, Generic)
-
-data FontSpecialChar
-  = HyphenChar -- \hyphenchar
-  | SkewChar -- \skewchar
-  deriving stock (Show, Eq, Generic)
-
-data FontRange
-  = TextSizeFontRange -- \textfont
-  | ScriptSizeFontRange -- \scriptfont
-  | ScriptScriptSizeFontRange -- \scriptscriptfont
-  deriving stock (Show, Eq, Generic)
-
-instance Hashable FontRange
 
 data ModedCommandPrimitiveToken
   = SpecifiedGlueTok -- \vskip, \hskip
@@ -166,13 +150,6 @@ data VBoxAlignType
   | TopAlign -- \vtop
   deriving stock (Show, Eq, Generic)
 
-newtype FontNumber = FontNumber {fontNumber :: Q.HexInt}
-  deriving stock (Show)
-  deriving newtype (Eq, Ord, Enum)
-
-fmtFontNumber :: Fmt FontNumber
-fmtFontNumber = "FontNumber " |%| F.accessed (.fontNumber) Q.fmtHexInt
-
 data PrimitiveToken
   = SyntaxCommandArg SyntaxCommandArg
   | -- Starters of commands.
@@ -220,7 +197,7 @@ data PrimitiveToken
   | AssignPrefixTok AssignPrefixTok
   | -- > > Modifying how to parse the macro.
     --     \def, \gdef, \edef (expanded-def), \xdef (global-expanded-def).
-    DefineMacroTok ScopeFlag ExpandDefFlag
+    DefineMacroTok HSt.Grouped.ScopeFlag ExpandDefFlag
   | -- > Setting variable values.
     IntParamVarTok HSt.Param.IntParameter
   | LengthParamVarTok HSt.Param.LengthParameter
@@ -238,7 +215,7 @@ data PrimitiveToken
     LetCharCat Lex.LexCharCat
   | -- A control sequence representing a particular font, such as defined through
     -- \font.
-    FontRefToken FontNumber
+    FontRefToken HSt.Font.FontNumber
   | -- Heads of register references.
     RegisterVariableTok Q.QuantityType
   | -- Heads of int-ref definitions.
@@ -251,7 +228,7 @@ data PrimitiveToken
     LetTok -- \let
   | FutureLetTok -- \futurelet
   -- > Setting font math-family-member things.
-  | FontRangeTok FontRange
+  | FontRangeTok HSt.Font.FontRange
   | -- > Internal integers.
     LastPenaltyTok -- \lastpenalty
   | ParagraphShapeTok -- \parshape
@@ -276,7 +253,7 @@ data PrimitiveToken
   | FontTok -- \font
   -- Involved in global assignments.
   -- > Setting properties of a font.
-  | FontSpecialCharTok FontSpecialChar
+  | FontSpecialCharTok HSt.Font.FontSpecialChar
   | -- > Configuring hyphenation.
     HyphenationTok -- \hyphenation
   | HyphenationPatternsTok -- \patterns

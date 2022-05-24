@@ -4,10 +4,10 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, localCompleteProperty, setScopedMapValue)
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope (..))
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hexlude
 
-setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
 setHexCode = \case
   Code.CCatCodeType -> setScopedMapValue #catCodes
   Code.CMathCodeType -> setScopedMapValue #mathCodes

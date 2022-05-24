@@ -5,7 +5,7 @@ import Hex.Common.HexState.Impl.Scoped.Group
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope, newGlobalScope)
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
 import Hex.Common.HexState.Interface.Grouped qualified as Group
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hexlude
 import Optics.Core qualified as O
 
@@ -89,23 +89,23 @@ localCompleteProperty lens_ =
   fromMaybe (panic "Not property found for char-code in code-table") . localProperty lens_
 
 -- | Set a scoped property which is contained in a map, indexed by some key.
-setScopedMapValue :: Ord k => (Lens' Scope (Map k v)) -> k -> v -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setScopedMapValue :: Ord k => (Lens' Scope (Map k v)) -> k -> v -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
 setScopedMapValue mapLens c = setScopedProperty (mapLens % O.at' c)
 
 -- | From a lens from a scope to a property, which might be empty, set that
 -- value. (Actually we could weaken 'Lens' to 'Setter', but that would require a
 -- bunch of `castOptic` calls.)
-setScopedProperty :: (Lens' Scope (Maybe a)) -> a -> PT.ScopeFlag -> GroupScopes -> GroupScopes
+setScopedProperty :: (Lens' Scope (Maybe a)) -> a -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
 setScopedProperty scopeValueLens newValue scopeFlag groupScopes =
   case scopeFlag of
     -- If doing a global assignment.
     -- - Set the global-scope value to 'Just' the new value.
     -- - Set all local-scope values to Nothing.
-    PT.Global ->
+    HSt.Grouped.Global ->
       groupScopes
         & #globalScope % scopeValueLens ?!~ newValue
         & localScopesTraversal % scopeValueLens !~ Nothing
     -- If doing a local assignment,
     -- set the localmost scope's value to the new value.
-    PT.Local ->
+    HSt.Grouped.Local ->
       groupScopes & localMostScopeLens % scopeValueLens ?!~ newValue

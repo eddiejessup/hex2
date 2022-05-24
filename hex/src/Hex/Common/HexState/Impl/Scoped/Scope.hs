@@ -6,11 +6,11 @@ import Data.Map.Strict qualified as Map
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
+import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register
 import Hex.Common.HexState.Interface.Resolve (SymbolMap)
 import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
 import Hexlude
@@ -22,8 +22,8 @@ type family RegisterMap (q :: Q.QuantityType) where
 
 data Scope = Scope
   { -- Fonts.
-    currentFontNr :: Maybe PT.FontNumber,
-    -- familyMemberFonts :: Map (FontRange, HexInt) HexInt,
+    currentFontNr :: Maybe Font.FontNumber,
+    familyMemberFonts :: Map Font.FamilyMember Font.FontNumber,
     -- Control sequences.
     symbolMap :: SymbolMap,
     -- Char-code attribute maps.
@@ -49,14 +49,14 @@ data Scope = Scope
   }
   deriving stock (Show, Generic)
 
-nullFontNumber :: PT.FontNumber
-nullFontNumber = PT.FontNumber Q.zeroInt
+nullFontNumber :: Font.FontNumber
+nullFontNumber = Font.FontNumber Q.zeroInt
 
 newGlobalScope :: Scope
 newGlobalScope =
   Scope
     { currentFontNr = Just nullFontNumber,
-      -- familyMemberFonts = mempty
+      familyMemberFonts = mempty,
       symbolMap = initialSymbolMap,
       catCodes = Code.newCatCodes,
       mathCodes = Code.newMathCodes,
@@ -81,7 +81,7 @@ newLocalScope :: Scope
 newLocalScope =
   Scope
     { currentFontNr = Nothing,
-      -- familyMemberFonts = mempty
+      familyMemberFonts = mempty,
       symbolMap = mempty,
       catCodes = mempty,
       mathCodes = mempty,
@@ -104,7 +104,8 @@ newLocalScope =
 
 fmtScope :: Fmt Scope
 fmtScope =
-  ("Current font number: " |%| F.accessed (.currentFontNr) (F.maybed "None" PT.fmtFontNumber) |%| "\n")
+  ("Current font number: " |%| F.accessed (.currentFontNr) (F.maybed "None" Font.fmtFontNumber) |%| "\n")
+    <> (fmtMapWithHeading "Family-members" (.familyMemberFonts) Font.fmtFamilyMember Font.fmtFontNumber)
     <> (fmtMapWithHeading "Symbols" (.symbolMap) Res.fmtControlSymbol Res.fmtResolvedToken)
     <> (fmtMapWithHeading "Category codes" (.catCodes) Code.fmtCharCode Code.fmtCatCode)
     <> (fmtMapWithHeading "Math codes" (.mathCodes) Code.fmtCharCode Code.fmtMathCode)
@@ -130,6 +131,7 @@ instance Semigroup Scope where
   innerScope <> outerScope =
     Scope
       { currentFontNr = innerScope.currentFontNr <|> outerScope.currentFontNr,
+        familyMemberFonts = innerScope.familyMemberFonts `Map.union` outerScope.familyMemberFonts,
         symbolMap = innerScope.symbolMap `Map.union` outerScope.symbolMap,
         catCodes = innerScope.catCodes `Map.union` outerScope.catCodes,
         mathCodes = innerScope.mathCodes `Map.union` outerScope.mathCodes,

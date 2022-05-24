@@ -25,7 +25,6 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype
@@ -60,9 +59,9 @@ instance
   ) =>
   MonadPrimTokenSource (MonadPrimTokenSourceT m)
   where
-  getPrimitiveToken = Log.log "getPrimitiveToken-class" >>  getPrimitiveTokenImpl
+  getPrimitiveToken = getPrimitiveTokenImpl
 
-  getResolvedToken = Log.log "getResolvedToken-class" >> getResolvedTokenImpl
+  getResolvedToken = getResolvedTokenImpl
 
   getTokenInhibited = Lex.getLexToken
 
@@ -88,11 +87,10 @@ getResolvedTokenImpl ::
   ( Res.MonadResolve m,
     MonadError e m,
     AsType Res.ResolutionError e,
-    Lex.MonadLexTokenSource m,
-    Log.MonadHexLog m
+    Lex.MonadLexTokenSource m
   ) =>
   m (Maybe (LexToken, ResolvedToken))
-getResolvedTokenImpl = Log.log "getResolvedTokenImpl\n" >>
+getResolvedTokenImpl =
   Res.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
     Nothing -> pure Nothing
@@ -124,29 +122,29 @@ getPrimitiveTokenImpl ::
     AsType Par.ParsingError e,
     Lex.MonadLexTokenSource m,
     MonadPrimTokenSource m,
-    HSt.MonadHexState m,
-    MonadHexLog m
+    HSt.MonadHexState m
   ) =>
   m (Maybe (LexToken, PrimitiveToken))
-getPrimitiveTokenImpl = Log.log "getPrimitiveTokenImpl\n" >>
+getPrimitiveTokenImpl =
   getResolvedTokenImpl >>= \case
     Nothing -> pure Nothing
-    Just (lt, rt) -> Log.log ("rt: " <> show rt) >> case rt of
-      -- If we resolved to a primitive token, we are done, just return that.
-      PrimitiveToken pt ->
-        pure $ Just (lt, pt)
-      -- Otherwise, the token is the head of a syntax-command.
-      SyntaxCommandHeadToken headTok -> do
-        -- Expand the rest of the command into lex-tokens.
-        lts <- parseEvalExpandSyntaxCommand headTok
-        -- Insert those resulting lex-tokens back into the input. (It's not this
-        -- function's concern, but recall they will be put on the
-        -- lex-token-buffer).
-        Lex.insertLexTokensToSource lts
-        -- Try to read a primitive token again. Note that the new lex-tokens
-        -- might themselves introduce a syntax command, so we might need to
-        -- expand again.
-        Log.log "getPrimitiveTokenImpl-recurse\n" >> getPrimitiveTokenImpl
+    Just (lt, rt) ->
+      case rt of
+        -- If we resolved to a primitive token, we are done, just return that.
+        PrimitiveToken pt ->
+          pure $ Just (lt, pt)
+        -- Otherwise, the token is the head of a syntax-command.
+        SyntaxCommandHeadToken headTok -> do
+          -- Expand the rest of the command into lex-tokens.
+          lts <- parseEvalExpandSyntaxCommand headTok
+          -- Insert those resulting lex-tokens back into the input. (It's not this
+          -- function's concern, but recall they will be put on the
+          -- lex-token-buffer).
+          Lex.insertLexTokensToSource lts
+          -- Try to read a primitive token again. Note that the new lex-tokens
+          -- might themselves introduce a syntax command, so we might need to
+          -- expand again.
+          getPrimitiveTokenImpl
 
 parseEvalExpandSyntaxCommand ::
   ( MonadError e m,
@@ -155,8 +153,7 @@ parseEvalExpandSyntaxCommand ::
     AsType Eval.EvaluationError e,
     HSt.MonadHexState m,
     MonadPrimTokenSource m,
-    Lex.MonadLexTokenSource m,
-    MonadHexLog m
+    Lex.MonadLexTokenSource m
   ) =>
   ST.SyntaxCommandHeadToken ->
   m (Seq LexToken)

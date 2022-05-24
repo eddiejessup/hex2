@@ -3,6 +3,7 @@ module Hex.Common.HexState.Impl.SymbolMap where
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Font
 import Hex.Common.HexState.Interface.Parameter
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
@@ -11,6 +12,7 @@ import Hex.Common.HexState.Interface.Resolve.SyntaxToken
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import Hex.Common.HexState.Interface.Grouped
 
 _cs :: [Char] -> H.Res.ControlSymbol
 _cs =

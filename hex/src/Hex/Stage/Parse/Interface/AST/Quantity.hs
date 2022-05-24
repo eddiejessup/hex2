@@ -3,9 +3,9 @@
 module Hex.Stage.Parse.Interface.AST.Quantity where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -202,16 +202,16 @@ data CodeTableRef = CodeTableRef {codeType :: Code.CodeType, codeIndex :: CharCo
 newtype CharCodeInt = CharCodeInt {unCharCodeInt :: HexInt}
   deriving stock (Show, Eq, Generic)
 
-data FontSpecialCharRef = FontSpecialCharRef PT.FontSpecialChar FontRef
+data FontSpecialCharRef = FontSpecialCharRef HSt.Font.FontSpecialChar FontRef
   deriving stock (Show, Eq, Generic)
 
 data FontRef
-  = FontTokenRef PT.FontNumber
+  = FontTokenRef HSt.Font.FontNumber
   | CurrentFontRef
   | FamilyMemberFontRef FamilyMember
   deriving stock (Show, Eq, Generic)
 
-data FamilyMember = FamilyMember PT.FontRange HexInt
+data FamilyMember = FamilyMember HSt.Font.FontRange HexInt
   deriving stock (Show, Eq, Generic)
 
 data BoxDimensionRef = BoxDimensionRef HexInt Q.BoxDim

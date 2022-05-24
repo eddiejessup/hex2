@@ -4,6 +4,7 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
@@ -147,7 +148,7 @@ handleModeIndependentCommand addVElem = \case
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
             fontDefinition <- HSt.loadFont fontPath fontSpec
             addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
-            pure $ Just $ Res.PrimitiveToken $ PT.FontRefToken $ fontDefinition ^. typed @PT.FontNumber
+            pure $ Just $ Res.PrimitiveToken $ PT.FontRefToken $ fontDefinition ^. typed @HSt.Font.FontNumber
         case maySymbolTarget of
           Nothing ->
             pure ()
@@ -259,11 +260,8 @@ handleModeIndependentCommand addVElem = \case
       --     do
       --       selectFont fNr scope
       --       addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
-      --   Eval.SetFamilyMember fm fontRef ->
-      --     do
-      --       eFm <- texEvaluate fm
-      --       fNr <- texEvaluate fontRef
-      --       modifying' (typed @Config) $ setFamilyMemberFont eFm fNr scope
+      Eval.SetFamilyMember familyMember fontNumber ->
+        HSt.setFamilyMemberFont familyMember fontNumber scope
       --   -- Start a new level of grouping. Enter inner mode.
       --   Eval.SetBoxRegister lhsIdx box ->
       --     do

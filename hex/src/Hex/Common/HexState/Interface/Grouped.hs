@@ -10,3 +10,8 @@ data ScopedGroupType
 
 data LocalStructureTrigger = LocalStructureCharTrigger | LocalStructureCSTrigger
   deriving stock (Show, Eq, Generic)
+
+data ScopeFlag
+  = Global
+  | Local
+  deriving stock (Show, Eq, Generic)

@@ -3,6 +3,7 @@
 module Hex.Stage.Parse.Interface.AST.Command where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
@@ -88,7 +89,7 @@ data MessageWriteCommand = MessageWriteCommand
 data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction HexInt
   deriving stock (Show, Eq, Generic)
 
-data Assignment = Assignment {body :: AssignmentBody, scope :: PT.ScopeFlag}
+data Assignment = Assignment {body :: AssignmentBody, scope :: HSt.Grouped.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
 data ControlSequenceTarget
@@ -121,7 +122,7 @@ data AssignmentBody
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont PT.FontNumber
+  | SelectFont HSt.Font.FontNumber
   | SetFamilyMember FamilyMember FontRef
   | SetParShape HexInt [Length]
   | SetBoxRegister HexInt Box

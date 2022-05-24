@@ -5,6 +5,7 @@ import Data.Ratio qualified as Ratio
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.Register qualified as Hst.Reg
@@ -386,3 +387,12 @@ evalInternalMathGlue = \case
     evalQuantVariableAsTarget mathGlueVariable
   P.LastMathGlue ->
     notImplemented "evalInternalGlue: LastMathGlue"
+
+evalFontRef :: HSt.MonadHexState m => P.FontRef -> m HSt.Font.FontNumber
+evalFontRef = \case
+  P.FontTokenRef fontNumber -> pure fontNumber
+  P.CurrentFontRef -> HSt.currentFontNumber
+  P.FamilyMemberFontRef _familyMember -> notImplemented "evalFontRef: FamilyMemberFontRef"
+
+evalFamilyMember :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.FamilyMember -> m HSt.Font.FamilyMember
+evalFamilyMember (P.FamilyMember fontRange n) = HSt.Font.FamilyMember fontRange <$> evalInt n

@@ -4,11 +4,12 @@ module Hex.Common.HexState.Interface where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
+import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as Reg
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
@@ -19,11 +20,11 @@ import Hexlude
 class Monad m => MonadHexState m where
   getParameterValue :: Param.QuantParam q -> m (Var.QuantVariableTarget q)
 
-  setParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> PT.ScopeFlag -> m ()
+  setParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> m ()
 
   getRegisterValue :: Reg.QuantRegisterLocation q -> m (Var.QuantVariableTarget q)
 
-  setRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> PT.ScopeFlag -> m ()
+  setRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> m ()
 
   getSpecialIntParameter :: Param.SpecialIntParameter -> m Q.HexInt
 
@@ -35,19 +36,21 @@ class Monad m => MonadHexState m where
 
   getHexCode :: Code.CCodeType c -> Code.CharCode -> m (HSt.Code.CodeTableTarget c)
 
-  setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> PT.ScopeFlag -> m ()
+  setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> m ()
 
   resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
 
-  setSymbol :: ControlSymbol -> ResolvedToken -> PT.ScopeFlag -> m ()
+  setSymbol :: ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> m ()
 
   loadFont :: Q.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
 
-  selectFont :: PT.FontNumber -> PT.ScopeFlag -> m ()
+  selectFont :: Font.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
 
-  currentFontNumber :: m PT.FontNumber
+  setFamilyMemberFont :: Font.FamilyMember -> Font.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
 
-  setFontSpecialCharacter :: PT.FontSpecialChar -> PT.FontNumber -> Q.HexInt -> m ()
+  currentFontNumber :: m Font.FontNumber
+
+  setFontSpecialCharacter :: Font.FontSpecialChar -> Font.FontNumber -> Q.HexInt -> m ()
 
   currentFontCharacter :: Code.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
 
@@ -75,6 +78,7 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   resolveSymbol x = lift $ resolveSymbol x
   loadFont x y = lift $ loadFont x y
   selectFont x y = lift $ selectFont x y
+  setFamilyMemberFont x y z = lift $ setFamilyMemberFont x y z
   setFontSpecialCharacter x y z = lift $ setFontSpecialCharacter x y z
   currentFontNumber = lift currentFontNumber
   currentFontCharacter x = lift $ currentFontCharacter x
@@ -106,7 +110,7 @@ modifyParameterValue ::
   ( Var.QuantVariableTarget q ->
     Var.QuantVariableTarget q
   ) ->
-  PT.ScopeFlag ->
+  HSt.Grouped.ScopeFlag ->
   m ()
 modifyParameterValue p f scopeFlag = do
   currentVal <- getParameterValue @_ @q p
@@ -118,7 +122,7 @@ modifyRegisterValue ::
   ( Var.QuantVariableTarget q ->
     Var.QuantVariableTarget q
   ) ->
-  PT.ScopeFlag ->
+  HSt.Grouped.ScopeFlag ->
   m ()
 modifyRegisterValue loc f scopeFlag = do
   currentVal <- getRegisterValue loc
@@ -129,7 +133,7 @@ advanceParameterValue ::
   (MonadHexState m, Semigroup (Var.QuantVariableTarget q)) =>
   Param.QuantParam q ->
   Var.QuantVariableTarget q ->
-  PT.ScopeFlag ->
+  HSt.Grouped.ScopeFlag ->
   m ()
 advanceParameterValue p plusVal =
   modifyParameterValue @q p (\v -> v <> plusVal)
@@ -140,7 +144,7 @@ scaleParameterValue ::
   Param.QuantParam q ->
   Q.VDirection ->
   Q.HexInt ->
-  PT.ScopeFlag ->
+  HSt.Grouped.ScopeFlag ->
   m ()
 scaleParameterValue p scaleDirection arg scopeFlag =
   modifyParameterValue @q p (Q.scaleInDirection scaleDirection arg) scopeFlag
@@ -149,7 +153,7 @@ advanceRegisterValue ::
   (MonadHexState m, Semigroup (Var.QuantVariableTarget q)) =>
   Reg.QuantRegisterLocation q ->
   Var.QuantVariableTarget q ->
-  PT.ScopeFlag ->
+  HSt.Grouped.ScopeFlag ->
   m ()
 advanceRegisterValue loc plusVal =
   modifyRegisterValue loc (\v -> v <> plusVal)
@@ -159,7 +163,7 @@ scaleRegisterValue ::
   Reg.QuantRegisterLocation q ->
   Q.VDirection ->
   Q.HexInt ->
-  PT.ScopeFlag ->
+  HSt.Grouped.ScopeFlag ->
   m ()
 scaleRegisterValue qLoc scaleDirection arg scopeFlag =
   modifyRegisterValue qLoc (Q.scaleInDirection scaleDirection arg) scopeFlag

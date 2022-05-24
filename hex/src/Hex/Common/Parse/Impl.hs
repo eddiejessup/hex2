@@ -127,9 +127,9 @@ logLexToken :: Monad m => Lex.LexToken -> ParseT m ()
 logLexToken lt = liftWriter $ W.tell $ ParseLog $ Seq.singleton lt
 
 -- Like `getExpandedTokenImpl`, but on end-of-input raise an error so the parse fails.
-getExpandedTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m, Log.MonadHexLog m) => ParseT m (Lex.LexToken, PT.PrimitiveToken)
+getExpandedTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m (Lex.LexToken, PT.PrimitiveToken)
 getExpandedTokenErrImpl = do
-  r@(lt, _) <- lift (Log.log "getExpandedTokenErrImpl\n") >> endOfInputToError getPrimitiveToken
+  r@(lt, _) <- endOfInputToError getPrimitiveToken
   logLexToken lt
   pure r
 
@@ -144,8 +144,8 @@ getUnexpandedTokenImpl = do
 -- but this would be a lot of typing for each parser.
 -- So instead, I will implement 'MonadPrimTokenParse' for 'ParseT m'.
 
-instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m, Log.MonadHexLog (ParseT m), Log.MonadHexLog m) => MonadPrimTokenParse (ParseT m) where
-  getExpandedToken = (Log.log "getExpandedToken-class\n") >> getExpandedTokenErrImpl
+instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => MonadPrimTokenParse (ParseT m) where
+  getExpandedToken = getExpandedTokenErrImpl
 
   getUnexpandedToken = getUnexpandedTokenImpl
 
