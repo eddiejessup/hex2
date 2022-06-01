@@ -8,7 +8,7 @@ categoriseAll :: MonadCharCatSource m => m [RawCharCat]
 categoriseAll = go
   where
     go =
-      getCharCat >>= \case
+      extractCharCat >>= \case
         Nothing ->
           pure []
         Just tok -> do

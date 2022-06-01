@@ -1,5 +1,7 @@
 module Hex.Stage.Interpret.CommandHandler.ParaMode where
 
+import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
@@ -10,12 +12,10 @@ import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
 import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
-import Hex.Stage.Lex.Interface.CharSource (CharSource)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Lex.Interface.LexBuffer (LexBuffer)
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
-import Hex.Capability.Log.Interface (MonadHexLog)
-import qualified Hex.Capability.Log.Interface as Log
 
 data ParaModeCommandResult
   = ContinuePara
@@ -66,7 +66,7 @@ handleCommandInParaMode ::
     AsType AllMode.InterpretError e,
     Log.MonadHexLog m
   ) =>
-  CharSource ->
+  LexBuffer ->
   Eval.Command ->
   StateT H.Inter.B.List.HList m ParaModeCommandResult
 handleCommandInParaMode oldSrc = \case

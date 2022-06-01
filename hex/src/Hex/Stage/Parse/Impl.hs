@@ -4,6 +4,7 @@ module Hex.Stage.Parse.Impl where
 
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.Parse.Impl (fmtParseLog, runParseTMaybe)
 import Hex.Common.Parse.Interface (ParseUnexpectedError (..))
@@ -12,7 +13,6 @@ import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
 import Hex.Stage.Parse.Interface
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
 newtype MonadCommandSourceT m a = MonadCommandSourceT {unMonadCommandSourceT :: m a}
   deriving newtype

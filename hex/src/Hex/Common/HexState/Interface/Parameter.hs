@@ -180,7 +180,7 @@ newIntParameters =
   Map.fromList
     [ (Tolerance, Q.HexInt 10000),
       (EscapeChar, Q.HexInt 92), -- '\'
-      (EndLineChar, Q.HexInt 13), -- '\r'
+      (EndLineChar, Q.HexInt newEndLineChar), -- We insert this at the end of each input line.
       (MaxDeadCycles, Q.HexInt 25),
       (HangAfter, Q.HexInt 1),
       (Mag, Q.HexInt 1000),
@@ -189,6 +189,9 @@ newIntParameters =
       (Month, Q.HexInt 1),
       (Year, Q.HexInt 1970)
     ]
+
+newEndLineChar :: Int
+newEndLineChar = 13 -- '\r'
 
 newLengthParameters :: Map LengthParameter Q.Length
 newLengthParameters = mempty

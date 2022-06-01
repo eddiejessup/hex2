@@ -17,6 +17,10 @@ fmtRawCharCat =
    in F.parenthesised $ f1 <> F.fconst ", " <> f2
 
 class Monad m => MonadCharCatSource m where
-  getCharCat :: m (Maybe RawCharCat)
+  extractCharCat :: m (Maybe RawCharCat)
 
-  peekCharCat :: m (Maybe RawCharCat)
+  peekCharCatOnCurrentLine :: m (Maybe RawCharCat)
+
+  endCurrentLine :: m ()
+
+  sourceIsFinished :: m Bool

@@ -14,7 +14,7 @@ import Hex.Stage.Interpret.Build.List.Horizontal.Set qualified as H.Inter.B.List
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
 import Hex.Stage.Interpret.CommandHandler.ParaMode qualified as H.Para
 import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
-import Hex.Stage.Lex.Interface.CharSource (CharSource)
+import Hex.Stage.Lex.Interface.LexBuffer (LexBuffer)
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hexlude
@@ -56,7 +56,7 @@ handleCommandInMainVMode ::
     MonadError e m,
     AsType AllMode.InterpretError e
   ) =>
-  CharSource ->
+  LexBuffer ->
   Eval.Command ->
   StateT H.Inter.B.List.VList m VModeCommandResult
 handleCommandInMainVMode oldSrc = \case

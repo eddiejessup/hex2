@@ -1,18 +1,21 @@
 {-# LANGUAGE UndecidableInstances #-}
+
 module Hex.Common.Parse.Impl where
 
 import Control.Monad.Trans (MonadTrans (..))
 import Control.Monad.Trans.Writer.CPS qualified as W
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface (MonadHexState (..))
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Parse.Interface
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
+import Hex.Common.Parse.Interface (MonadPrimTokenParse)
+import Hex.Common.Parse.Interface qualified as CPar
+import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
+import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
 newtype ParseLog = ParseLog {unParseLog :: Seq Lex.LexToken}
   deriving stock (Show)
@@ -28,22 +31,21 @@ fmtParseLog = F.accessed unParseLog fmtLexTokenSeq
 -- The main thing a parser does is implement choice: we can do `a <|> b`,
 -- and if `a` fails we should try `b`, and the overall expression shouldn't fail.
 -- That is why we have the extra `ExceptT ParsingError` layer.
-newtype ParseT m a = ParseT {unParseT :: ExceptT ParsingError (W.WriterT ParseLog m) a}
-  deriving newtype (Functor, Applicative, Monad, MonadError ParsingError)
+newtype ParseT m a = ParseT {unParseT :: ExceptT CPar.ParsingError (W.WriterT ParseLog m) a}
+  deriving newtype (Functor, Applicative, Monad, MonadError CPar.ParsingError)
 
 instance Log.MonadHexLog m => Log.MonadHexLog (ParseT m) where
-    log x = lift $ Log.log x
+  log x = lift $ Log.log x
 
-    logInternalState = lift Log.logInternalState
+  logInternalState = lift Log.logInternalState
 
-
-mkParseT :: Monad m => m (Either ParsingError a, ParseLog) -> ParseT m a
+mkParseT :: Monad m => m (Either CPar.ParsingError a, ParseLog) -> ParseT m a
 mkParseT ma = ParseT $ ExceptT $ W.writerT ma
 
 liftWriter :: Monad m => W.WriterT ParseLog m a -> ParseT m a
 liftWriter ma = ParseT $ lift ma
 
-runParseT :: ParseT m a -> m (Either ParsingError a, ParseLog)
+runParseT :: ParseT m a -> m (Either CPar.ParsingError a, ParseLog)
 runParseT = W.runWriterT . runExceptT . unParseT
 
 -- From the perspective of the parser, ie in a MonadPrimTokenParse context,
@@ -53,18 +55,18 @@ runParseT = W.runWriterT . runExceptT . unParseT
 -- by returning a 'Nothing', as we might want to behave differently
 -- instead of just failing in this case.
 -- This helper lets us do this.
-runParseTMaybe :: (MonadError e m, AsType ParseUnexpectedError e) => ParseT m a -> m (Maybe a, ParseLog)
+runParseTMaybe :: (MonadError e m, AsType CPar.ParseUnexpectedError e) => ParseT m a -> m (Maybe a, ParseLog)
 runParseTMaybe p = do
   (errOrA, pLog) <- runParseT p
   case errOrA of
-    Left EndOfInputParsingError -> pure (Nothing, pLog)
-    Left (UnexpectedParsingError e) -> throwError $ injectTyped e
+    Left CPar.EndOfInputParsingError -> pure (Nothing, pLog)
+    Left (CPar.UnexpectedParsingError e) -> throwError $ injectTyped e
     Right a -> pure $ (Just a, pLog)
 
 -- Run a parser, but backtrack the char-source if the parse fails.
 -- (This is why we need the MonadLexTokenSource instance:
 -- it lets us get at the underlying stream.)
-runParseTWithTry :: Lex.MonadLexTokenSource m => ParseT m a -> m (Either ParsingError a, ParseLog)
+runParseTWithTry :: Lex.MonadLexTokenSource m => ParseT m a -> m (Either CPar.ParsingError a, ParseLog)
 runParseTWithTry a = do
   -- Get the initial state.
   src0 <- Lex.getSource
@@ -90,7 +92,7 @@ instance MonadTrans ParseT where
 -- therefore specialised to the particular Hex case.
 -- (We are implementing a backtracking parser.)
 instance (Lex.MonadLexTokenSource m, MonadHexState m) => Alternative (ParseT m) where
-  empty = parseErrorImpl ParseDefaultFailure
+  empty = parseErrorImpl CPar.ParseDefaultFailure
 
   (<|>) :: ParseT m a -> ParseT m a -> ParseT m a
   a <|> b = do
@@ -110,33 +112,36 @@ instance (Lex.MonadLexTokenSource m, MonadHexState m) => Alternative (ParseT m) 
 instance (Lex.MonadLexTokenSource m, MonadHexState m) => MonadPlus (ParseT m)
 
 parseErrorEndOfInput :: Monad m => ParseT m a
-parseErrorEndOfInput = ParseT $ throwE EndOfInputParsingError
+parseErrorEndOfInput = ParseT $ throwE CPar.EndOfInputParsingError
 
 -- The most common case, applies to all failures except end-of-input.
-parseErrorImpl :: (MonadHexState m) => ParseUnexpectedErrorCause -> ParseT m a
+parseErrorImpl :: (MonadHexState m) => CPar.ParseUnexpectedErrorCause -> ParseT m a
 parseErrorImpl e = do
-  ParseT $ throwE $ UnexpectedParsingError $ ParseUnexpectedError e
+  ParseT $ throwE $ CPar.UnexpectedParsingError $ CPar.ParseUnexpectedError e
 
 -- Take a program that returns a 'Maybe a', with `Nothing` representing end-of-input, and
 -- map that `Nothing` into an end-of-input error.
 endOfInputToError :: Monad m => m (Maybe a) -> ParseT m a
 endOfInputToError prog =
-  nothingToError (lift prog) EndOfInputParsingError
+  nothingToError (lift prog) CPar.EndOfInputParsingError
 
-logLexToken :: Monad m => Lex.LexToken -> ParseT m ()
-logLexToken lt = liftWriter $ W.tell $ ParseLog $ Seq.singleton lt
+recordLexToken :: Monad m => Lex.LexToken -> ParseT m ()
+recordLexToken lt = liftWriter $ W.tell $ ParseLog $ Seq.singleton lt
 
 -- Like `getExpandedTokenImpl`, but on end-of-input raise an error so the parse fails.
-getExpandedTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m (Lex.LexToken, PT.PrimitiveToken)
+getExpandedTokenErrImpl :: (MonadHexState m, MonadPrimTokenSource m, Log.MonadHexLog m) => ParseT m (Lex.LexToken, PT.PrimitiveToken)
 getExpandedTokenErrImpl = do
-  r@(lt, _) <- endOfInputToError getPrimitiveToken
-  logLexToken lt
+  Log.log $ "Parser: Getting primitive-token"
+  r@(lt, _) <- endOfInputToError Expand.getPrimitiveToken
+  recordLexToken lt
   pure r
 
-getUnexpandedTokenImpl :: (MonadHexState m, MonadPrimTokenSource m) => ParseT m Lex.LexToken
+getUnexpandedTokenImpl :: (MonadHexState m, MonadPrimTokenSource m, Log.MonadHexLog m) => ParseT m Lex.LexToken
 getUnexpandedTokenImpl = do
-  lt <- endOfInputToError getTokenInhibited
-  logLexToken lt
+  Log.log $ "Parser: Getting lex-token"
+  lt <- endOfInputToError Expand.getTokenInhibited
+  recordLexToken lt
+  Log.log $ "Parser: Got unexpanded lex-token: " <> show lt
   pure lt
 
 -- I want to write my parsers in 'MonadPrimTokenParse m => m'.
@@ -144,7 +149,7 @@ getUnexpandedTokenImpl = do
 -- but this would be a lot of typing for each parser.
 -- So instead, I will implement 'MonadPrimTokenParse' for 'ParseT m'.
 
-instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m) => MonadPrimTokenParse (ParseT m) where
+instance (Lex.MonadLexTokenSource m, MonadPrimTokenSource m, MonadHexState m, Log.MonadHexLog m) => MonadPrimTokenParse (ParseT m) where
   getExpandedToken = getExpandedTokenErrImpl
 
   getUnexpandedToken = getUnexpandedTokenImpl

@@ -1,7 +1,7 @@
 module Hex.Stage.Lex.Interface where
 
-import Hex.Stage.Lex.Interface.CharSource qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Lex.Interface.LexBuffer (LexBuffer)
 import Hexlude
 
 class Monad m => MonadLexTokenSource m where
@@ -11,6 +11,6 @@ class Monad m => MonadLexTokenSource m where
 
   insertLexTokensToSource :: Seq Lex.LexToken -> m ()
 
-  getSource :: m Lex.CharSource
+  getSource :: m LexBuffer
 
-  putSource :: Lex.CharSource -> m ()
+  putSource :: LexBuffer -> m ()

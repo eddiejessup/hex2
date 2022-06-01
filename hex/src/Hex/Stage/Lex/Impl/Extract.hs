@@ -14,43 +14,38 @@ getLetterChars :: Cat.MonadCharCatSource m => m (Seq Code.CharCode)
 getLetterChars = go Empty
   where
     go acc =
-      Cat.peekCharCat >>= \case
+      Cat.peekCharCatOnCurrentLine >>= \case
         -- No input left: Return our accumulation, and an empty rest-of-input.
         Nothing ->
           pure acc
         -- See a letter: append to our accumulation, and recur.
         Just (Cat.RawCharCat char (Code.CoreCatCode Code.Letter)) -> do
-          void $ Cat.getCharCat
+          void $ Cat.extractCharCat
           go (acc :|> char)
         -- See something else: return our accumulation, and return the
         -- rest-of-input *before the fetch* (note, cs, not csRest)
         Just _ -> do
           pure acc
 
-dropTilEndOfLine :: Cat.MonadCharCatSource m => m ()
-dropTilEndOfLine =
-  Cat.getCharCat >>= \case
-    Just (Cat.RawCharCat _ Code.EndOfLine) ->
-      pure ()
-    _ ->
-      dropTilEndOfLine
-
 extractToken ::
   forall e m.
-  (HSt.MonadHexState m, AsType LexError e, Cat.MonadCharCatSource m) =>
+  ( HSt.MonadHexState m,
+    AsType LexError e,
+    Cat.MonadCharCatSource m
+  ) =>
   LexState ->
   ExceptT e m (Maybe (LexToken, LexState))
 extractToken = go
   where
     go :: LexState -> ExceptT e m (Maybe (LexToken, LexState))
     go _state = do
-      lift Cat.getCharCat >>= \case
+      lift Cat.extractCharCat >>= \case
         Nothing -> pure Nothing
         Just (Cat.RawCharCat n1 cat1) ->
           case (cat1, _state) of
             -- Control sequence: Grab it.
             (Code.Escape, _) -> do
-              lift Cat.getCharCat >>= \case
+              lift Cat.extractCharCat >>= \case
                 Nothing ->
                   throwE $ injectTyped TerminalEscapeCharacter
                 Just (Cat.RawCharCat csChar1 ctrlSeqCat1) -> do
@@ -71,7 +66,7 @@ extractToken = go
                       )
             -- Comment: Ignore rest of line and switch to line-begin.
             (Code.Comment, _) -> do
-              lift $ dropTilEndOfLine
+              lift Cat.endCurrentLine
               go LineBegin
             -- Empty line: Make a paragraph.
             (Code.EndOfLine, LineBegin) ->

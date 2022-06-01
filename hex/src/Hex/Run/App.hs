@@ -2,15 +2,18 @@ module Hex.Run.App where
 
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Interface qualified as HEnv
 import Hex.Common.HexState.Impl (MonadHexStateImplT (..))
 import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface (MonadHexState)
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Parse.Interface qualified as Parse
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Stage.Categorise.Impl (MonadCharCatSourceT (..))
 import Hex.Stage.Categorise.Interface (MonadCharCatSource)
+import Hex.Stage.Categorise.Interface.CharSource (LoadedCharSource)
 import Hex.Stage.Evaluate.Impl (MonadEvaluateT (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface (MonadEvaluate)
@@ -20,8 +23,8 @@ import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as Interpret
 import Hex.Stage.Lex.Impl (MonadLexTokenSourceT (..))
 import Hex.Stage.Lex.Interface (MonadLexTokenSource)
-import Hex.Stage.Lex.Interface.CharSource (CharSource, newCharSource)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Lex.Interface.LexBuffer (LexBuffer, newLexBuffer)
 import Hex.Stage.Parse.Impl (MonadCommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hex.Stage.Resolve.Impl (MonadResolveT (..))
@@ -32,21 +35,22 @@ import System.IO (hFlush)
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
-    appCharSource :: CharSource,
+    appLexBuffer :: LexBuffer,
     appConditionStates :: Expand.ConditionStates
   }
   deriving stock (Generic)
 
-instance {-# OVERLAPPING #-} HasType ByteString AppState where
-  typed = typed @CharSource % typed @ByteString
+instance {-# OVERLAPPING #-} HasType LoadedCharSource AppState where
+  typed = #appLexBuffer % typed @LoadedCharSource
 
-newHexStateWithChars :: ByteString -> AppState
-newHexStateWithChars chrs =
-  AppState
-    { appHexState = HSt.newHexState,
-      appCharSource = newCharSource chrs,
-      appConditionStates = Expand.newConditionStates
-    }
+newHexStateWithChars :: NonEmpty ByteString -> AppState
+newHexStateWithChars lines_ =
+  let endLineChar = HSt.Param.newIntParameters ^. at' HSt.Param.EndLineChar >>= Code.fromHexInt
+   in AppState
+        { appHexState = HSt.newHexState,
+          appLexBuffer = newLexBuffer endLineChar lines_,
+          appConditionStates = Expand.newConditionStates
+        }
 
 newtype App a = App {unApp :: ReaderT HEnv.HexEnv (StateT AppState (ExceptT AppError IO)) a}
   deriving newtype
@@ -112,7 +116,7 @@ runAppGivenState appState app appEnv =
    in runExceptT $ runStateT x appState
 
 runAppGivenEnv ::
-  ByteString ->
+  NonEmpty ByteString ->
   App a ->
   HEnv.HexEnv ->
   IO (Either AppError (a, AppState))
@@ -121,7 +125,7 @@ runAppGivenEnv bs app appEnv = do
   runAppGivenState appState app appEnv
 
 runApp ::
-  ByteString ->
+  NonEmpty ByteString ->
   App a ->
   IO (Either AppError (a, AppState))
 runApp bs app =
@@ -130,10 +134,10 @@ runApp bs app =
     hFlush appEnv.logHandle
     pure a
 
-evalApp :: ByteString -> App a -> IO (Either AppError a)
+evalApp :: NonEmpty ByteString -> App a -> IO (Either AppError a)
 evalApp chrs = fmap (fmap fst) <$> runApp chrs
 
-unsafeEvalApp :: ByteString -> App a -> IO a
+unsafeEvalApp :: NonEmpty ByteString -> App a -> IO a
 unsafeEvalApp chrs app = do
   evalApp chrs app >>= \case
     Left e -> panic $ sformat ("got error: " |%| fmtAppError) e

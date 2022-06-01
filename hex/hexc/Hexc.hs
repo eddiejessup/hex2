@@ -1,6 +1,7 @@
 module Main where
 
 import Data.ByteString qualified as BS
+import Data.List.NonEmpty qualified as L.NE
 import Hex.Run.App qualified as Run
 import Hex.Run.Categorise qualified as Run.Cat
 import Hex.Run.Evaluate qualified as Run.Evaluate
@@ -110,11 +111,14 @@ appOptionsParserInfo =
         <> header "Hex"
     )
 
+newlineWord :: Word8
+newlineWord = 10
+
 main :: IO ()
 main = do
   opts <- execParser appOptionsParserInfo
-  (input, _maybeInPath) <-
-    case input opts of
+  (inputBytes, _maybeInPath) <-
+    case opts.input of
       StdInput -> do
         cs <- liftIO BS.getContents
         pure (cs, Nothing)
@@ -124,30 +128,35 @@ main = do
       FileInput inPathStr -> do
         cs <- BS.readFile inPathStr
         pure (cs, Just inPathStr)
+  -- Split the input into lines, assuming '\n' line-termination characters.
+  -- We will append the \endlinechar to each input line as we traverse the lines.
+  -- We need at least one input line, to be the 'current line'.
+  inputLines <- note (panic "No lines of input")
+    (L.NE.nonEmpty (BS.split newlineWord inputBytes))
   case opts.mode of
     CatMode -> do
-      ccs <- Run.unsafeEvalApp input Run.Cat.categoriseAll
+      ccs <- Run.unsafeEvalApp inputLines Run.Cat.categoriseAll
       putText $ sformat Run.Cat.fmtCategoriseResult ccs
     LexMode -> do
-      lts <- Run.unsafeEvalApp input Run.Lex.lexAll
+      lts <- Run.unsafeEvalApp inputLines Run.Lex.lexAll
       putText $ sformat Run.Lex.fmtLexResult lts
     ResolveMode -> do
-      resultList <- Run.unsafeEvalApp input Run.Resolve.resolveAll
+      resultList <- Run.unsafeEvalApp inputLines Run.Resolve.resolveAll
       putText $ sformat Run.Resolve.fmtResolveResult resultList
     ExpandMode -> do
-      resultList <- Run.unsafeEvalApp input Run.Expand.expandAll
+      resultList <- Run.unsafeEvalApp inputLines Run.Expand.expandAll
       putText $ sformat Run.Expand.fmtExpandResult resultList
     RawCommandMode -> do
-      commandList <- Run.unsafeEvalApp input Run.Parse.parseAll
+      commandList <- Run.unsafeEvalApp inputLines Run.Parse.parseAll
       putText $ sformat Run.Parse.fmtCommandList commandList
     EvalCommandMode -> do
-      commandList <- Run.unsafeEvalApp input Run.Evaluate.evaluateAll
+      commandList <- Run.unsafeEvalApp inputLines Run.Evaluate.evaluateAll
       putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
     VListMode -> do
-      vList <- Run.unsafeEvalApp input Run.Interpret.interpretInMainVMode
+      vList <- Run.unsafeEvalApp inputLines Run.Interpret.interpretInMainVMode
       putText $ sformat fmtVList vList
     ParaListMode -> do
-      (endReason, paraList) <- Run.unsafeEvalApp input Run.Interpret.interpretInParaMode
+      (endReason, paraList) <- Run.unsafeEvalApp inputLines Run.Interpret.interpretInParaMode
       putText $ "End reason: " <> show endReason
       putText $ sformat fmtHListMultiLine paraList
     _ ->

@@ -3,6 +3,7 @@
 module Hex.Stage.Expand.Impl where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -59,11 +60,22 @@ instance
   ) =>
   MonadPrimTokenSource (MonadPrimTokenSourceT m)
   where
-  getPrimitiveToken = getPrimitiveTokenImpl
+  getPrimitiveToken = do
+    Log.log $ "Fetching primitive token (resolving and expanding)"
+    getPrimitiveTokenImpl
 
-  getResolvedToken = getResolvedTokenImpl
+  getResolvedToken = do
+    Log.log $ "Fetching resolved token (resolving but not expanding)"
+    getResolvedTokenImpl
 
-  getTokenInhibited = Lex.getLexToken
+  getTokenInhibited = do
+    Log.log $ "Fetching lex-token (not resolving or expanding)"
+    mayLexToken <- Lex.getLexToken
+    case mayLexToken of
+      Just lt -> do
+        Log.log $ "While inhibited, got lex-token: " <> show lt
+      Nothing -> pure ()
+    pure mayLexToken
 
   pushConditionState condState = modifying' conditionStatesLens (cons condState)
 
@@ -122,7 +134,8 @@ getPrimitiveTokenImpl ::
     AsType Par.ParsingError e,
     Lex.MonadLexTokenSource m,
     MonadPrimTokenSource m,
-    HSt.MonadHexState m
+    HSt.MonadHexState m,
+    MonadHexLog m
   ) =>
   m (Maybe (LexToken, PrimitiveToken))
 getPrimitiveTokenImpl =
@@ -153,7 +166,8 @@ parseEvalExpandSyntaxCommand ::
     AsType Eval.EvaluationError e,
     HSt.MonadHexState m,
     MonadPrimTokenSource m,
-    Lex.MonadLexTokenSource m
+    Lex.MonadLexTokenSource m,
+    MonadHexLog m
   ) =>
   ST.SyntaxCommandHeadToken ->
   m (Seq LexToken)
