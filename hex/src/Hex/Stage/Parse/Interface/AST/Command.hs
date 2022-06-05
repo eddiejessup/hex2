@@ -6,6 +6,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
@@ -125,7 +126,7 @@ data AssignmentBody
   | SelectFont HSt.Font.FontNumber
   | SetFamilyMember FamilyMember FontRef
   | SetParShape HexInt [Length]
-  | SetBoxRegister HexInt Box
+  | SetBoxRegister ExplicitRegisterLocation Box
   | -- -- Global assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontSpecialChar FontSpecialCharRef HexInt
@@ -187,13 +188,16 @@ data FontSpecification = NaturalFont | FontAt Length | FontScaled HexInt
 
 -- Box specification.
 data Box
-  = FetchedRegisterBox PT.BoxFetchMode HexInt
+  = FetchedRegisterBox HSt.Register.BoxFetchMode ExplicitRegisterLocation
   | LastBox
   | VSplitBox HexInt Length
-  | ExplicitBox BoxSpecification PT.ExplicitBox
+  | ExplicitBox BoxSpecification PT.ExplicitBoxType
   deriving stock (Show, Eq, Generic)
 
-data BoxSpecification = Natural | To Length | Spread Length
+data BoxSpecification
+  = Natural
+  | To Length
+  | Spread Length
   deriving stock (Show, Eq, Generic)
 
 data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule Q.Axis Rule
@@ -202,7 +206,7 @@ data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule Q.Axis Rule
 data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: ST.ExpandedBalancedText}
   deriving stock (Show, Eq, Generic)
 
-data FetchedBoxRef = FetchedBoxRef HexInt PT.BoxFetchMode
+data FetchedBoxRef = FetchedBoxRef HexInt HSt.Register.BoxFetchMode
   deriving stock (Show, Eq, Generic)
 
 data LeadersSpec = LeadersSpec PT.LeadersType BoxOrRule Glue

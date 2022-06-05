@@ -122,10 +122,13 @@ evalRegisterLocationAsLocation ::
   P.QuantRegisterLocation q ->
   m (HSt.Reg.QuantRegisterLocation q)
 evalRegisterLocationAsLocation = \case
-  P.ExplicitRegisterLocation regType n ->
-    Hst.Reg.QuantRegisterLocation regType . Hst.Reg.RegisterLocation <$> evalInt n
-  P.InternalRegisterLocation loc ->
+  P.ExplicitQuantRegisterLocation regType loc ->
+    Hst.Reg.QuantRegisterLocation regType <$> evalExplicitRegisterLocation loc
+  P.InternalQuantRegisterLocation loc ->
     pure loc
+
+evalExplicitRegisterLocation :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.ExplicitRegisterLocation -> m Hst.Reg.RegisterLocation
+evalExplicitRegisterLocation explicitRegisterLocation = Hst.Reg.RegisterLocation <$> evalInt explicitRegisterLocation.unExplicitRegisterLocation
 
 evalFontSpecialCharRef :: P.FontSpecialCharRef -> m Q.HexInt
 evalFontSpecialCharRef = notImplemented "evalFontSpecialCharRef"

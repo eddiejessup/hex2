@@ -6,29 +6,33 @@ import Categorise qualified as Test.Cat
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes
 import Hex.Common.HexState.Interface (MonadHexState (..))
+import Hex.Common.HexState.Interface.Parameter qualified as Param
+import Hex.Common.HexState.Interface.Variable qualified as Var
+import Hex.Run.App qualified as App
 import Hex.Run.Lex (lexAll)
 import Hex.Stage.Categorise.Impl qualified as Cat
 import Hex.Stage.Categorise.Interface qualified as Cat
 import Hex.Stage.Lex.Impl.Extract (extractToken)
 import Hex.Stage.Lex.Interface
 import Hex.Stage.Lex.Interface.Extract
+import Hex.Stage.Lex.Interface.LexBuffer qualified as Lex
 import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
 
-data TestAppState = TestAppState {chars :: ByteString, lexState :: LexState}
+newtype TestApp a = TestApp {unTestApp :: State Lex.LexBuffer a}
   deriving stock (Generic)
-
-newTestAppState :: ByteString -> TestAppState
-newTestAppState bs = TestAppState bs LineBegin
-
-newtype TestApp a = TestApp {unTestApp :: State TestAppState a}
-  deriving stock (Generic)
-  deriving newtype (Functor, Applicative, Monad, MonadState TestAppState)
+  deriving newtype (Functor, Applicative, Monad, MonadState Lex.LexBuffer)
   deriving (Cat.MonadCharCatSource) via (Cat.MonadCharCatSourceT TestApp)
 
 runTestApp :: ByteString -> TestApp a -> a
-runTestApp bs app = evalState (unTestApp app) (newTestAppState bs)
+runTestApp bs app =
+  let bLines = case App.toInputLines bs of
+        Nothing -> panic "bad input"
+        Just a -> a
+
+      lexBuffer = Lex.newLexBuffer (Just App.carriageReturnCharCode) bLines
+   in evalState (unTestApp app) lexBuffer
 
 testLexAll :: ByteString -> [LexToken]
 testLexAll bs = runTestApp bs lexAll
@@ -41,16 +45,20 @@ instance MonadHexState TestApp where
   getHexCode CCatCodeType code = pure $ Test.Cat.codeToCat code
   getHexCode _ _ = notImplemented "getHexCode"
 
+  getParameterValue :: Param.QuantParam q -> TestApp (Var.QuantVariableTarget q)
+  getParameterValue (Param.IntQuantParam Param.EndLineChar) = pure $ toHexInt App.carriageReturnCharCode
+  getParameterValue _ = notImplemented "getParameterValue"
+
 extractLexToken :: TestApp (Maybe LexToken)
 extractLexToken = do
   s <- get
-  runExceptT @(Identity LexError) (extractToken s.lexState) >>= \case
+  runExceptT @(Identity LexError) (extractToken s.bufferLexState) >>= \case
     Left e ->
       panic $ show e
     Right Nothing ->
       pure Nothing
     Right (Just (lt, newLexState)) -> do
-      assign' (#lexState) newLexState
+      assign' (#bufferLexState) newLexState
       pure $ Just lt
 
 instance MonadLexTokenSource TestApp where
@@ -66,7 +74,7 @@ tests =
       testCase "Comment" testComment,
       testCase "Spaces at beginning of line" testSpacesLineBegin,
       testCase "New-line while skipping blanks" testNewLineSkippingBlanks,
-      testControlSequenceTests
+      testControlSequences
     ]
 
 assertSuccessLexEqual :: ByteString -> [LexToken] -> IO ()
@@ -85,15 +93,16 @@ space :: LexToken
 space = CharCatLexToken (LexCharCat (Chr_ ' ') Space)
 
 testChars :: Assertion
-testChars = do
+testChars =
   assertSuccessLexEqual
     "aa"
     [ letter 'a',
-      letter 'a'
+      letter 'a',
+      space
     ]
 
 testWords :: Assertion
-testWords = do
+testWords =
   assertSuccessLexEqual
     "aa aa aa"
     [ letter 'a',
@@ -103,49 +112,54 @@ testWords = do
       letter 'a',
       space,
       letter 'a',
-      letter 'a'
+      letter 'a',
+      space
     ]
 
 testMultipleSpaces :: Assertion
-testMultipleSpaces = do
+testMultipleSpaces =
   assertSuccessLexEqual
     "aa     aa"
     [ letter 'a',
       letter 'a',
       space,
       letter 'a',
-      letter 'a'
+      letter 'a',
+      space
     ]
 
 testComment :: Assertion
-testComment = do
+testComment =
   assertSuccessLexEqual
     "aa%c1c1c1\nbb"
     [ letter 'a',
       letter 'a',
       letter 'b',
-      letter 'b'
+      letter 'b',
+      space
     ]
 
 testSpacesLineBegin :: Assertion
-testSpacesLineBegin = do
+testSpacesLineBegin =
   assertSuccessLexEqual
     "   aa"
     [ letter 'a',
-      letter 'a'
+      letter 'a',
+      space
     ]
 
 testNewLineSkippingBlanks :: Assertion
-testNewLineSkippingBlanks = do
+testNewLineSkippingBlanks =
   assertSuccessLexEqual
     "a  \na"
     [ letter 'a',
       space,
-      letter 'a'
+      letter 'a',
+      space
     ]
 
-testControlSequenceTests :: TestTree
-testControlSequenceTests =
+testControlSequences :: TestTree
+testControlSequences =
   testGroup
     "Control word"
     [ testCase "Alone" $
@@ -157,7 +171,8 @@ testControlSequenceTests =
         assertSuccessLexEqual
           "\\abab1"
           [ ControlSequenceLexToken (ControlSequence "abab"),
-            CharCatLexToken (LexCharCat (Chr_ '1') Other)
+            CharCatLexToken (LexCharCat (Chr_ '1') Other),
+            space
           ],
       testCase "Control word with following space" $
         assertSuccessLexEqual
@@ -173,7 +188,8 @@ testControlSequenceTests =
         assertSuccessLexEqual
           "\\a1"
           [ ControlSequenceLexToken (ControlSequence "a"),
-            CharCatLexToken (LexCharCat (Chr_ '1') Other)
+            CharCatLexToken (LexCharCat (Chr_ '1') Other),
+            space
           ],
       testCase "Control letter-character with following space" $
         assertSuccessLexEqual
@@ -183,13 +199,15 @@ testControlSequenceTests =
       testCase "Control other-character alone" $
         assertSuccessLexEqual
           "\\1"
-          [ ControlSequenceLexToken (ControlSequence "1")
+          [ ControlSequenceLexToken (ControlSequence "1"),
+            space
           ],
       testCase "Control other-character with following digit" $
         assertSuccessLexEqual
           "\\11"
           [ ControlSequenceLexToken (ControlSequence "1"),
-            CharCatLexToken (LexCharCat (Chr_ '1') Other)
+            CharCatLexToken (LexCharCat (Chr_ '1') Other),
+            space
           ],
       testCase "Control other-character with following space" $
         assertSuccessLexEqual
@@ -197,5 +215,4 @@ testControlSequenceTests =
           [ ControlSequenceLexToken (ControlSequence "1"),
             space
           ]
-          -- testCase "Terminal escape character" $ assertFailedLex "\\"
     ]

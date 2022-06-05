@@ -10,6 +10,7 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Hex.Common.HexState.Interface.Register as HSt.Register
 
 data AssignPrefixTok
   = LongTok
@@ -30,11 +31,6 @@ data ExpandDefFlag
 data StandardOutputSource
   = StdOut
   | StdErr
-  deriving stock (Show, Eq, Generic)
-
-data BoxFetchMode
-  = Pop
-  | Lookup
   deriving stock (Show, Eq, Generic)
 
 data PresetGlueType
@@ -68,7 +64,7 @@ data ModedCommandPrimitiveToken
   | PresetGlueTok PresetGlueType -- \{v,h}{fil,fill,filneg,ss}
   | AlignedMaterialTok -- \halign, \valign
   | ShiftedBoxTok Q.Direction -- \moveleft, \moveright, \raise, \lower
-  | UnwrappedFetchedBoxTok BoxFetchMode -- \un{v,h}{box,copy}
+  | UnwrappedFetchedBoxTok HSt.Register.BoxFetchMode -- \un{v,h}{box,copy}
   | RuleTok -- \hrule, \vrule
   deriving stock (Show, Eq, Generic)
 
@@ -140,9 +136,9 @@ data RemovableItem
   | GlueItem -- \unskip
   deriving stock (Show, Eq, Generic)
 
-data ExplicitBox
-  = ExplicitHBox -- \hbox
-  | ExplicitVBox VBoxAlignType
+data ExplicitBoxType
+  = ExplicitHBoxType -- \hbox
+  | ExplicitVBoxType VBoxAlignType
   deriving stock (Show, Eq, Generic)
 
 data VBoxAlignType
@@ -241,10 +237,10 @@ data PrimitiveToken
   -- Internal glues.
   | LastGlueTok -- \lastskip
   -- Specifying boxes.
-  | FetchedBoxTok BoxFetchMode -- \box, \copy
+  | FetchedBoxTok HSt.Register.BoxFetchMode -- \box, \copy
   | LastBoxTok -- \lastbox
   | SplitVBoxTok -- \vsplit
-  | ExplicitBoxTok ExplicitBox
+  | ExplicitBoxTok ExplicitBoxType
   | -- > Setting the contents of a box register.
     SetBoxRegisterTok -- \setbox
     -- > Reading contents into control sequences (not sure what this is about).

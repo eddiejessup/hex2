@@ -12,6 +12,7 @@ import Hex.Common.HexState.Interface.Register qualified as Reg
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -24,7 +25,11 @@ class Monad m => MonadHexState m where
 
   getRegisterValue :: Reg.QuantRegisterLocation q -> m (Var.QuantVariableTarget q)
 
-  setRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> m ()
+  setQuantRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> m ()
+
+  fetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> m (Maybe (Box.Box Box.BaseBoxContents))
+
+  setBoxRegisterValue :: Reg.RegisterLocation -> Maybe (Box.Box Box.BaseBoxContents) -> HSt.Grouped.ScopeFlag -> m ()
 
   getSpecialIntParameter :: Param.SpecialIntParameter -> m Q.HexInt
 
@@ -68,7 +73,9 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   getParameterValue x = lift $ getParameterValue x
   setParameterValue x y z = lift $ setParameterValue x y z
   getRegisterValue x = lift $ getRegisterValue x
-  setRegisterValue x y z = lift $ setRegisterValue x y z
+  setQuantRegisterValue x y z = lift $ setQuantRegisterValue x y z
+  fetchBoxRegisterValue x y = lift $ fetchBoxRegisterValue x y
+  setBoxRegisterValue x y z = lift $ setBoxRegisterValue x y z
   getSpecialIntParameter x = lift $ getSpecialIntParameter x
   getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
   setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
@@ -126,7 +133,7 @@ modifyRegisterValue ::
   m ()
 modifyRegisterValue loc f scopeFlag = do
   currentVal <- getRegisterValue loc
-  setRegisterValue loc (f currentVal) scopeFlag
+  setQuantRegisterValue loc (f currentVal) scopeFlag
 
 advanceParameterValue ::
   forall q m.

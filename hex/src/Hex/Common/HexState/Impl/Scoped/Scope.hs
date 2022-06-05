@@ -13,12 +13,15 @@ import Hex.Common.HexState.Interface.Resolve (SymbolMap)
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
 import Hexlude
 
 type CharCodeMap v = Map Code.CharCode v
 
-type family RegisterMap (q :: Q.QuantityType) where
-  RegisterMap q = Map RegisterLocation (QuantVariableTarget q)
+type RegisterMap v = Map RegisterLocation v
+
+type family QuantRegisterMap (q :: Q.QuantityType) where
+  QuantRegisterMap q = RegisterMap (QuantVariableTarget q)
 
 data Scope = Scope
   { -- Fonts.
@@ -38,14 +41,14 @@ data Scope = Scope
     lengthParameters :: Map Param.LengthParameter Q.Length,
     glueParameters :: Map Param.GlueParameter Q.Glue,
     mathGlueParameters :: Map Param.MathGlueParameter Q.MathGlue,
-    --   tokenListParameters :: Map TokenListParameter BalancedText
+    -- tokenListParameters :: Map TokenListParameter BalancedText
     -- Registers.
-    intRegister :: RegisterMap 'Q.IntQuantity,
-    lengthRegister :: RegisterMap 'Q.LengthQuantity,
-    glueRegister :: RegisterMap 'Q.GlueQuantity,
-    mathGlueRegister :: RegisterMap 'Q.MathGlueQuantity
-    --   tokenListRegister :: RegisterMap BalancedText,
-    --   boxRegister :: RegisterMap (B.Box B.BoxContents),
+    intRegister :: QuantRegisterMap 'Q.IntQuantity,
+    lengthRegister :: QuantRegisterMap 'Q.LengthQuantity,
+    glueRegister :: QuantRegisterMap 'Q.GlueQuantity,
+    mathGlueRegister :: QuantRegisterMap 'Q.MathGlueQuantity,
+    -- tokenListRegister :: RegisterMap BalancedText,
+    boxRegister :: RegisterMap (Box.Box Box.BaseBoxContents)
   }
   deriving stock (Show, Generic)
 
@@ -72,9 +75,9 @@ newGlobalScope =
       intRegister = mempty,
       lengthRegister = mempty,
       glueRegister = mempty,
-      mathGlueRegister = mempty
+      mathGlueRegister = mempty,
       -- , tokenListRegister = mempty
-      -- , boxRegister = mempty
+      boxRegister = mempty
     }
 
 newLocalScope :: Scope
@@ -97,9 +100,9 @@ newLocalScope =
       intRegister = mempty,
       lengthRegister = mempty,
       glueRegister = mempty,
-      mathGlueRegister = mempty
+      mathGlueRegister = mempty,
       -- , tokenListRegister = mempty
-      -- , boxRegister = mempty
+      boxRegister = mempty
     }
 
 fmtScope :: Fmt Scope
@@ -121,6 +124,7 @@ fmtScope =
     <> (fmtMapWithHeading "Length registers" (.lengthRegister) fmtRegisterLocation Q.fmtLengthWithUnit)
     <> (fmtMapWithHeading "Glue registers" (.glueRegister) fmtRegisterLocation Q.fmtGlue)
     <> (fmtMapWithHeading "Math-glue registers" (.mathGlueRegister) fmtRegisterLocation Q.fmtMathGlue)
+    <> (fmtMapWithHeading "Box registers" (.boxRegister) fmtRegisterLocation Box.fmtBaseBox)
 
 -- If we have two scopes, one nested inside another, we want to consider the
 -- effective scope seen in the inner scope.
@@ -146,7 +150,8 @@ instance Semigroup Scope where
         intRegister = innerScope.intRegister `Map.union` outerScope.intRegister,
         lengthRegister = innerScope.lengthRegister `Map.union` outerScope.lengthRegister,
         glueRegister = innerScope.glueRegister `Map.union` outerScope.glueRegister,
-        mathGlueRegister = innerScope.mathGlueRegister `Map.union` outerScope.mathGlueRegister
+        mathGlueRegister = innerScope.mathGlueRegister `Map.union` outerScope.mathGlueRegister,
+        boxRegister = innerScope.boxRegister `Map.union` outerScope.boxRegister
       }
 
 -- If we introduce a new local scope, our effective seen-scope should be

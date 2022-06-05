@@ -67,7 +67,7 @@ evalAssignmentBody = \case
   P.SelectFont _fontNumber -> pure $ E.SelectFont $ _fontNumber
   P.SetFamilyMember familyMember fontRef -> E.SetFamilyMember <$> Eval.evalFamilyMember familyMember <*> Eval.evalFontRef fontRef
   P.SetParShape hexInt lengths -> pure $ E.SetParShape hexInt lengths
-  P.SetBoxRegister hexInt box -> pure $ E.SetBoxRegister hexInt box
+  P.SetBoxRegister loc box -> E.SetBoxRegister <$> (Eval.evalExplicitRegisterLocation loc) <*> evalBox box
   P.SetFontDimension fontDimensionRef length -> pure $ E.SetFontDimension fontDimensionRef length
   P.SetFontSpecialChar fontSpecialCharRef fontSpecialCharTgt -> E.SetFontSpecialChar <$> (evalFontSpecialCharRef fontSpecialCharRef) <*> Eval.evalInt fontSpecialCharTgt
   P.SetHyphenation inhibitedBalancedText -> pure $ E.SetHyphenation inhibitedBalancedText
@@ -77,6 +77,19 @@ evalAssignmentBody = \case
 
 evalFontSpecialCharRef :: HSt.MonadHexState m => P.FontSpecialCharRef -> m E.FontSpecialCharRef
 evalFontSpecialCharRef (P.FontSpecialCharRef fontSpecialChar fontNr) = E.FontSpecialCharRef fontSpecialChar <$> Eval.evalFontRef fontNr
+
+evalBox :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Box -> m E.Box
+evalBox = \case
+  P.FetchedRegisterBox boxFetchMode loc -> E.FetchedRegisterBox boxFetchMode <$> Eval.evalExplicitRegisterLocation loc
+  P.LastBox -> pure E.LastBox
+  P.VSplitBox n length -> E.VSplitBox <$> Eval.evalInt n <*> Eval.evalLength length
+  P.ExplicitBox boxSpecification explicitBoxType -> E.ExplicitBox <$> evalBoxSpecification boxSpecification <*> pure explicitBoxType
+
+evalBoxSpecification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.BoxSpecification -> m E.BoxSpecification
+evalBoxSpecification = \case
+  P.Natural -> pure E.Natural
+  P.To length -> E.To <$> Eval.evalLength length
+  P.Spread length -> E.Spread <$> Eval.evalLength length
 
 evalVariableAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableAssignment -> m E.VariableAssignment
 evalVariableAssignment = \case

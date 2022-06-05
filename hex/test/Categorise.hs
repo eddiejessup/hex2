@@ -5,16 +5,21 @@ module Categorise where
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes
 import Hex.Common.HexState.Interface
+import Hex.Common.HexState.Interface.Parameter qualified as Param
+import Hex.Common.HexState.Interface.Variable qualified as Var
+import Hex.Common.Quantity qualified as Q
+import Hex.Run.App qualified as App
 import Hex.Run.Categorise
 import Hex.Stage.Categorise.Impl
 import Hex.Stage.Categorise.Interface
+import Hex.Stage.Categorise.Interface.CharSource
 import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
 
-newtype TestApp a = TestApp {unTestApp :: State ByteString a}
+newtype TestApp a = TestApp {unTestApp :: State LoadedCharSource a}
   deriving stock (Generic)
-  deriving newtype (Functor, Applicative, Monad, MonadState ByteString)
+  deriving newtype (Functor, Applicative, Monad, MonadState LoadedCharSource)
   deriving (MonadCharCatSource) via (MonadCharCatSourceT TestApp)
 
 codeToCat :: CharCode -> CatCode
@@ -22,7 +27,7 @@ codeToCat = \case
   Chr_ '\\' -> Escape
   Chr_ ' ' -> CoreCatCode Space
   Chr_ '%' -> Comment
-  Chr_ '\n' -> EndOfLine
+  Chr_ '\r' -> EndOfLine
   Chr_ '^' -> CoreCatCode Superscript
   Chr_ 'a' -> CoreCatCode Letter
   Chr_ 'b' -> CoreCatCode Letter
@@ -36,6 +41,10 @@ instance MonadHexState TestApp where
   getHexCode CCatCodeType code = pure $ codeToCat code
   getHexCode _ _ = notImplemented "getHexCode"
 
+  getParameterValue :: Param.QuantParam q -> TestApp (Var.QuantVariableTarget q)
+  getParameterValue (Param.IntQuantParam Param.EndLineChar) = pure Q.zeroInt
+  getParameterValue _ = notImplemented "getParameterValue"
+
 tests :: TestTree
 tests =
   testGroup
@@ -48,7 +57,13 @@ tests =
     ]
 
 runTestApp :: ByteString -> TestApp a -> a
-runTestApp bs app = evalState (unTestApp app) bs
+runTestApp bs app =
+  let bLines = case App.toInputLines bs of
+        Nothing -> panic "bad input"
+        Just a -> a
+
+      charSource = newCharSource Nothing bLines
+   in evalState (unTestApp app) charSource
 
 testCategoriseAll :: ByteString -> [RawCharCat]
 testCategoriseAll bs = runTestApp bs categoriseAll

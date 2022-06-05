@@ -32,6 +32,8 @@ import Hex.Stage.Resolve.Interface (MonadResolve)
 import Hex.Stage.Resolve.Interface qualified as Resolve
 import Hexlude
 import System.IO (hFlush)
+import qualified Data.List.NonEmpty as L.NE
+import qualified Data.ByteString as BS
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
@@ -142,3 +144,18 @@ unsafeEvalApp chrs app = do
   evalApp chrs app >>= \case
     Left e -> panic $ sformat ("got error: " |%| fmtAppError) e
     Right v -> pure v
+
+newlineWord :: Word8
+newlineWord = 10
+
+carriageReturnWord :: Word8
+carriageReturnWord = 13
+
+carriageReturnCharCode :: Code.CharCode
+carriageReturnCharCode = Code.CharCode carriageReturnWord
+
+-- Split the input into lines, assuming '\n' line-termination characters.
+-- We will append the \endlinechar to each input line as we traverse the lines.
+-- We need at least one input line, to be the 'current line'.
+toInputLines :: ByteString -> Maybe (NonEmpty ByteString)
+toInputLines inputBytes = L.NE.nonEmpty (BS.split newlineWord inputBytes)

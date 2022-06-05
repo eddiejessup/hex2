@@ -178,8 +178,11 @@ deriving stock instance Show (HSt.Param.QuantParam q) => Show (QuantVariableAST 
 deriving stock instance Eq (HSt.Param.QuantParam q) => Eq (QuantVariableAST q)
 
 data QuantRegisterLocation (q :: Q.QuantityType)
-  = ExplicitRegisterLocation (HSt.Reg.QuantRegisterType q) HexInt
-  | InternalRegisterLocation (HSt.Reg.QuantRegisterLocation q)
+  = ExplicitQuantRegisterLocation (HSt.Reg.QuantRegisterType q) ExplicitRegisterLocation
+  | InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation q)
+  deriving stock (Show, Eq, Generic)
+
+newtype ExplicitRegisterLocation = ExplicitRegisterLocation {unExplicitRegisterLocation :: HexInt}
   deriving stock (Show, Eq, Generic)
 
 data InternalInt

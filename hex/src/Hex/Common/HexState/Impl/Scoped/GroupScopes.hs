@@ -109,3 +109,17 @@ setScopedProperty scopeValueLens newValue scopeFlag groupScopes =
     -- set the localmost scope's value to the new value.
     HSt.Grouped.Local ->
       groupScopes & localMostScopeLens % scopeValueLens ?!~ newValue
+
+-- | Unset a scoped property which is contained in a map, indexed by some key.
+unsetScopedMapValue :: Ord k => (Lens' Scope (Map k v)) -> k -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
+unsetScopedMapValue mapLens c = unsetScopedProperty (mapLens % O.at' c)
+
+-- | From a lens from a scope to a property, which might be empty, unset that
+-- value.
+unsetScopedProperty :: (Lens' Scope (Maybe a)) -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
+unsetScopedProperty scopeValueLens scopeFlag groupScopes =
+  -- If 'global', unset all scopes. If 'local', just unset the localmost scope.
+  let scopesToUnsetTraversal = case scopeFlag of
+        HSt.Grouped.Global -> scopesTraversal
+        HSt.Grouped.Local -> castOptic localMostScopeLens
+   in groupScopes & scopesToUnsetTraversal % scopeValueLens .~ Nothing

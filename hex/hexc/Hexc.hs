@@ -1,7 +1,6 @@
 module Main where
 
 import Data.ByteString qualified as BS
-import Data.List.NonEmpty qualified as L.NE
 import Hex.Run.App qualified as Run
 import Hex.Run.Categorise qualified as Run.Cat
 import Hex.Run.Evaluate qualified as Run.Evaluate
@@ -12,10 +11,9 @@ import Hex.Run.Parse qualified as Run.Parse
 import Hex.Run.Resolve qualified as Run.Resolve
 import Hex.Stage.Interpret.Build.List.Elem (fmtHListMultiLine, fmtVList)
 import Hexlude
-import Hexlude qualified as Tx
 import Options.Applicative
 
-data Input = FileInput FilePath | StdInput | ExpressionInput Text
+data Input = FileInput FilePath | StdInput | ExpressionInput ByteString
 
 inputParser :: Parser Input
 inputParser = fileInputParser <|> stdInputParser <|> expressionParser
@@ -111,9 +109,6 @@ appOptionsParserInfo =
         <> header "Hex"
     )
 
-newlineWord :: Word8
-newlineWord = 10
-
 main :: IO ()
 main = do
   opts <- execParser appOptionsParserInfo
@@ -122,17 +117,12 @@ main = do
       StdInput -> do
         cs <- liftIO BS.getContents
         pure (cs, Nothing)
-      ExpressionInput csText -> do
-        let cs = Tx.encodeUtf8 csText
+      ExpressionInput cs -> do
         pure (cs, Nothing)
       FileInput inPathStr -> do
         cs <- BS.readFile inPathStr
         pure (cs, Just inPathStr)
-  -- Split the input into lines, assuming '\n' line-termination characters.
-  -- We will append the \endlinechar to each input line as we traverse the lines.
-  -- We need at least one input line, to be the 'current line'.
-  inputLines <- note (panic "No lines of input")
-    (L.NE.nonEmpty (BS.split newlineWord inputBytes))
+  inputLines <- note (panic "No lines of input") (Run.toInputLines inputBytes)
   case opts.mode of
     CatMode -> do
       ccs <- Run.unsafeEvalApp inputLines Run.Cat.categoriseAll

@@ -219,14 +219,17 @@ headToParseInternalGlue =
 -- (Also, 'special' quantities are kept here too, because they are similar to
 -- variables.)
 
+parseExplicitRegisterLocation :: MonadPrimTokenParse m => m (AST.ExplicitRegisterLocation)
+parseExplicitRegisterLocation = AST.ExplicitRegisterLocation <$> parseInt
+
 headToParseIntVariable :: MonadPrimTokenParse m => PT.PrimitiveToken -> m (AST.QuantVariableAST 'Q.IntQuantity)
 headToParseIntVariable = \case
   PT.IntParamVarTok p ->
     pure (AST.ParamVar (HSt.Param.IntQuantParam p))
   PT.IntRefTok (PT.QuantityType Q.IntQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.IntQuantRegisterType (HSt.Reg.RegisterLocation n))
+    pure $ AST.RegisterVar $ AST.InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.IntQuantRegisterType (HSt.Reg.RegisterLocation n))
   PT.RegisterVariableTok Q.IntQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation HSt.Reg.IntQuantRegisterType <$> parseInt
+    AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.IntQuantRegisterType <$> parseExplicitRegisterLocation
   _ ->
     parseFailure "headToParseIntVariable"
 
@@ -235,9 +238,9 @@ headToParseLengthVariable = \case
   PT.LengthParamVarTok p ->
     pure (AST.ParamVar (HSt.Param.LengthQuantParam p))
   PT.IntRefTok (PT.QuantityType Q.LengthQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.LengthQuantRegisterType (HSt.Reg.RegisterLocation n))
+    pure $ AST.RegisterVar $ AST.InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.LengthQuantRegisterType (HSt.Reg.RegisterLocation n))
   PT.RegisterVariableTok Q.LengthQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation HSt.Reg.LengthQuantRegisterType <$> parseInt
+    AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.LengthQuantRegisterType <$> parseExplicitRegisterLocation
   _ ->
     parseFailure "headToParseLengthVariable"
 
@@ -246,9 +249,9 @@ headToParseGlueVariable = \case
   PT.GlueParamVarTok p ->
     pure (AST.ParamVar (HSt.Param.GlueQuantParam p))
   PT.IntRefTok (PT.QuantityType Q.GlueQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.GlueQuantRegisterType (HSt.Reg.RegisterLocation n))
+    pure $ AST.RegisterVar $ AST.InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.GlueQuantRegisterType (HSt.Reg.RegisterLocation n))
   PT.RegisterVariableTok Q.GlueQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation HSt.Reg.GlueQuantRegisterType <$> parseInt
+    AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.GlueQuantRegisterType <$> parseExplicitRegisterLocation
   _ ->
     parseFailure "headToParseGlueVariable"
 
@@ -259,13 +262,13 @@ headToParseMathGlueVariable = \case
   PT.IntRefTok (PT.QuantityType Q.MathGlueQuantity) n ->
     pure $
       AST.RegisterVar $
-        AST.InternalRegisterLocation $
+        AST.InternalQuantRegisterLocation $
           HSt.Reg.QuantRegisterLocation
             HSt.Reg.MathGlueQuantRegisterType
             (HSt.Reg.RegisterLocation n)
   PT.RegisterVariableTok Q.MathGlueQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation HSt.Reg.MathGlueQuantRegisterType
-      <$> parseInt
+    AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.MathGlueQuantRegisterType
+      <$> parseExplicitRegisterLocation
   _ ->
     parseFailure "headToParseMathGlueVariable"
 
@@ -274,9 +277,9 @@ headToParseTokenListVariable = \case
   PT.TokenListParamVarTok p ->
     pure (AST.ParamVar (HSt.Param.TokenListQuantParam p))
   PT.IntRefTok (PT.QuantityType Q.TokenListQuantity) n ->
-    pure $ AST.RegisterVar $ AST.InternalRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.TokenListQuantRegisterType (HSt.Reg.RegisterLocation n))
+    pure $ AST.RegisterVar $ AST.InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.TokenListQuantRegisterType (HSt.Reg.RegisterLocation n))
   PT.RegisterVariableTok Q.TokenListQuantity ->
-    AST.RegisterVar . AST.ExplicitRegisterLocation HSt.Reg.TokenListQuantRegisterType <$> parseInt
+    AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.TokenListQuantRegisterType <$> parseExplicitRegisterLocation
   _ ->
     parseFailure "headToParseTokenListVariable"
 

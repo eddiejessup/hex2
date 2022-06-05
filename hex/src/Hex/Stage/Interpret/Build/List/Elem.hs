@@ -67,13 +67,3 @@ fmtVListElem = F.later $ \case
     bformat Q.fmtGlue g
   ListPenalty _ ->
     "penalty"
-
--- Element constituents.
-
-data VBoxAlignType
-  = DefaultAlign -- \vbox
-  | TopAlign -- \vtop
-  deriving stock (Show, Eq, Generic)
-
-data DesiredLength = Natural | Spread Q.Length | To Q.Length
-  deriving stock (Show)

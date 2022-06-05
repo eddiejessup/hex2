@@ -25,7 +25,7 @@ headToParseLeadersSpec axis = \case
 headToParseBox :: MonadPrimTokenParse m => PrimitiveToken -> m AST.Box
 headToParseBox = \case
   PT.FetchedBoxTok fetchMode ->
-    AST.FetchedRegisterBox fetchMode <$> Par.parseInt
+    AST.FetchedRegisterBox fetchMode <$> Par.parseExplicitRegisterLocation
   PT.LastBoxTok ->
     pure AST.LastBox
   PT.SplitVBoxTok -> do

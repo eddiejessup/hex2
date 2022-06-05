@@ -60,7 +60,7 @@ headToParseNonMacroAssignmentBody = \case
     cs <- parseCSName
     pure $ AST.DefineControlSequence cs (AST.ReadTarget nr)
   T.SetBoxRegisterTok -> do
-    (var, box) <- parseXEqualsY Expanding Par.parseInt (skipFillerExpanding >> (Par.getExpandedPrimitiveToken >>= Par.headToParseBox))
+    (var, box) <- parseXEqualsY Expanding Par.parseExplicitRegisterLocation (skipFillerExpanding >> (Par.getExpandedPrimitiveToken >>= Par.headToParseBox))
     pure $ AST.SetBoxRegister var box
   -- \font <control-sequence> <equals> <file-name> <at-clause>
   T.FontTok -> do

@@ -14,6 +14,7 @@ import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
+import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface qualified as Lex
@@ -176,25 +177,25 @@ handleModeIndependentCommand addVElem = \case
               HSt.Var.ParamVar intParam ->
                 HSt.setParameterValue intParam tgt scope
               HSt.Var.RegisterVar registerLoc ->
-                HSt.setRegisterValue registerLoc tgt scope
+                HSt.setQuantRegisterValue registerLoc tgt scope
           Eval.LengthVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
             case var of
               HSt.Var.ParamVar lengthParam ->
                 HSt.setParameterValue lengthParam tgt scope
               HSt.Var.RegisterVar registerLoc ->
-                HSt.setRegisterValue registerLoc tgt scope
+                HSt.setQuantRegisterValue registerLoc tgt scope
           Eval.GlueVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
             case var of
               HSt.Var.ParamVar glueParam ->
                 HSt.setParameterValue glueParam tgt scope
               HSt.Var.RegisterVar registerLoc ->
-                HSt.setRegisterValue registerLoc tgt scope
+                HSt.setQuantRegisterValue registerLoc tgt scope
           Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
             case var of
               HSt.Var.ParamVar mathGlueParam ->
                 HSt.setParameterValue mathGlueParam tgt scope
               HSt.Var.RegisterVar registerLoc ->
-                HSt.setRegisterValue registerLoc tgt scope
+                HSt.setQuantRegisterValue registerLoc tgt scope
           Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment var _tgt) ->
             case var of
               HSt.Var.ParamVar _tokenListParam ->
@@ -263,24 +264,20 @@ handleModeIndependentCommand addVElem = \case
       --       addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
       Eval.SetFamilyMember familyMember fontNumber ->
         HSt.setFamilyMemberFont familyMember fontNumber scope
-      --   -- Start a new level of grouping. Enter inner mode.
-      --   Eval.SetBoxRegister lhsIdx box ->
-      --     do
-      --       eLhsIdx <- texEvaluate lhsIdx
-      --       case box of
-      --         Eval.FetchedRegisterBox fetchMode rhsIdx ->
-      --           do
-      --             fetchedMaybeBox <- fetchBox fetchMode rhsIdx
-      --             modifying' (typed @Config) $ setBoxRegisterNullable eLhsIdx scope fetchedMaybeBox
-      --         Eval.LastBox ->
-      --           notImplemented "SetBoxRegister to LastBox"
-      --         Eval.VSplitBox _ _ ->
-      --           notImplemented "SetBoxRegister to VSplitBox"
-      --         Eval.ExplicitBox spec boxType -> do
-      --           eSpec <- texEvaluate spec
-      --           modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
-      --           extractedBox <- extractExplicitBox eSpec boxType
-      --           modifying' (typed @Config) $ setBoxRegister eLhsIdx extractedBox scope
+      -- Start a new level of grouping. Enter inner mode.
+      Eval.SetBoxRegister lhsIdx box -> do
+        case box of
+          Eval.FetchedRegisterBox fetchMode rhsIdx -> do
+            fetchedMaybeBox <- HSt.fetchBoxRegisterValue fetchMode rhsIdx
+            HSt.setBoxRegisterValue lhsIdx fetchedMaybeBox scope
+          Eval.LastBox ->
+            notImplemented "SetBoxRegister to LastBox"
+          Eval.VSplitBox _ _ ->
+            notImplemented "SetBoxRegister to VSplitBox"
+          Eval.ExplicitBox spec boxType -> do
+            HSt.pushGroup (Just HSt.Group.ExplicitBoxScopeGroup)
+            extractedBox <- extractExplicitBox spec boxType
+            HSt.setBoxRegisterValue lhsIdx (Just extractedBox) scope
       Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
         HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef
       assignment ->
@@ -344,3 +341,6 @@ handleModeIndependentCommand addVElem = \case
   --   pure DidNotSeeEndBox
   oth ->
     notImplemented $ "command " <> show oth
+
+extractExplicitBox :: Eval.BoxSpecification -> PT.ExplicitBoxType -> m (Box.Box Box.BaseBoxContents)
+extractExplicitBox _spec _boxType = notImplemented "extractExplicitBox"

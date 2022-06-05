@@ -29,6 +29,7 @@ import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Common.TFM.Types qualified as TFM
+import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
 import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
@@ -72,19 +73,25 @@ instance
   ) =>
   MonadHexState (MonadHexStateImplT m)
   where
-  getParameterValue :: (HSt.Param.QuantParam q) -> (MonadHexStateImplT m) (HSt.Var.QuantVariableTarget q)
+  getParameterValue :: HSt.Param.QuantParam q -> MonadHexStateImplT m (HSt.Var.QuantVariableTarget q)
   getParameterValue p = getGroupScopesProperty (Sc.P.localParameterValue p)
 
-  setParameterValue :: (HSt.Param.QuantParam q) -> HSt.Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setParameterValue :: HSt.Param.QuantParam q -> HSt.Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
   setParameterValue param value scopeFlag =
     modifyGroupScopes $ Sc.P.setParameterValue param value scopeFlag
 
   getRegisterValue :: HSt.Reg.QuantRegisterLocation q -> MonadHexStateImplT m (HSt.Var.QuantVariableTarget q)
-  getRegisterValue r = getGroupScopesProperty (Sc.R.localRegisterValue r)
+  getRegisterValue r = getGroupScopesProperty (Sc.R.localQuantRegisterValue r)
 
-  setRegisterValue :: HSt.Reg.QuantRegisterLocation q -> (HSt.Var.QuantVariableTarget q) -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
-  setRegisterValue param value scopeFlag = do
-    modifyGroupScopes $ Sc.R.setRegisterValue param value scopeFlag
+  setQuantRegisterValue :: HSt.Reg.QuantRegisterLocation q -> (HSt.Var.QuantVariableTarget q) -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setQuantRegisterValue param value scopeFlag =
+    modifyGroupScopes $ Sc.R.setQuantRegisterValue param value scopeFlag
+
+  fetchBoxRegisterValue :: HSt.Reg.BoxFetchMode -> HSt.Reg.RegisterLocation -> MonadHexStateImplT m (Maybe (Box.Box Box.BaseBoxContents))
+  fetchBoxRegisterValue = fetchBoxRegisterValueImpl
+
+  setBoxRegisterValue :: HSt.Reg.RegisterLocation -> Maybe (Box.Box Box.BaseBoxContents) -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setBoxRegisterValue = setBoxRegisterValueImpl
 
   getSpecialIntParameter :: HSt.Param.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
   getSpecialIntParameter p = use $ typed @HexState % stateSpecialIntParamLens p
@@ -243,3 +250,30 @@ readFontInfo fontPath = do
   hyphenChar <- getParameterValue (HSt.Param.IntQuantParam HSt.Param.DefaultHyphenChar)
   skewChar <- getParameterValue (HSt.Param.IntQuantParam HSt.Param.DefaultSkewChar)
   pure Sc.Font.FontInfo {fontMetrics, hyphenChar, skewChar}
+
+fetchBoxRegisterValueImpl ::
+  ( MonadState st m,
+    HasType HexState st
+  ) =>
+  HSt.Reg.BoxFetchMode ->
+  HSt.Reg.RegisterLocation ->
+  m (Maybe (Box.Box Box.BaseBoxContents))
+fetchBoxRegisterValueImpl fetchMode loc = do
+  mayV <- getGroupScopesProperty (Sc.R.localBoxRegisterValue loc)
+  case fetchMode of
+    HSt.Reg.Pop -> modifyGroupScopes $ Sc.R.unsetBoxRegisterValue loc HSt.Grouped.Local
+    HSt.Reg.Lookup -> pure ()
+  pure mayV
+
+setBoxRegisterValueImpl ::
+  ( MonadState st m,
+    HasType HexState st
+  ) =>
+  HSt.Reg.RegisterLocation ->
+  Maybe (Box.Box Box.BaseBoxContents) ->
+  HSt.Grouped.ScopeFlag ->
+  m ()
+setBoxRegisterValueImpl loc mayV scope =
+  case mayV of
+    Nothing -> modifyGroupScopes $ Sc.R.unsetBoxRegisterValue loc scope
+    Just v -> modifyGroupScopes $ Sc.R.setBoxRegisterValue loc v scope

@@ -4,7 +4,9 @@ import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font
+import Hex.Common.HexState.Interface.Grouped
 import Hex.Common.HexState.Interface.Parameter
+import Hex.Common.HexState.Interface.Register
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
@@ -12,7 +14,6 @@ import Hex.Common.HexState.Interface.Resolve.SyntaxToken
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import Hex.Common.HexState.Interface.Grouped
 
 _cs :: [Char] -> H.Res.ControlSymbol
 _cs =
@@ -331,9 +332,9 @@ initialSymbolMap =
       (_cs "copy", primTok $ FetchedBoxTok Lookup),
       (_cs "lastbox", primTok LastBoxTok),
       (_cs "vsplit", primTok SplitVBoxTok),
-      (_cs "hbox", primTok $ ExplicitBoxTok ExplicitHBox),
-      (_cs "vbox", primTok $ ExplicitBoxTok $ ExplicitVBox DefaultAlign),
-      (_cs "vtop", primTok $ ExplicitBoxTok $ ExplicitVBox TopAlign),
+      (_cs "hbox", primTok $ ExplicitBoxTok ExplicitHBoxType),
+      (_cs "vbox", primTok $ ExplicitBoxTok $ ExplicitVBoxType DefaultAlign),
+      (_cs "vtop", primTok $ ExplicitBoxTok $ ExplicitVBoxType TopAlign),
       (_cs "setbox", primTok SetBoxRegisterTok),
       -- Stream.
       (_cs "read", primTok ReadTok),

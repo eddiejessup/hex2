@@ -5,7 +5,9 @@ module Hex.Stage.Evaluate.Interface.AST.Command where
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
@@ -18,7 +20,6 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Grouped as HSt.Grouped
 
 -- What's the plan here?
 -- I want to do as much evaluation as possible in this stage, but I'm not sure
@@ -125,7 +126,7 @@ data AssignmentBody
   | SelectFont HSt.Font.FontNumber
   | SetFamilyMember HSt.Font.FamilyMember HSt.Font.FontNumber
   | SetParShape Uneval.HexInt [Uneval.Length]
-  | SetBoxRegister Uneval.HexInt Uneval.Box
+  | SetBoxRegister HSt.Register.RegisterLocation Box
   | -- Global assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
   | SetFontSpecialChar E.FontSpecialCharRef Q.HexInt
@@ -157,6 +158,16 @@ data ControlSequenceTarget
   deriving stock (Show, Eq, Generic)
 
 data FontFileSpec = FontFileSpec FontSpecification Q.HexFilePath
+  deriving stock (Show, Eq, Generic)
+
+data Box
+  = FetchedRegisterBox HSt.Register.BoxFetchMode HSt.Register.RegisterLocation
+  | LastBox
+  | VSplitBox Q.HexInt Q.Length
+  | ExplicitBox BoxSpecification PT.ExplicitBoxType
+  deriving stock (Show, Eq, Generic)
+
+data BoxSpecification = Natural | To Q.Length | Spread Q.Length
   deriving stock (Show, Eq, Generic)
 
 data VariableAssignment

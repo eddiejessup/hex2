@@ -28,3 +28,8 @@ deriving stock instance Eq (QuantRegisterLocation q)
 
 fmtRegisterLocation :: Fmt RegisterLocation
 fmtRegisterLocation = F.squared (F.accessed (.unRegisterLocation) Q.fmtHexInt)
+
+data BoxFetchMode
+  = Pop
+  | Lookup
+  deriving stock (Show, Eq, Generic)
