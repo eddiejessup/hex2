@@ -11,6 +11,7 @@ import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Quantity
 import Hexlude
@@ -27,7 +28,7 @@ data Command
     -- \| AddInsertion HexInt VModeMaterial
     -- \| AddAdjustment VModeMaterial
     AddSpace
-  | StartParagraph PT.IndentFlag
+  | StartParagraph ListExtractor.IndentFlag
   | EndParagraph
   | -- \| AddAlignedMaterial DesiredLength AlignmentMaterial
     HModeCommand HModeCommand

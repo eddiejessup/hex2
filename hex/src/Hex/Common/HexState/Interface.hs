@@ -12,9 +12,9 @@ import Hex.Common.HexState.Interface.Register qualified as Reg
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
 import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
-import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
+import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
+import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 

@@ -43,3 +43,6 @@ data QuantityType
   | MathGlueQuantity -- \muskip, \muskipdef
   | TokenListQuantity -- \toks, \toksdef
   deriving stock (Show, Eq, Generic)
+
+data ModeContext = InnerMode | OuterMode
+  deriving stock (Show, Generic)

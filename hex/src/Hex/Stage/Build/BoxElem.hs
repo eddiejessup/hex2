@@ -1,4 +1,4 @@
-module Hex.Stage.Interpret.Build.Box.Elem where
+module Hex.Stage.Build.BoxElem where
 
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Codes

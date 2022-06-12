@@ -1,7 +1,7 @@
-module Hex.Stage.Interpret.Build.List.Elem where
+module Hex.Stage.Build.ListElem where
 
 import Formatting qualified as F
-import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 

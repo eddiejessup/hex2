@@ -7,7 +7,7 @@ import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as Box
 import Hexlude
 
 setQuantRegisterValue :: HSt.Reg.QuantRegisterLocation q -> HSt.Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes

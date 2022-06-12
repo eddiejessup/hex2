@@ -11,12 +11,16 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
+import Hex.Stage.Build.Horizontal.Set qualified as H.Inter.B.List.H
+import Hex.Stage.Build.ListBuilder.Interface qualified as Build
+import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
+import Hex.Stage.Build.ListExtractor.Interface (MonadHexListExtractor)
+import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
-import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
-import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface qualified as Par
@@ -27,6 +31,7 @@ data InterpretError
   | SawEndBoxInMainVModePara -- "No box to end: in paragraph within main V mode"
   | NoFontSelected
   | UnexpectedEndOfInput
+  | VModeCommandInInnerHMode
   deriving stock (Show, Generic)
 
 fmtInterpretError :: Fmt InterpretError
@@ -81,14 +86,15 @@ handleModeIndependentCommand ::
   ( Monad m,
     HSt.MonadHexState m,
     Lex.MonadLexTokenSource m,
-    Log.MonadHexLog m
+    Log.MonadHexLog m,
+    Build.MonadHexListBuilder m,
+    MonadHexListExtractor m
   ) =>
-  (H.Inter.B.List.VListElem -> StateT s m ()) ->
   Eval.ModeIndependentCommand ->
-  StateT s m AllModeCommandResult
-handleModeIndependentCommand addVElem = \case
+  m AllModeCommandResult
+handleModeIndependentCommand = \case
   Eval.DebugShowState -> do
-    lift $ Log.logInternalState
+    Log.logInternalState
     pure DidNotSeeEndBox
   Eval.WriteMessage (Eval.MessageWriteCommand stdStream expandedText) -> do
     writeToOutput (StandardStream stdStream) expandedText
@@ -114,10 +120,10 @@ handleModeIndependentCommand addVElem = \case
     HSt.setAfterAssignmentToken lt
     pure DidNotSeeEndBox
   Eval.AddPenalty p -> do
-    addVElem $ H.Inter.B.List.ListPenalty p
+    Build.addVListElement $ H.Inter.B.List.ListPenalty p
     pure DidNotSeeEndBox
   Eval.AddKern k -> do
-    addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemKern k
+    Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemKern k
     pure DidNotSeeEndBox
   Eval.Assign Eval.Assignment {Eval.scope, Eval.body} -> do
     case body of
@@ -149,7 +155,7 @@ handleModeIndependentCommand addVElem = \case
             notImplemented "ReadTarget"
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
             fontDefinition <- HSt.loadFont fontPath fontSpec
-            addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
+            Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
             pure $ Just $ Res.PrimitiveToken $ PT.FontRefToken $ fontDefinition ^. typed @HSt.Font.FontNumber
         case maySymbolTarget of
           Nothing ->
@@ -261,7 +267,7 @@ handleModeIndependentCommand addVElem = \case
       --   Eval.SelectFont fNr ->
       --     do
       --       selectFont fNr scope
-      --       addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
+      --       Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
       Eval.SetFamilyMember familyMember fontNumber ->
         HSt.setFamilyMemberFont familyMember fontNumber scope
       -- Start a new level of grouping. Enter inner mode.
@@ -287,7 +293,7 @@ handleModeIndependentCommand addVElem = \case
     HSt.popAfterAssignmentToken >>= \case
       Nothing -> pure ()
       -- If a token was indeed set, put it into the input.
-      Just lt -> lift $ Lex.insertLexTokenToSource lt
+      Just lt -> Lex.insertLexTokenToSource lt
     pure DidNotSeeEndBox
   -- Start a new level of grouping.
   Eval.ChangeScope Q.Positive entryTrigger -> do
@@ -300,7 +306,7 @@ handleModeIndependentCommand addVElem = \case
     --   prePopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
     --   postPopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
     --   when (prePopCurrentFontNr /= postPopCurrentFontNr) $ do
-    --     addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection (fromMaybe 0 postPopCurrentFontNr)
+    --     Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection (fromMaybe 0 postPopCurrentFontNr)
     HSt.popGroup exitTrigger
     pure DidNotSeeEndBox
   --   case group of
@@ -331,16 +337,41 @@ handleModeIndependentCommand addVElem = \case
   --         Nothing ->
   --           pure ()
   --         Just b ->
-  --           addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox b
+  --           Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox b
   --     Eval.ExplicitBox spec boxType -> do
   --       -- Start a new level of grouping. Enter inner mode.
   --       eSpec <- texEvaluate spec
   --       modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
   --       b <- extractExplicitBox eSpec boxType
-  --       addVElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox b
+  --       Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox b
   --   pure DidNotSeeEndBox
   oth ->
     notImplemented $ "command " <> show oth
 
-extractExplicitBox :: Eval.BoxSpecification -> PT.ExplicitBoxType -> m (Box.Box Box.BaseBoxContents)
-extractExplicitBox _spec _boxType = notImplemented "extractExplicitBox"
+naturalDimens :: H.Inter.B.List.HList -> (Q.Length, Q.Length, Q.Length)
+naturalDimens _hList = notImplemented "naturalDimens"
+
+lengthToSetAtFromSpec :: Eval.BoxSpecification -> Q.Length -> Q.Length
+lengthToSetAtFromSpec spec naturalLength = case spec of
+  Eval.Natural -> naturalLength
+  Eval.To toLength -> toLength
+  Eval.Spread _spreadLength -> notImplemented "lengthToSetAtFromSpec: Spread"
+
+extractExplicitBox :: MonadHexListExtractor m => Eval.BoxSpecification -> PT.ExplicitBoxType -> m (Box.Box Box.BaseBoxContents)
+extractExplicitBox spec = \case
+  PT.ExplicitHBoxType -> do
+    hList <- ListExtractor.extractHBoxList
+    let (naturalWidth, naturalDepth, naturalHeight) = naturalDimens hList
+        widthToSetAt = lengthToSetAtFromSpec spec naturalWidth
+        (hBoxElems, _) = H.Inter.B.List.H.setList hList widthToSetAt
+        hBoxContents = H.Inter.B.Box.HBoxContents hBoxElems
+        hBox =
+          H.Inter.B.Box.Box
+            { contents = hBoxContents,
+              boxWidth = widthToSetAt,
+              boxHeight = naturalHeight,
+              boxDepth = naturalDepth
+            }
+    pure hBox
+  PT.ExplicitVBoxType _vAlignType ->
+    notImplemented "extractExplicitBox: ExplicitVBoxType"

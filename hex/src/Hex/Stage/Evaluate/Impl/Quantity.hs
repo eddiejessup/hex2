@@ -15,7 +15,7 @@ import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
-import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude

@@ -138,7 +138,6 @@ newCatCodes = initialiseCharCodeMap $ \case
   Chr_ '\\' -> Escape
   Chr_ ' ' -> CoreCatCode Space
   Chr_ '%' -> Comment
-  Chr_ '\n' -> EndOfLine -- Non-Standard.
   Chr_ '\r' -> EndOfLine
   Chr_ '\0' -> Ignored
   Chr_ '\DEL' -> Invalid

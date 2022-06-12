@@ -12,6 +12,7 @@ import Hex.Common.HexState.Interface.Resolve qualified as H.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.ListExtractor.Interface
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 

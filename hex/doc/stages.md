@@ -89,7 +89,7 @@ Implementation:
 
 ### _Interpret_: Interpret evaluated 'Command's
 
-Interface and implementation: functions `buildMainVList`, `buildParaList`, `handleModeIndependentCommand`
+Interface and implementation: functions `extractMainVList`, `extractParagraphList`, `handleModeIndependentCommand`
 
 I call this stage 'Interpret' because we do more than 'build', we also modify the internal state, with things like assignments.
 

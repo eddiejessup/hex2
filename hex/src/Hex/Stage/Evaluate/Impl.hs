@@ -24,7 +24,8 @@ newtype MonadEvaluateT m a = MonadEvaluateT {unMonadEvaluateT :: m a}
     )
 
 instance
-  ( MonadError e (MonadEvaluateT m),
+  ( Monad m,
+    MonadError e (MonadEvaluateT m),
     AsType Eval.EvaluationError e,
     MonadHexState (MonadEvaluateT m)
   ) =>

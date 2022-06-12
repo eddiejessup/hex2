@@ -9,7 +9,7 @@ import Hex.Run.Interpret qualified as Run.Interpret
 import Hex.Run.Lex qualified as Run.Lex
 import Hex.Run.Parse qualified as Run.Parse
 import Hex.Run.Resolve qualified as Run.Resolve
-import Hex.Stage.Interpret.Build.List.Elem (fmtHListMultiLine, fmtVList)
+import Hex.Stage.Build.ListElem (fmtHListMultiLine, fmtVList)
 import Hexlude
 import Options.Applicative
 

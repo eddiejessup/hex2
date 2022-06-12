@@ -13,9 +13,10 @@ import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.BoxElem (FontSpecification, Kern, Rule)
+import Hex.Stage.Build.ListElem (Penalty)
+import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
-import Hex.Stage.Interpret.Build.Box.Elem (FontSpecification, Kern, Rule)
-import Hex.Stage.Interpret.Build.List.Elem (Penalty)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
@@ -47,7 +48,7 @@ data Command
     AddInsertion Q.HexInt VModeMaterial
   | AddAdjustment VModeMaterial
   | AddSpace
-  | StartParagraph PT.IndentFlag
+  | StartParagraph ListExtractor.IndentFlag
   | EndParagraph
   | AddAlignedMaterial
       DesiredLength
@@ -167,7 +168,10 @@ data Box
   | ExplicitBox BoxSpecification PT.ExplicitBoxType
   deriving stock (Show, Eq, Generic)
 
-data BoxSpecification = Natural | To Q.Length | Spread Q.Length
+data BoxSpecification
+  = Natural
+  | To Q.Length
+  | Spread Q.Length
   deriving stock (Show, Eq, Generic)
 
 data VariableAssignment

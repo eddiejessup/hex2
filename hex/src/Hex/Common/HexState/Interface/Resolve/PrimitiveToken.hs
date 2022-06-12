@@ -7,20 +7,16 @@ import Hex.Common.Codes
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Register as HSt.Register
 
 data AssignPrefixTok
   = LongTok
   | OuterTok
   | GlobalTok
-  deriving stock (Show, Eq, Generic)
-
-data IndentFlag
-  = Indent
-  | DoNotIndent
   deriving stock (Show, Eq, Generic)
 
 data ExpandDefFlag
@@ -174,7 +170,7 @@ data PrimitiveToken
   | MarkTok -- \mark
   | InsertionTok -- \insert
   | LeadersTok LeadersType
-  | StartParagraphTok IndentFlag -- \indent, \noindent
+  | StartParagraphTok ListExtractor.IndentFlag -- \indent, \noindent
   | EndParagraphTok -- \par
   -- Starters of mode-specific commands with almost mode-independent grammar.
   | ModedCommand Q.Axis ModedCommandPrimitiveToken

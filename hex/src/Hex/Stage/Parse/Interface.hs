@@ -5,3 +5,6 @@ import Hexlude
 
 class Monad m => MonadCommandSource m where
   getCommand :: m (Maybe Command)
+
+instance MonadCommandSource m => MonadCommandSource (StateT s m) where
+  getCommand = lift getCommand

@@ -1,8 +1,8 @@
-module Hex.Stage.Interpret.Build.List.Horizontal.Paragraph.Types where
+module Hex.Stage.Build.Horizontal.Paragraph.Types where
 
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
-import Hex.Stage.Interpret.Build.List.Elem qualified as H.Inter.B.List
+import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
+import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hexlude
 
 data BreakItem

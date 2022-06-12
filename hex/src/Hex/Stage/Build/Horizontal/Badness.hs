@@ -1,4 +1,4 @@
-module Hex.Stage.Interpret.Build.List.Horizontal.Badness where
+module Hex.Stage.Build.Horizontal.Badness where
 
 import Hex.Common.Quantity qualified as Q
 import Hexlude

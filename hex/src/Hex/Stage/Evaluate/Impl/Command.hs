@@ -6,9 +6,9 @@ import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
-import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
-import Hex.Stage.Interpret.Build.Box.Elem qualified as Elem
-import Hex.Stage.Interpret.Build.List.Elem qualified as Elem
+import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as Elem
+import Hex.Stage.Build.ListElem qualified as Elem
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude

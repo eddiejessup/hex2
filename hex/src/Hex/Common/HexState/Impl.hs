@@ -29,8 +29,8 @@ import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Common.TFM.Types qualified as TFM
-import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
-import Hex.Stage.Interpret.Build.Box.Elem qualified as H.Inter.B.Box
+import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 import System.FilePath qualified as FilePath

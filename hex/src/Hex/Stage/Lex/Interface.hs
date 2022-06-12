@@ -14,3 +14,14 @@ class Monad m => MonadLexTokenSource m where
   getSource :: m LexBuffer
 
   putSource :: LexBuffer -> m ()
+
+instance MonadLexTokenSource m => MonadLexTokenSource (StateT s m) where
+  getLexToken = lift getLexToken
+
+  insertLexTokenToSource x = lift $ insertLexTokenToSource x
+
+  insertLexTokensToSource x = lift $ insertLexTokensToSource x
+
+  getSource = lift getSource
+
+  putSource x = lift $ putSource x

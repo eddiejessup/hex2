@@ -13,7 +13,7 @@ import Hex.Common.HexState.Interface.Resolve (SymbolMap)
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Interpret.Build.Box.Elem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as Box
 import Hexlude
 
 type CharCodeMap v = Map Code.CharCode v
