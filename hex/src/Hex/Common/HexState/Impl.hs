@@ -41,7 +41,7 @@ data HexStateError
   | BadPath Text
   | CharacterCodeNotFound
   | PoppedEmptyGroups
-  | UnmatchedLocalStructureTrigger
+  | UnmatchedExitGroupTrigger
   deriving stock (Show, Generic)
 
 fmtHexStateError :: Fmt HexStateError
@@ -209,19 +209,32 @@ instance
     pure v
 
   pushGroup :: Maybe HSt.Grouped.ScopedGroupType -> MonadHexStateImplT m ()
-  pushGroup mayScopedGroupType = modifyGroupScopes $ Sc.GroupScopes.pushGroup mayScopedGroupType
+  pushGroup mayScopedGroupType = do
+    log "pushGroup"
+    modifyGroupScopes $ Sc.GroupScopes.pushGroup mayScopedGroupType
 
-  popGroup :: HSt.Grouped.LocalStructureTrigger -> MonadHexStateImplT m ()
+  popGroup :: HSt.Grouped.ChangeGroupTrigger -> MonadHexStateImplT m HSt.Grouped.HexGroupType
   popGroup exitTrigger = do
     use (typed @HexState % #groupScopes % to Sc.GroupScopes.popGroup) >>= \case
       Nothing -> throwError (injectTyped PoppedEmptyGroups)
-      Just (poppedGroup, newGroupScopes) -> do
+      Just (poppedGroup, newGroupScopes) ->
         case poppedGroup of
-          Sc.Group.ScopeGroup (Sc.Group.GroupScope _scope (HSt.Grouped.LocalStructureScopeGroup entryTrigger))
-            | entryTrigger == exitTrigger ->
-                assign' (typed @HexState % #groupScopes) newGroupScopes
-          _ ->
-            throwError (injectTyped (UnmatchedLocalStructureTrigger))
+          Sc.Group.ScopeGroup (Sc.Group.GroupScope _scope scopeGroupType) -> do
+            assign' (typed @HexState % #groupScopes) newGroupScopes
+            case scopeGroupType of
+              HSt.Grouped.LocalStructureScopeGroup enterTrigger
+                | exitTrigger == enterTrigger ->
+                    pure HSt.Grouped.LocalStructureGroupType
+                | otherwise ->
+                    throwError (injectTyped UnmatchedExitGroupTrigger)
+              HSt.Grouped.ExplicitBoxScopeGroup ->
+                case exitTrigger of
+                  HSt.Grouped.ChangeGroupCharTrigger ->
+                    pure HSt.Grouped.ExplicitBoxGroupType
+                  HSt.Grouped.ChangeGroupCSTrigger ->
+                    throwError (injectTyped UnmatchedExitGroupTrigger)
+          Sc.Group.NonScopeGroup ->
+            notImplemented $ "popGroup: NonScopeGroup"
 
 modifyGroupScopes :: (MonadState st m, HasType HexState st) => (GroupScopes -> GroupScopes) -> m ()
 modifyGroupScopes = modifying' (typed @HexState % #groupScopes)
@@ -274,6 +287,6 @@ setBoxRegisterValueImpl ::
   HSt.Grouped.ScopeFlag ->
   m ()
 setBoxRegisterValueImpl loc mayV scope =
-  case mayV of
-    Nothing -> modifyGroupScopes $ Sc.R.unsetBoxRegisterValue loc scope
-    Just v -> modifyGroupScopes $ Sc.R.setBoxRegisterValue loc v scope
+  modifyGroupScopes $ case mayV of
+    Nothing -> Sc.R.unsetBoxRegisterValue loc scope
+    Just v -> Sc.R.setBoxRegisterValue loc v scope

@@ -154,3 +154,26 @@ Expansion is suppressed at the following times:
 - Reading the preamble of an alignment, except after a token for the primitive command \span or when reading the ⟨glue⟩ after \tabskip.
 - Just after a $_3 token that begins math mode, to see if another $_3 follows
 - Just after a ‘_12 token that begins an alphabetic constant
+
+## Set-box with explicit box
+
+A command like:
+
+```tex
+\setbox⟨number⟩=\hbox to⟨dimen⟩{⟨horizontal mode material⟩}
+```
+
+causes Tex to evaluate the ⟨number⟩ and the ⟨dimen⟩, and to put those values on a “stack” for safe keeping.
+
+Then Tex reads the ‘{’ (an explicit or implicit begin-group character), and this initiates a new level of grouping.
+
+Then Tex enters 'restricted-horizontal' mode and executes commands in that mode.
+
+An arbitrarily complex box can now be constructed; the fact that this box is eventually destined for a \setbox command does not affect Tex’s behavior while the box is being built
+
+When the matching ‘}’ appears, Tex:
+
+- Restores values that were changed by assignments in the group just ended
+- Packages the hbox, using the size that was saved on the stack
+- Completes the \setbox command
+- Returns to the mode it was in at the time of the \setbox

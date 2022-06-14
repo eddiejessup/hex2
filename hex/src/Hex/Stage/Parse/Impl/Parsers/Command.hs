@@ -45,9 +45,9 @@ parseCommand =
       | primTokenHasCategory Code.Space t ->
           pure AST.AddSpace
       | primTokenHasCategory Code.BeginGroup t ->
-          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Positive HSt.Group.LocalStructureCharTrigger
+          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Positive HSt.Group.ChangeGroupCharTrigger
       | primTokenHasCategory Code.EndGroup t ->
-          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Negative HSt.Group.LocalStructureCharTrigger
+          pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Negative HSt.Group.ChangeGroupCharTrigger
       | primTokenHasCategory Code.MathShift t ->
           pure $ AST.HModeCommand AST.EnterMathMode
     PT.RelaxTok ->
@@ -88,9 +88,8 @@ parseCommand =
     PT.ModedCommand axis (PT.ShiftedBoxTok direction) -> do
       placement <- AST.ShiftedPlacement axis direction <$> Par.parseLength
       AST.ModeIndependentCommand . AST.AddBox placement <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseBox)
-    -- Change scope.
     PT.ChangeScopeCSTok sign ->
-      pure $ AST.ModeIndependentCommand $ AST.ChangeScope sign HSt.Group.LocalStructureCSTrigger
+      pure $ AST.ModeIndependentCommand $ AST.ChangeScope sign HSt.Group.ChangeGroupCSTrigger
     PT.ControlSpaceTok ->
       pure $ AST.HModeCommand AST.AddControlSpace
     PT.ItalicCorrectionTok ->

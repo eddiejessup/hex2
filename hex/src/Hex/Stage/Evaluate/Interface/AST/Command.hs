@@ -90,7 +90,7 @@ data ModeIndependentCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial ST.ExpandedBalancedText
   | AddBox Uneval.BoxPlacement Uneval.Box
-  | ChangeScope Q.Sign HSt.Group.LocalStructureTrigger
+  | ChangeScope Q.Sign HSt.Group.ChangeGroupTrigger
   | DebugShowState
   deriving stock (Show, Eq, Generic)
 

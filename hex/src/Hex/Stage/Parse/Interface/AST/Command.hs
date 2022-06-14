@@ -51,7 +51,7 @@ data ModeIndependentCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial ST.ExpandedBalancedText
   | AddBox BoxPlacement Box
-  | ChangeScope Q.Sign HSt.Grouped.LocalStructureTrigger
+  | ChangeScope Q.Sign HSt.Grouped.ChangeGroupTrigger
   | DebugShowState
   deriving stock (Show, Eq, Generic)
 

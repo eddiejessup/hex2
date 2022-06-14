@@ -67,7 +67,7 @@ class Monad m => MonadHexState m where
 
   pushGroup :: Maybe Grouped.ScopedGroupType -> m ()
 
-  popGroup :: Grouped.LocalStructureTrigger -> m ()
+  popGroup :: Grouped.ChangeGroupTrigger -> m HSt.Grouped.HexGroupType
 
 instance MonadHexState m => MonadHexState (StateT a m) where
   getParameterValue x = lift $ getParameterValue x

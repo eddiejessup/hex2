@@ -16,9 +16,7 @@ data EndHListReason
 data ModeContext = InnerModeContext | OuterModeContext
   deriving stock (Show, Generic)
 
-
 class Monad m => MonadHexListExtractor m where
   extractHBoxList :: m B.HList
 
   extractParagraphList :: IndentFlag -> m (EndHListReason, B.HList)
-

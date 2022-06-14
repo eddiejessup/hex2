@@ -25,6 +25,7 @@ import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface qualified as Par
 import Hexlude
+import qualified Hex.Common.HexState.Interface.Grouped as HSt.Grouped
 
 data InterpretError
   = SawEndBoxInMainVMode
@@ -282,7 +283,9 @@ handleModeIndependentCommand = \case
             notImplemented "SetBoxRegister to VSplitBox"
           Eval.ExplicitBox spec boxType -> do
             HSt.pushGroup (Just HSt.Group.ExplicitBoxScopeGroup)
+            Log.log "Extracting explicit box"
             extractedBox <- extractExplicitBox spec boxType
+            Log.log "Extracted explicit box"
             HSt.setBoxRegisterValue lhsIdx (Just extractedBox) scope
       Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
         HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef
@@ -299,37 +302,21 @@ handleModeIndependentCommand = \case
   Eval.ChangeScope Q.Positive entryTrigger -> do
     HSt.pushGroup (Just (HSt.Group.LocalStructureScopeGroup entryTrigger))
     pure DidNotSeeEndBox
-  -- -- Do the appropriate finishing actions, undo the
-  -- -- effects of non-global assignments, and leave the
-  -- -- group. Maybe leave the current mode.
-  Eval.ChangeScope Q.Negative exitTrigger -> do
+  -- Do the appropriate finishing actions, undo the
+  -- effects of non-global assignments, and leave the
+  -- group. Maybe leave the current mode.
+  Eval.ChangeScope Q.Negative exitTrigger ->
     --   prePopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
     --   postPopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
     --   when (prePopCurrentFontNr /= postPopCurrentFontNr) $ do
     --     Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection (fromMaybe 0 postPopCurrentFontNr)
-    HSt.popGroup exitTrigger
-    pure DidNotSeeEndBox
-  --   case group of
-  --     -- Undo the effects of non-global
-  --     -- assignments without leaving the
-  --     -- current mode.
-  --     ScopeGroup _ (LocalStructureScopeGroup entryTrig) -> do
-  --       when (entryTrig /= exitTrig)
-  --         $ throwError
-  --         $ injectTyped
-  --         $ ConfigError
-  --         $ "Entry and exit group triggers differ: " <> show (exitTrig, entryTrig)
-  --       pure DidNotSeeEndBox
-  --     -- - Undo the effects of non-global assignments
-  --     -- - package the [box] using the size that was saved on the
-  --     --   stack
-  --     -- - complete the \setbox command
-  --     -- - return to the mode we were in at the time of the
-  --     --   \setbox.
-  --     ScopeGroup _ ExplicitBoxGroup ->
-  --       pure SawEndBox
-  --     NonScopeGroup ->
-  --       pure DidNotSeeEndBox
+    HSt.popGroup exitTrigger >>= \case
+      HSt.Grouped.LocalStructureGroupType ->
+        pure DidNotSeeEndBox
+      HSt.Grouped.ExplicitBoxGroupType ->
+        pure SawEndBox
+      HSt.Grouped.NonScopeGroupType ->
+        notImplemented "ChangeScope Negative: NonScopeGroupType"
   -- Eval.AddBox Eval.NaturalPlacement boxSource -> do
   --   case boxSource of
   --     Eval.FetchedRegisterBox fetchMode idx ->
