@@ -6,6 +6,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
@@ -25,7 +26,6 @@ import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface qualified as Par
 import Hexlude
-import qualified Hex.Common.HexState.Interface.Grouped as HSt.Grouped
 
 data InterpretError
   = SawEndBoxInMainVMode
@@ -286,6 +286,7 @@ handleModeIndependentCommand = \case
             Log.log "Extracting explicit box"
             extractedBox <- extractExplicitBox spec boxType
             Log.log "Extracted explicit box"
+            Log.log $ F.sformat H.Inter.B.Box.fmtBaseBox extractedBox
             HSt.setBoxRegisterValue lhsIdx (Just extractedBox) scope
       Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
         HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef
@@ -317,10 +318,12 @@ handleModeIndependentCommand = \case
         pure SawEndBox
       HSt.Grouped.NonScopeGroupType ->
         notImplemented "ChangeScope Negative: NonScopeGroupType"
-  -- Eval.AddBox Eval.NaturalPlacement boxSource -> do
-  --   case boxSource of
-  --     Eval.FetchedRegisterBox fetchMode idx ->
-  --       fetchBox fetchMode idx >>= \case
+  Eval.AddBox _naturalPlacement _boxSource -> do
+    notImplemented "handleModeIndependentCommand: AddBox"
+  -- case boxSource of
+  -- Eval.FetchedRegisterBox fetchMode idx ->
+
+  -- fetchBox fetchMode idx >>= \case
   --         Nothing ->
   --           pure ()
   --         Just b ->
@@ -332,23 +335,28 @@ handleModeIndependentCommand = \case
   --       b <- extractExplicitBox eSpec boxType
   --       Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox b
   --   pure DidNotSeeEndBox
-  oth ->
-    notImplemented $ "command " <> show oth
-
-naturalDimens :: H.Inter.B.List.HList -> (Q.Length, Q.Length, Q.Length)
-naturalDimens _hList = notImplemented "naturalDimens"
+  Eval.AddMathKern _mathLength ->
+    notImplemented "handleModeIndependentCommand: AddMathKern"
+  Eval.RemoveItem _removableItem ->
+    notImplemented "handleModeIndependentCommand: RemoveItem"
+  Eval.AddToAfterGroupTokens _lexToken ->
+    notImplemented "handleModeIndependentCommand: AddToAfterGroupTokens"
+  Eval.ModifyFileStream _fileStreamModificationCommand ->
+    notImplemented "handleModeIndependentCommand: ModifyFileStream"
+  Eval.DoSpecial _text ->
+    notImplemented "handleModeIndependentCommand: DoSpecial"
 
 lengthToSetAtFromSpec :: Eval.BoxSpecification -> Q.Length -> Q.Length
 lengthToSetAtFromSpec spec naturalLength = case spec of
   Eval.Natural -> naturalLength
   Eval.To toLength -> toLength
-  Eval.Spread _spreadLength -> notImplemented "lengthToSetAtFromSpec: Spread"
+  Eval.Spread spreadLength -> naturalLength <> spreadLength
 
 extractExplicitBox :: MonadHexListExtractor m => Eval.BoxSpecification -> PT.ExplicitBoxType -> m (Box.Box Box.BaseBoxContents)
 extractExplicitBox spec = \case
   PT.ExplicitHBoxType -> do
     hList <- ListExtractor.extractHBoxList
-    let (naturalWidth, naturalDepth, naturalHeight) = naturalDimens hList
+    let (naturalWidth, naturalDepth, naturalHeight) = H.Inter.B.List.hListNaturalDimens hList
         widthToSetAt = lengthToSetAtFromSpec spec naturalWidth
         (hBoxElems, _) = H.Inter.B.List.H.setList hList widthToSetAt
         hBoxContents = H.Inter.B.Box.HBoxContents hBoxElems

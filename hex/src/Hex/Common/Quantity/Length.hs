@@ -12,7 +12,7 @@ import Hexlude
 
 newtype Length = Length {unLength :: Int}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord)
+  deriving newtype (Eq, Ord, Bounded)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
   deriving (Scalable) via (HexInt)
 

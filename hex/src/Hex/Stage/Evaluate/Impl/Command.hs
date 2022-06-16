@@ -2,13 +2,13 @@ module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as Elem
+import Hex.Stage.Build.ListElem qualified as Elem
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
-import Hex.Stage.Build.BoxElem qualified as Box
-import Hex.Stage.Build.BoxElem qualified as Elem
-import Hex.Stage.Build.ListElem qualified as Elem
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
@@ -17,33 +17,60 @@ evalCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState
 evalCommand = \case
   P.ShowToken lt -> pure $ E.ShowToken lt
   P.ShowBox n -> E.ShowBox <$> Eval.evalInt n
-  P.VModeCommand vModeCmd -> E.VModeCommand <$> evalVModeCmd vModeCmd
+  P.VModeCommand vModeCommand -> E.VModeCommand <$> evalVModeCommand vModeCommand
+  P.HModeCommand hModeCommand -> E.HModeCommand <$> evalHModeCommand hModeCommand
   P.ModeIndependentCommand modeIndepCmd -> E.ModeIndependentCommand <$> evalModeIndepCmd modeIndepCmd
-  _ -> pure $ E.ModeIndependentCommand E.Relax
+  P.ShowLists -> pure E.ShowLists
+  P.ShowTheInternalQuantity internalQuantity -> pure $ E.ShowTheInternalQuantity internalQuantity
+  P.ShipOut box -> pure $ E.ShipOut box
+  P.AddMark expandedBalancedText -> pure $ E.AddMark expandedBalancedText
+  P.AddSpace -> pure E.AddSpace
+  P.StartParagraph indentFlag -> pure $ E.StartParagraph indentFlag
+  P.EndParagraph -> pure E.EndParagraph
 
-evalVModeCmd :: Monad m => P.VModeCommand -> m P.VModeCommand
-evalVModeCmd = pure
+evalVModeCommand :: Monad m => P.VModeCommand -> m P.VModeCommand
+evalVModeCommand = pure
+
+evalHModeCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.HModeCommand -> m E.HModeCommand
+evalHModeCommand = \case
+  P.AddControlSpace -> pure E.AddControlSpace
+  P.AddCharacter charCodeRef -> pure $ E.AddCharacter charCodeRef
+  P.AddAccentedCharacter n assignments mayCharCodeRef -> do
+    -- TODO: Can we do this? Do we need to actually execute the assignments in
+    -- order? The previous assignment might affect a later assignment.
+    eAssignments <- for assignments evalAssignment
+    pure $ E.AddAccentedCharacter n eAssignments mayCharCodeRef
+  P.AddItalicCorrection -> pure E.AddItalicCorrection
+  P.AddDiscretionaryText discretionaryText -> pure $ E.AddDiscretionaryText discretionaryText
+  P.AddDiscretionaryHyphen -> pure E.AddDiscretionaryHyphen
+  P.EnterMathMode -> pure E.EnterMathMode
+  P.AddHGlue glue -> E.AddHGlue <$> Eval.evalGlue glue
+  P.AddHLeaders leadersSpec -> pure $ E.AddHLeaders leadersSpec
+  P.AddHRule rule -> E.AddHRule <$> Eval.evalHModeRule rule
+  P.AddUnwrappedFetchedHBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedHBox fetchedBoxRef
 
 evalModeIndepCmd :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ModeIndependentCommand -> m E.ModeIndependentCommand
 evalModeIndepCmd = \case
-  P.Assign P.Assignment {body, scope} -> do
-    eBody <- evalAssignmentBody body
-    pure $ E.Assign (E.Assignment eBody scope)
+  P.Assign assignment -> E.Assign <$> evalAssignment assignment
   P.Relax -> pure E.Relax
   P.IgnoreSpaces -> pure E.IgnoreSpaces
   P.AddPenalty hexInt -> E.AddPenalty . Elem.Penalty <$> Eval.evalInt hexInt
   P.AddKern length -> E.AddKern . Elem.Kern <$> Eval.evalLength length
   P.AddMathKern mathLength -> E.AddMathKern <$> Eval.evalMathLength mathLength
-  P.RemoveItem _removableItem -> notImplemented "evalModeIndepCmd 'RemoveItem'"
+  P.RemoveItem removableItem -> pure $ E.RemoveItem removableItem
   P.SetAfterAssignmentToken lexToken -> pure $ E.SetAfterAssignmentToken lexToken
   P.AddToAfterGroupTokens lexToken -> pure $ E.AddToAfterGroupTokens lexToken
   P.WriteMessage messageWriteCommand -> E.WriteMessage <$> evalMessageWriteCommand messageWriteCommand
-  P.ModifyFileStream _fileStreamModificationCommand -> notImplemented "evalModeIndepCmd 'ModifyFileStream'"
+  P.ModifyFileStream fileStreamModificationCommand -> pure $ E.ModifyFileStream fileStreamModificationCommand
   P.WriteToStream streamWriteCommand -> E.WriteToStream <$> evalStreamWriteCommand streamWriteCommand
   P.DoSpecial expandedBalancedText -> pure $ E.DoSpecial expandedBalancedText
   P.AddBox boxPlacement box -> pure $ E.AddBox boxPlacement box
   P.ChangeScope sign localStructureTrigger -> pure $ E.ChangeScope sign localStructureTrigger
   P.DebugShowState -> pure E.DebugShowState
+
+evalAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Assignment -> m E.Assignment
+evalAssignment P.Assignment {body, scope} =
+  E.Assignment <$> (evalAssignmentBody body) <*> pure scope
 
 evalStreamWriteCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.StreamWriteCommand -> m E.StreamWriteCommand
 evalStreamWriteCommand (P.StreamWriteCommand n writeText) =

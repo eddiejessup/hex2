@@ -177,3 +177,38 @@ When the matching ‘}’ appears, Tex:
 - Packages the hbox, using the size that was saved on the stack
 - Completes the \setbox command
 - Returns to the mode it was in at the time of the \setbox
+
+## Box natural dimensions
+
+Here’s the way TEX goes about setting the glue when an hbox is being wrapped up: The natural width, x, of the box contents is determined by adding up the widths of the boxes and kerns inside, together with the natural widths of all the glue inside.
+
+The vertical analog of \hbox is \vbox, and TEX will obey the commands ‘\vbox to⟨dimen⟩’ and ‘\vbox spread⟨dimen⟩’ in about the way you would expect, by analogy with the horizontal case. However, there’s a slight complication because boxes have both height and depth in the vertical direction, while they have only width in the horizontal direction. The dimension in a \vbox command refers to the final height of the vbox, so that, for example, ‘\vbox to 50pt{...}’ produces a box that is 50 pt high; this is appropriate because everything that can stretch or shrink inside a vbox appears in the part that contributes to the height, while the depth is unaffected
+by glue setting.
+􏰟 The depth of a constructed \vbox is best thought of as the depth of the bottom box inside. Thus, a vbox is conceptually built by taking a bunch of boxes and arranging them so that their reference points are lined up vertically; then the reference point of the lowest box is taken as the reference point of the whole, and the glue is set
+so that the final height has some desired value.
+􏰟 However, this description of vboxes glosses over some technicalities that come up when you consider unusual cases. For example, TEX allows you to shift boxes in a vertical list to the right or to the left by saying ‘\moveright⟨dimen⟩⟨box⟩’ or ‘\moveleft⟨dimen⟩⟨box⟩’; this is like the ability to \raise or \lower boxes in a horizontal list, and it implies that the reference points inside a vbox need not always lie in a vertical line. Furthermore, it is necessary to guard against boxes that have too much depth, lest they extend too far into the bottom margin of a page; and later chapters will point out that vertical lists can contain other things like penalties and
+marks, in addition to boxes and glue.
+􏰟􏰟 Therefore, the actual rules for the depth of a constructed vbox are somewhat TEXnical. Here they are: Given a vertical list that is being wrapped up via \vbox, the problem is to determine its natural depth. (1) If the vertical list contains no boxes, the depth is zero. (2) If there’s at least one box, but if the final box is followed by kerning or glue, possibly with intervening penalties or other things, the depth is zero. (3) If there’s at least one box, and if the final box is not followed by kerning or glue, the depth is the depth of that box. (4) How- ever, if the depth computed by rules (1), (2), or (3) exceeds \boxmaxdepth, the depth will be the current value of \boxmaxdepth. (Plain TEX sets \boxmaxdepth to the largest possible dimension; therefore rule (4) won’t apply unless you specify a smaller value. When rule (4) does decrease the depth, TEX adds the excess depth to the box’s natural height, essentially
+moving the reference point down until the depth has been reduced to the stated maximum.)
+
+## Box dimension specifications
+
+the command ‘\hbox spread⟨dimen⟩{⟨contents of box⟩}’ creates a box whose width w is a given amount more than the natural width of the contents.
+
+## rules (\hrule, \vrule)
+
+If you specify a dimension twice, the second specification overrules the first.
+
+If you leave a dimension unspecified, you get the following by default:
+
+hrule:
+width: *
+height: 0.4pt
+depth: 0pt
+
+vrule:
+width: 0.4pt
+height: *
+depth: 0
+
+‘*’ means that the actual dimension depends on the context: the rule will extend to the boundary of the smallest box or alignment that encloses it.

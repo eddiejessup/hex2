@@ -46,17 +46,36 @@ handleCommandInHMode oldSrc modeCtx = \case
       pure ContinueHMode
     ListExtractor.InnerModeContext -> do
       throwError $ injectTyped $ AllMode.VModeCommandInInnerHMode
-  Eval.HModeCommand (Eval.AddHGlue g) -> do
-    Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue g
-    pure ContinueHMode
-  -- Eval.HModeCommand (Eval.AddCharacter c) -> do
-  --   evalChar <- H.Inter.Eval.evalASTChar c
-  --   charBox <- lift $ charAsBox evalChar
-  --   Build.addHListElement $ H.Inter.B.List.HListHBaseElem $ H.Inter.B.Box.ElemCharacter charBox
-  --   pure ContinueHMode
-  Eval.HModeCommand (Eval.AddHRule rule) -> do
-    Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
-    pure ContinueHMode
+  Eval.HModeCommand hModeCommand -> case hModeCommand of
+    Eval.AddHGlue g -> do
+      Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue g
+      pure ContinueHMode
+    -- Eval.HModeCommand (Eval.AddCharacter c) -> do
+    --   evalChar <- H.Inter.Eval.evalASTChar c
+    --   charBox <- lift $ charAsBox evalChar
+    --   Build.addHListElement $ H.Inter.B.List.HListHBaseElem $ H.Inter.B.Box.ElemCharacter charBox
+    --   pure ContinueHMode
+    Eval.AddHRule rule -> do
+      Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
+      pure ContinueHMode
+    Eval.AddControlSpace ->
+      notImplemented "AddControlSpace"
+    Eval.AddCharacter _charCodeRef ->
+      notImplemented "AddCharacter"
+    Eval.AddAccentedCharacter _n _assignments _mayCharCodeRef ->
+      notImplemented "AddAccentedCharacter"
+    Eval.AddItalicCorrection ->
+      notImplemented "AddItalicCorrection"
+    Eval.AddDiscretionaryText _discretionaryText ->
+      notImplemented "AddDiscretionaryText"
+    Eval.AddDiscretionaryHyphen ->
+      notImplemented "AddDiscretionaryHyphen"
+    Eval.EnterMathMode ->
+      notImplemented "EnterMathMode"
+    Eval.AddHLeaders _leadersSpec ->
+      notImplemented "AddHLeaders"
+    Eval.AddUnwrappedFetchedHBox _fetchedBoxRef ->
+      notImplemented "AddUnwrappedFetchedHBox"
   Eval.AddSpace -> do
     spaceGlue <- HSt.currentFontSpaceGlue >>= note (injectTyped AllMode.NoFontSelected)
     Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue spaceGlue
@@ -76,8 +95,15 @@ handleCommandInHMode oldSrc modeCtx = \case
         EndHList ListExtractor.EndHListSawEndParaCommand
       AllMode.DidNotSeeEndBox ->
         ContinueHMode
-  oth ->
-    panic $ show oth
+  Eval.ShowToken _lexToken -> notImplemented "HMode: ShowToken"
+  Eval.ShowBox _n -> notImplemented "HMode: ShowBox"
+  Eval.ShowLists -> notImplemented "HMode: ShowLists"
+  Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "HMode: ShowTheInternalQuantity"
+  Eval.ShipOut _box -> notImplemented "HMode: ShipOut"
+  Eval.AddMark _text -> notImplemented "HMode: AddMark"
+  -- Eval.AddInsertion _n _vModeMaterial -> notImplemented "HMode: AddInsertion"
+  -- Eval.AddAdjustment _vModeMaterial -> notImplemented "HMode: AddAdjustment"
+  -- Eval.AddAlignedMaterial _desiredLength _alignMaterial _hModeCommand1 _hModeCommand2 -> notImplemented "HMode: AddAlignedMaterial"
 
 charAsBox ::
   ( HSt.MonadHexState m,

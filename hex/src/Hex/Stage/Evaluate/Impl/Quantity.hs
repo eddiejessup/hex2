@@ -2,20 +2,22 @@ module Hex.Stage.Evaluate.Impl.Quantity where
 
 import Data.List qualified as List
 import Data.Ratio qualified as Ratio
+import Data.Sequence qualified as Seq
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.Register qualified as Hst.Reg
 import Hex.Common.HexState.Interface.TokenList (BalancedText)
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
-import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
@@ -140,7 +142,7 @@ digitsToInt base digs =
   foldl' (\a b -> a * base + b) 0 digs
 
 evalLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Length -> m Q.Length
-evalLength len = do
+evalLength len =
   evalSignedValue evalUnsignedLength len.unLength
 
 evalUnsignedLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.UnsignedLength -> m Q.Length
@@ -238,44 +240,45 @@ evalInfFlexOfOrder (P.InfFlexOfOrder signedFactor infFlexOrder) = do
   pure $ Q.InfFlexOfOrder factorInfLength infFlexOrder
 
 evalRule ::
+  (MonadHexState m, MonadError e m, AsType Eval.EvaluationError e) =>
   P.Rule ->
   m Q.Length ->
   m Q.Length ->
   m Q.Length ->
   m H.Inter.B.Box.Rule
-evalRule (P.Rule _dims) _defaultW _defaultH _defaultD =
-  notImplemented "evalRule"
-
--- H.Inter.B.Box.Rule
---   <$> ( H.Inter.B.Box.Box ()
---           <$> maybe defaultW evalLength width
---           <*> maybe defaultH evalLength height
---           <*> maybe defaultD evalLength depth
---       )
+evalRule (P.Rule dims) defaultW defaultH defaultD = do
+  w <- ruleDimen Q.BoxWidth defaultW
+  h <- ruleDimen Q.BoxHeight defaultH
+  d <- ruleDimen Q.BoxDepth defaultD
+  pure $ H.Inter.B.Box.Rule $ H.Inter.B.Box.Box () w h d
+  where
+    ruleDimen d defaultDim = case Seq.filter (\(dim, _len) -> dim == d) dims of
+      _ :|> (_, lastDim) ->
+        evalLength lastDim
+      _ ->
+        defaultDim
 
 evalVModeRule ::
+  (MonadHexState m, MonadError e m, AsType Eval.EvaluationError e) =>
   P.Rule ->
   m H.Inter.B.Box.Rule
-evalVModeRule _rule =
-  -- ruleToElem rule defaultWidth defaultHeight defaultDepth
-  notImplemented "evalVModeRule"
-
--- where
---   defaultWidth = use $ typed @Config % to (lookupLengthParameter HP.HSize)
---   defaultHeight = pure $ toScaledPointApprox (0.4 :: Rational) Point
---   defaultDepth = pure 0
+evalVModeRule rule =
+  evalRule rule defaultWidth defaultHeight defaultDepth
+  where
+    defaultWidth = HSt.getParameterValue (Param.LengthQuantParam Param.HSize)
+    defaultHeight = pure $ Q.pt 0.4
+    defaultDepth = pure Q.zeroLength
 
 evalHModeRule ::
+  (MonadHexState m, MonadError e m, AsType Eval.EvaluationError e) =>
   P.Rule ->
   m H.Inter.B.Box.Rule
-evalHModeRule _rule =
-  notImplemented "evalHModeRule"
-
--- ruleToElem rule defaultWidth defaultHeight defaultDepth
--- where
---   defaultWidth = pure (toScaledPointApprox (0.4 :: Rational) Point)
---   defaultHeight = pure (toScaledPointApprox (10 :: Int) Point)
---   defaultDepth = pure 0
+evalHModeRule rule =
+  evalRule rule defaultWidth defaultHeight defaultDepth
+  where
+    defaultWidth = pure $ Q.pt 0.4
+    defaultHeight = notImplemented "evalHModeRule: defaultHeight"
+    defaultDepth = notImplemented "evalHModeRule: defaultDepth"
 
 evalChar ::
   (MonadError e m, AsType EvaluationError e, MonadHexState m) =>

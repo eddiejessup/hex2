@@ -36,18 +36,30 @@ handleCommandInMainVMode ::
   Eval.Command ->
   m VModeCommandResult
 handleCommandInMainVMode oldSrc = \case
-  Eval.VModeCommand Uneval.End ->
-    pure EndMainVMode
-  -- Eval.VModeCommand (Eval.AddVGlue g) -> do
-  --   H.Inter.Eval.evalASTGlue g >>= extendVListStateT . H.Inter.B.List.ListGlue
-  --   pure ContinueMainVMode
-  -- Eval.VModeCommand (Eval.AddVRule astRule) -> do
-  --   rule <- H.Inter.Eval.evalASTVModeRule astRule
-  --   extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
-  --   pure ContinueMainVMode
-  Eval.HModeCommand _ -> do
+  Eval.VModeCommand vModeCommand -> case vModeCommand of
+    Uneval.End ->
+      pure EndMainVMode
+    Uneval.AddVGlue _g -> do
+      notImplemented "handleCommandInMainVMode: AddVGlue"
+    -- H.Inter.Eval.evalASTGlue g >>= extendVListStateT . H.Inter.B.List.ListGlue
+    --   pure ContinueMainVMode
+    --  (Eval.AddVRule astRule) -> do
+    --   rule <- H.Inter.Eval.evalASTVModeRule astRule
+    --   extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
+    --   pure ContinueMainVMode
+    Uneval.Dump ->
+      notImplemented "handleCommandInMainVMode: Dump"
+    Uneval.EnterHMode ->
+      notImplemented "handleCommandInMainVMode: EnterHMode"
+    Uneval.AddVLeaders _leadersSpec ->
+      notImplemented "handleCommandInMainVMode: AddVLeaders"
+    Uneval.AddVRule _rule ->
+      notImplemented "handleCommandInMainVMode: AddVRule"
+    Uneval.AddUnwrappedFetchedVBox _fetchedBoxRef ->
+      notImplemented "handleCommandInMainVMode: AddUnwrappedFetchedVBox"
+  Eval.HModeCommand _ ->
     addPara ListExtractor.Indent
-  Eval.StartParagraph indentFlag -> do
+  Eval.StartParagraph indentFlag ->
     addPara indentFlag
   -- \par does nothing in vertical mode.
   Eval.EndParagraph ->
@@ -55,14 +67,21 @@ handleCommandInMainVMode oldSrc = \case
   -- <space token> has no effect in vertical modes.
   Eval.AddSpace ->
     pure ContinueMainVMode
-  Eval.ModeIndependentCommand modeIndependentCommand -> do
+  Eval.ModeIndependentCommand modeIndependentCommand ->
     AllMode.handleModeIndependentCommand modeIndependentCommand >>= \case
       AllMode.SawEndBox ->
         throwError $ injectTyped AllMode.SawEndBoxInMainVMode
       AllMode.DidNotSeeEndBox ->
         pure ContinueMainVMode
-  oth ->
-    notImplemented $ "handleCommandInMainVMode, command" <> show oth
+  Eval.ShowToken _lexToken -> notImplemented "HMode: ShowToken"
+  Eval.ShowBox _n -> notImplemented "HMode: ShowBox"
+  Eval.ShowLists -> notImplemented "HMode: ShowLists"
+  Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "HMode: ShowTheInternalQuantity"
+  Eval.ShipOut _box -> notImplemented "HMode: ShipOut"
+  Eval.AddMark _text -> notImplemented "HMode: AddMark"
+  -- Eval.AddInsertion _n _vModeMaterial -> notImplemented "HMode: AddInsertion"
+  -- Eval.AddAdjustment _vModeMaterial -> notImplemented "HMode: AddAdjustment"
+  -- Eval.AddAlignedMaterial _desiredLength _alignMaterial _hModeCommand1 _hModeCommand2 -> notImplemented "HMode: AddAlignedMaterial"
   where
     addPara :: ListExtractor.IndentFlag -> m VModeCommandResult
     addPara indentFlag = do
@@ -85,7 +104,7 @@ extendVListWithParagraphStateT ::
   m ()
 extendVListWithParagraphStateT paraHList = do
   lineBoxes <- setAndBreakHListToHBoxes paraHList
-  for_ lineBoxes $ \b -> do
+  for_ lineBoxes $ \b ->
     Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox (H.Inter.B.Box.HBoxContents <$> b)
 
 setAndBreakHListToHBoxes ::
@@ -93,18 +112,18 @@ setAndBreakHListToHBoxes ::
   ) =>
   H.Inter.B.List.HList ->
   m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBoxElemSeq))
-setAndBreakHListToHBoxes hList =
-  do
-    hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
-    lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
-    linePen <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
-    let lineHLists = H.Inter.B.List.H.Para.breakGreedy hSize lineTol linePen hList
+setAndBreakHListToHBoxes hList = do
+  hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
+  lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
+  linePen <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
+  let lineHLists = H.Inter.B.List.H.Para.breakGreedy hSize lineTol linePen hList
 
-    -- TODO: Get these.
-    let boxHeight = Q.pt 20
-    let boxDepth = Q.pt 0
+  pure $
+    lineHLists <&> \lineHList ->
+      let
+        (hBoxElems, _) = H.Inter.B.List.H.setList lineHList hSize
+        -- TODO: Get these.
+        boxHeight = Q.pt 20
+        boxDepth = Q.pt 0
 
-    pure $
-      lineHLists <&> \lineHList ->
-        let (hBoxElems, _) = H.Inter.B.List.H.setList lineHList hSize
-         in H.Inter.B.Box.Box {contents = hBoxElems, boxWidth = hSize, boxHeight, boxDepth}
+       in H.Inter.B.Box.Box {contents = hBoxElems, boxWidth = hSize, boxHeight, boxDepth}

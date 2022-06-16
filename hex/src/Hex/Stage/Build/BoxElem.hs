@@ -64,9 +64,9 @@ data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: Q.Length}
 
 fmtBoxDimens :: Fmt (Box a)
 fmtBoxDimens =
-  let fmtWidth = fmtViewed #boxWidth Q.fmtLengthMagnitude
-      fmtHeight = fmtViewed #boxHeight Q.fmtLengthMagnitude
-      fmtDepth = fmtViewed #boxDepth Q.fmtLengthMagnitude
+  let fmtWidth = fmtViewed #boxWidth Q.fmtLengthWithUnit
+      fmtHeight = fmtViewed #boxHeight Q.fmtLengthWithUnit
+      fmtDepth = fmtViewed #boxDepth Q.fmtLengthWithUnit
    in F.squared $ F.fconst "⇿" <> fmtWidth <> F.fconst "↥" <> fmtHeight <> F.fconst "↧" <> fmtDepth
 
 -- Element constituents.
