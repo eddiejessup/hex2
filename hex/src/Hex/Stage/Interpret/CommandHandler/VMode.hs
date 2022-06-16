@@ -3,7 +3,6 @@ module Hex.Stage.Interpret.CommandHandler.VMode where
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Build.Horizontal.Paragraph.Break qualified as H.Inter.B.List.H.Para
 import Hex.Stage.Build.Horizontal.Set qualified as H.Inter.B.List.H
@@ -120,10 +119,10 @@ setAndBreakHListToHBoxes hList = do
 
   pure $
     lineHLists <&> \lineHList ->
-      let
-        (hBoxElems, _) = H.Inter.B.List.H.setList lineHList hSize
-        -- TODO: Get these.
-        boxHeight = Q.pt 20
-        boxDepth = Q.pt 0
-
-       in H.Inter.B.Box.Box {contents = hBoxElems, boxWidth = hSize, boxHeight, boxDepth}
+      let (hBoxElems, _) = H.Inter.B.List.H.setList lineHList hSize
+          -- TODO: Implement proper interline glue.
+          boxHeight = H.Inter.B.Box.hBoxNaturalHeight hBoxElems
+          boxDepth = H.Inter.B.Box.hBoxNaturalDepth hBoxElems
+          -- TODO: Is this correct?
+          boxWidth = hSize
+       in H.Inter.B.Box.Box {contents = hBoxElems, boxWidth, boxHeight, boxDepth}

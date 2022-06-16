@@ -13,6 +13,60 @@ data HBoxElem
   | HBoxHBaseElem HBaseElem
   deriving stock (Show, Generic)
 
+hBoxElemNaturalWidth :: HBoxElem -> Q.Length
+hBoxElemNaturalWidth = \case
+  HVBoxElem vBoxElem -> case vBoxElem of
+    VBoxBaseElem baseElem -> case baseElem of
+      ElemBox box ->
+        box.boxWidth
+      ElemFontDefinition _fontDefinition ->
+        Q.zeroLength
+      ElemFontSelection _fontSelection ->
+        Q.zeroLength
+      ElemKern kern ->
+        kern.unKern
+    BoxGlue setGlue ->
+      setGlue.sgDimen
+  HBoxHBaseElem hBaseElem -> case hBaseElem of
+    ElemCharacter charBox ->
+      charBox.unCharacter.boxWidth
+
+hBoxElemNaturalDepth :: HBoxElem -> Q.Length
+hBoxElemNaturalDepth = \case
+  HVBoxElem vBoxElem -> case vBoxElem of
+    VBoxBaseElem baseElem -> case baseElem of
+      ElemBox box ->
+        box.boxDepth
+      ElemFontDefinition _fontDefinition ->
+        Q.zeroLength
+      ElemFontSelection _fontSelection ->
+        Q.zeroLength
+      ElemKern _kern ->
+        Q.zeroLength
+    BoxGlue _setGlue ->
+      Q.zeroLength
+  HBoxHBaseElem hBaseElem -> case hBaseElem of
+    ElemCharacter charBox ->
+      charBox.unCharacter.boxDepth
+
+hBoxElemNaturalHeight :: HBoxElem -> Q.Length
+hBoxElemNaturalHeight = \case
+  HVBoxElem vBoxElem -> case vBoxElem of
+    VBoxBaseElem baseElem -> case baseElem of
+      ElemBox box ->
+        box.boxHeight
+      ElemFontDefinition _fontDefinition ->
+        Q.zeroLength
+      ElemFontSelection _fontSelection ->
+        Q.zeroLength
+      ElemKern _kern ->
+        Q.zeroLength
+    BoxGlue _setGlue ->
+      Q.zeroLength
+  HBoxHBaseElem hBaseElem -> case hBaseElem of
+    ElemCharacter charBox ->
+      charBox.unCharacter.boxHeight
+
 fmtHBoxElem :: Fmt HBoxElem
 fmtHBoxElem = F.later $ \case
   HVBoxElem vBoxElem -> bformat fmtVBoxElemOneLine vBoxElem
@@ -95,8 +149,30 @@ fmtBaseBox = fmtBoxDimens <> fmtViewed #contents fmtBaseBoxContents
 newtype HBoxElemSeq = HBoxElemSeq {unHBoxElemSeq :: Seq HBoxElem}
   deriving stock (Show, Generic)
 
+hBoxElemTraversal :: Traversal' HBoxElemSeq HBoxElem
+hBoxElemTraversal = #unHBoxElemSeq % traversed
+
+hBoxNaturalDepth :: HBoxElemSeq -> Q.Length
+hBoxNaturalDepth hBox =
+  -- The empty HBox has zero depth.
+  fromMaybe Q.zeroLength $
+    maximumOf (hBoxElemTraversal % to hBoxElemNaturalDepth) hBox
+
+hBoxNaturalHeight :: HBoxElemSeq -> Q.Length
+hBoxNaturalHeight hBox =
+  -- The empty HBox has zero height.
+  fromMaybe Q.zeroLength $
+    maximumOf (hBoxElemTraversal % to hBoxElemNaturalHeight) hBox
+
+hBoxNaturalWidth :: HBoxElemSeq -> Q.Length
+hBoxNaturalWidth =
+  foldMapOf hBoxElemTraversal hBoxElemNaturalWidth
+
 newtype VBoxElemSeq = VBoxElemSeq {unVBoxElemSeq :: Seq VBoxElem}
   deriving stock (Show, Generic)
+
+vBoxElemTraversal :: Traversal' VBoxElemSeq VBoxElem
+vBoxElemTraversal = #unVBoxElemSeq % traversed
 
 newtype Rule = Rule {unRule :: Box ()}
   deriving stock (Show, Eq, Generic)
