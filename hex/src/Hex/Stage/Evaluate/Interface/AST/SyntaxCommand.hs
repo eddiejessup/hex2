@@ -21,7 +21,7 @@ data SyntaxCommand
   | RenderFontName Uneval.FontRef
   | RenderTokenMeaning Lex.LexToken
   | ParseControlSequence ByteString
-  | ExpandAfter Lex.LexToken
+  | ExpandAfter Lex.LexToken Lex.LexToken
   | NoExpand Lex.LexToken
   | GetMarkRegister ST.MarkRegister
   | OpenInputFile Q.HexFilePath

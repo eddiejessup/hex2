@@ -37,7 +37,7 @@ headToParseSyntaxCommand = \case
   ST.CSNameTok ->
     AST.ParseControlSequence <$> parseCSNameBody
   ST.ExpandAfterTok ->
-    AST.ExpandAfter <$> getUnexpandedToken
+    AST.ExpandAfter <$> getUnexpandedToken <*> getUnexpandedToken
   ST.NoExpandTok ->
     AST.NoExpand <$> getUnexpandedToken
   ST.MarkRegisterTok markRegister ->

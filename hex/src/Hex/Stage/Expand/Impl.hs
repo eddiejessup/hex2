@@ -142,29 +142,67 @@ getPrimitiveTokenImpl =
   getResolvedTokenImpl >>= \case
     Nothing -> pure Nothing
     Just (lt, rt) ->
-      case rt of
-        -- If we resolved to a primitive token, we are done, just return that.
-        PrimitiveToken pt ->
+      expandResolvedTokenImpl rt >>= \case
+        UntouchedPrimitiveToken pt ->
           pure $ Just (lt, pt)
-        -- Otherwise, the token is the head of a syntax-command.
-        SyntaxCommandHeadToken headTok -> do
-          -- Expand the rest of the command into lex-tokens.
-          lts <- parseEvalExpandSyntaxCommand headTok
-          -- Insert those resulting lex-tokens back into the input. (It's not this
-          -- function's concern, but recall they will be put on the
-          -- lex-token-buffer).
+        ExpandedToLexTokens lts -> do
           Lex.insertLexTokensToSource lts
-          -- Try to read a primitive token again. Note that the new lex-tokens
-          -- might themselves introduce a syntax command, so we might need to
-          -- expand again.
           getPrimitiveTokenImpl
+
+data ExpansionResult
+  = UntouchedPrimitiveToken PrimitiveToken
+  | ExpandedToLexTokens (Seq LexToken)
+
+expandResolvedTokenImpl ::
+  ( Res.MonadResolve m,
+    MonadError e m,
+    AsType ExpansionError e,
+    AsType Eval.EvaluationError e,
+    AsType Par.ParsingError e,
+    AsType Res.ResolutionError e,
+    Lex.MonadLexTokenSource m,
+    MonadPrimTokenSource m,
+    HSt.MonadHexState m,
+    MonadHexLog m
+  ) =>
+  ResolvedToken ->
+  m ExpansionResult
+expandResolvedTokenImpl = \case
+  -- If we resolved to a primitive token, we are done, just return that.
+  PrimitiveToken pt ->
+    pure $ UntouchedPrimitiveToken pt
+  -- Otherwise, the token is the head of a syntax-command.
+  SyntaxCommandHeadToken headTok -> do
+    -- Expand the rest of the command into lex-tokens.
+    ExpandedToLexTokens <$> parseEvalExpandSyntaxCommand headTok
+
+expandLexTokenImpl ::
+  ( Res.MonadResolve m,
+    MonadError e m,
+    AsType ExpansionError e,
+    AsType Eval.EvaluationError e,
+    AsType Par.ParsingError e,
+    AsType Res.ResolutionError e,
+    Lex.MonadLexTokenSource m,
+    MonadPrimTokenSource m,
+    HSt.MonadHexState m,
+    MonadHexLog m
+  ) =>
+  LexToken ->
+  m ExpansionResult
+expandLexTokenImpl lt =
+  Res.resolveLexToken lt >>= \case
+    Left resolveErr -> throwError $ injectTyped resolveErr
+    Right rt -> expandResolvedTokenImpl rt
 
 parseEvalExpandSyntaxCommand ::
   ( MonadError e m,
     AsType ExpansionError e,
     AsType Par.ParsingError e,
     AsType Eval.EvaluationError e,
+    AsType Res.ResolutionError e,
     HSt.MonadHexState m,
+    Res.MonadResolve m,
     MonadPrimTokenSource m,
     Lex.MonadLexTokenSource m,
     MonadHexLog m
@@ -182,8 +220,14 @@ parseEvalExpandSyntaxCommand headTok = do
 expandSyntaxCommand ::
   ( MonadError e m,
     AsType ExpansionError e,
+    AsType Eval.EvaluationError e,
+    AsType Par.ParsingError e,
+    AsType Res.ResolutionError e,
+    Res.MonadResolve m,
+    Lex.MonadLexTokenSource m,
     MonadPrimTokenSource m,
-    HSt.MonadHexState m
+    HSt.MonadHexState m,
+    MonadHexLog m
   ) =>
   E.SyntaxCommand ->
   m (Seq LexToken)
@@ -213,11 +257,13 @@ expandSyntaxCommand = \case
   E.ParseControlSequence _bytes -> do
     notImplemented "ParseControlSequence"
   -- singleton <$> expandCSName a
-  E.ExpandAfter _lt -> do
-    notImplemented "ExpandAfter"
-  -- (_, postArgLTs) <- takeAndExpandResolvedToken
-  -- Prepend the unexpanded token.
-  -- pure (argLT <| postArgLTs)
+  E.ExpandAfter noExpandLexToken toExpandLexToken -> do
+    expandedLexTokens <-
+      expandLexTokenImpl toExpandLexToken <&> \case
+        UntouchedPrimitiveToken _ -> pure toExpandLexToken
+        ExpandedToLexTokens lts -> lts
+    -- Prepend the unexpanded token.
+    pure (noExpandLexToken <| expandedLexTokens)
   E.NoExpand _lt ->
     notImplemented "NoExpand"
   E.GetMarkRegister _ ->

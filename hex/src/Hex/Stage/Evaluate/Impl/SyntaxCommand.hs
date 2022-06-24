@@ -36,8 +36,8 @@ evalSyntaxCommand = \case
     pure $ E.RenderTokenMeaning lexToken
   P.ParseControlSequence bytes ->
     pure $ E.ParseControlSequence bytes
-  P.ExpandAfter lexToken ->
-    pure $ E.ExpandAfter lexToken
+  P.ExpandAfter noExpandLexToken toExpandLexToken ->
+    pure $ E.ExpandAfter noExpandLexToken toExpandLexToken
   P.NoExpand lexToken ->
     pure $ E.NoExpand lexToken
   P.GetMarkRegister markRegister ->
