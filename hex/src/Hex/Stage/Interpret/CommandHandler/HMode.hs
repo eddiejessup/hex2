@@ -50,18 +50,15 @@ handleCommandInHMode oldSrc modeCtx = \case
     Eval.AddHGlue g -> do
       Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue g
       pure ContinueHMode
-    -- Eval.HModeCommand (Eval.AddCharacter c) -> do
-    --   evalChar <- H.Inter.Eval.evalASTChar c
-    --   charBox <- lift $ charAsBox evalChar
-    --   Build.addHListElement $ H.Inter.B.List.HListHBaseElem $ H.Inter.B.Box.ElemCharacter charBox
-    --   pure ContinueHMode
+    Eval.AddCharacter c -> do
+      charBox <- charAsBox c
+      Build.addHListElement $ H.Inter.B.List.HListHBaseElem $ H.Inter.B.Box.ElemCharacter charBox
+      pure ContinueHMode
     Eval.AddHRule rule -> do
       Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
       pure ContinueHMode
     Eval.AddControlSpace ->
       notImplemented "AddControlSpace"
-    Eval.AddCharacter _charCodeRef ->
-      notImplemented "AddCharacter"
     Eval.AddAccentedCharacter _n _assignments _mayCharCodeRef ->
       notImplemented "AddAccentedCharacter"
     Eval.AddItalicCorrection ->

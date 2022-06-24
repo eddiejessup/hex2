@@ -265,10 +265,9 @@ handleModeIndependentCommand = \case
                     HSt.scaleParameterValue param scaleDirection scaleVal scope
                   HSt.Var.RegisterVar registerLoc ->
                     HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
-      --   Eval.SelectFont fNr ->
-      --     do
-      --       selectFont fNr scope
-      --       Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
+      Eval.SelectFont fNr -> do
+        HSt.selectFont fNr scope
+        Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
       Eval.SetFamilyMember familyMember fontNumber ->
         HSt.setFamilyMemberFont familyMember fontNumber scope
       -- Start a new level of grouping. Enter inner mode.

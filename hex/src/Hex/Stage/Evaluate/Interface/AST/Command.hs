@@ -96,7 +96,7 @@ data ModeIndependentCommand
 
 data HModeCommand
   = AddControlSpace
-  | AddCharacter Uneval.CharCodeRef
+  | AddCharacter Code.CharCode
   | AddAccentedCharacter Uneval.HexInt [Assignment] (Maybe Uneval.CharCodeRef)
   | AddItalicCorrection
   | AddDiscretionaryText Uneval.DiscretionaryText

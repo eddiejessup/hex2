@@ -34,7 +34,7 @@ evalVModeCommand = pure
 evalHModeCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.HModeCommand -> m E.HModeCommand
 evalHModeCommand = \case
   P.AddControlSpace -> pure E.AddControlSpace
-  P.AddCharacter charCodeRef -> pure $ E.AddCharacter charCodeRef
+  P.AddCharacter charCodeRef -> E.AddCharacter <$> evalCharCodeRef charCodeRef
   P.AddAccentedCharacter n assignments mayCharCodeRef -> do
     -- TODO: Can we do this? Do we need to actually execute the assignments in
     -- order? The previous assignment might affect a later assignment.
@@ -67,6 +67,12 @@ evalModeIndepCmd = \case
   P.AddBox boxPlacement box -> pure $ E.AddBox boxPlacement box
   P.ChangeScope sign localStructureTrigger -> pure $ E.ChangeScope sign localStructureTrigger
   P.DebugShowState -> pure E.DebugShowState
+
+evalCharCodeRef :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.CharCodeRef -> m Code.CharCode
+evalCharCodeRef = \case
+  P.CharRef charCode -> pure charCode
+  P.CharTokenRef n -> Eval.noteRange @Code.CharCode n
+  P.CharCodeNrRef charCodeInt -> Eval.evalCharCodeInt charCodeInt
 
 evalAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Assignment -> m E.Assignment
 evalAssignment P.Assignment {body, scope} =
