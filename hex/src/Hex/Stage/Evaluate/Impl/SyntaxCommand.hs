@@ -34,8 +34,8 @@ evalSyntaxCommand = \case
     pure $ E.RenderFontName fontRef
   P.RenderTokenMeaning lexToken ->
     pure $ E.RenderTokenMeaning lexToken
-  P.ParseControlSequence bytes ->
-    pure $ E.ParseControlSequence bytes
+  P.ParseControlSequence cs ->
+    pure $ E.ParseControlSequence cs
   P.ExpandAfter noExpandLexToken toExpandLexToken ->
     pure $ E.ExpandAfter noExpandLexToken toExpandLexToken
   P.NoExpand lexToken ->

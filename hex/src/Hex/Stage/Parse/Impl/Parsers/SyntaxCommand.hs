@@ -1,9 +1,13 @@
 module Hex.Stage.Parse.Impl.Parsers.SyntaxCommand where
 
+import Control.Monad.Combinators qualified as PC
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
+import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Stream qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
@@ -51,5 +55,12 @@ headToParseSyntaxCommand = \case
   ST.ChangeCaseTok vDirection ->
     AST.ChangeCase vDirection <$> (Par.parseInhibitedGeneralText Par.ExpectingBeginGroup)
 
-parseCSNameBody :: m ByteString
-parseCSNameBody = notImplemented "parseCSNameBody"
+parseCSNameBody :: MonadPrimTokenParse m => m Lex.ControlSequence
+parseCSNameBody = do
+  controlSequenceCodes <- PC.manyTill getCharCode (Par.satisfyEquals PT.EndCSNameTok)
+  pure $ Lex.mkControlSequence controlSequenceCodes
+  where
+    getCharCode =
+      Par.getExpandedLexToken >>= \case
+        lt@(Lex.ControlSequenceLexToken _) -> parseError $ Par.SawUnexpectedLexToken $ Par.UnexpectedLexToken {saw = lt, expected = "Character token"}
+        Lex.CharCatLexToken lexCharCat -> pure $ lexCharCat.lexCCChar

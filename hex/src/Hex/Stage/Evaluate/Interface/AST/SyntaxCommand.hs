@@ -20,7 +20,7 @@ data SyntaxCommand
   | RenderJobName
   | RenderFontName Uneval.FontRef
   | RenderTokenMeaning Lex.LexToken
-  | ParseControlSequence ByteString
+  | ParseControlSequence Lex.ControlSequence
   | ExpandAfter Lex.LexToken Lex.LexToken
   | NoExpand Lex.LexToken
   | GetMarkRegister ST.MarkRegister

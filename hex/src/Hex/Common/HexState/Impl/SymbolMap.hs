@@ -80,7 +80,7 @@ initialSymbolMap =
       (_cs "uppercase", syntaxTok $ ChangeCaseTok Q.Upward),
       (_cs "lowercase", syntaxTok $ ChangeCaseTok Q.Downward),
       -- Arguments of syntax commands.
-      (_cs "endcsname", primTok $ SyntaxCommandArg EndCSNameTok),
+      (_cs "endcsname", primTok EndCSNameTok),
       -- Nothing special.
       (_cs "relax", primTok RelaxTok),
       (_cs "begingroup", primTok $ ChangeScopeCSTok Q.Positive),

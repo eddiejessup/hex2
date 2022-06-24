@@ -2,13 +2,17 @@
 
 module Hex.Stage.Expand.Impl where
 
+import Data.Sequence qualified as Seq
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
+import Hex.Common.HexState.Interface.Resolve qualified as HSt.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Impl qualified as Par
@@ -254,8 +258,12 @@ expandSyntaxCommand = \case
     notImplemented "RenderFontName"
   E.RenderTokenMeaning _lt ->
     notImplemented "RenderTokenMeaning"
-  E.ParseControlSequence _bytes -> do
-    notImplemented "ParseControlSequence"
+  E.ParseControlSequence cs -> do
+    let controlSymbol = HSt.Res.ControlSequenceSymbol cs
+    HSt.resolveSymbol controlSymbol >>= \case
+      Just _ -> pure ()
+      Nothing -> HSt.setSymbol controlSymbol (PrimitiveToken PT.RelaxTok) HSt.Grouped.Local
+    pure $ Seq.singleton $ Lex.ControlSequenceLexToken cs
   -- singleton <$> expandCSName a
   E.ExpandAfter noExpandLexToken toExpandLexToken -> do
     expandedLexTokens <-

@@ -31,6 +31,9 @@ skipOptional getTok = void . optional . satisfyIf getTok
 skipSatisfied :: MonadPlus m => m t -> (t -> Bool) -> m ()
 skipSatisfied getTok = void . satisfyIf getTok
 
+satisfyEquals :: MonadPrimTokenParse m => PrimitiveToken -> m ()
+satisfyEquals t = skipSatisfied Par.getExpandedPrimitiveToken (== t)
+
 satisfyLexEquals :: MonadPrimTokenParse m => ExpansionMode -> Lex.LexToken -> m ()
 satisfyLexEquals mode t = skipSatisfied (getLexTokenInMode mode) (== t)
 

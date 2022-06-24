@@ -64,10 +64,6 @@ data ModedCommandPrimitiveToken
   | RuleTok -- \hrule, \vrule
   deriving stock (Show, Eq, Generic)
 
-data SyntaxCommandArg
-  = EndCSNameTok -- \endcsname
-  deriving stock (Show, Eq, Generic)
-
 data CharryQuantityType
   = CharQuantity -- \chardef
   | MathCharQuantity -- \mathchardef
@@ -143,7 +139,7 @@ data VBoxAlignType
   deriving stock (Show, Eq, Generic)
 
 data PrimitiveToken
-  = SyntaxCommandArg SyntaxCommandArg
+  = EndCSNameTok -- \endcsname
   | -- Starters of commands.
     RelaxTok -- \relax
   | ChangeScopeCSTok Q.Sign
