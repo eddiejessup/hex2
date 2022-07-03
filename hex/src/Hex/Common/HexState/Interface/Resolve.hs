@@ -26,7 +26,59 @@ data ResolvedToken
 
 fmtResolvedToken :: Fmt ResolvedToken
 fmtResolvedToken = F.later $ \case
-  ExpansionCommandHeadToken st -> F.bformat F.shown st
+  ExpansionCommandHeadToken st -> F.bformat fmtExpansionCommandHeadTokenType st
   PrimitiveToken pt -> F.bformat fmtPrimitiveToken pt
+
+fmtExpansionCommandHeadTokenType :: Fmt ExpansionCommandHeadToken
+fmtExpansionCommandHeadTokenType = F.later $ \case
+  MacroTok _macroDefinition ->
+    "CallMacro"
+  ConditionTok (ConditionHeadTok conditionHeadTok) -> case conditionHeadTok of
+    IfIntPairTestTok -> "IfIntPairTest"
+    IfLengthPairTestTok -> "IfLengthPairTest"
+    IfIntOddTok -> "IfIntOdd"
+    IfInModeTok _modeAttribute ->
+      "IfInMode"
+    IfTokenAttributesEqualTok _tokenAttribute ->
+      "IfTokenAttributesEqual"
+    IfTokensEqualTok -> "IfTokensEqual"
+    IfBoxRegisterIsTok _boxRegisterAttribute ->
+      "IfBoxRegisterIs"
+    IfInputEndedTok -> "IfInputEnded"
+    IfConstTok True -> "IfTrue"
+    IfConstTok False -> "IfFalse"
+    CaseTok -> "CaseTok"
+  ConditionTok (ConditionBodyTok conditionBodyTok) -> case conditionBodyTok of
+    Else -> "Else"
+    Or -> "Or"
+    EndIf -> "EndIf"
+  NumberTok ->
+    "Number"
+  RomanNumeralTok ->
+    "RomanNumeral"
+  StringTok ->
+    "String"
+  JobNameTok ->
+    "JobName"
+  FontNameTok ->
+    "FontName"
+  MeaningTok ->
+    "Meaning"
+  CSNameTok ->
+    "CSName"
+  ExpandAfterTok ->
+    "ExpandAfter"
+  NoExpandTok ->
+    "NoExpand"
+  MarkRegisterTok _markRegister ->
+    "MarkRegister"
+  InputTok ->
+    "Input"
+  EndInputTok ->
+    "EndInput"
+  TheTok ->
+    "The"
+  ChangeCaseTok vDirection ->
+    "ChangeCase" <> F.bformat F.shown vDirection
 
 type SymbolMap = Map ControlSymbol ResolvedToken
