@@ -1,12 +1,12 @@
-module Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.Condition where
+module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.Condition where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getExpandedLexToken)
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
-import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
+import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
 parseRelationExpanding :: MonadPrimTokenParse m => m Ordering

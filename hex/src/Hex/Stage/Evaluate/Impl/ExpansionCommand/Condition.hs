@@ -1,15 +1,15 @@
-module Hex.Stage.Evaluate.Impl.SyntaxCommand.Condition where
+module Hex.Stage.Evaluate.Impl.ExpansionCommand.Condition where
 
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
-import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as E
+import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as E
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as P
+import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as P
 import Hexlude
 
 evalConditionHead :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ConditionHead -> m E.ConditionOutcome

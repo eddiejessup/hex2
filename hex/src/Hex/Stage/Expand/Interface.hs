@@ -3,9 +3,9 @@ module Hex.Stage.Expand.Interface where
 import Formatting qualified as F
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
+import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
 data ExpansionError

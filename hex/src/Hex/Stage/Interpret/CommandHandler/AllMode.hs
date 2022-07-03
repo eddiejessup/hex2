@@ -9,7 +9,7 @@ import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.BoxElem qualified as Box
@@ -130,7 +130,7 @@ handleModeIndependentCommand = \case
       Eval.DefineControlSequence cs tgt -> do
         maySymbolTarget <- case tgt of
           Eval.MacroTarget macroDefinition -> do
-            pure $ Just $ Res.SyntaxCommandHeadToken $ ST.MacroTok macroDefinition
+            pure $ Just $ Res.ExpansionCommandHeadToken $ ST.MacroTok macroDefinition
           Eval.LetTarget lexTokenTargetValue ->
             case lexTokenTargetValue of
               -- If the target of the \let is a char-cat pair, then resolve the

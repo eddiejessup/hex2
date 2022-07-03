@@ -1,8 +1,8 @@
-module Hex.Stage.Parse.Impl.Parsers.SyntaxCommand where
+module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand where
 
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -11,13 +11,13 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Stream qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
-import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.Condition qualified as Par
-import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.MacroCall qualified as Par
-import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
+import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.Condition qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.MacroCall qualified as Par
+import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
-headToParseSyntaxCommand :: MonadPrimTokenParse m => ST.SyntaxCommandHeadToken -> m AST.SyntaxCommand
-headToParseSyntaxCommand = \case
+headToParseExpansionCommand :: MonadPrimTokenParse m => ST.ExpansionCommandHeadToken -> m AST.ExpansionCommand
+headToParseExpansionCommand = \case
   ST.MacroTok macroDefinition -> do
     args <- Par.parseMacroArguments macroDefinition.parameterSpecification
     pure $ AST.CallMacro macroDefinition args

@@ -1,9 +1,9 @@
-module Hex.Stage.Parse.Interface.AST.SyntaxCommand where
+module Hex.Stage.Parse.Interface.AST.ExpansionCommand where
 
 import Data.Sequence qualified as Seq
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as PT.Syn
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as PT.Syn
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -37,7 +37,7 @@ lookupArg p argList =
   let argIx = fromEnum p.unParameterNumber - 1
    in (argList.unMacroArgumentList) Seq.!? argIx
 
-data SyntaxCommand
+data ExpansionCommand
   = CallMacro ST.MacroDefinition MacroArgumentList
   | ApplyConditionHead ConditionHead
   | ApplyConditionBody ST.ConditionBodyTok

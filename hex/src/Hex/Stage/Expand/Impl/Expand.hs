@@ -4,16 +4,16 @@ import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
-import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as AST
+import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as AST
 import Hex.Stage.Expand.Interface (ExpansionError)
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
-import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as Uneval
+import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as Uneval
 import Hexlude
 
 substituteArgsIntoMacroBody ::
@@ -107,17 +107,17 @@ skipUpToCaseBlock tgtBlock getNextToken = go Q.zeroInt 1
           pure $ Just Expand.InSelectedOrCaseBlock
       | otherwise =
           getNextToken >>= \case
-            Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
+            Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
               go currentCaseBlock $ succ depth
-            Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf))
+            Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf))
               | depth == 1 ->
                   pure Nothing
               | otherwise ->
                   go currentCaseBlock $ pred depth
-            Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
+            Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
               | depth == 1 ->
                   pure $ Just Expand.InSelectedElseCaseBlock
-            Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Or))
+            Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Or))
               | depth == 1 ->
                   go (succ currentCaseBlock) depth
             _ ->
@@ -187,14 +187,14 @@ skipUntilElseOrEndif blockTarget getNextToken = do
     parseNext depth =
       getNextToken <&> \case
         -- If we see an 'if', increment the condition depth.
-        Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
+        Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
           (Nothing, GT)
         -- If we see an 'end-if', decrement the condition depth.
-        Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf)) ->
+        Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf)) ->
           (Nothing, LT)
         -- If we see an 'else' and are at top condition depth, and our
         -- target block is an else block, we are done skipping tokens.
-        Res.SyntaxCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
+        Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
           | depth == 1,
             ElseOrEndif <- blockTarget ->
               (Just Expand.InSelectedElseIfBlock, LT)

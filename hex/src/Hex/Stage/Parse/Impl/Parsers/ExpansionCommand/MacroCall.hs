@@ -1,16 +1,16 @@
-module Hex.Stage.Parse.Impl.Parsers.SyntaxCommand.MacroCall where
+module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.MacroCall where
 
 import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.LT
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
-import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as AST
+import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
 -- During a macro call, we must parse the provided arguments.

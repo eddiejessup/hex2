@@ -13,21 +13,21 @@ import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as HSt.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Impl qualified as Par
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
-import Hex.Stage.Evaluate.Impl.SyntaxCommand qualified as Eval
-import Hex.Stage.Evaluate.Interface.AST.SyntaxCommand qualified as E
+import Hex.Stage.Evaluate.Impl.ExpansionCommand qualified as Eval
+import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as E
 import Hex.Stage.Expand.Impl.Expand qualified as Expand
 import Hex.Stage.Expand.Interface (ExpansionError (..), MonadPrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Parse.Impl.Parsers.SyntaxCommand qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
 
@@ -122,9 +122,9 @@ getResolvedTokenImpl =
 -- necessary.
 -- Note that the lex-token is just returned for debugging really.
 -- It is passed through unchanged from the lex-token-source.
--- In order to expand syntax-commands into primitive tokens,
+-- In order to expand expansion-commands into primitive tokens,
 -- we need to be able to parse primitive-token streams.
--- This might seem circular, and it is! But because syntax-commands
+-- This might seem circular, and it is! But because expansion-commands
 -- can need to be expanded recursively, this is needed.
 -- This is why we require `MonadPrimTokenSource m` in order to implement this
 -- very interface.
@@ -174,10 +174,10 @@ expandResolvedTokenImpl = \case
   -- If we resolved to a primitive token, we are done, just return that.
   PrimitiveToken pt ->
     pure $ UntouchedPrimitiveToken pt
-  -- Otherwise, the token is the head of a syntax-command.
-  SyntaxCommandHeadToken headTok -> do
+  -- Otherwise, the token is the head of an expansion-command.
+  ExpansionCommandHeadToken headTok -> do
     -- Expand the rest of the command into lex-tokens.
-    ExpandedToLexTokens <$> parseEvalExpandSyntaxCommand headTok
+    ExpandedToLexTokens <$> parseEvalExpandExpansionCommand headTok
 
 expandLexTokenImpl ::
   ( Res.MonadResolve m,
@@ -198,7 +198,7 @@ expandLexTokenImpl lt =
     Left resolveErr -> throwError $ injectTyped resolveErr
     Right rt -> expandResolvedTokenImpl rt
 
-parseEvalExpandSyntaxCommand ::
+parseEvalExpandExpansionCommand ::
   ( MonadError e m,
     AsType ExpansionError e,
     AsType Par.ParsingError e,
@@ -210,17 +210,17 @@ parseEvalExpandSyntaxCommand ::
     Lex.MonadLexTokenSource m,
     MonadHexLog m
   ) =>
-  ST.SyntaxCommandHeadToken ->
+  ST.ExpansionCommandHeadToken ->
   m (Seq LexToken)
-parseEvalExpandSyntaxCommand headTok = do
-  syntaxCommand <-
-    Par.runParseT (Par.headToParseSyntaxCommand headTok) >>= \case
+parseEvalExpandExpansionCommand headTok = do
+  expansionCommand <-
+    Par.runParseT (Par.headToParseExpansionCommand headTok) >>= \case
       (Left e, _) -> throwError $ injectTyped e
       (Right v, _) -> pure v
-  eSyntaxCommand <- Eval.evalSyntaxCommand syntaxCommand
-  expandSyntaxCommand eSyntaxCommand
+  eExpansionCommand <- Eval.evalExpansionCommand expansionCommand
+  expandExpansionCommand eExpansionCommand
 
-expandSyntaxCommand ::
+expandExpansionCommand ::
   ( MonadError e m,
     AsType ExpansionError e,
     AsType Eval.EvaluationError e,
@@ -232,9 +232,9 @@ expandSyntaxCommand ::
     HSt.MonadHexState m,
     MonadHexLog m
   ) =>
-  E.SyntaxCommand ->
+  E.ExpansionCommand ->
   m (Seq LexToken)
-expandSyntaxCommand = \case
+expandExpansionCommand = \case
   E.CallMacro macroDefinition macroArgumentList -> do
     Expand.substituteArgsIntoMacroBody macroDefinition.replacementText macroArgumentList
   E.ApplyConditionHead conditionOutcome -> do

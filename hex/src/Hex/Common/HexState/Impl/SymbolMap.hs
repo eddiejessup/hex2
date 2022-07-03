@@ -10,7 +10,7 @@ import Hex.Common.HexState.Interface.Register
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.ListExtractor.Interface
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -22,14 +22,14 @@ _cs =
     . Lex.mkControlSequence
     . fmap Code.unsafeCodeFromChar
 
-syntaxTok :: SyntaxCommandHeadToken -> ResolvedToken
-syntaxTok = SyntaxCommandHeadToken
+expandHeadTok :: ExpansionCommandHeadToken -> ResolvedToken
+expandHeadTok = ExpansionCommandHeadToken
 
 primTok :: PrimitiveToken -> ResolvedToken
 primTok = PrimitiveToken
 
 condTok :: ConditionHeadTok -> ResolvedToken
-condTok e = syntaxTok $ ConditionTok $ ConditionHeadTok e
+condTok e = expandHeadTok $ ConditionTok $ ConditionHeadTok e
 
 vModeTok :: ModedCommandPrimitiveToken -> ResolvedToken
 vModeTok e = primTok $ ModedCommand Q.Vertical e
@@ -58,28 +58,28 @@ initialSymbolMap =
       (_cs "iffalse", condTok $ IfConstTok False),
       (_cs "ifcase", condTok CaseTok),
       -- Tokens used in the body of condition blocks.
-      (_cs "else", syntaxTok $ ConditionTok $ ConditionBodyTok Else),
-      (_cs "or", syntaxTok $ ConditionTok $ ConditionBodyTok Or),
-      (_cs "fi", syntaxTok $ ConditionTok $ ConditionBodyTok EndIf),
-      (_cs "number", syntaxTok NumberTok),
-      (_cs "romannumeral", syntaxTok RomanNumeralTok),
-      (_cs "string", syntaxTok StringTok),
-      (_cs "jobname", syntaxTok JobNameTok),
-      (_cs "fontname", syntaxTok FontNameTok),
-      (_cs "meaning", syntaxTok MeaningTok),
-      (_cs "csname", syntaxTok CSNameTok),
-      (_cs "expandafter", syntaxTok ExpandAfterTok),
-      (_cs "noexpand", syntaxTok NoExpandTok),
-      (_cs "topmark", syntaxTok $ MarkRegisterTok TopMark),
-      (_cs "firstmark", syntaxTok $ MarkRegisterTok FirstMark),
-      (_cs "botmark", syntaxTok $ MarkRegisterTok BottomMark),
-      (_cs "splitfirstmark", syntaxTok $ MarkRegisterTok SplitFirstMark),
-      (_cs "input", syntaxTok InputTok),
-      (_cs "endinput", syntaxTok EndInputTok),
-      (_cs "the", syntaxTok TheTok),
-      (_cs "uppercase", syntaxTok $ ChangeCaseTok Q.Upward),
-      (_cs "lowercase", syntaxTok $ ChangeCaseTok Q.Downward),
-      -- Arguments of syntax commands.
+      (_cs "else", expandHeadTok $ ConditionTok $ ConditionBodyTok Else),
+      (_cs "or", expandHeadTok $ ConditionTok $ ConditionBodyTok Or),
+      (_cs "fi", expandHeadTok $ ConditionTok $ ConditionBodyTok EndIf),
+      (_cs "number", expandHeadTok NumberTok),
+      (_cs "romannumeral", expandHeadTok RomanNumeralTok),
+      (_cs "string", expandHeadTok StringTok),
+      (_cs "jobname", expandHeadTok JobNameTok),
+      (_cs "fontname", expandHeadTok FontNameTok),
+      (_cs "meaning", expandHeadTok MeaningTok),
+      (_cs "csname", expandHeadTok CSNameTok),
+      (_cs "expandafter", expandHeadTok ExpandAfterTok),
+      (_cs "noexpand", expandHeadTok NoExpandTok),
+      (_cs "topmark", expandHeadTok $ MarkRegisterTok TopMark),
+      (_cs "firstmark", expandHeadTok $ MarkRegisterTok FirstMark),
+      (_cs "botmark", expandHeadTok $ MarkRegisterTok BottomMark),
+      (_cs "splitfirstmark", expandHeadTok $ MarkRegisterTok SplitFirstMark),
+      (_cs "input", expandHeadTok InputTok),
+      (_cs "endinput", expandHeadTok EndInputTok),
+      (_cs "the", expandHeadTok TheTok),
+      (_cs "uppercase", expandHeadTok $ ChangeCaseTok Q.Upward),
+      (_cs "lowercase", expandHeadTok $ ChangeCaseTok Q.Downward),
+      -- Arguments of expansion-commands.
       (_cs "endcsname", primTok EndCSNameTok),
       -- Nothing special.
       (_cs "relax", primTok RelaxTok),

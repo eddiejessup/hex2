@@ -1,4 +1,4 @@
-module Hex.Common.HexState.Interface.Resolve.SyntaxToken where
+module Hex.Common.HexState.Interface.Resolve.ExpandableToken where
 
 import ASCII qualified
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
@@ -79,7 +79,7 @@ data ConditionBodyTok
   | EndIf -- \fi
   deriving stock (Show, Eq, Generic)
 
-data SyntaxCommandHeadToken
+data ExpansionCommandHeadToken
   = MacroTok MacroDefinition
   | ConditionTok ConditionTok
   | NumberTok -- \number

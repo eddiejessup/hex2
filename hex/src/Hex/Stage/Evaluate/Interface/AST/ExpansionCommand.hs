@@ -1,17 +1,17 @@
-module Hex.Stage.Evaluate.Interface.AST.SyntaxCommand where
+module Hex.Stage.Evaluate.Interface.AST.ExpansionCommand where
 
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as PT.Syn
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as PT.Syn
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
-import Hex.Stage.Parse.Interface.AST.SyntaxCommand qualified as Uneval
+import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as Uneval
 import Hexlude
 
-data SyntaxCommand
+data ExpansionCommand
   = CallMacro ST.MacroDefinition Uneval.MacroArgumentList
   | ApplyConditionHead ConditionOutcome
   | ApplyConditionBody ST.ConditionBodyTok

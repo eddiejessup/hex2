@@ -607,7 +607,7 @@
     \end
     \dump
 
-## Syntax ('expansion') commands
+## Expansion commands
 
 <macro>
 <conditional>
