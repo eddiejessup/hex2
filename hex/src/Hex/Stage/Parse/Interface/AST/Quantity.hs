@@ -217,7 +217,7 @@ data FontRef
 data FamilyMember = FamilyMember HSt.Font.FontRange HexInt
   deriving stock (Show, Eq, Generic)
 
-data BoxDimensionRef = BoxDimensionRef HexInt Q.BoxDim
+data BoxDimensionRef = BoxDimensionRef ExplicitRegisterLocation Q.BoxDim
   deriving stock (Show, Eq, Generic)
 
 data FontDimensionRef = FontDimensionRef HexInt FontRef

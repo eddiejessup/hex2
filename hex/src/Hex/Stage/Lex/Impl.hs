@@ -26,7 +26,7 @@ newtype MonadLexTokenSourceT m a = MonadLexTokenSourceT {unMonadLexTokenSourceT 
     )
 
 instance
-  ( Monad (MonadLexTokenSourceT m),
+  ( Monad m,
     MonadState st (MonadLexTokenSourceT m),
     HasType LexBuffer st,
     MonadError e (MonadLexTokenSourceT m),

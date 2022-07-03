@@ -58,8 +58,7 @@ getEndLineCharCode =
   Code.fromHexInt <$> HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.EndLineChar)
 
 sourceIsFinishedImpl ::
-  ( Monad m,
-    MonadState st m,
+  ( MonadState st m,
     HasType LoadedCharSource st
   ) =>
   m Bool
@@ -69,8 +68,7 @@ sourceIsFinishedImpl = do
     Cat.LoadedCharSource.OpenLoadedCharSource _ -> False
 
 endCurrentLineImpl ::
-  ( Monad m,
-    MonadState st m,
+  ( MonadState st m,
     HasType LoadedCharSource st,
     HSt.MonadHexState m
   ) =>
@@ -128,8 +126,7 @@ peekCharCatOnCurrentLineImpl =
         Just charCat
 
 extractCharCatFromSource ::
-  ( Monad m,
-    MonadState st m,
+  ( MonadState st m,
     HasType LoadedCharSource st,
     HSt.MonadHexState m,
     Log.MonadHexLog m
@@ -146,7 +143,7 @@ extractCharCatFromSource = do
       pure $ Just res
 
 instance
-  ( Monad (MonadCharCatSourceT m),
+  ( Monad m,
     MonadState st (MonadCharCatSourceT m),
     HasType LoadedCharSource st,
     HSt.MonadHexState (MonadCharCatSourceT m),

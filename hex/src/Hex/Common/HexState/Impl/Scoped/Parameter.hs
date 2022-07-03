@@ -13,7 +13,7 @@ setParameterValue = \case
   HSt.Param.LengthQuantParam p -> setScopedMapValue #lengthParameters p
   HSt.Param.GlueQuantParam p -> setScopedMapValue #glueParameters p
   HSt.Param.MathGlueQuantParam p -> setScopedMapValue #mathGlueParameters p
-  HSt.Param.TokenListQuantParam _p -> notImplemented "setParameterValue: TokenListQuantParam"
+  HSt.Param.TokenListQuantParam p -> setScopedMapValue #tokenListParameters p
 
 localParameterValue :: HSt.Param.QuantParam q -> GroupScopes -> HSt.Var.QuantVariableTarget q
 localParameterValue = \case
@@ -21,4 +21,4 @@ localParameterValue = \case
   HSt.Param.LengthQuantParam p -> localCompleteProperty (#lengthParameters % at' p)
   HSt.Param.GlueQuantParam p -> localCompleteProperty (#glueParameters % at' p)
   HSt.Param.MathGlueQuantParam p -> localCompleteProperty (#mathGlueParameters % at' p)
-  HSt.Param.TokenListQuantParam _p -> notImplemented "localCompleteProperty: TokenListQuantParam"
+  HSt.Param.TokenListQuantParam p -> localCompleteProperty (#tokenListParameters % at' p)

@@ -5,6 +5,7 @@ import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as HSt.GroupScopes
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.BoxElem qualified as Box
@@ -16,7 +17,7 @@ setQuantRegisterValue (HSt.Reg.QuantRegisterLocation regType loc) = case regType
   HSt.Reg.LengthQuantRegisterType -> HSt.GroupScopes.setScopedMapValue #lengthRegister loc
   HSt.Reg.GlueQuantRegisterType -> HSt.GroupScopes.setScopedMapValue #glueRegister loc
   HSt.Reg.MathGlueQuantRegisterType -> HSt.GroupScopes.setScopedMapValue #mathGlueRegister loc
-  HSt.Reg.TokenListQuantRegisterType -> notImplemented "setQuantRegisterValue: TokenListQuantRegisterType"
+  HSt.Reg.TokenListQuantRegisterType -> HSt.GroupScopes.setScopedMapValue #tokenListRegister loc
 
 localQuantRegisterValue :: HSt.Reg.QuantRegisterLocation q -> GroupScopes -> HSt.Var.QuantVariableTarget q
 localQuantRegisterValue (HSt.Reg.QuantRegisterLocation regType loc) = case regType of
@@ -24,7 +25,7 @@ localQuantRegisterValue (HSt.Reg.QuantRegisterLocation regType loc) = case regTy
   HSt.Reg.LengthQuantRegisterType -> fromMaybe Q.zeroLength . HSt.GroupScopes.localProperty (#lengthRegister % at' loc)
   HSt.Reg.GlueQuantRegisterType -> fromMaybe Q.zeroGlue . HSt.GroupScopes.localProperty (#glueRegister % at' loc)
   HSt.Reg.MathGlueQuantRegisterType -> fromMaybe Q.zeroMathGlue . HSt.GroupScopes.localProperty (#mathGlueRegister % at' loc)
-  HSt.Reg.TokenListQuantRegisterType -> notImplemented "setQuantRegisterValue: TokenListQuantRegisterType"
+  HSt.Reg.TokenListQuantRegisterType -> fromMaybe HSt.TL.emptyBalancedText . HSt.GroupScopes.localProperty (#tokenListRegister % at' loc)
 
 setBoxRegisterValue :: HSt.Reg.RegisterLocation -> Box.Box Box.BaseBoxContents -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
 setBoxRegisterValue = HSt.GroupScopes.setScopedMapValue #boxRegister

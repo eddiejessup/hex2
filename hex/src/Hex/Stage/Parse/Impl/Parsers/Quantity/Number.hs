@@ -197,7 +197,7 @@ headToParseFontDimensionRef = \case
 headToParseBoxDimensionRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.BoxDimensionRef
 headToParseBoxDimensionRef = \case
   PT.BoxDimensionTok dim -> do
-    boxNr <- parseInt
+    boxNr <- parseExplicitRegisterLocation
     pure $ AST.BoxDimensionRef boxNr dim
   _ ->
     parseFailure "headToParseBoxDimensionRef"

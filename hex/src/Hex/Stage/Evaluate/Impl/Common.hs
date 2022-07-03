@@ -3,7 +3,7 @@ module Hex.Stage.Evaluate.Impl.Common where
 import ASCII qualified
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.TokenList qualified as LT
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Lex.Interface.Extract qualified as PT
@@ -38,6 +38,6 @@ evalBalancedTextToText bt = do
 
 evalExpandedBalancedTextToText ::
   (MonadError e m, AsType EvaluationError e) =>
-  ST.ExpandedBalancedText ->
+  HSt.TL.ExpandedBalancedText ->
   m Text
 evalExpandedBalancedTextToText ebt = evalBalancedTextToText (ebt.unExpandedBalancedText)

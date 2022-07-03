@@ -40,7 +40,7 @@ execVListBuilderT initVList app = execStateT (unVListBuilderT app) initVList
 instance MonadTrans VListBuilderT where
   lift = VListBuilderT . lift
 
-instance (Monad m, HSt.MonadHexState m) => MonadHexListBuilder (VListBuilderT m) where
+instance (HSt.MonadHexState m) => MonadHexListBuilder (VListBuilderT m) where
   addVListElement = addVListElementImpl
 
 addVListElementImpl :: HSt.MonadHexState m => H.Inter.B.List.VListElem -> VListBuilderT m ()

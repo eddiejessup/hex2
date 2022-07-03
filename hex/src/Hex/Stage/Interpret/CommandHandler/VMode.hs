@@ -22,8 +22,7 @@ data VModeCommandResult
 
 handleCommandInMainVMode ::
   forall m e.
-  ( Monad m,
-    MonadHexLog m,
+  ( MonadHexLog m,
     HSt.MonadHexState m,
     MonadLexTokenSource m,
     MonadError e m,

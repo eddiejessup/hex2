@@ -4,6 +4,7 @@ import Data.Sequence qualified as Seq
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as PT.Syn
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command (InternalQuantity)
@@ -25,7 +26,7 @@ data IfConditionHead
 data ConditionHead = IfConditionHead IfConditionHead | CaseConditionHead HexInt
   deriving stock (Show, Eq, Generic)
 
-newtype MacroArgument = MacroArgument {unMacroArgument :: ST.InhibitedBalancedText}
+newtype MacroArgument = MacroArgument {unMacroArgument :: HSt.TL.InhibitedBalancedText}
   deriving stock (Show, Eq, Generic)
 
 newtype MacroArgumentList = MacroArgumentList {unMacroArgumentList :: Seq MacroArgument}
@@ -53,4 +54,4 @@ data SyntaxCommand
   | OpenInputFile Q.HexFilePath
   | EndInputFile
   | RenderInternalQuantity InternalQuantity
-  | ChangeCase Q.VDirection ST.InhibitedBalancedText
+  | ChangeCase Q.VDirection HSt.TL.InhibitedBalancedText

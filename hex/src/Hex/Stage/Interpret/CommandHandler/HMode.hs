@@ -22,8 +22,7 @@ data HModeCommandResult
   deriving stock (Show, Generic)
 
 handleCommandInHMode ::
-  ( Monad m,
-    HSt.MonadHexState m,
+  ( HSt.MonadHexState m,
     MonadLexTokenSource m,
     MonadError e m,
     AsType AllMode.InterpretError e,

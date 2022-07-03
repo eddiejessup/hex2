@@ -49,8 +49,7 @@ newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourc
     )
 
 instance
-  ( Monad m,
-    Res.MonadResolve (MonadPrimTokenSourceT m),
+  ( Res.MonadResolve (MonadPrimTokenSourceT m),
     MonadError e (MonadPrimTokenSourceT m),
     AsType ExpansionError e,
     AsType Res.ResolutionError e,

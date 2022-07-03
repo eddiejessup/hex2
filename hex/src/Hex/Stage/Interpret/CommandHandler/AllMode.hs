@@ -84,8 +84,7 @@ writeToOutput _ _ = pure ()
 -- liftIO $ hPutStrLn logHandle txtTxt
 
 handleModeIndependentCommand ::
-  ( Monad m,
-    HSt.MonadHexState m,
+  ( HSt.MonadHexState m,
     Lex.MonadLexTokenSource m,
     Log.MonadHexLog m,
     Build.MonadHexListBuilder m,
@@ -203,12 +202,12 @@ handleModeIndependentCommand = \case
                 HSt.setParameterValue mathGlueParam tgt scope
               HSt.Var.RegisterVar registerLoc ->
                 HSt.setQuantRegisterValue registerLoc tgt scope
-          Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment var _tgt) ->
+          Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
             case var of
-              HSt.Var.ParamVar _tokenListParam ->
-                notImplemented "TokenListVariableAssignment, parameter-variable"
-              HSt.Var.RegisterVar _registerLoc ->
-                notImplemented "TokenListVariableAssignment, register-variable"
+              HSt.Var.ParamVar tokenListParam ->
+                HSt.setParameterValue tokenListParam tgt scope
+              HSt.Var.RegisterVar registerLoc ->
+                HSt.setQuantRegisterValue registerLoc tgt scope
           Eval.SpecialIntParameterVariableAssignment param tgt ->
             HSt.setSpecialIntParameter param tgt
           Eval.SpecialLengthParameterVariableAssignment param tgt ->

@@ -11,6 +11,7 @@ import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.BoxElem (FontSpecification, Kern, Rule)
@@ -42,7 +43,7 @@ data Command
   | ShowLists
   | ShowTheInternalQuantity Uneval.InternalQuantity
   | ShipOut Uneval.Box
-  | AddMark ST.ExpandedBalancedText
+  | AddMark HSt.TL.ExpandedBalancedText
   | -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- then can 'migrate' out.
     AddInsertion Q.HexInt VModeMaterial
@@ -88,7 +89,7 @@ data ModeIndependentCommand
   | WriteMessage MessageWriteCommand
   | ModifyFileStream Uneval.FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
-  | DoSpecial ST.ExpandedBalancedText
+  | DoSpecial HSt.TL.ExpandedBalancedText
   | AddBox Uneval.BoxPlacement Uneval.Box
   | ChangeScope Q.Sign HSt.Group.ChangeGroupTrigger
   | DebugShowState
@@ -116,7 +117,7 @@ data StreamWriteCommand = StreamWriteCommand {streamNumber :: Q.HexInt, writeTex
 
 data WriteText
   = ImmediateWriteText Text
-  | DeferredWriteText ST.InhibitedBalancedText
+  | DeferredWriteText HSt.TL.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data AssignmentBody
@@ -131,8 +132,8 @@ data AssignmentBody
   | -- Global assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
   | SetFontSpecialChar E.FontSpecialCharRef Q.HexInt
-  | SetHyphenation ST.InhibitedBalancedText
-  | SetHyphenationPatterns ST.InhibitedBalancedText
+  | SetHyphenation HSt.TL.InhibitedBalancedText
+  | SetHyphenationPatterns HSt.TL.InhibitedBalancedText
   | SetBoxDimension Uneval.BoxDimensionRef Uneval.Length
   | SetInteractionMode PT.InteractionMode
   deriving stock (Show, Eq, Generic)

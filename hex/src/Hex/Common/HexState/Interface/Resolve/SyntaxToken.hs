@@ -2,18 +2,9 @@ module Hex.Common.HexState.Interface.Resolve.SyntaxToken where
 
 import ASCII qualified
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
-import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-
-newtype InhibitedBalancedText = InhibitedBalancedText {unInhibitedBalancedText :: HSt.TL.BalancedText}
-  deriving stock (Show, Generic)
-  deriving newtype (Eq, Semigroup, Monoid)
-
-newtype ExpandedBalancedText = ExpandedBalancedText {unExpandedBalancedText :: HSt.TL.BalancedText}
-  deriving stock (Show, Generic)
-  deriving newtype (Eq, Semigroup, Monoid)
 
 -- Like a balanced-text, except with a proof that it contains no braces.
 newtype ParameterText = ParameterText (Seq Lex.LexToken)

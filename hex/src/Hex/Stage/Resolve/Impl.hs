@@ -24,8 +24,7 @@ newtype MonadResolveT m a = MonadResolveT {unMonadResolveT :: m a}
     )
 
 instance
-  ( Monad (MonadResolveT m),
-    HSt.MonadHexState (MonadResolveT m)
+  ( Monad m, HSt.MonadHexState (MonadResolveT m)
   ) =>
   MonadResolve (MonadResolveT m)
   where

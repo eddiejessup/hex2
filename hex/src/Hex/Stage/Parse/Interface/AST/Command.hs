@@ -10,6 +10,7 @@ import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -22,7 +23,7 @@ data Command
   | ShowLists
   | ShowTheInternalQuantity InternalQuantity
   | ShipOut Box
-  | AddMark ST.ExpandedBalancedText
+  | AddMark HSt.TL.ExpandedBalancedText
   | -- -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- -- then can 'migrate' out.
     -- \| AddInsertion HexInt VModeMaterial
@@ -49,7 +50,7 @@ data ModeIndependentCommand
   | WriteMessage MessageWriteCommand
   | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
-  | DoSpecial ST.ExpandedBalancedText
+  | DoSpecial HSt.TL.ExpandedBalancedText
   | AddBox BoxPlacement Box
   | ChangeScope Q.Sign HSt.Grouped.ChangeGroupTrigger
   | DebugShowState
@@ -84,7 +85,7 @@ data StreamWriteCommand = StreamWriteCommand HexInt WriteText
 
 data MessageWriteCommand = MessageWriteCommand
   { messageDest :: PT.StandardOutputSource,
-    messageContents :: ST.ExpandedBalancedText
+    messageContents :: HSt.TL.ExpandedBalancedText
   }
   deriving stock (Show, Eq, Generic)
 
@@ -128,18 +129,18 @@ data AssignmentBody
   | SetFamilyMember FamilyMember FontRef
   | SetParShape HexInt [Length]
   | SetBoxRegister ExplicitRegisterLocation Box
-  | -- -- Global assignments.
+  | -- Global assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontSpecialChar FontSpecialCharRef HexInt
-  | SetHyphenation ST.InhibitedBalancedText
-  | SetHyphenationPatterns ST.InhibitedBalancedText
+  | SetHyphenation HSt.TL.InhibitedBalancedText
+  | SetHyphenationPatterns HSt.TL.InhibitedBalancedText
   | SetBoxDimension BoxDimensionRef Length
   | SetInteractionMode PT.InteractionMode
   deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
   = TokenListAssignmentVar (QuantVariableAST 'Q.TokenListQuantity)
-  | TokenListAssignmentText ST.InhibitedBalancedText
+  | TokenListAssignmentText HSt.TL.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data QuantVariableAssignment (q :: Q.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTargetAST q)
@@ -204,7 +205,7 @@ data BoxSpecification
 data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule Q.Axis Rule
   deriving stock (Show, Eq, Generic)
 
-data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: ST.ExpandedBalancedText}
+data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: HSt.TL.ExpandedBalancedText}
   deriving stock (Show, Eq, Generic)
 
 data FetchedBoxRef = FetchedBoxRef HexInt HSt.Register.BoxFetchMode
@@ -223,8 +224,8 @@ data InternalQuantity
   deriving stock (Show, Eq, Generic)
 
 data WriteText
-  = ImmediateWriteText ST.ExpandedBalancedText
-  | DeferredWriteText ST.InhibitedBalancedText
+  = ImmediateWriteText HSt.TL.ExpandedBalancedText
+  | DeferredWriteText HSt.TL.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data WritePolicy = Immediate | Deferred

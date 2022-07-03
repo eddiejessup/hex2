@@ -13,8 +13,7 @@ import Hexlude
 
 extractLexToken ::
   forall e m st.
-  ( Monad m,
-    MonadState st m,
+  ( MonadState st m,
     HasType LexBuffer st,
     MonadError e m,
     AsType Lex.LexError e,

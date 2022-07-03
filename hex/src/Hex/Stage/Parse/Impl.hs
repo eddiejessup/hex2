@@ -35,8 +35,7 @@ newtype MonadCommandSourceT m a = MonadCommandSourceT {unMonadCommandSourceT :: 
 -- The instance for 'PrimTokenParse (ParseT m)' requires the above to be true of `m`.
 -- So we require that here.
 instance
-  ( Monad (MonadCommandSourceT m),
-    Lex.MonadLexTokenSource (MonadCommandSourceT m),
+  ( Lex.MonadLexTokenSource (MonadCommandSourceT m),
     Exp.MonadPrimTokenSource (MonadCommandSourceT m),
     MonadError e (MonadCommandSourceT m),
     AsType ParseUnexpectedError e,

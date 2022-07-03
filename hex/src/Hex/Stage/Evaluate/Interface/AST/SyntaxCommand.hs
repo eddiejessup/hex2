@@ -3,6 +3,7 @@ module Hex.Stage.Evaluate.Interface.AST.SyntaxCommand where
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as PT.Syn
 import Hex.Common.HexState.Interface.Resolve.SyntaxToken qualified as ST
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -27,7 +28,7 @@ data SyntaxCommand
   | OpenInputFile Q.HexFilePath
   | EndInputFile
   | RenderInternalQuantity Eval.InternalQuantity
-  | ChangeCase Q.VDirection ST.InhibitedBalancedText
+  | ChangeCase Q.VDirection HSt.TL.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data ConditionOutcome = IfConditionOutcome IfOutcome | CaseConditionOutcome Q.HexInt

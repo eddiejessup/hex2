@@ -11,6 +11,7 @@ import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register
 import Hex.Common.HexState.Interface.Resolve (SymbolMap)
 import Hex.Common.HexState.Interface.Resolve qualified as Res
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.BoxElem qualified as Box
@@ -41,13 +42,13 @@ data Scope = Scope
     lengthParameters :: Map Param.LengthParameter Q.Length,
     glueParameters :: Map Param.GlueParameter Q.Glue,
     mathGlueParameters :: Map Param.MathGlueParameter Q.MathGlue,
-    -- tokenListParameters :: Map TokenListParameter BalancedText
+    tokenListParameters :: Map Param.TokenListParameter HSt.TL.BalancedText,
     -- Registers.
     intRegister :: QuantRegisterMap 'Q.IntQuantity,
     lengthRegister :: QuantRegisterMap 'Q.LengthQuantity,
     glueRegister :: QuantRegisterMap 'Q.GlueQuantity,
     mathGlueRegister :: QuantRegisterMap 'Q.MathGlueQuantity,
-    -- tokenListRegister :: RegisterMap BalancedText,
+    tokenListRegister :: QuantRegisterMap 'Q.TokenListQuantity,
     boxRegister :: RegisterMap (Box.Box Box.BaseBoxContents)
   }
   deriving stock (Show, Generic)
@@ -71,12 +72,12 @@ newGlobalScope =
       lengthParameters = Param.newLengthParameters,
       glueParameters = Param.newGlueParameters,
       mathGlueParameters = Param.newMathGlueParameters,
-      -- , tokenListParameters = newTokenListParameters
+      tokenListParameters = Param.newTokenListParameters,
       intRegister = mempty,
       lengthRegister = mempty,
       glueRegister = mempty,
       mathGlueRegister = mempty,
-      -- , tokenListRegister = mempty
+      tokenListRegister = mempty,
       boxRegister = mempty
     }
 
@@ -96,12 +97,12 @@ newLocalScope =
       lengthParameters = mempty,
       glueParameters = mempty,
       mathGlueParameters = mempty,
-      -- , tokenListParameters = mempty
+      tokenListParameters = mempty,
       intRegister = mempty,
       lengthRegister = mempty,
       glueRegister = mempty,
       mathGlueRegister = mempty,
-      -- , tokenListRegister = mempty
+      tokenListRegister = mempty,
       boxRegister = mempty
     }
 
@@ -120,6 +121,7 @@ fmtScope =
     <> (fmtMapWithHeading "Length parameters" (.lengthParameters) Param.fmtLengthParameter Q.fmtLengthWithUnit)
     <> (fmtMapWithHeading "Glue parameters" (.glueParameters) Param.fmtGlueParameter Q.fmtGlue)
     <> (fmtMapWithHeading "Math-glue parameters" (.mathGlueParameters) Param.fmtMathGlueParameter Q.fmtMathGlue)
+    <> (fmtMapWithHeading "Token-list parameters" (.tokenListParameters) Param.fmtTokenListParameter HSt.TL.fmtBalancedText)
     <> (fmtMapWithHeading "Int registers" (.intRegister) fmtRegisterLocation Q.fmtHexInt)
     <> (fmtMapWithHeading "Length registers" (.lengthRegister) fmtRegisterLocation Q.fmtLengthWithUnit)
     <> (fmtMapWithHeading "Glue registers" (.glueRegister) fmtRegisterLocation Q.fmtGlue)
@@ -147,10 +149,12 @@ instance Semigroup Scope where
         lengthParameters = innerScope.lengthParameters `Map.union` outerScope.lengthParameters,
         glueParameters = innerScope.glueParameters `Map.union` outerScope.glueParameters,
         mathGlueParameters = innerScope.mathGlueParameters `Map.union` outerScope.mathGlueParameters,
+        tokenListParameters = innerScope.tokenListParameters `Map.union` outerScope.tokenListParameters,
         intRegister = innerScope.intRegister `Map.union` outerScope.intRegister,
         lengthRegister = innerScope.lengthRegister `Map.union` outerScope.lengthRegister,
         glueRegister = innerScope.glueRegister `Map.union` outerScope.glueRegister,
         mathGlueRegister = innerScope.mathGlueRegister `Map.union` outerScope.mathGlueRegister,
+        tokenListRegister = innerScope.tokenListRegister `Map.union` outerScope.tokenListRegister,
         boxRegister = innerScope.boxRegister `Map.union` outerScope.boxRegister
       }
 

@@ -60,7 +60,7 @@ newtype MonadHexStateImplT m a = MonadHexStateImplT {unMonadHexStateImplT :: m a
     )
 
 instance
-  ( Monad (MonadHexStateImplT m),
+  ( Monad m,
     MonadHexLog (MonadHexStateImplT m),
     MonadIO (MonadHexStateImplT m),
     MonadState st (MonadHexStateImplT m),

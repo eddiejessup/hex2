@@ -8,10 +8,8 @@ import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
-import Hex.Common.HexState.Interface.Register qualified as Hst.Reg
-import Hex.Common.HexState.Interface.TokenList (BalancedText)
+import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
@@ -125,12 +123,12 @@ evalRegisterLocationAsLocation ::
   m (HSt.Reg.QuantRegisterLocation q)
 evalRegisterLocationAsLocation = \case
   P.ExplicitQuantRegisterLocation regType loc ->
-    Hst.Reg.QuantRegisterLocation regType <$> evalExplicitRegisterLocation loc
+    HSt.Reg.QuantRegisterLocation regType <$> evalExplicitRegisterLocation loc
   P.InternalQuantRegisterLocation loc ->
     pure loc
 
-evalExplicitRegisterLocation :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.ExplicitRegisterLocation -> m Hst.Reg.RegisterLocation
-evalExplicitRegisterLocation explicitRegisterLocation = Hst.Reg.RegisterLocation <$> evalInt explicitRegisterLocation.unExplicitRegisterLocation
+evalExplicitRegisterLocation :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.ExplicitRegisterLocation -> m HSt.Reg.RegisterLocation
+evalExplicitRegisterLocation explicitRegisterLocation = HSt.Reg.RegisterLocation <$> evalInt explicitRegisterLocation.unExplicitRegisterLocation
 
 evalFontSpecialCharRef :: P.FontSpecialCharRef -> m Q.HexInt
 evalFontSpecialCharRef = notImplemented "evalFontSpecialCharRef"
@@ -265,7 +263,7 @@ evalVModeRule ::
 evalVModeRule rule =
   evalRule rule defaultWidth defaultHeight defaultDepth
   where
-    defaultWidth = HSt.getParameterValue (Param.LengthQuantParam Param.HSize)
+    defaultWidth = HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
     defaultHeight = pure $ Q.pt 0.4
     defaultDepth = pure Q.zeroLength
 
@@ -346,8 +344,12 @@ evalPureMathFlex = \case
   P.FinitePureMathFlex finiteFlexMathLength -> Q.FinitePureMathFlex <$> evalMathLength finiteFlexMathLength
   P.InfPureMathFlex infFlexOfOrder -> Q.InfPureMathFlex <$> evalInfFlexOfOrder infFlexOfOrder
 
-evalTokenListAssignmentTarget :: P.TokenListAssignmentTarget -> m BalancedText
-evalTokenListAssignmentTarget = notImplemented "evalTokenListAssignmentTarget"
+evalTokenListAssignmentTarget :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.TokenListAssignmentTarget -> m HSt.TL.BalancedText
+evalTokenListAssignmentTarget = \case
+  P.TokenListAssignmentVar var ->
+    evalQuantVariableAsTarget var
+  P.TokenListAssignmentText inhibitedBalancedText ->
+    pure inhibitedBalancedText.unInhibitedBalancedText
 
 evalInternalQuantity ::
   (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
@@ -375,10 +377,20 @@ evalInternalLength = \case
     HSt.getSpecialLengthParameter specialLengthParameter
   P.InternalFontDimensionRef _fontDimensionRef ->
     notImplemented "evalInternalLength: InternalFontDimensionRef"
-  P.InternalBoxDimensionRef _boxDimensionRef ->
-    notImplemented "evalInternalLength: InternalBoxDimensionRef"
+  P.InternalBoxDimensionRef boxDimensionRef ->
+    evalBoxDimensionRef boxDimensionRef
   P.LastKern ->
     notImplemented "evalInternalLength: LastKern"
+
+evalBoxDimensionRef :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.BoxDimensionRef -> m Q.Length
+evalBoxDimensionRef (P.BoxDimensionRef loc boxDim) = do
+  eLoc <- evalExplicitRegisterLocation loc
+  HSt.fetchBoxRegisterValue HSt.Reg.Lookup eLoc <&> \case
+    Nothing -> Q.zeroLength
+    Just bx -> case boxDim of
+      Q.BoxWidth -> bx.boxWidth
+      Q.BoxHeight -> bx.boxHeight
+      Q.BoxDepth -> bx.boxDepth
 
 evalInternalGlue :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalGlue -> m Q.Glue
 evalInternalGlue = \case
