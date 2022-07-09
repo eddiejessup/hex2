@@ -1,5 +1,7 @@
 module Hex.Run.App where
 
+import Data.ByteString qualified as BS
+import Data.List.NonEmpty qualified as L.NE
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
@@ -11,9 +13,6 @@ import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Parse.Interface qualified as Parse
 import Hex.Common.TFM.Get qualified as TFM
-import Hex.Stage.Categorise.Impl (MonadCharCatSourceT (..))
-import Hex.Stage.Categorise.Interface (MonadCharCatSource)
-import Hex.Stage.Categorise.Interface.CharSource (LoadedCharSource)
 import Hex.Stage.Evaluate.Impl (MonadEvaluateT (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface (MonadEvaluate)
@@ -23,8 +22,7 @@ import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as Interpret
 import Hex.Stage.Lex.Impl (MonadLexTokenSourceT (..))
 import Hex.Stage.Lex.Interface (MonadLexTokenSource)
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Lex.Interface.LexBuffer (LexBuffer, newLexBuffer)
+import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Parse.Impl (MonadCommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hex.Stage.Resolve.Impl (MonadResolveT (..))
@@ -32,8 +30,6 @@ import Hex.Stage.Resolve.Interface (MonadResolve)
 import Hex.Stage.Resolve.Interface qualified as Resolve
 import Hexlude
 import System.IO (hFlush)
-import qualified Data.List.NonEmpty as L.NE
-import qualified Data.ByteString as BS
 
 data AppState = AppState
   { appHexState :: HSt.HexState,

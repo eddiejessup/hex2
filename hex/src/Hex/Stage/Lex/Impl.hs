@@ -8,9 +8,9 @@ import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Categorise.Interface qualified as Cat
 import Hex.Stage.Lex.Impl.LexBuffer qualified as Impl
 import Hex.Stage.Lex.Interface
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Lex.Interface.LexBuffer (LexBuffer)
+import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
+import qualified Hex.Common.HexInput.Interface as HIn
 
 newtype MonadLexTokenSourceT m a = MonadLexTokenSourceT {unMonadLexTokenSourceT :: m a}
   deriving newtype
@@ -28,7 +28,7 @@ newtype MonadLexTokenSourceT m a = MonadLexTokenSourceT {unMonadLexTokenSourceT 
 instance
   ( Monad m,
     MonadState st (MonadLexTokenSourceT m),
-    HasType LexBuffer st,
+    HIn.MonadHexInput (MonadLexTokenSourceT m),
     MonadError e (MonadLexTokenSourceT m),
     AsType Lex.LexError e,
     Cat.MonadCharCatSource (MonadLexTokenSourceT m),
@@ -38,11 +38,3 @@ instance
   MonadLexTokenSource (MonadLexTokenSourceT m)
   where
   getLexToken = Impl.extractLexToken
-
-  insertLexTokensToSource = Impl.insertLexTokensToSource
-
-  insertLexTokenToSource = Impl.insertLexTokenToSource
-
-  getSource = use (typed @LexBuffer)
-
-  putSource = assign' (typed @LexBuffer)

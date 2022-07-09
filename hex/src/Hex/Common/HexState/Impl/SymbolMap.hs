@@ -6,19 +6,19 @@ import Hex.Common.HexState.Interface.Font
 import Hex.Common.HexState.Interface.Grouped
 import Hex.Common.HexState.Interface.Parameter
 import Hex.Common.HexState.Interface.Register
-import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved (ResolvedToken (..))
+import Hex.Common.Token.Resolved.Expandable
+import Hex.Common.Token.Resolved.Primitive
 import Hex.Stage.Build.ListExtractor.Interface
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
 _cs :: [Char] -> H.Res.ControlSymbol
 _cs =
   H.Res.ControlSequenceSymbol
-    . Lex.mkControlSequence
+    . LT.mkControlSequence
     . fmap Code.unsafeCodeFromChar
 
 expandHeadTok :: ExpansionCommandHeadToken -> ResolvedToken

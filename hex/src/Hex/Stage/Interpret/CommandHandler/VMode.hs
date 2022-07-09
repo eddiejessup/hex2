@@ -1,6 +1,7 @@
 module Hex.Stage.Interpret.CommandHandler.VMode where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
@@ -11,8 +12,6 @@ import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
-import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
-import Hex.Stage.Lex.Interface.LexBuffer (LexBuffer)
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hexlude
 
@@ -24,13 +23,13 @@ handleCommandInMainVMode ::
   forall m e.
   ( MonadHexLog m,
     HSt.MonadHexState m,
-    MonadLexTokenSource m,
+    HIn.MonadHexInput m,
     MonadError e m,
     AsType AllMode.InterpretError e,
     Build.MonadHexListBuilder m,
     ListExtractor.MonadHexListExtractor m
   ) =>
-  LexBuffer ->
+  HIn.LoadedCharSource ->
   Eval.Command ->
   m VModeCommandResult
 handleCommandInMainVMode oldSrc = \case
@@ -85,7 +84,7 @@ handleCommandInMainVMode oldSrc = \case
     addPara indentFlag = do
       -- If the command shifts to horizontal mode, run '\indent', and re-read
       -- the stream as if the command hadn't been read.
-      putSource oldSrc
+      HIn.putSource oldSrc
       (endParaReason, paraHList) <- ListExtractor.extractParagraphList indentFlag
       extendVListWithParagraphStateT paraHList
       case endParaReason of

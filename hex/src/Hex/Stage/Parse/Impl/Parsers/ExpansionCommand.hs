@@ -1,10 +1,10 @@
 module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand where
 
 import Control.Monad.Combinators qualified as PC
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Par
@@ -54,12 +54,12 @@ headToParseExpansionCommand = \case
   ST.ChangeCaseTok vDirection ->
     AST.ChangeCase vDirection <$> (Par.parseInhibitedGeneralText Par.ExpectingBeginGroup)
 
-parseControlSymbolBody :: MonadPrimTokenParse m => m Lex.ControlSequence
+parseControlSymbolBody :: MonadPrimTokenParse m => m LT.ControlSequence
 parseControlSymbolBody = do
   controlSequenceCodes <- PC.manyTill getCharCode (satisfyEquals PT.EndCSNameTok)
-  pure $ Lex.mkControlSequence controlSequenceCodes
+  pure $ LT.mkControlSequence controlSequenceCodes
   where
     getCharCode =
       satisfyLexThenExpanding $ \case
-        Lex.ControlSequenceLexToken _ -> Nothing
-        Lex.CharCatLexToken lexCharCat -> Just lexCharCat.lexCCChar
+        LT.ControlSequenceLexToken _ -> Nothing
+        LT.CharCatLexToken lexCharCat -> Just lexCharCat.lexCCChar

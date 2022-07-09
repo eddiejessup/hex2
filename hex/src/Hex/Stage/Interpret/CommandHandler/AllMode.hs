@@ -3,15 +3,18 @@ module Hex.Stage.Interpret.CommandHandler.AllMode where
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved qualified as RT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Build.Horizontal.Set qualified as H.Inter.B.List.H
@@ -22,8 +25,6 @@ import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
-import Hex.Stage.Lex.Interface qualified as Lex
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface qualified as Par
 import Hexlude
 
@@ -85,8 +86,8 @@ writeToOutput _ _ = pure ()
 
 handleModeIndependentCommand ::
   ( HSt.MonadHexState m,
-    Lex.MonadLexTokenSource m,
     Log.MonadHexLog m,
+    HIn.MonadHexInput m,
     Build.MonadHexListBuilder m,
     MonadHexListExtractor m
   ) =>
@@ -130,15 +131,15 @@ handleModeIndependentCommand = \case
       Eval.DefineControlSequence cs tgt -> do
         maySymbolTarget <- case tgt of
           Eval.MacroTarget macroDefinition -> do
-            pure $ Just $ Res.ExpansionCommandHeadToken $ ST.MacroTok macroDefinition
+            pure $ Just $ RT.ExpansionCommandHeadToken $ ST.MacroTok macroDefinition
           Eval.LetTarget lexTokenTargetValue ->
             case lexTokenTargetValue of
               -- If the target of the \let is a char-cat pair, then resolve the
               -- new control sequence to a 'let-char-cat' containing that token.
-              Lex.CharCatLexToken charCat ->
-                pure $ Just $ Res.PrimitiveToken $ PT.LetCharCat charCat
+              LT.CharCatLexToken charCat ->
+                pure $ Just $ RT.PrimitiveToken $ PT.LetCharCat charCat
               -- If the target is a control sequence, then try to resolve that symbol.
-              Lex.ControlSequenceLexToken controlSequence ->
+              LT.ControlSequenceLexToken controlSequence ->
                 HSt.resolveSymbol (Res.ControlSequenceSymbol controlSequence) >>= \case
                   -- If the target symbol does not exist, then do nothing, i.e.
                   -- assign no new control sequence. (I am basing this on the
@@ -150,13 +151,13 @@ handleModeIndependentCommand = \case
           Eval.FutureLetTarget _futureLetDefinition -> do
             notImplemented "Define control sequence: future let"
           Eval.ShortDefineTarget shortDefTargetValue -> do
-            pure $ Just $ Res.PrimitiveToken $ PT.ShortDefTargetToken shortDefTargetValue
+            pure $ Just $ RT.PrimitiveToken $ PT.ShortDefTargetToken shortDefTargetValue
           Eval.ReadTarget _readInt -> do
             notImplemented "ReadTarget"
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
             fontDefinition <- HSt.loadFont fontPath fontSpec
             Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
-            pure $ Just $ Res.PrimitiveToken $ PT.FontRefToken $ fontDefinition ^. typed @HSt.Font.FontNumber
+            pure $ Just $ RT.PrimitiveToken $ PT.FontRefToken $ fontDefinition ^. typed @HSt.Font.FontNumber
         case maySymbolTarget of
           Nothing ->
             pure ()
@@ -295,7 +296,7 @@ handleModeIndependentCommand = \case
     HSt.popAfterAssignmentToken >>= \case
       Nothing -> pure ()
       -- If a token was indeed set, put it into the input.
-      Just lt -> Lex.insertLexTokenToSource lt
+      Just lt -> HIn.insertLexToken lt
     pure DidNotSeeEndBox
   -- Start a new level of grouping.
   Eval.ChangeScope Q.Positive entryTrigger -> do

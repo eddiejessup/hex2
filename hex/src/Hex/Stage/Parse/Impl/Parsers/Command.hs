@@ -1,13 +1,14 @@
 module Hex.Stage.Parse.Impl.Parsers.Command where
 
 import Control.Monad.Combinators qualified as PC
+import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment qualified as Par
@@ -19,7 +20,6 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Formatting as F
 
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
@@ -145,9 +145,9 @@ headToParseInternalQuantity =
 
 headToParseCharCodeRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.CharCodeRef
 headToParseCharCodeRef = \case
-  PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Letter)) ->
+  PT.UnresolvedTok (LT.CharCatLexToken (LT.LexCharCat c Code.Letter)) ->
     pure $ AST.CharRef c
-  PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Other)) ->
+  PT.UnresolvedTok (LT.CharCatLexToken (LT.LexCharCat c Code.Other)) ->
     pure $ AST.CharRef c
   PT.ShortDefTargetToken (PT.ShortDefTargetValue PT.CharQuantity i) ->
     pure $ AST.CharTokenRef i

@@ -1,14 +1,14 @@
 module Hex.Run.Expand where
 
 import Formatting qualified as F
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
+import Hex.Common.Token.Resolved.Primitive
 import Hex.Run.App (App)
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
-import Hex.Stage.Lex.Interface.Extract (fmtLexToken)
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Stage.Lex.Interface (fmtLexToken)
+import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
 
-expandAll :: App [(Lex.LexToken, PrimitiveToken)]
+expandAll :: App [(LT.LexToken, PrimitiveToken)]
 expandAll = go
   where
     go =
@@ -19,7 +19,7 @@ expandAll = go
           v <- go
           pure $ r : v
 
-fmtExpandResult :: Fmt [(Lex.LexToken, PrimitiveToken)]
+fmtExpandResult :: Fmt [(LT.LexToken, PrimitiveToken)]
 fmtExpandResult = F.intercalated "\n\n" fmtOneResult
   where
     fmtOneResult =

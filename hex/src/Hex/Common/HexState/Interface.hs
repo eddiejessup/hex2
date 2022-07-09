@@ -9,13 +9,14 @@ import Hex.Common.HexState.Interface.Grouped qualified as Grouped
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as Reg
-import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
+import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
 import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved (ResolvedToken)
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
 class Monad m => MonadHexState m where
@@ -61,9 +62,9 @@ class Monad m => MonadHexState m where
 
   currentFontSpaceGlue :: m (Maybe Q.Glue)
 
-  popAfterAssignmentToken :: m (Maybe Lex.LexToken)
+  popAfterAssignmentToken :: m (Maybe LT.LexToken)
 
-  setAfterAssignmentToken :: Lex.LexToken -> m ()
+  setAfterAssignmentToken :: LT.LexToken -> m ()
 
   pushGroup :: Maybe Grouped.ScopedGroupType -> m ()
 

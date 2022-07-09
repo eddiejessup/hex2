@@ -6,8 +6,8 @@ import Control.Monad.Combinators qualified as PC
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
+import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Common.Token.Resolved.Primitive qualified as T
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators

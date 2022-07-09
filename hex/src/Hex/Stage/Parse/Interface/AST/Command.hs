@@ -8,17 +8,17 @@ import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Quantity
 import Hexlude
 
 data Command
-  = ShowToken Lex.LexToken
+  = ShowToken LT.LexToken
   | ShowBox HexInt
   | ShowLists
   | ShowTheInternalQuantity InternalQuantity
@@ -45,8 +45,8 @@ data ModeIndependentCommand
   | AddKern Length
   | AddMathKern MathLength
   | RemoveItem PT.RemovableItem
-  | SetAfterAssignmentToken Lex.LexToken
-  | AddToAfterGroupTokens Lex.LexToken
+  | SetAfterAssignmentToken LT.LexToken
+  | AddToAfterGroupTokens LT.LexToken
   | WriteMessage MessageWriteCommand
   | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
@@ -100,7 +100,7 @@ data ShortDefTargetValue = ShortDefTargetValue PT.CharryQuantityType HexInt
 
 data ControlSequenceTarget
   = MacroTarget ST.MacroDefinition
-  | LetTarget Lex.LexToken
+  | LetTarget LT.LexToken
   | FutureLetTarget FutureLetDefinition
   | ShortDefineTarget ShortDefTargetValue
   | ReadTarget HexInt
@@ -117,7 +117,7 @@ data ControlSequenceTarget
 -- used.)
 -- For an example of how this might be used, see:
 -- https://tug.org/TUGboat/tb09-3/tb22bechtolsheim.pdf
-data FutureLetDefinition = FutureLetTargetDefinition {tokenToExpand :: Lex.LexToken, letTargetToken :: Lex.LexToken}
+data FutureLetDefinition = FutureLetTargetDefinition {tokenToExpand :: LT.LexToken, letTargetToken :: LT.LexToken}
   deriving stock (Show, Eq, Generic)
 
 data FontFileSpec = FontFileSpec {fontSpec :: FontSpecification, fontPath :: Q.HexFilePath}

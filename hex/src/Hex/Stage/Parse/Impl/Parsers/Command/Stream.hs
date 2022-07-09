@@ -2,20 +2,20 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Stream where
 
 import ASCII qualified
 import Control.Monad.Combinators qualified as PC
+import Formatting qualified as F
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity.Common qualified as Q
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Common.Token.Resolved.Primitive qualified as T
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Formatting as F
-import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 
 parseOpenFileStream :: MonadPrimTokenParse m => AST.FileStreamType -> m AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =
@@ -59,10 +59,10 @@ parseFileName = do
         -- First check that we get a char-cat (with ^?)
         -- and that it has the right properties.
         code <-
-          lt ^? Lex.lexTokCharCat >>= \case
-            Lex.LexCharCat c Code.Letter ->
+          lt ^? LT.lexTokCharCat >>= \case
+            LT.LexCharCat c Code.Letter ->
               Just c
-            Lex.LexCharCat c Code.Other
+            LT.LexCharCat c Code.Other
               | isValidOther c ->
                   Just c
             _ ->

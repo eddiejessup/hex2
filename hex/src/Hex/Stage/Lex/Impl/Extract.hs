@@ -1,9 +1,11 @@
 module Hex.Stage.Lex.Impl.Extract where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.Token.Lexed (LexCharCat (..), LexToken (..), mkControlSequence, parToken)
 import Hex.Stage.Categorise.Interface qualified as Cat
-import Hex.Stage.Lex.Interface.Extract (LexCharCat (..), LexError (..), LexState (..), LexToken (..), mkControlSequence, parToken)
+import Hex.Stage.Lex.Interface (LexError (..))
 import Hexlude
 
 spaceTok :: LexToken
@@ -31,13 +33,14 @@ extractToken ::
   forall e m.
   ( HSt.MonadHexState m,
     AsType LexError e,
-    Cat.MonadCharCatSource m
+    Cat.MonadCharCatSource m,
+    HIn.MonadHexInput m
   ) =>
-  LexState ->
-  ExceptT e m (Maybe (LexToken, LexState))
+  HIn.LineState ->
+  ExceptT e m (Maybe (LexToken, HIn.LineState))
 extractToken = go
   where
-    go :: LexState -> ExceptT e m (Maybe (LexToken, LexState))
+    go :: HIn.LineState -> ExceptT e m (Maybe (LexToken, HIn.LineState))
     go _state = do
       lift Cat.extractCharCat >>= \case
         Nothing -> pure Nothing
@@ -56,9 +59,9 @@ extractToken = go
                     _ ->
                       pure (singleton csChar1)
                   let nextState = case ctrlSeqCat1 of
-                        Code.CoreCatCode Code.Space -> SkippingBlanks
-                        Code.CoreCatCode Code.Letter -> SkippingBlanks
-                        _ -> LineMiddle
+                        Code.CoreCatCode Code.Space -> HIn.SkippingBlanks
+                        Code.CoreCatCode Code.Letter -> HIn.SkippingBlanks
+                        _ -> HIn.LineMiddle
                   pure $
                     Just
                       ( ControlSequenceLexToken $ mkControlSequence $ toList ctrlSeqChars,
@@ -66,26 +69,26 @@ extractToken = go
                       )
             -- Comment: Ignore rest of line and switch to line-begin.
             (Code.Comment, _) -> do
-              lift Cat.endCurrentLine
-              go LineBegin
+              lift HIn.endCurrentLine
+              go HIn.LineBegin
             -- Empty line: Make a paragraph.
-            (Code.EndOfLine, LineBegin) ->
-              pure $ Just (parToken, LineBegin)
+            (Code.EndOfLine, HIn.LineBegin) ->
+              pure $ Just (parToken, HIn.LineBegin)
             -- End of line in middle of line: Make a space token and go to line begin.
-            (Code.EndOfLine, LineMiddle) ->
-              pure $ Just (spaceTok, LineBegin)
+            (Code.EndOfLine, HIn.LineMiddle) ->
+              pure $ Just (spaceTok, HIn.LineBegin)
             -- Space in middle of line: Make a space token and start skipping blanks.
-            (Code.CoreCatCode Code.Space, LineMiddle) ->
-              pure $ Just (spaceTok, SkippingBlanks)
+            (Code.CoreCatCode Code.Space, HIn.LineMiddle) ->
+              pure $ Just (spaceTok, HIn.SkippingBlanks)
             -- Ignore cases
             ---------------
             -- Space at the start of a line.
-            (Code.CoreCatCode Code.Space, LineBegin) ->
+            (Code.CoreCatCode Code.Space, HIn.LineBegin) ->
               go _state
             -- Space or end of line, while skipping blanks.
-            (Code.CoreCatCode Code.Space, SkippingBlanks) ->
+            (Code.CoreCatCode Code.Space, HIn.SkippingBlanks) ->
               go _state
-            (Code.EndOfLine, SkippingBlanks) ->
+            (Code.EndOfLine, HIn.SkippingBlanks) ->
               go _state
             -- Ignored.
             (Code.Ignored, _) ->
@@ -98,4 +101,4 @@ extractToken = go
             -- Simple tokeniser cases.
             --------------------------
             (Code.CoreCatCode cc, _) ->
-              pure $ Just (CharCatLexToken $ LexCharCat n1 cc, LineMiddle)
+              pure $ Just (CharCatLexToken $ LexCharCat n1 cc, HIn.LineMiddle)

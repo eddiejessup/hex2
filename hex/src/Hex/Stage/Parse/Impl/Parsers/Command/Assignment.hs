@@ -2,7 +2,7 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Assignment where
 
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.Macro qualified as Par

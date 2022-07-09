@@ -3,7 +3,7 @@ module Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue where
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par

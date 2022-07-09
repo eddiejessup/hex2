@@ -3,15 +3,15 @@ module Hex.Stage.Expand.Impl.Expand where
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved qualified as RT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as AST
+import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Expand.Interface (ExpansionError)
 import Hex.Stage.Expand.Interface qualified as Expand
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as Uneval
 import Hexlude
@@ -23,7 +23,7 @@ substituteArgsIntoMacroBody ::
   ) =>
   ST.MacroReplacementText ->
   Uneval.MacroArgumentList ->
-  m (Seq Lex.LexToken)
+  m (Seq LT.LexToken)
 substituteArgsIntoMacroBody replacementText argsList =
   case replacementText of
     ST.ExpandedMacroReplacementText -> notImplemented "substituteArgsIntoMacroBody: ExpandedReplacementText"
@@ -41,7 +41,7 @@ substituteArgsIntoMacroBody replacementText argsList =
     --   relevant argument in the argument-list, and that is our output.
     --   If the macro refers to a parameter that isn't present in our argument
     --   list, then the user didn't provide enough arguments.
-    renderToken :: ST.MacroTextToken -> m (Seq Lex.LexToken)
+    renderToken :: ST.MacroTextToken -> m (Seq LT.LexToken)
     renderToken = \case
       ST.MacroTextLexToken x ->
         pure (Seq.singleton x)
@@ -95,7 +95,7 @@ skipUpToCaseBlock ::
   forall m.
   Monad m =>
   Q.HexInt ->
-  (m Res.ResolvedToken) ->
+  (m RT.ResolvedToken) ->
   m (Maybe Expand.CaseState)
 skipUpToCaseBlock tgtBlock getNextToken = go Q.zeroInt 1
   where
@@ -107,17 +107,17 @@ skipUpToCaseBlock tgtBlock getNextToken = go Q.zeroInt 1
           pure $ Just Expand.InSelectedOrCaseBlock
       | otherwise =
           getNextToken >>= \case
-            Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
+            RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
               go currentCaseBlock $ succ depth
-            Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf))
+            RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf))
               | depth == 1 ->
                   pure Nothing
               | otherwise ->
                   go currentCaseBlock $ pred depth
-            Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
+            RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
               | depth == 1 ->
                   pure $ Just Expand.InSelectedElseCaseBlock
-            Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Or))
+            RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Or))
               | depth == 1 ->
                   go (succ currentCaseBlock) depth
             _ ->
@@ -172,14 +172,14 @@ data SkipStopCondition
 getPresentResolvedToken ::
   forall m e.
   (Expand.MonadPrimTokenSource m, MonadError e m, AsType ExpansionError e) =>
-  m Res.ResolvedToken
+  m RT.ResolvedToken
 getPresentResolvedToken = Expand.getResolvedTokenErrorEOF (injectTyped Expand.EndOfInputWhileSkipping)
 
 skipUntilElseOrEndif ::
   forall m.
   Monad m =>
   SkipStopCondition ->
-  m Res.ResolvedToken ->
+  m RT.ResolvedToken ->
   m (Maybe Expand.IfState)
 skipUntilElseOrEndif blockTarget getNextToken = do
   snd <$> Par.parseNestedExpr parseNext
@@ -187,14 +187,14 @@ skipUntilElseOrEndif blockTarget getNextToken = do
     parseNext depth =
       getNextToken <&> \case
         -- If we see an 'if', increment the condition depth.
-        Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
+        RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
           (Nothing, GT)
         -- If we see an 'end-if', decrement the condition depth.
-        Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf)) ->
+        RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf)) ->
           (Nothing, LT)
         -- If we see an 'else' and are at top condition depth, and our
         -- target block is an else block, we are done skipping tokens.
-        Res.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
+        RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
           | depth == 1,
             ElseOrEndif <- blockTarget ->
               (Just Expand.InSelectedElseIfBlock, LT)
@@ -206,21 +206,21 @@ skipUntilElseOrEndif blockTarget getNextToken = do
 
 renderTokenAsTokens ::
   Q.HexInt ->
-  Lex.LexToken ->
-  Seq Lex.LexToken
+  LT.LexToken ->
+  Seq LT.LexToken
 renderTokenAsTokens escapeCharCodeInt tok =
-  charCodeAsMadeToken <$> Lex.renderTokenAsCodes escapeCharCodeInt tok
+  charCodeAsMadeToken <$> LT.renderTokenAsCodes escapeCharCodeInt tok
 
 -- For \number, \romannumeral, \string. \meaning, \jobname, and \fontname: Each
 -- character code gets category "other" , except that 32 gets "space".
-charCodeAsMadeToken :: Code.CharCode -> Lex.LexToken
+charCodeAsMadeToken :: Code.CharCode -> LT.LexToken
 charCodeAsMadeToken c =
-  Lex.CharCatLexToken $
-    Lex.LexCharCat c $ case c of
+  LT.CharCatLexToken $
+    LT.LexCharCat c $ case c of
       Code.Chr_ ' ' -> Code.Space
       _ -> Code.Other
 
-renderInternalQuantity :: Eval.InternalQuantity -> Seq Lex.LexToken
+renderInternalQuantity :: Eval.InternalQuantity -> Seq LT.LexToken
 renderInternalQuantity = \case
   Eval.InternalIntQuantity n ->
     tokensFromInt n.unHexInt
@@ -236,8 +236,8 @@ renderInternalQuantity = \case
     notImplemented "render TokenListVariableQuantity"
   where
     -- TODO: This is quite a sloppy implementation, using Int's `Show` instance.
-    tokensFromInt :: Int -> Seq Lex.LexToken
+    tokensFromInt :: Int -> Seq LT.LexToken
     tokensFromInt n = tokensFromText (show n)
 
-    tokensFromText :: Text -> Seq Lex.LexToken
+    tokensFromText :: Text -> Seq LT.LexToken
     tokensFromText t = Seq.fromList $ charCodeAsMadeToken <$> (Code.textAsCharCodes t)

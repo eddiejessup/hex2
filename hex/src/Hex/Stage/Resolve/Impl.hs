@@ -5,9 +5,10 @@ module Hex.Stage.Resolve.Impl where
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..), ResolvedToken (..))
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken (..))
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.HexState.Interface.Resolve (ControlSymbol (..))
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved qualified as RT
+import Hex.Common.Token.Resolved.Primitive (PrimitiveToken (..))
 import Hex.Stage.Resolve.Interface (MonadResolve (..), ResolutionError (..))
 import Hexlude
 
@@ -24,7 +25,8 @@ newtype MonadResolveT m a = MonadResolveT {unMonadResolveT :: m a}
     )
 
 instance
-  ( Monad m, HSt.MonadHexState (MonadResolveT m)
+  ( Monad m,
+    HSt.MonadHexState (MonadResolveT m)
   ) =>
   MonadResolve (MonadResolveT m)
   where
@@ -35,12 +37,12 @@ instance
 
 resolveToken ::
   HSt.MonadHexState m =>
-  Lex.LexToken ->
-  m (Maybe ResolvedToken)
+  LT.LexToken ->
+  m (Maybe RT.ResolvedToken)
 resolveToken = \case
-  Lex.ControlSequenceLexToken cs -> do
+  LT.ControlSequenceLexToken cs -> do
     HSt.resolveSymbol $ ControlSequenceSymbol cs
-  Lex.CharCatLexToken (Lex.LexCharCat c Code.Active) ->
+  LT.CharCatLexToken (LT.LexCharCat c Code.Active) ->
     HSt.resolveSymbol $ ActiveCharacterSymbol c
   t ->
-    pure $ Just $ PrimitiveToken $ UnresolvedTok t
+    pure $ Just $ RT.PrimitiveToken $ UnresolvedTok t

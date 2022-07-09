@@ -3,8 +3,8 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Box where
 import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Token.Resolved.Primitive (PrimitiveToken)
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Parse.Impl.Parsers.Combinators

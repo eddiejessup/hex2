@@ -4,7 +4,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hexlude
@@ -48,7 +48,7 @@ parseInhibitedBalancedText ctx = do
       lt <- anyToken Par.satisfyThenInhibited
       pure (lt, lexTokenToGroupDepthChange lt)
 
-lexTokenToGroupDepthChange :: Lex.LexToken -> Ordering
+lexTokenToGroupDepthChange :: LT.LexToken -> Ordering
 lexTokenToGroupDepthChange t
   | Par.lexTokenHasCategory Code.BeginGroup t = GT
   | Par.lexTokenHasCategory Code.EndGroup t = LT

@@ -9,7 +9,7 @@ import Hex.Common.HexState.Impl.Scoped.Scope (nullFontNumber)
 import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
 
 data HexState = HexState
@@ -18,7 +18,7 @@ data HexState = HexState
     -- Global parameters.
     specialInts :: Map Param.SpecialIntParameter Q.HexInt,
     specialLengths :: Map Param.SpecialLengthParameter Q.Length,
-    afterAssignmentToken :: Maybe Lex.LexToken,
+    afterAssignmentToken :: Maybe LT.LexToken,
     groupScopes :: GroupScopes
   }
   deriving stock (Generic)
@@ -29,7 +29,7 @@ fmtHexState =
     [ fmtMapWithHeading "FontInfos" (.fontInfos) Font.fmtFontNumber HSt.Font.fmtFontInfo,
       fmtMapWithHeading "Special integer parameters" (.specialInts) Param.fmtSpecialIntParameter Q.fmtHexInt,
       fmtMapWithHeading "Special length parameters" (.specialLengths) Param.fmtSpecialLengthParameter Q.fmtLengthWithUnit,
-      F.prefixed "After-assignnment token: " $ F.accessed (.afterAssignmentToken) (F.maybed "None" Lex.fmtLexToken) |%| "\n",
+      F.prefixed "After-assignnment token: " $ F.accessed (.afterAssignmentToken) (F.maybed "None" LT.fmtLexToken) |%| "\n",
       F.accessed (.groupScopes) fmtGroupScopes
     ]
 

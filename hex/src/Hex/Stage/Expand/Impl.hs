@@ -5,18 +5,20 @@ module Hex.Stage.Expand.Impl where
 import Data.Sequence qualified as Seq
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as HSt.Res
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Impl qualified as Par
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved qualified as RT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive (PrimitiveToken)
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.ExpansionCommand qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as E
@@ -24,8 +26,6 @@ import Hex.Stage.Expand.Impl.Expand qualified as Expand
 import Hex.Stage.Expand.Interface (ExpansionError (..), MonadPrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Lex.Interface qualified as Lex
-import Hex.Stage.Lex.Interface.Extract (LexToken)
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
@@ -55,6 +55,7 @@ instance
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
     Lex.MonadLexTokenSource (MonadPrimTokenSourceT m),
+    HIn.MonadHexInput (MonadPrimTokenSourceT m),
     HSt.MonadHexState (MonadPrimTokenSourceT m),
     MonadState s m,
     HasType (Expand.ConditionStates) s,
@@ -92,7 +93,7 @@ getResolvedTokenImpl ::
     AsType Res.ResolutionError e,
     Lex.MonadLexTokenSource m
   ) =>
-  m (Maybe (LexToken, ResolvedToken))
+  m (Maybe (LT.LexToken, RT.ResolvedToken))
 getResolvedTokenImpl =
   Res.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
@@ -123,12 +124,13 @@ getPrimitiveTokenImpl ::
     AsType Res.ResolutionError e,
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
+    HIn.MonadHexInput m,
     Lex.MonadLexTokenSource m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,
     MonadHexLog m
   ) =>
-  m (Maybe (LexToken, PrimitiveToken))
+  m (Maybe (LT.LexToken, PrimitiveToken))
 getPrimitiveTokenImpl =
   getResolvedTokenImpl >>= \case
     Nothing -> pure Nothing
@@ -137,12 +139,12 @@ getPrimitiveTokenImpl =
         UntouchedPrimitiveToken pt ->
           pure $ Just (lt, pt)
         ExpandedToLexTokens lts -> do
-          Lex.insertLexTokensToSource lts
+          HIn.insertLexTokens lts
           getPrimitiveTokenImpl
 
 data ExpansionResult
   = UntouchedPrimitiveToken PrimitiveToken
-  | ExpandedToLexTokens (Seq LexToken)
+  | ExpandedToLexTokens (Seq LT.LexToken)
 
 expandResolvedTokenImpl ::
   ( Res.MonadResolve m,
@@ -151,19 +153,19 @@ expandResolvedTokenImpl ::
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
     AsType Res.ResolutionError e,
-    Lex.MonadLexTokenSource m,
+    HIn.MonadHexInput m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,
     MonadHexLog m
   ) =>
-  ResolvedToken ->
+  RT.ResolvedToken ->
   m ExpansionResult
 expandResolvedTokenImpl = \case
   -- If we resolved to a primitive token, we are done, just return that.
-  PrimitiveToken pt ->
+  RT.PrimitiveToken pt ->
     pure $ UntouchedPrimitiveToken pt
   -- Otherwise, the token is the head of an expansion-command.
-  ExpansionCommandHeadToken headTok -> do
+  RT.ExpansionCommandHeadToken headTok -> do
     -- Expand the rest of the command into lex-tokens.
     ExpandedToLexTokens <$> parseEvalExpandExpansionCommand headTok
 
@@ -174,12 +176,12 @@ expandLexTokenImpl ::
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
     AsType Res.ResolutionError e,
-    Lex.MonadLexTokenSource m,
+    HIn.MonadHexInput m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,
     MonadHexLog m
   ) =>
-  LexToken ->
+  LT.LexToken ->
   m ExpansionResult
 expandLexTokenImpl lt =
   Res.resolveLexToken lt >>= \case
@@ -195,11 +197,11 @@ parseEvalExpandExpansionCommand ::
     HSt.MonadHexState m,
     Res.MonadResolve m,
     MonadPrimTokenSource m,
-    Lex.MonadLexTokenSource m,
+    HIn.MonadHexInput m,
     MonadHexLog m
   ) =>
   ST.ExpansionCommandHeadToken ->
-  m (Seq LexToken)
+  m (Seq LT.LexToken)
 parseEvalExpandExpansionCommand headTok = do
   expansionCommand <-
     Par.runParseT (Par.headToParseExpansionCommand headTok) >>= \case
@@ -215,13 +217,13 @@ expandExpansionCommand ::
     AsType Par.ParsingError e,
     AsType Res.ResolutionError e,
     Res.MonadResolve m,
-    Lex.MonadLexTokenSource m,
+    HIn.MonadHexInput m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,
     MonadHexLog m
   ) =>
   E.ExpansionCommand ->
-  m (Seq LexToken)
+  m (Seq LT.LexToken)
 expandExpansionCommand = \case
   E.CallMacro macroDefinition macroArgumentList -> do
     Expand.substituteArgsIntoMacroBody macroDefinition.replacementText macroArgumentList
@@ -249,8 +251,8 @@ expandExpansionCommand = \case
     let controlSymbol = HSt.Res.ControlSequenceSymbol cs
     HSt.resolveSymbol controlSymbol >>= \case
       Just _ -> pure ()
-      Nothing -> HSt.setSymbol controlSymbol (PrimitiveToken PT.RelaxTok) HSt.Grouped.Local
-    pure $ Seq.singleton $ Lex.ControlSequenceLexToken cs
+      Nothing -> HSt.setSymbol controlSymbol (RT.PrimitiveToken PT.RelaxTok) HSt.Grouped.Local
+    pure $ Seq.singleton $ LT.ControlSequenceLexToken cs
   -- singleton <$> expandCSName a
   E.ExpandAfter noExpandLexToken toExpandLexToken -> do
     expandedLexTokens <-
@@ -278,9 +280,9 @@ expandExpansionCommand = \case
   E.ChangeCase vDirection inhibText ->
     forM (inhibText.unInhibitedBalancedText.unBalancedText) $ \lt ->
       case lt of
-        Lex.ControlSequenceLexToken _ ->
+        LT.ControlSequenceLexToken _ ->
           pure lt
-        Lex.CharCatLexToken lexCharCat -> do
+        LT.CharCatLexToken lexCharCat -> do
           changeCaseCode <- case vDirection of
             Q.Upward -> do
               ucCode <- HSt.getHexCode (Code.CUpperCaseCodeType) lexCharCat.lexCCChar
@@ -292,4 +294,4 @@ expandExpansionCommand = \case
             Code.NoCaseChange ->
               lt
             Code.ChangeToCode uc ->
-              lt & _Typed @Lex.LexCharCat % typed @Code.CharCode .~ uc
+              lt & _Typed @LT.LexCharCat % typed @Code.CharCode .~ uc

@@ -14,7 +14,7 @@ import Hex.Stage.Categorise.Impl qualified as Cat
 import Hex.Stage.Categorise.Interface qualified as Cat
 import Hex.Stage.Lex.Impl.Extract (extractToken)
 import Hex.Stage.Lex.Interface
-import Hex.Stage.Lex.Interface.Extract
+import Hex.Stage.Lex.Interface
 import Hex.Stage.Lex.Interface.LexBuffer qualified as Lex
 import Hexlude
 import Test.Tasty
@@ -52,13 +52,13 @@ instance MonadHexState TestApp where
 extractLexToken :: TestApp (Maybe LexToken)
 extractLexToken = do
   s <- get
-  runExceptT @(Identity LexError) (extractToken s.bufferLexState) >>= \case
+  runExceptT @(Identity LexError) (extractToken s.bufferLineState) >>= \case
     Left e ->
       panic $ show e
     Right Nothing ->
       pure Nothing
-    Right (Just (lt, newLexState)) -> do
-      assign' (#bufferLexState) newLexState
+    Right (Just (lt, newLineState)) -> do
+      assign' (#bufferLineState) newLineState
       pure $ Just lt
 
 instance MonadLexTokenSource TestApp where

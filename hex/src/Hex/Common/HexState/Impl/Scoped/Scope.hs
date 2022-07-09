@@ -14,6 +14,7 @@ import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Resolved qualified as RT
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hexlude
 
@@ -110,7 +111,7 @@ fmtScope :: Fmt Scope
 fmtScope =
   ("Current font number: " |%| F.accessed (.currentFontNr) (F.maybed "None" Font.fmtFontNumber) |%| "\n")
     <> (fmtMapWithHeading "Family-members" (.familyMemberFonts) Font.fmtFamilyMember Font.fmtFontNumber)
-    <> (fmtMapWithHeading "Symbols" (.symbolMap) Res.fmtControlSymbol Res.fmtResolvedToken)
+    <> (fmtMapWithHeading "Symbols" (.symbolMap) Res.fmtControlSymbol RT.fmtResolvedToken)
     <> (fmtMapWithHeading "Category codes" (.catCodes) Code.fmtCharCode Code.fmtCatCode)
     <> (fmtMapWithHeading "Math codes" (.mathCodes) Code.fmtCharCode Code.fmtMathCode)
     <> (fmtMapWithHeading "Lowercase codes" (.lowerCaseCodes) Code.fmtCharCode Code.fmtLowerCaseCode)

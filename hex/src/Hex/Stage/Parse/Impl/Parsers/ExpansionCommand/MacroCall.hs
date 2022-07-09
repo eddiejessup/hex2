@@ -3,11 +3,11 @@ module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.MacroCall where
 import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.LT
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
@@ -69,7 +69,7 @@ parseUndelimitedArgumentTokens = do
   PC.skipMany $ satisfyIf satisfyThenInhibited (lexTokenHasCategory Code.Space)
   anyLexInhibited >>= \case
     -- Note that we are throwing away the surrounding braces of the argument.
-    Lex.CharCatLexToken Lex.LexCharCat {lexCCCat = Code.BeginGroup} ->
+    LT.CharCatLexToken LT.LexCharCat {lexCCCat = Code.BeginGroup} ->
       Par.parseInhibitedBalancedText Par.AlreadySeenBeginGroup
     t ->
       pure $ HSt.TL.InhibitedBalancedText $ HSt.LT.BalancedText (singleton t)
@@ -77,13 +77,13 @@ parseUndelimitedArgumentTokens = do
 -- Get the shortest, possibly empty, properly nested sequence of tokens,
 -- followed by the delimiter tokens. In the delimiter, category codes,
 -- character codes and control sequence names must match.
-parseDelimitedArgumentTokens :: forall m. MonadPrimTokenParse m => Seq Lex.LexToken -> m HSt.TL.InhibitedBalancedText
+parseDelimitedArgumentTokens :: forall m. MonadPrimTokenParse m => Seq LT.LexToken -> m HSt.TL.InhibitedBalancedText
 parseDelimitedArgumentTokens delims = go Empty
   where
     -- Get the shortest, possibly empty, properly nested sequence of tokens,
     -- followed by the delimiter tokens. In the delimiter, category codes,
     -- character codes and control sequence names must match.
-    go :: Seq Lex.LexToken -> m HSt.TL.InhibitedBalancedText
+    go :: Seq LT.LexToken -> m HSt.TL.InhibitedBalancedText
     go argTokensAccum = do
       -- Parse tokens until we see the delimiter tokens, then add what we grab
       -- to our accumulating argument.
@@ -104,12 +104,12 @@ parseDelimitedArgumentTokens delims = go Empty
 skipParameterText :: MonadPrimTokenParse m => ST.ParameterText -> m ()
 skipParameterText (ST.ParameterText lexTokens) = skipUnexpandedLexTokens lexTokens
 
-skipUnexpandedLexTokens :: forall m. MonadPrimTokenParse m => Seq Lex.LexToken -> m ()
+skipUnexpandedLexTokens :: forall m. MonadPrimTokenParse m => Seq LT.LexToken -> m ()
 skipUnexpandedLexTokens ts = forM_ ts (satisfyLexEquals Inhibited)
 
 -- For some expression consisting of tokens that might increase or decrease the grouping, such as a parentheses,
 -- Compute the final depth of the expression, and the number of matched groups we saw.
-nrExpressions :: Seq Lex.LexToken -> Maybe (Int, Int)
+nrExpressions :: Seq LT.LexToken -> Maybe (Int, Int)
 nrExpressions = foldM next (0, 0)
   where
     next v@(dpth, nrExprs) t
@@ -135,7 +135,7 @@ nrExpressions = foldM next (0, 0)
 -- | Whether some sequence of lex-tokens is a valid balanced-text.
 -- This is equivalent to asking whether we can traverse the token-list, tracking
 -- our depth, and eventually arrive at zero without ever going negative.
-hasValidGrouping :: Seq Lex.LexToken -> Bool
+hasValidGrouping :: Seq LT.LexToken -> Bool
 hasValidGrouping ts = case nrExpressions ts of
   Just (0, _) -> True
   _ -> False

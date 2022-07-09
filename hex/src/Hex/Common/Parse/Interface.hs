@@ -3,10 +3,10 @@ module Hex.Common.Parse.Interface where
 -- Interface for parsing primitive-token streams.
 
 import Formatting qualified as F
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
 data ParsingError
   = EndOfInputParsingError
@@ -37,7 +37,7 @@ data ParseUnexpectedErrorCause
 data UnexpectedPrimitiveToken = UnexpectedPrimitiveToken {saw :: PT.PrimitiveToken, expected :: Text}
   deriving stock (Show, Eq, Generic)
 
-data UnexpectedLexToken = UnexpectedLexToken {saw :: Lex.LexToken, expected :: Text}
+data UnexpectedLexToken = UnexpectedLexToken {saw :: LT.LexToken, expected :: Text}
   deriving stock (Show, Eq, Generic)
 
 -- I want a single class to require when I write my parsers that consume primitive tokens.
@@ -58,9 +58,9 @@ data UnexpectedLexToken = UnexpectedLexToken {saw :: Lex.LexToken, expected :: T
 class (Monad m, Alternative m, MonadPlus m, Log.MonadHexLog m) => MonadPrimTokenParse m where
   parseError :: ParseUnexpectedErrorCause -> m a
 
-  satisfyThenExpanding :: ((Lex.LexToken, PT.PrimitiveToken) -> Maybe a) -> m a
+  satisfyThenExpanding :: ((LT.LexToken, PT.PrimitiveToken) -> Maybe a) -> m a
 
-  satisfyThenInhibited :: (Lex.LexToken -> Maybe a) -> m a
+  satisfyThenInhibited :: (LT.LexToken -> Maybe a) -> m a
 
   try :: m a -> m a
 

@@ -1,10 +1,10 @@
 module Hex.Common.HexState.Interface.TokenList where
 
+import Formatting qualified as F
+import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
-import qualified Hex.Stage.Lex.Interface.Extract as Lex
-import qualified Formatting as F
 
-newtype BalancedText = BalancedText {unBalancedText :: Seq Lex.LexToken}
+newtype BalancedText = BalancedText {unBalancedText :: Seq LT.LexToken}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Semigroup, Monoid)
 

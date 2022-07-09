@@ -24,14 +24,15 @@ import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
-import Hex.Common.HexState.Interface.Resolve (ControlSymbol, ResolvedToken)
+import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Common.TFM.Types qualified as TFM
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved (ResolvedToken)
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 import System.FilePath qualified as FilePath
 
@@ -199,10 +200,10 @@ instance
       Just _ -> pure ()
     assign' (typed @HexState % #fontInfos % at' fontNumber %? fontSpecialCharLens) value
 
-  setAfterAssignmentToken :: Lex.LexToken -> MonadHexStateImplT m ()
+  setAfterAssignmentToken :: LT.LexToken -> MonadHexStateImplT m ()
   setAfterAssignmentToken t = assign' (typed @HexState % #afterAssignmentToken) (Just t)
 
-  popAfterAssignmentToken :: MonadHexStateImplT m (Maybe Lex.LexToken)
+  popAfterAssignmentToken :: MonadHexStateImplT m (Maybe LT.LexToken)
   popAfterAssignmentToken = do
     v <- use (typed @HexState % #afterAssignmentToken)
     assign' (typed @HexState % #afterAssignmentToken) Nothing

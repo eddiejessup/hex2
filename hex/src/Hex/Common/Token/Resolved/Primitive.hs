@@ -1,4 +1,4 @@
-module Hex.Common.HexState.Interface.Resolve.PrimitiveToken where
+module Hex.Common.Token.Resolved.Primitive where
 
 import ASCII qualified
 import ASCII.Char qualified
@@ -9,8 +9,8 @@ import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 
 data AssignPrefixTok
@@ -203,7 +203,7 @@ data PrimitiveToken
     -- \chardef target, because \chardef maps to a character number, which is
     -- categorised at the time of use, while a \let maps to a static char-cat
     -- pair.
-    LetCharCat Lex.LexCharCat
+    LetCharCat LT.LexCharCat
   | -- A control sequence representing a particular font, such as defined through
     -- \font.
     FontRefToken HSt.Font.FontNumber
@@ -250,18 +250,18 @@ data PrimitiveToken
   | HyphenationPatternsTok -- \patterns
   -- > Setting interaction mode.
   | InteractionModeTok InteractionMode
-  | UnresolvedTok Lex.LexToken
+  | UnresolvedTok LT.LexToken
   | -- Custom token for my own use.
     DebugShowState
   deriving stock (Show, Eq, Generic)
 
-primTokLexTok :: Prism' PrimitiveToken Lex.LexToken
+primTokLexTok :: Prism' PrimitiveToken LT.LexToken
 primTokLexTok = _Ctor @"UnresolvedTok"
 
-primTokCharCat :: Prism' PrimitiveToken Lex.LexCharCat
-primTokCharCat = primTokLexTok % Lex.lexTokCharCat
+primTokCharCat :: Prism' PrimitiveToken LT.LexCharCat
+primTokCharCat = primTokLexTok % LT.lexTokCharCat
 
 fmtPrimitiveToken :: Fmt PrimitiveToken
 fmtPrimitiveToken = F.later $ \case
-  UnresolvedTok lt -> F.bformat ("LexToken" |%| F.parenthesised Lex.fmtLexToken) lt
+  UnresolvedTok lt -> F.bformat ("LexToken" |%| F.parenthesised LT.fmtLexToken) lt
   t -> F.bformat F.shown t

@@ -7,24 +7,25 @@ import Control.Monad.Trans.Writer.CPS qualified as W
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.Parse.Interface (MonadPrimTokenParse)
 import Hex.Common.Parse.Interface qualified as CPar
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Lex.Interface qualified as Lex
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
 
-newtype ParseLog = ParseLog {unParseLog :: Seq Lex.LexToken}
+newtype ParseLog = ParseLog {unParseLog :: Seq LT.LexToken}
   deriving stock (Show)
   deriving newtype (Semigroup, Monoid)
 
 fmtParseLog :: Fmt ParseLog
 fmtParseLog = F.accessed unParseLog fmtLexTokenSeq
   where
-    fmtLexTokenSeq :: Fmt (Seq Lex.LexToken)
-    fmtLexTokenSeq = F.concatenated Lex.fmtLexTokenChar
+    fmtLexTokenSeq :: Fmt (Seq LT.LexToken)
+    fmtLexTokenSeq = F.concatenated LT.fmtLexTokenChar
 
 -- This is the monad we will do our parsing in.
 -- The main thing a parser does is implement choice: we can do `a <|> b`,
@@ -54,13 +55,7 @@ instance Expand.MonadPrimTokenSource m => Expand.MonadPrimTokenSource (ParseT m)
 instance Lex.MonadLexTokenSource m => Lex.MonadLexTokenSource (ParseT m) where
   getLexToken = lift Lex.getLexToken
 
-  insertLexTokenToSource x = lift $ Lex.insertLexTokenToSource x
-
-  insertLexTokensToSource x = lift $ Lex.insertLexTokensToSource x
-
-  getSource = lift Lex.getSource
-
-  putSource x = lift $ Lex.putSource x
+instance HIn.MonadHexInput m => HIn.MonadHexInput (ParseT m)
 
 mkParseT :: Monad m => m (Either CPar.ParsingError a, ParseLog) -> ParseT m a
 mkParseT ma = ParseT $ ExceptT $ W.writerT ma
@@ -133,28 +128,28 @@ endOfInputToError :: Monad m => ParseT m (Maybe a) -> ParseT m a
 endOfInputToError prog =
   nothingToError prog CPar.EndOfInputParsingError
 
-recordLexToken :: Monad m => Lex.LexToken -> ParseT m ()
+recordLexToken :: Monad m => LT.LexToken -> ParseT m ()
 recordLexToken lt = liftWriter $ W.tell $ ParseLog $ Seq.singleton lt
 
 -- Like `getExpandedTokenImpl`, but on end-of-input raise an error so the parse fails.
-getExpandedTokenErrImpl :: (Monad m, MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => ParseT m (Lex.LexToken, PT.PrimitiveToken)
+getExpandedTokenErrImpl :: (Monad m, MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => ParseT m (LT.LexToken, PT.PrimitiveToken)
 getExpandedTokenErrImpl = do
   Log.log $ "Parser: Getting primitive-token"
   r@(lt, _) <- endOfInputToError Expand.getPrimitiveToken
   recordLexToken lt
   pure r
 
-getUnexpandedTokenImpl :: (Monad m, MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => ParseT m Lex.LexToken
+getUnexpandedTokenImpl :: (Monad m, MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => ParseT m LT.LexToken
 getUnexpandedTokenImpl = do
   Log.log $ "Parser: Getting lex-token"
   lt <- endOfInputToError Expand.getTokenInhibited
   recordLexToken lt
-  Log.log $ "Parser: Got unexpanded lex-token: " <> F.sformat Lex.fmtLexToken lt
+  Log.log $ "Parser: Got unexpanded lex-token: " <> F.sformat LT.fmtLexToken lt
   pure lt
 
 satisfyThenExpandingImpl ::
-  (Monad m, MonadPrimTokenSource (ParseT m), Lex.MonadLexTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) =>
-  ((Lex.LexToken, PT.PrimitiveToken) -> Maybe a) ->
+  (Monad m, MonadPrimTokenSource (ParseT m), HIn.MonadHexInput (ParseT m), Log.MonadHexLog (ParseT m)) =>
+  ((LT.LexToken, PT.PrimitiveToken) -> Maybe a) ->
   ParseT m a
 satisfyThenExpandingImpl f = do
   Expand.getPrimitiveToken >>= \case
@@ -163,25 +158,25 @@ satisfyThenExpandingImpl f = do
     Just x@(lt, pt) -> do
       case f x of
         Nothing -> do
-          Lex.insertLexTokenToSource lt
+          HIn.insertLexToken lt
           CPar.parseFailure $ "satisfyThenExpandingImpl, test failed for primitive-token: " <> F.sformat PT.fmtPrimitiveToken pt
         Just a -> do
-          Log.log $ "Committing token while expanding: " <> F.sformat Lex.fmtLexToken lt
+          Log.log $ "Committing token while expanding: " <> F.sformat LT.fmtLexToken lt
           recordLexToken lt
           pure a
 
 tryImpl ::
-  (Monad m, MonadPrimTokenParse (ParseT m), Lex.MonadLexTokenSource (ParseT m)) =>
+  (Monad m, MonadPrimTokenParse (ParseT m), HIn.MonadHexInput (ParseT m)) =>
   ParseT m a ->
   ParseT m a
 tryImpl f = do
   Log.log "Doing try"
-  st <- Lex.getSource
+  st <- HIn.getSource
   (errOrA, parseLog) <- lift $ runParseT f
   case errOrA of
     Left e -> do
       Log.log $ "Try target failed with error: " <> F.sformat CPar.fmtParsingError e
-      Lex.putSource st
+      HIn.putSource st
     Right _ -> do
       Log.log "Try target succeeded"
       pure ()
@@ -189,8 +184,8 @@ tryImpl f = do
   resumeParseT errOrA parseLog
 
 satisfyThenInhibitedImpl ::
-  (Monad m, MonadPrimTokenSource (ParseT m), Lex.MonadLexTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) =>
-  (Lex.LexToken -> Maybe a) ->
+  (Monad m, MonadPrimTokenSource (ParseT m), HIn.MonadHexInput (ParseT m), Log.MonadHexLog (ParseT m)) =>
+  (LT.LexToken -> Maybe a) ->
   ParseT m a
 satisfyThenInhibitedImpl f = do
   Expand.getTokenInhibited >>= \case
@@ -199,14 +194,14 @@ satisfyThenInhibitedImpl f = do
     Just lt -> do
       case f lt of
         Nothing -> do
-          Lex.insertLexTokenToSource lt
-          CPar.parseFailure $ "satisfyThenInhibitedImpl, test failed for lex-token: " <> F.sformat Lex.fmtLexToken lt
+          HIn.insertLexToken lt
+          CPar.parseFailure $ "satisfyThenInhibitedImpl, test failed for lex-token: " <> F.sformat LT.fmtLexToken lt
         Just a -> do
-          Log.log $ "Committing token while inhibited: " <> F.sformat Lex.fmtLexToken lt
+          Log.log $ "Committing token while inhibited: " <> F.sformat LT.fmtLexToken lt
           recordLexToken lt
           pure a
 
-instance (Monad m, Lex.MonadLexTokenSource (ParseT m), MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => MonadPrimTokenParse (ParseT m) where
+instance (Monad m, HIn.MonadHexInput (ParseT m), MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => MonadPrimTokenParse (ParseT m) where
   parseError = parseErrorImpl
 
   satisfyThenExpanding = satisfyThenExpandingImpl

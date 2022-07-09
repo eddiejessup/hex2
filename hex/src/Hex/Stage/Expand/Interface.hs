@@ -1,10 +1,10 @@
 module Hex.Stage.Expand.Interface where
 
 import Formatting qualified as F
-import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved qualified as RT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
@@ -45,11 +45,11 @@ newConditionStates :: ConditionStates
 newConditionStates = ConditionStates []
 
 class Monad m => MonadPrimTokenSource m where
-  getTokenInhibited :: m (Maybe Lex.LexToken)
+  getTokenInhibited :: m (Maybe LT.LexToken)
 
-  getResolvedToken :: m (Maybe (Lex.LexToken, Res.ResolvedToken))
+  getResolvedToken :: m (Maybe (LT.LexToken, RT.ResolvedToken))
 
-  getPrimitiveToken :: m (Maybe (Lex.LexToken, PT.PrimitiveToken))
+  getPrimitiveToken :: m (Maybe (LT.LexToken, PT.PrimitiveToken))
 
   pushConditionState :: ConditionState -> m ()
 
@@ -57,7 +57,7 @@ class Monad m => MonadPrimTokenSource m where
 
   peekConditionState :: m (Maybe ConditionState)
 
-getResolvedTokenErrorEOF :: (MonadPrimTokenSource m, MonadError e m) => e -> m Res.ResolvedToken
+getResolvedTokenErrorEOF :: (MonadPrimTokenSource m, MonadError e m) => e -> m RT.ResolvedToken
 getResolvedTokenErrorEOF e = do
   (_lt, rt) <- nothingToError getResolvedToken e
   pure rt

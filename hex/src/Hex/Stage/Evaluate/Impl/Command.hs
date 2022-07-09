@@ -2,7 +2,7 @@ module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as Elem
 import Hex.Stage.Build.ListElem qualified as Elem

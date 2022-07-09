@@ -1,27 +1,19 @@
 module Hex.Stage.Lex.Interface where
 
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
-import Hex.Stage.Lex.Interface.LexBuffer (LexBuffer)
 import Hexlude
+import qualified Formatting as F
+import qualified Hex.Common.Token.Lexed as LT
+
+data LexError
+  = TerminalEscapeCharacter
+  | InvalidCharacter
+  deriving stock (Show, Eq, Generic)
+
+fmtLexError :: Fmt LexError
+fmtLexError = F.shown
 
 class Monad m => MonadLexTokenSource m where
-  getLexToken :: m (Maybe Lex.LexToken)
-
-  insertLexTokenToSource :: Lex.LexToken -> m ()
-
-  insertLexTokensToSource :: Seq Lex.LexToken -> m ()
-
-  getSource :: m LexBuffer
-
-  putSource :: LexBuffer -> m ()
+  getLexToken :: m (Maybe LT.LexToken)
 
 instance MonadLexTokenSource m => MonadLexTokenSource (StateT s m) where
   getLexToken = lift getLexToken
-
-  insertLexTokenToSource x = lift $ insertLexTokenToSource x
-
-  insertLexTokensToSource x = lift $ insertLexTokensToSource x
-
-  getSource = lift getSource
-
-  putSource x = lift $ putSource x

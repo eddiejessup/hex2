@@ -9,16 +9,16 @@ import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.BoxElem (FontSpecification, Kern, Rule)
 import Hex.Stage.Build.ListElem (Penalty)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
@@ -38,7 +38,7 @@ import Hexlude
 -- I've copied the top-level command type here, just to make the Parse/Evaluate
 -- types distinct, so I don't confuse myself
 data Command
-  = ShowToken Lex.LexToken
+  = ShowToken LT.LexToken
   | ShowBox Q.HexInt
   | ShowLists
   | ShowTheInternalQuantity Uneval.InternalQuantity
@@ -84,8 +84,8 @@ data ModeIndependentCommand
   | AddKern Kern
   | AddMathKern Q.MathLength
   | RemoveItem PT.RemovableItem
-  | SetAfterAssignmentToken Lex.LexToken
-  | AddToAfterGroupTokens Lex.LexToken
+  | SetAfterAssignmentToken LT.LexToken
+  | AddToAfterGroupTokens LT.LexToken
   | WriteMessage MessageWriteCommand
   | ModifyFileStream Uneval.FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
@@ -152,7 +152,7 @@ data CodeValue
 
 data ControlSequenceTarget
   = MacroTarget ST.MacroDefinition
-  | LetTarget Lex.LexToken
+  | LetTarget LT.LexToken
   | FutureLetTarget Uneval.FutureLetDefinition
   | ShortDefineTarget PT.ShortDefTargetValue
   | ReadTarget Q.HexInt

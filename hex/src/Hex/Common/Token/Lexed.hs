@@ -1,4 +1,4 @@
-module Hex.Stage.Lex.Interface.Extract where
+module Hex.Common.Token.Lexed where
 
 import Data.ByteString qualified as BS
 import Data.Sequence qualified as Seq
@@ -80,17 +80,3 @@ renderTokenAsCodes escapeCharCodeInt = \case
      in case Code.fromHexInt @Code.CharCode escapeCharCodeInt of
           Nothing -> csCodes
           Just escapeCharCode -> escapeCharCode <| csCodes
-
-data LexState
-  = SkippingBlanks
-  | LineMiddle
-  | LineBegin
-  deriving stock (Eq, Show)
-
-data LexError
-  = TerminalEscapeCharacter
-  | InvalidCharacter
-  deriving stock (Show, Eq, Generic)
-
-fmtLexError :: Fmt LexError
-fmtLexError = F.shown

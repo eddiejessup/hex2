@@ -1,11 +1,11 @@
 module Hex.Run.Lex where
 
 import Formatting qualified as F
-import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
-import Hex.Stage.Lex.Interface.Extract
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Stage.Lex.Interface
 import Hexlude
 
-lexAll :: MonadLexTokenSource m => m [LexToken]
+lexAll :: MonadLexTokenSource m => m [LT.LexToken]
 lexAll = go
   where
     go =
@@ -16,5 +16,5 @@ lexAll = go
           v <- go
           pure $ tok : v
 
-fmtLexResult :: Fmt [LexToken]
-fmtLexResult = F.unlined fmtLexToken
+fmtLexResult :: Fmt [LT.LexToken]
+fmtLexResult = F.unlined LT.fmtLexToken

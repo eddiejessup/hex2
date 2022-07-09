@@ -2,23 +2,22 @@ module Hex.Stage.Parse.Impl.Parsers.Quantity.Number where
 
 import Control.Monad.Combinators qualified as PC
 import Data.ByteString qualified as BS
+import Formatting qualified as F
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..), UnexpectedPrimitiveToken (..), parseFailure)
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Lex.Interface.Extract (LexToken)
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Primitive (PrimitiveToken)
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
-import qualified Hex.Common.Parse.Interface as Par
-import qualified Formatting as F
-import qualified Hex.Capability.Log.Interface as Log
 
 parseSigned :: forall m a. MonadPrimTokenParse m => m a -> m (AST.Signed a)
 parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
@@ -53,7 +52,7 @@ headToParseNormalInt headToken = do
     ]
     headToken
   where
-    headToParseConstantInt :: LexToken -> m AST.NormalInt
+    headToParseConstantInt :: LT.LexToken -> m AST.NormalInt
     headToParseConstantInt t
       | Just w1 <- decCharToWord t = do
           remainingWs <- PC.many (satisfyLexThen Expanding decCharToWord)
@@ -67,14 +66,14 @@ headToParseNormalInt headToken = do
       | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '`') t =
           AST.CharLikeCode <$> Par.satisfyThenInhibited parseCharLikeCodeInt
       | otherwise =
-          parseFailure $ "headToParseConstantInt " <> F.sformat Lex.fmtLexToken t
+          parseFailure $ "headToParseConstantInt " <> F.sformat LT.fmtLexToken t
 
     -- Case 10, character constant like "`c".
-    parseCharLikeCodeInt :: LexToken -> Maybe Word8
+    parseCharLikeCodeInt :: LT.LexToken -> Maybe Word8
     parseCharLikeCodeInt = \case
-      Lex.CharCatLexToken cc ->
+      LT.CharCatLexToken cc ->
         Just $ cc ^. typed @Code.CharCode % typed @Word8
-      Lex.ControlSequenceLexToken cs -> do
+      LT.ControlSequenceLexToken cs -> do
         -- If bytestring is empty, fail to parse.
         case cs ^. typed @ByteString % to BS.uncons of
           Just (w, rest) ->
@@ -85,16 +84,16 @@ headToParseNormalInt headToken = do
           Nothing ->
             Nothing
 
-decCharToWord :: LexToken -> Maybe Word8
+decCharToWord :: LT.LexToken -> Maybe Word8
 decCharToWord = fromCatChar Code.Other H.Ascii.fromDecDigit
 
-hexCharToWord :: LexToken -> Maybe Word8
+hexCharToWord :: LT.LexToken -> Maybe Word8
 hexCharToWord lt = fromCatChar Code.Other H.Ascii.fromUpHexDigit lt <|> fromCatChar Code.Letter H.Ascii.fromUpHexAF lt
 
-octCharToWord :: LexToken -> Maybe Word8
+octCharToWord :: LT.LexToken -> Maybe Word8
 octCharToWord = fromCatChar Code.Other H.Ascii.fromOctDigit
 
-fromCatChar :: Code.CoreCatCode -> (Word8 -> Maybe a) -> LexToken -> Maybe a
+fromCatChar :: Code.CoreCatCode -> (Word8 -> Maybe a) -> LT.LexToken -> Maybe a
 fromCatChar cat fromWord lt = (lt ^? lexTokenCatChar cat % typed @Word8) >>= fromWord
 
 headToParseInternalInt :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.InternalInt

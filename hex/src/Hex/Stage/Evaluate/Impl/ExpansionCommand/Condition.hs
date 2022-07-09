@@ -2,13 +2,13 @@ module Hex.Stage.Evaluate.Impl.ExpansionCommand.Condition where
 
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as E
-import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as P
 import Hexlude
 
@@ -71,17 +71,17 @@ evalIfConditionHeadToBool = \case
   --  the two tokens are macros, and they both have the same status with
   --  respect to \long and \outer, and they both have the same parameters and
   --  “top level” expansion.
-  E.IfTokensEqual (Lex.CharCatLexToken cc1) (Lex.CharCatLexToken cc2) ->
+  E.IfTokensEqual (LT.CharCatLexToken cc1) (LT.CharCatLexToken cc2) ->
     pure $ cc1 == cc2
-  E.IfTokensEqual (Lex.ControlSequenceLexToken cs1) (Lex.ControlSequenceLexToken cs2) -> do
+  E.IfTokensEqual (LT.ControlSequenceLexToken cs1) (LT.ControlSequenceLexToken cs2) -> do
     -- Surprisingly, two undefined control sequences are considered equal,
     -- so we may compare the Maybe types.
     symbol1 <- HSt.resolveSymbol (Res.ControlSequenceSymbol cs1)
     symbol2 <- HSt.resolveSymbol (Res.ControlSequenceSymbol cs2)
     pure $ symbol1 == symbol2
-  E.IfTokensEqual (Lex.CharCatLexToken _) (Lex.ControlSequenceLexToken _) ->
+  E.IfTokensEqual (LT.CharCatLexToken _) (LT.ControlSequenceLexToken _) ->
     pure False
-  E.IfTokensEqual (Lex.ControlSequenceLexToken _) (Lex.CharCatLexToken _) ->
+  E.IfTokensEqual (LT.ControlSequenceLexToken _) (LT.CharCatLexToken _) ->
     pure False
   E.IfBoxRegisterIs attr _n -> do
     case attr of
@@ -100,11 +100,11 @@ evalIfConditionHeadToBool = \case
     ordToComp EQ = (==)
 
     eqChars
-      (Lex.CharCatLexToken (Lex.LexCharCat c1 _))
-      (Lex.CharCatLexToken (Lex.LexCharCat c2 _)) = c1 == c2
+      (LT.CharCatLexToken (LT.LexCharCat c1 _))
+      (LT.CharCatLexToken (LT.LexCharCat c2 _)) = c1 == c2
     eqChars _ _ = True
 
     eqCats
-      (Lex.CharCatLexToken (Lex.LexCharCat _ c1))
-      (Lex.CharCatLexToken (Lex.LexCharCat _ c2)) = c1 == c2
+      (LT.CharCatLexToken (LT.LexCharCat _ c1))
+      (LT.CharCatLexToken (LT.LexCharCat _ c2)) = c1 == c2
     eqCats _ _ = True

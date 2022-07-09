@@ -1,7 +1,7 @@
 module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.Condition where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
+import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
