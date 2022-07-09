@@ -1,11 +1,12 @@
 module Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro where
 
 import Control.Monad.Combinators qualified as PC
-import Hex.Common.Codes qualified as Code
 -- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
+
+import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
-import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par
@@ -29,12 +30,12 @@ headToParseNonMacroAssignmentBody = \case
   T.InteractionModeTok mode ->
     pure $ AST.SetInteractionMode mode
   T.LetTok -> do
-    (cs, tgt) <- parseXEqualsY NotExpanding parseCSName (skipOneOptionalSpace NotExpanding >> getUnexpandedToken)
+    (cs, tgt) <- parseXEqualsY Inhibited parseControlSymbol (skipOneOptionalSpace Inhibited >> anyLexInhibited)
     pure $ AST.DefineControlSequence cs $ AST.LetTarget tgt
   T.FutureLetTok -> do
-    cs <- parseCSName
-    lt1 <- getUnexpandedToken
-    lt2 <- getUnexpandedToken
+    cs <- parseControlSymbol
+    lt1 <- anyLexInhibited
+    lt2 <- anyLexInhibited
     pure $
       AST.DefineControlSequence cs $
         AST.FutureLetTarget $
@@ -43,8 +44,8 @@ headToParseNonMacroAssignmentBody = \case
               letTargetToken = lt2
             }
   T.ShortDefHeadTok quant -> do
-    (cs, nr) <- parseXEqualsY Expanding parseCSName Par.parseInt
-    pure $ AST.DefineControlSequence cs (AST.ShortDefineTarget quant nr)
+    (cs, nr) <- parseXEqualsY Expanding parseControlSymbol Par.parseInt
+    pure $ AST.DefineControlSequence cs (AST.ShortDefineTarget (AST.ShortDefTargetValue quant nr))
   T.ParagraphShapeTok -> do
     skipOptionalEquals Expanding
     -- In a ⟨shape assignment⟩ for which the ⟨number⟩ is n, the ⟨shape
@@ -57,14 +58,14 @@ headToParseNonMacroAssignmentBody = \case
     nr <- Par.parseInt
     skipKeyword Expanding [Code.Chr_ 't', Code.Chr_ 'o']
     skipOptionalSpaces Expanding
-    cs <- parseCSName
+    cs <- parseControlSymbol
     pure $ AST.DefineControlSequence cs (AST.ReadTarget nr)
   T.SetBoxRegisterTok -> do
-    (var, box) <- parseXEqualsY Expanding Par.parseExplicitRegisterLocation (skipFillerExpanding >> (Par.getExpandedPrimitiveToken >>= Par.headToParseBox))
+    (var, box) <- parseXEqualsY Expanding Par.parseExplicitRegisterLocation (skipFillerExpanding >> (anyPrim >>= Par.headToParseBox))
     pure $ AST.SetBoxRegister var box
   -- \font <control-sequence> <equals> <file-name> <at-clause>
   T.FontTok -> do
-    (cs, tgt) <- parseXEqualsY Expanding parseCSName parseFontTarget
+    (cs, tgt) <- parseXEqualsY Expanding parseControlSymbol parseFontTarget
     pure $ AST.DefineControlSequence cs (AST.FontTarget tgt)
   t ->
     choiceFlap
@@ -98,6 +99,7 @@ parseFontTarget = do
 
 headToParseCodeAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseCodeAssignment t = do
+  Log.log $ "Trying to parse code assignment " <> show t
   (ref, tgt) <- parseXEqualsY Expanding (Par.headToParseCodeTableRef t) Par.parseInt
   pure $ AST.AssignCode $ AST.CodeAssignment ref tgt
 
@@ -106,19 +108,19 @@ headToParseModifyVariable = \case
   T.AdvanceVarTok ->
     PC.choice
       [ do
-          var <- Par.getExpandedPrimitiveToken >>= Par.headToParseIntVariable
+          var <- anyPrim >>= Par.headToParseIntVariable
           skipOptionalBy
           AST.AdvanceIntVariable var <$> Par.parseInt,
         do
-          var <- Par.getExpandedPrimitiveToken >>= Par.headToParseLengthVariable
+          var <- anyPrim >>= Par.headToParseLengthVariable
           skipOptionalBy
           AST.AdvanceLengthVariable var <$> Par.parseLength,
         do
-          var <- Par.getExpandedPrimitiveToken >>= Par.headToParseGlueVariable
+          var <- anyPrim >>= Par.headToParseGlueVariable
           skipOptionalBy
           AST.AdvanceGlueVariable var <$> Par.parseGlue,
         do
-          var <- Par.getExpandedPrimitiveToken >>= Par.headToParseMathGlueVariable
+          var <- anyPrim >>= Par.headToParseMathGlueVariable
           skipOptionalBy
           AST.AdvanceMathGlueVariable var <$> Par.parseMathGlue
       ]
@@ -126,16 +128,16 @@ headToParseModifyVariable = \case
     var <- parseNumericVariable
     skipOptionalBy
     AST.ScaleVariable d var <$> Par.parseInt
-  _ ->
-    parseFailure "headToParseModifyVariable"
+  t ->
+    parseFailure $ "headToParseModifyVariable " <> show t
 
 parseNumericVariable :: MonadPrimTokenParse m => m AST.NumericVariable
 parseNumericVariable =
   PC.choice
-    [ AST.IntNumericVariable <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseIntVariable),
-      AST.LengthNumericVariable <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseLengthVariable),
-      AST.GlueNumericVariable <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseGlueVariable),
-      AST.MathGlueNumericVariable <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseMathGlueVariable)
+    [ AST.IntNumericVariable <$> (anyPrim >>= Par.headToParseIntVariable),
+      AST.LengthNumericVariable <$> (anyPrim >>= Par.headToParseLengthVariable),
+      AST.GlueNumericVariable <$> (anyPrim >>= Par.headToParseGlueVariable),
+      AST.MathGlueNumericVariable <$> (anyPrim >>= Par.headToParseMathGlueVariable)
     ]
 
 skipOptionalBy :: MonadPrimTokenParse m => m ()
@@ -179,12 +181,12 @@ parseTokenListTarget =
     [ AST.TokenListAssignmentText <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup,
       do
         skipFillerExpanding
-        AST.TokenListAssignmentVar <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseTokenListVariable)
+        AST.TokenListAssignmentVar <$> (anyPrim >>= Par.headToParseTokenListVariable)
     ]
 
 headToParseSetFamilyMember :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseSetFamilyMember t = do
-  (var, val) <- parseXEqualsY Expanding (Par.headToParseFamilyMember t) (Par.getExpandedPrimitiveToken >>= Par.headToParseFontRef)
+  (var, val) <- parseXEqualsY Expanding (Par.headToParseFamilyMember t) (anyPrim >>= Par.headToParseFontRef)
   pure $ AST.SetFamilyMember var val
 
 headToParseSetFontDimension :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody

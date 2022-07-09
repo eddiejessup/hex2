@@ -138,6 +138,9 @@ data VBoxAlignType
   | TopAlign -- \vtop
   deriving stock (Show, Eq, Generic)
 
+data ShortDefTargetValue = ShortDefTargetValue CharryQuantityType Q.HexInt
+  deriving stock (Show, Eq, Generic)
+
 data PrimitiveToken
   = EndCSNameTok -- \endcsname
   | -- Starters of commands.
@@ -195,7 +198,7 @@ data PrimitiveToken
   | SpecialIntParameterTok HSt.Param.SpecialIntParameter -- \example: \spacefactor
   | SpecialLengthParameterTok HSt.Param.SpecialLengthParameter -- \example: \pagestretch
   -- Tokens storing integers defined by short-hand definitions.
-  | IntRefTok CharryQuantityType Q.HexInt
+  | ShortDefTargetToken ShortDefTargetValue
   | -- A char-cat pair defined by a 'let' assignment. This differs from a
     -- \chardef target, because \chardef maps to a character number, which is
     -- categorised at the time of use, while a \let maps to a static char-cat

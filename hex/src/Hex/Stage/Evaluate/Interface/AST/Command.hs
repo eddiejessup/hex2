@@ -154,7 +154,7 @@ data ControlSequenceTarget
   = MacroTarget ST.MacroDefinition
   | LetTarget Lex.LexToken
   | FutureLetTarget Uneval.FutureLetDefinition
-  | ShortDefineTarget PT.CharryQuantityType Q.HexInt
+  | ShortDefineTarget PT.ShortDefTargetValue
   | ReadTarget Q.HexInt
   | FontTarget FontFileSpec
   deriving stock (Show, Eq, Generic)

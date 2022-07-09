@@ -37,9 +37,9 @@ headToParseModedAddGlue axis = \case
             T.FilNeg ->
               noLengthGlueSpec (Just AST.minusOneFilFlex) Nothing
       _ ->
-        empty
+        Par.parseFailure "headToParseModedAddGlue, ModedCommand"
   _ ->
-    empty
+    Par.parseFailure "headToParseModedAddGlue, no-ModedCommand"
   where
     noLengthGlueSpec = AST.ExplicitGlueSpec AST.zeroLength
 
@@ -47,7 +47,7 @@ parseGlue :: MonadPrimTokenParse m => m AST.Glue
 parseGlue =
   PC.choice
     [ AST.ExplicitGlue <$> parseExplicitGlueSpec,
-      AST.InternalGlue <$> Par.parseSigned (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalGlue)
+      AST.InternalGlue <$> Par.parseSigned (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
 parseExplicitGlueSpec :: MonadPrimTokenParse m => m AST.ExplicitGlueSpec
@@ -81,9 +81,9 @@ parseInfFlexOfOrder = do
       1 -> pure Q.Fil1
       2 -> pure Q.Fil2
       3 -> pure Q.Fil3
-      _ -> empty
+      _ -> Par.parseFailure "parseInfFlexOfOrder"
   skipOptionalSpaces Expanding
   pure $ AST.InfFlexOfOrder factor order
   where
     parseNrLs =
-      Fold.length <$> PC.some (skipSatisfied Par.getExpandedLexToken $ matchNonActiveCharacterUncased (Chr_ 'l'))
+      Fold.length <$> PC.some (skipSatisfied satisfyLexThenExpanding $ matchNonActiveCharacterUncased (Chr_ 'l'))

@@ -4,7 +4,7 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getExpandedPrimitiveToken, parseFailure)
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
@@ -20,7 +20,7 @@ parseMathGlue =
         <$> Par.parseMathLength
         <*> parsePureMathFlex [Chr_ 'p', Chr_ 'l', Chr_ 'u', Chr_ 's']
         <*> parsePureMathFlex [Chr_ 'm', Chr_ 'i', Chr_ 'n', Chr_ 'u', Chr_ 's'],
-      AST.InternalMathGlue <$> Par.parseSigned (getExpandedPrimitiveToken >>= headToParseInternalMathGlue)
+      AST.InternalMathGlue <$> Par.parseSigned (anyPrim >>= headToParseInternalMathGlue)
     ]
 
 parsePureMathFlex :: MonadPrimTokenParse m => [Code.CharCode] -> m (Maybe AST.PureMathFlex)

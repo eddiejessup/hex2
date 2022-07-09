@@ -6,13 +6,15 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface (MonadHexState)
-import Hex.Common.Parse.Impl (fmtParseLog, runParseTMaybe)
+import Hex.Common.Parse.Impl (fmtParseLog, runParseTMaybe, ParseT)
 import Hex.Common.Parse.Interface (ParseUnexpectedError (..))
 import Hex.Stage.Expand.Interface qualified as Exp
 import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
 import Hex.Stage.Parse.Interface
 import Hexlude
+import qualified Hex.Stage.Parse.Interface.AST.Command as Par
+import qualified Hex.Common.Parse.Interface as Par
 
 newtype MonadCommandSourceT m a = MonadCommandSourceT {unMonadCommandSourceT :: m a}
   deriving newtype
@@ -39,12 +41,22 @@ instance
     Exp.MonadPrimTokenSource (MonadCommandSourceT m),
     MonadError e (MonadCommandSourceT m),
     AsType ParseUnexpectedError e,
-    MonadHexState (MonadCommandSourceT m),
-    Log.MonadHexLog m
+    Log.MonadHexLog (MonadCommandSourceT m),
+    Monad m
   ) =>
   MonadCommandSource (MonadCommandSourceT m)
   where
-  getCommand = do
-    (mayCmd, pLog) <- runParseTMaybe Parsers.Command.parseCommand
-    Log.log $ F.sformat ("Parsed command: " |%| fmtParseLog) pLog
-    pure mayCmd
+  getCommand = getCommandImpl
+
+
+getCommandImpl ::
+  ( Monad m,
+    Par.MonadPrimTokenParse (ParseT m),
+    MonadError e m,
+    AsType ParseUnexpectedError e,
+    Log.MonadHexLog m
+  ) => m (Maybe Par.Command)
+getCommandImpl = do
+  (mayCmd, pLog) <- runParseTMaybe Parsers.Command.parseCommand
+  Log.log $ F.sformat ("Parsed command: " |%| fmtParseLog) pLog
+  pure mayCmd

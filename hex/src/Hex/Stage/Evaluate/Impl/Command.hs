@@ -2,6 +2,7 @@ module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as Elem
 import Hex.Stage.Build.ListElem qualified as Elem
@@ -189,8 +190,8 @@ evalControlSequenceTarget = \case
     pure $ E.LetTarget lexToken
   P.FutureLetTarget futureLetTargetDefinition ->
     pure $ E.FutureLetTarget futureLetTargetDefinition
-  P.ShortDefineTarget charryQuantityType tgtValInt ->
-    E.ShortDefineTarget charryQuantityType <$> Eval.evalInt tgtValInt
+  P.ShortDefineTarget shortDefineTargetValue ->
+    E.ShortDefineTarget <$> evalShortDefineTargetValue shortDefineTargetValue
   P.ReadTarget hexInt ->
     E.ReadTarget <$> Eval.evalInt hexInt
   P.FontTarget pFontFileSpec -> do
@@ -199,6 +200,10 @@ evalControlSequenceTarget = \case
         <$> evalFontSpecification pFontFileSpec.fontSpec
         <*> pure pFontFileSpec.fontPath
     pure $ E.FontTarget eFontFileSpec
+
+evalShortDefineTargetValue :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ShortDefTargetValue -> m PT.ShortDefTargetValue
+evalShortDefineTargetValue (P.ShortDefTargetValue charryQuantityType tgtValInt) =
+  PT.ShortDefTargetValue charryQuantityType <$> Eval.evalInt tgtValInt
 
 evalFontSpecification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.FontSpecification -> m Box.FontSpecification
 evalFontSpecification = \case

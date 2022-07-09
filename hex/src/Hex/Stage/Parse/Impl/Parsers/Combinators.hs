@@ -11,31 +11,53 @@ import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
 
--- data ExpansionMode = Expanding | NotExpanding
+data ExpansionMode = Expanding | Inhibited
+  deriving stock (Show, Eq, Generic)
 
-satisfyThen :: (Monad m, Alternative m) => m t -> (t -> Maybe a) -> m a
-satisfyThen getTok f = do
-  t <- getTok
-  maybe empty pure (f t)
+satisfyLexThen :: MonadPrimTokenParse m => ExpansionMode -> (Lex.LexToken -> Maybe a) -> m a
+satisfyLexThen mode f = case mode of
+  Expanding -> satisfyThenExpanding (\(lt, _pt) -> f lt)
+  Inhibited -> satisfyThenInhibited f
 
-satisfyIf :: (Monad m, Alternative m) => m t -> (t -> Bool) -> m t
-satisfyIf getTok f = satisfyThen getTok (\x -> if f x then Just x else Nothing)
+satisfyLexThenExpanding :: MonadPrimTokenParse m => (Lex.LexToken -> Maybe a) -> m a
+satisfyLexThenExpanding = satisfyLexThen Expanding
 
-skipManySatisfied :: MonadPlus m => m t -> (t -> Bool) -> m ()
-skipManySatisfied getTok chk = PC.skipMany $ satisfyIf getTok chk
+satisfyPrimThenExpanding :: MonadPrimTokenParse m => (PT.PrimitiveToken -> Maybe a) -> m a
+satisfyPrimThenExpanding f = satisfyThenExpanding (\(_lt, pt) -> f pt)
 
-skipOptional :: MonadPlus m => m t -> (t -> Bool) -> m ()
-skipOptional getTok = void . optional . satisfyIf getTok
+type SatisfyThen m t a = (t -> Maybe a) -> m a
 
-skipSatisfied :: MonadPlus m => m t -> (t -> Bool) -> m ()
-skipSatisfied getTok = void . satisfyIf getTok
+anyToken :: SatisfyThen m t t -> m t
+anyToken satisfyThen = satisfyThen Just
+
+anyLexExpanding :: MonadPrimTokenParse m => m LexToken
+anyLexExpanding = anyToken satisfyLexThenExpanding
+
+anyLexInhibited :: MonadPrimTokenParse m => m LexToken
+anyLexInhibited = anyToken satisfyThenInhibited
+
+anyPrim :: MonadPrimTokenParse m => m PrimitiveToken
+anyPrim = anyToken satisfyPrimThenExpanding
+
+satisfyIf :: SatisfyThen m t t -> (t -> Bool) -> m t
+satisfyIf satisfyThen f = satisfyThen (\x -> if f x then Just x else Nothing)
+
+skipManySatisfied :: MonadPlus m => SatisfyThen m t t -> (t -> Bool) -> m ()
+skipManySatisfied satisfyThen chk = PC.skipMany $ satisfyIf satisfyThen chk
+
+skipOptional :: MonadPlus m => SatisfyThen m t t -> (t -> Bool) -> m ()
+skipOptional satisfyThen = void . optional . satisfyIf satisfyThen
+
+skipSatisfied :: MonadPlus m => SatisfyThen m t t -> (t -> Bool) -> m ()
+skipSatisfied satisfyThen = void . satisfyIf satisfyThen
 
 satisfyEquals :: MonadPrimTokenParse m => PrimitiveToken -> m ()
-satisfyEquals t = skipSatisfied Par.getExpandedPrimitiveToken (== t)
+satisfyEquals t = skipSatisfied satisfyPrimThenExpanding (== t)
 
 satisfyLexEquals :: MonadPrimTokenParse m => ExpansionMode -> Lex.LexToken -> m ()
-satisfyLexEquals mode t = skipSatisfied (getLexTokenInMode mode) (== t)
+satisfyLexEquals mode t = skipSatisfied (satisfyLexThen mode) (== t)
 
 isOnly :: forall k is s a. (Eq a, Is k An_AffineFold) => Optic' k is s a -> a -> s -> Bool
 isOnly af x = is (castOptic @An_AffineFold af % castOptic @An_AffineFold (only x))
@@ -50,12 +72,12 @@ choiceFlap headToParsers t =
 -- <optional spaces> = <zero or more spaces>.
 skipOptionalSpaces :: MonadPrimTokenParse m => ExpansionMode -> m ()
 skipOptionalSpaces mode =
-  skipManySatisfied (getLexTokenInMode mode) lexTokenIsSpace
+  skipManySatisfied (satisfyLexThen mode) lexTokenIsSpace
 
-liftLexHead :: MonadPlus m => (LexToken -> m a) -> PrimitiveToken -> m a
+liftLexHead :: MonadPrimTokenParse m => (LexToken -> m a) -> PrimitiveToken -> m a
 liftLexHead lexParser pt =
   case pt ^? PT.primTokLexTok of
-    Nothing -> empty
+    Nothing -> Par.parseFailure "liftLexHead"
     Just lt -> lexParser lt
 
 primTokenHasCategory :: Code.CoreCatCode -> PrimitiveToken -> Bool
@@ -68,7 +90,7 @@ lexTokenCatChar :: Code.CoreCatCode -> AffineFold LexToken Code.CharCode
 lexTokenCatChar cat = Lex.lexTokCharCat % filtered (isOnly (typed @Code.CoreCatCode) cat) % typed @Code.CharCode
 
 skipOneOptionalSpace :: (MonadPrimTokenParse m) => ExpansionMode -> m ()
-skipOneOptionalSpace mode = skipOptional (getLexTokenInMode mode) lexTokenIsSpace
+skipOneOptionalSpace mode = skipOptional (satisfyLexThen mode) lexTokenIsSpace
 
 -- <space token> = character token of category [space], or a control sequence
 -- or active character \let equal to such.
@@ -88,14 +110,14 @@ matchNonActiveCharacterUncased a t =
 skipKeyword :: MonadPrimTokenParse m => ExpansionMode -> [Code.CharCode] -> m ()
 skipKeyword mode s = do
   skipOptionalSpaces mode
-  mapM_ (skipSatisfied (getLexTokenInMode mode) . matchNonActiveCharacterUncased) s
+  for_ s (skipSatisfied (satisfyLexThen mode) . matchNonActiveCharacterUncased)
 
 parseOptionalKeyword :: MonadPrimTokenParse m => ExpansionMode -> [Code.CharCode] -> m Bool
 parseOptionalKeyword mode s =
   isJust <$> optional (skipKeyword mode s)
 
 skipFillerExpanding :: MonadPrimTokenParse m => m ()
-skipFillerExpanding = skipManySatisfied Par.getExpandedPrimitiveToken isFillerItem
+skipFillerExpanding = skipManySatisfied satisfyPrimThenExpanding isFillerItem
   where
     isFillerItem :: PrimitiveToken -> Bool
     isFillerItem = \case
@@ -105,10 +127,10 @@ skipFillerExpanding = skipManySatisfied Par.getExpandedPrimitiveToken isFillerIt
 skipOptionalEquals :: (MonadPrimTokenParse m) => ExpansionMode -> m ()
 skipOptionalEquals mode = do
   skipOptionalSpaces mode
-  skipOptional (getLexTokenInMode mode) $ isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '=')
+  skipOptional (satisfyLexThen mode) $ isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '=')
 
-parseCSName :: MonadPrimTokenParse m => m ControlSymbol
-parseCSName = satisfyThen getUnexpandedToken lextokToCSLike
+parseControlSymbol :: MonadPrimTokenParse m => m ControlSymbol
+parseControlSymbol = Par.satisfyThenInhibited lextokToCSLike
   where
     lextokToCSLike = \case
       Lex.CharCatLexToken (Lex.LexCharCat c Code.Active) ->
@@ -118,16 +140,12 @@ parseCSName = satisfyThen getUnexpandedToken lextokToCSLike
       _ ->
         Nothing
 
-data ExpansionMode = Expanding | NotExpanding
-
-getLexTokenInMode :: MonadPrimTokenParse m => ExpansionMode -> m LexToken
-getLexTokenInMode = \case
-  Expanding -> Par.getExpandedLexToken
-  NotExpanding -> getUnexpandedToken
-
 parseXEqualsY :: MonadPrimTokenParse m => ExpansionMode -> m a -> m b -> m (a, b)
 parseXEqualsY mode parseX parseY = do
   x <- parseX
+  Log.log "Successfully parsed X of X=Y"
   skipOptionalEquals mode
+  Log.log "Successfully parsed equals-sign of X=Y"
   y <- parseY
+  Log.log "Successfully parsed Y of X=Y"
   pure (x, y)

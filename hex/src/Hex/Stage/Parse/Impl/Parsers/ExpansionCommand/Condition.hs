@@ -2,7 +2,8 @@ module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.Condition where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getExpandedLexToken)
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
@@ -10,7 +11,7 @@ import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
 parseRelationExpanding :: MonadPrimTokenParse m => m Ordering
-parseRelationExpanding = Par.satisfyThen getExpandedLexToken $ \t ->
+parseRelationExpanding = Par.satisfyLexThenExpanding $ \t ->
   if
       | Par.isOnly (Par.lexTokenCatChar Code.Other) (Code.Chr_ '<') t -> Just LT
       | Par.isOnly (Par.lexTokenCatChar Code.Other) (Code.Chr_ '>') t -> Just GT
@@ -28,9 +29,9 @@ parseConditionHead = \case
   ST.IfInModeTok a ->
     pure $ AST.IfConditionHead $ AST.IfInMode a
   ST.IfTokenAttributesEqualTok attr ->
-    AST.IfConditionHead <$> (AST.IfTokenAttributesEqual attr <$> getExpandedLexToken <*> getExpandedLexToken)
+    AST.IfConditionHead <$> (AST.IfTokenAttributesEqual attr <$> anyLexExpanding <*> anyLexExpanding)
   ST.IfTokensEqualTok ->
-    AST.IfConditionHead <$> (AST.IfTokensEqual <$> getUnexpandedToken <*> getUnexpandedToken)
+    AST.IfConditionHead <$> (AST.IfTokensEqual <$> anyLexInhibited <*> anyLexInhibited)
   ST.IfBoxRegisterIsTok attr ->
     AST.IfConditionHead <$> (AST.IfBoxRegisterIs attr <$> Par.parseInt)
   ST.IfInputEndedTok ->

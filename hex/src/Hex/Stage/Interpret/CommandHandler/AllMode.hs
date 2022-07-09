@@ -149,8 +149,8 @@ handleModeIndependentCommand = \case
                   Just symbol -> pure $ Just symbol
           Eval.FutureLetTarget _futureLetDefinition -> do
             notImplemented "Define control sequence: future let"
-          Eval.ShortDefineTarget charryQuantityType targetValue -> do
-            pure $ Just $ Res.PrimitiveToken $ PT.IntRefTok charryQuantityType targetValue
+          Eval.ShortDefineTarget shortDefTargetValue -> do
+            pure $ Just $ Res.PrimitiveToken $ PT.ShortDefTargetToken shortDefTargetValue
           Eval.ReadTarget _readInt -> do
             notImplemented "ReadTarget"
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do

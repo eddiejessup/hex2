@@ -4,13 +4,13 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
-import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
 
 parseLength :: MonadPrimTokenParse m => m AST.Length
 parseLength = AST.Length <$> Par.parseSigned parseUnsignedLength
@@ -19,14 +19,14 @@ parseUnsignedLength :: MonadPrimTokenParse m => m AST.UnsignedLength
 parseUnsignedLength =
   PC.choice
     [ AST.NormalLengthAsULength <$> parseNormalLength,
-      AST.CoercedLength . AST.InternalGlueAsLength <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalGlue)
+      AST.CoercedLength . AST.InternalGlueAsLength <$> (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
 parseNormalLength :: MonadPrimTokenParse m => m AST.NormalLength
 parseNormalLength =
   PC.choice
     [ AST.LengthSemiConstant <$> parseFactor <*> parseUnit,
-      AST.InternalLength <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalLength)
+      AST.InternalLength <$> (anyPrim >>= Par.headToParseInternalLength)
     ]
 
 -- NOTE: The parser order matters because TeX's grammar is ambiguous: '2.2'
@@ -36,19 +36,22 @@ parseFactor :: MonadPrimTokenParse m => m AST.Factor
 parseFactor =
   PC.choice
     [ AST.DecimalFractionFactor <$> parseRationalConstant,
-      AST.NormalIntFactor <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseNormalInt)
+      AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
     ]
 
 parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
 parseRationalConstant = do
-  wholeDigits <- PC.many (satisfyThen Par.getExpandedLexToken Par.decCharToWord)
-  skipSatisfied Par.getExpandedLexToken $ \t -> case t ^? Lex.lexTokCharCat of
+  Log.log "parseRationalConstant"
+  wholeDigits <- PC.many (satisfyLexThen Expanding Par.decCharToWord)
+  skipSatisfied satisfyLexThenExpanding $ \t -> case t ^? Lex.lexTokCharCat of
     Just cc ->
       let chrCode = cc ^. typed @Code.CharCode
        in (cc ^. typed @Code.CoreCatCode == Code.Other) && (chrCode == Code.Chr_ ',' || chrCode == Code.Chr_ '.')
     Nothing -> False
-  fracDigits <- PC.many (satisfyThen Par.getExpandedLexToken Par.decCharToWord)
-  pure $ AST.DecimalFraction {AST.wholeDigits, AST.fracDigits}
+  fracDigits <- PC.many (satisfyLexThen Expanding Par.decCharToWord)
+  let v = AST.DecimalFraction {AST.wholeDigits, AST.fracDigits}
+  Log.log $ "Successfully parsed rational constant, value: " <> show v
+  pure v
 
 parseUnit :: MonadPrimTokenParse m => m AST.Unit
 parseUnit =
@@ -60,9 +63,9 @@ parseUnit =
     parseInternalUnit =
       PC.choice
         [ parseInternalUnitLit <* skipOneOptionalSpace Expanding,
-          AST.InternalIntUnit <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalInt),
-          AST.InternalLengthUnit <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalLength),
-          AST.InternalGlueUnit <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseInternalGlue)
+          AST.InternalIntUnit <$> (anyPrim >>= Par.headToParseInternalInt),
+          AST.InternalLengthUnit <$> (anyPrim >>= Par.headToParseInternalLength),
+          AST.InternalGlueUnit <$> (anyPrim >>= Par.headToParseInternalGlue)
         ]
 
     parseInternalUnitLit =

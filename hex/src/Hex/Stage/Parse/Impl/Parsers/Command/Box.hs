@@ -5,8 +5,7 @@ import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
-import Hex.Common.Parse.Interface qualified as Par
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
@@ -18,9 +17,9 @@ import Hexlude
 headToParseLeadersSpec :: MonadPrimTokenParse m => Q.Axis -> PT.PrimitiveToken -> m AST.LeadersSpec
 headToParseLeadersSpec axis = \case
   PT.LeadersTok leaders ->
-    AST.LeadersSpec leaders <$> parseBoxOrRule <*> (Par.getExpandedPrimitiveToken >>= Par.headToParseModedAddGlue axis)
+    AST.LeadersSpec leaders <$> parseBoxOrRule <*> (anyPrim >>= Par.headToParseModedAddGlue axis)
   _ ->
-    empty
+    parseFailure "headToParseLeadersSpec"
 
 headToParseBox :: MonadPrimTokenParse m => PrimitiveToken -> m AST.Box
 headToParseBox = \case
@@ -34,10 +33,10 @@ headToParseBox = \case
     AST.VSplitBox nr <$> Par.parseLength
   PT.ExplicitBoxTok boxType -> do
     boxSpec <- parseBoxSpecification
-    skipSatisfied Par.getExpandedLexToken $ lexTokenHasCategory Code.BeginGroup
+    skipSatisfied satisfyLexThenExpanding $ lexTokenHasCategory Code.BeginGroup
     pure $ AST.ExplicitBox boxSpec boxType
   _ ->
-    empty
+    parseFailure "headToParseBox"
   where
     parseBoxSpecification = do
       spec <-
@@ -52,9 +51,9 @@ headToParseBox = \case
 parseBoxOrRule :: MonadPrimTokenParse m => m AST.BoxOrRule
 parseBoxOrRule =
   PC.choice
-    [ AST.BoxOrRuleBox <$> (Par.getExpandedPrimitiveToken >>= headToParseBox),
-      AST.BoxOrRuleRule Q.Horizontal <$> (Par.getExpandedPrimitiveToken >>= (headToParseModedRule Q.Horizontal)),
-      AST.BoxOrRuleRule Q.Vertical <$> (Par.getExpandedPrimitiveToken >>= (headToParseModedRule Q.Vertical))
+    [ AST.BoxOrRuleBox <$> (anyPrim >>= headToParseBox),
+      AST.BoxOrRuleRule Q.Horizontal <$> (anyPrim >>= (headToParseModedRule Q.Horizontal)),
+      AST.BoxOrRuleRule Q.Vertical <$> (anyPrim >>= (headToParseModedRule Q.Vertical))
     ]
 
 -- \hrule and such.
@@ -64,7 +63,7 @@ headToParseModedRule axis = \case
     | axis == tokenAxis ->
         AST.Rule <$> go mempty
   _ ->
-    empty
+    parseFailure "headToParseModedRule"
   where
     go dims = do
       skipOptionalSpaces Expanding
@@ -90,4 +89,4 @@ headToParseFetchedBoxRef tgtAxis = \case
     n <- Par.parseInt
     pure $ AST.FetchedBoxRef n fetchMode
   _ ->
-    empty
+    parseFailure "headToParseFetchedBoxRef"

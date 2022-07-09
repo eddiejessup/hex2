@@ -2,7 +2,8 @@ module Hex.Stage.Parse.Impl.Parsers.BalancedText where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), getExpandedLexToken)
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
@@ -24,7 +25,7 @@ data BalancedTextContext = AlreadySeenBeginGroup | ExpectingBeginGroup
 skipBeginGroupIfNeeded :: MonadPrimTokenParse m => BalancedTextContext -> m ()
 skipBeginGroupIfNeeded = \case
   AlreadySeenBeginGroup -> pure ()
-  ExpectingBeginGroup -> skipSatisfied getExpandedLexToken $ lexTokenHasCategory Code.BeginGroup
+  ExpectingBeginGroup -> skipSatisfied Par.satisfyLexThenExpanding $ lexTokenHasCategory Code.BeginGroup
 
 parseExpandedBalancedText :: MonadPrimTokenParse m => BalancedTextContext -> m HSt.TL.ExpandedBalancedText
 parseExpandedBalancedText ctx = do
@@ -32,7 +33,7 @@ parseExpandedBalancedText ctx = do
   HSt.TL.ExpandedBalancedText . HSt.TL.BalancedText . fst <$> parseNestedExprExpanded
   where
     parseNestedExprExpanded = parseNestedExpr $ \_depth -> do
-      lt <- getExpandedLexToken
+      lt <- anyToken Par.satisfyLexThenExpanding
       -- Check for a begin- or end-group token. Anything else leaves the
       -- expression depth unchanged.
       pure (lt, lexTokenToGroupDepthChange lt)
@@ -44,7 +45,7 @@ parseInhibitedBalancedText ctx = do
   where
     -- Note that we get lex-tokens, so we parse without resolving.
     parseNestedExprInhibited = parseNestedExpr $ \_depth -> do
-      lt <- getUnexpandedToken
+      lt <- anyToken Par.satisfyThenInhibited
       pure (lt, lexTokenToGroupDepthChange lt)
 
 lexTokenToGroupDepthChange :: Lex.LexToken -> Ordering

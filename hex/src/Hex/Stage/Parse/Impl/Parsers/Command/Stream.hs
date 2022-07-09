@@ -26,14 +26,14 @@ headToParseOpenOutput writePolicy = \case
   T.OpenOutputTok ->
     parseOpenFileStream (AST.FileOutput writePolicy)
   _ ->
-    empty
+    Par.parseFailure "headToParseOpenOutput"
 
 headToParseCloseOutput :: MonadPrimTokenParse m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
 headToParseCloseOutput writePolicy = \case
   T.CloseOutputTok ->
     AST.FileStreamModificationCommand (AST.FileOutput writePolicy) AST.Close <$> Par.parseInt
   _ ->
-    empty
+    Par.parseFailure "headToParseOpenOutput"
 
 headToParseWriteToStream :: MonadPrimTokenParse m => AST.WritePolicy -> T.PrimitiveToken -> m AST.StreamWriteCommand
 headToParseWriteToStream writePolicy = \case
@@ -45,7 +45,7 @@ headToParseWriteToStream writePolicy = \case
         AST.Deferred -> AST.DeferredWriteText <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup
       pure $ AST.StreamWriteCommand n txt
   _ ->
-    empty
+    Par.parseFailure "headToParseOpenOutput"
 
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
 parseFileName :: MonadPrimTokenParse m => m Q.HexFilePath
@@ -53,7 +53,7 @@ parseFileName = do
   skipOptionalSpaces Expanding
   fileNameAsciiChars <-
     PC.some $
-      satisfyThen Par.getExpandedLexToken $ \lt -> do
+      satisfyLexThenExpanding $ \lt -> do
         -- First check that we get a char-cat (with ^?)
         -- and that it has the right properties.
         code <-
@@ -65,8 +65,8 @@ parseFileName = do
                   Just c
             _ ->
               Nothing
-        pure $ Code.codeAsAsciiChar code
-  skipSatisfied Par.getExpandedLexToken lexTokenIsSpace
+        Just $ Code.codeAsAsciiChar code
+  skipSatisfied satisfyLexThenExpanding lexTokenIsSpace
   pure $ Q.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where
     isValidOther = \case

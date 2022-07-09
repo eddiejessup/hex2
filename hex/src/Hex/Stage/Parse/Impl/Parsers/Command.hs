@@ -1,11 +1,11 @@
 module Hex.Stage.Parse.Impl.Parsers.Command where
 
 import Control.Monad.Combinators qualified as PC
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
-import Hex.Common.Parse.Interface qualified as Par
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
@@ -22,19 +22,19 @@ import Hexlude
 
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
-  Par.getExpandedPrimitiveToken >>= \case
+  anyPrim >>= \case
     PT.DebugShowState ->
       pure $ AST.ModeIndependentCommand $ AST.DebugShowState
     PT.ShowTokenTok ->
-      AST.ShowToken <$> getUnexpandedToken
+      AST.ShowToken <$> anyLexInhibited
     PT.ShowBoxTok ->
       AST.ShowBox <$> Par.parseInt
     PT.ShowListsTok ->
       pure AST.ShowLists
     PT.ShowTheInternalQuantityTok ->
-      AST.ShowTheInternalQuantity <$> (Par.getExpandedPrimitiveToken >>= headToParseInternalQuantity)
+      AST.ShowTheInternalQuantity <$> (anyPrim >>= headToParseInternalQuantity)
     PT.ShipOutTok ->
-      AST.ShipOut <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseBox)
+      AST.ShipOut <$> (anyPrim >>= Par.headToParseBox)
     PT.MarkTok ->
       AST.AddMark <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
     PT.StartParagraphTok _indent ->
@@ -62,9 +62,9 @@ parseCommand =
     PT.MathKernTok ->
       AST.ModeIndependentCommand . AST.AddMathKern <$> Par.parseMathLength
     PT.SetAfterAssignmentTokenTok ->
-      AST.ModeIndependentCommand . AST.SetAfterAssignmentToken <$> getUnexpandedToken
+      AST.ModeIndependentCommand . AST.SetAfterAssignmentToken <$> anyLexInhibited
     PT.AddToAfterGroupTokensTok ->
-      AST.ModeIndependentCommand . AST.AddToAfterGroupTokens <$> getUnexpandedToken
+      AST.ModeIndependentCommand . AST.AddToAfterGroupTokens <$> anyLexInhibited
     PT.CloseInputTok ->
       AST.ModeIndependentCommand . AST.ModifyFileStream . AST.FileStreamModificationCommand AST.FileInput AST.Close <$> Par.parseInt
     PT.DoSpecialTok ->
@@ -77,7 +77,7 @@ parseCommand =
       AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.parseOpenFileStream AST.FileInput
     PT.ImmediateTok -> do
       AST.ModeIndependentCommand
-        <$> ( Par.getExpandedPrimitiveToken
+        <$> ( anyPrim
                 >>= ( choiceFlap
                         [ fmap AST.ModifyFileStream . Par.headToParseOpenOutput AST.Immediate,
                           fmap AST.ModifyFileStream . Par.headToParseCloseOutput AST.Immediate,
@@ -87,7 +87,7 @@ parseCommand =
             )
     PT.ModedCommand axis (PT.ShiftedBoxTok direction) -> do
       placement <- AST.ShiftedPlacement axis direction <$> Par.parseLength
-      AST.ModeIndependentCommand . AST.AddBox placement <$> (Par.getExpandedPrimitiveToken >>= Par.headToParseBox)
+      AST.ModeIndependentCommand . AST.AddBox placement <$> (anyPrim >>= Par.headToParseBox)
     PT.ChangeScopeCSTok sign ->
       pure $ AST.ModeIndependentCommand $ AST.ChangeScope sign HSt.Group.ChangeGroupCSTrigger
     PT.ControlSpaceTok ->
@@ -99,7 +99,7 @@ parseCommand =
     PT.AccentTok -> do
       nr <- Par.parseInt
       assignments <- PC.many Par.parseNonSetBoxAssignment
-      chrTok <- PC.optional (Par.getExpandedPrimitiveToken >>= headToParseCharCodeRef)
+      chrTok <- PC.optional (anyPrim >>= headToParseCharCodeRef)
       pure $ AST.HModeCommand $ AST.AddAccentedCharacter nr assignments chrTok
     PT.DiscretionaryTextTok -> do
       dText <-
@@ -112,7 +112,8 @@ parseCommand =
       pure $ AST.VModeCommand AST.End
     PT.DumpTok ->
       pure $ AST.VModeCommand AST.Dump
-    t ->
+    t -> do
+      Log.log "Generic command"
       PC.choice
         [ AST.ModeIndependentCommand . AST.Assign <$> Par.headToParseAssignment t,
           AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.headToParseOpenOutput AST.Deferred t,
@@ -147,9 +148,9 @@ headToParseCharCodeRef = \case
     pure $ AST.CharRef c
   PT.UnresolvedTok (Lex.CharCatLexToken (Lex.LexCharCat c Code.Other)) ->
     pure $ AST.CharRef c
-  PT.IntRefTok PT.CharQuantity i ->
+  PT.ShortDefTargetToken (PT.ShortDefTargetValue PT.CharQuantity i) ->
     pure $ AST.CharTokenRef i
   PT.ControlCharTok ->
     AST.CharCodeNrRef <$> Par.parseCharCodeInt
   _ ->
-    empty
+    parseFailure "headToParseCharCodeRef"

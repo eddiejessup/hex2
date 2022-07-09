@@ -66,12 +66,13 @@ parseMacroArguments parameterSpec = do
 parseUndelimitedArgumentTokens :: forall m. MonadPrimTokenParse m => m HSt.TL.InhibitedBalancedText
 parseUndelimitedArgumentTokens = do
   -- Skip blank tokens (assumed to mean spaces).
-  PC.skipMany $ satisfyIf getUnexpandedToken (lexTokenHasCategory Code.Space)
-  getUnexpandedToken >>= \case
+  PC.skipMany $ satisfyIf satisfyThenInhibited (lexTokenHasCategory Code.Space)
+  anyLexInhibited >>= \case
     -- Note that we are throwing away the surrounding braces of the argument.
     Lex.CharCatLexToken Lex.LexCharCat {lexCCCat = Code.BeginGroup} ->
       Par.parseInhibitedBalancedText Par.AlreadySeenBeginGroup
-    t -> pure $ HSt.TL.InhibitedBalancedText $ HSt.LT.BalancedText (singleton t)
+    t ->
+      pure $ HSt.TL.InhibitedBalancedText $ HSt.LT.BalancedText (singleton t)
 
 -- Get the shortest, possibly empty, properly nested sequence of tokens,
 -- followed by the delimiter tokens. In the delimiter, category codes,
@@ -86,7 +87,7 @@ parseDelimitedArgumentTokens delims = go Empty
     go argTokensAccum = do
       -- Parse tokens until we see the delimiter tokens, then add what we grab
       -- to our accumulating argument.
-      newArgTokens <- Seq.fromList <$> PC.manyTill getUnexpandedToken (skipUnexpandedLexTokens delims)
+      newArgTokens <- Seq.fromList <$> PC.manyTill anyLexInhibited (skipUnexpandedLexTokens delims)
       -- Consider the new 'total sequence' of tokens.
       let argTokensNew = argTokensAccum <> newArgTokens
       -- Check if that new sequence is a valid group.
@@ -104,7 +105,7 @@ skipParameterText :: MonadPrimTokenParse m => ST.ParameterText -> m ()
 skipParameterText (ST.ParameterText lexTokens) = skipUnexpandedLexTokens lexTokens
 
 skipUnexpandedLexTokens :: forall m. MonadPrimTokenParse m => Seq Lex.LexToken -> m ()
-skipUnexpandedLexTokens ts = forM_ ts (satisfyLexEquals NotExpanding)
+skipUnexpandedLexTokens ts = forM_ ts (satisfyLexEquals Inhibited)
 
 -- For some expression consisting of tokens that might increase or decrease the grouping, such as a parentheses,
 -- Compute the final depth of the expression, and the number of matched groups we saw.

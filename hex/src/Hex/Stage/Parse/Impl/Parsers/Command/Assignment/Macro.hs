@@ -7,6 +7,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
@@ -16,7 +17,7 @@ import Hexlude
 
 parseMacroBody :: MonadPrimTokenParse m => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> m AST.AssignmentBody
 parseMacroBody defExpandType prefixes = do
-  cs <- Par.parseCSName
+  cs <- Par.parseControlSymbol
   tgt <- parseMacroDefinition defExpandType prefixes
   pure $ AST.DefineControlSequence cs (AST.MacroTarget tgt)
 
@@ -26,63 +27,61 @@ parseMacroParameterSpecificationAndLeftBrace = do
   -- Pre-parameter text tokens.
   preParameterText <- parseMacroParameterDelimiterText
   -- Parameters, if present.
-  parameterDelimiterTexts <- getUnexpandedToken >>= headToParseParameterDelimiterTextsFrom ASCII.Digit1
+  parameterDelimiterTexts <- Par.anyLexInhibited >>= headToParseParameterDelimiterTextsFrom ASCII.Digit1
   pure $ ST.MacroParameterSpecification {preParameterText, parameterDelimiterTexts}
   where
     headToParseParameterDelimiterTextsFrom :: ASCII.Digit -> LexToken -> m (Seq ST.ParameterText)
-    headToParseParameterDelimiterTextsFrom paramNum headToken =
-      headToParseEndOfParams headToken <|> headToParseParamsFrom headToken
-      where
-        -- Parse the left-brace that indicates the end of parameters.
-        headToParseEndOfParams t
-          | Par.lexTokenHasCategory Code.BeginGroup t =
-              pure Seq.empty
-          | otherwise =
-              empty
-
+    headToParseParameterDelimiterTextsFrom paramNum headToken
+      -- Parse the left-brace that indicates the end of parameters.
+        | lexTokenEndsParameters headToken =
+            pure Seq.empty
         -- Parse a present parameter, then the remaining parameters, if present.
         -- Parse, for example, '#3'.
-        headToParseParamsFrom t
-          | Par.lexTokenHasCategory Code.Parameter t = do
-              -- First, we require that we see a parameter number that matches
-              -- the current parameter number.
-              Par.skipSatisfied getUnexpandedToken $ \case
-                Lex.CharCatLexToken lexCC -> case lexCC.lexCCCat of
-                  -- If we saw a 'letter' or 'other', precisely if it is a digit
-                  -- corresponding to the next expected parameter number.
-                  Code.Letter ->
-                    charCodeEqDigit lexCC.lexCCChar paramNum
-                  Code.Other ->
-                    charCodeEqDigit lexCC.lexCCChar paramNum
-                  -- A char-cat of any other category is invalid.
-                  _ -> False
-                -- A control sequence is invalid.
+        | Par.lexTokenHasCategory Code.Parameter headToken = do
+            -- First, we require that we see a parameter number that matches
+            -- the current parameter number.
+            Par.skipSatisfied satisfyThenInhibited $ \case
+              Lex.CharCatLexToken lexCC -> case lexCC.lexCCCat of
+                -- If we saw a 'letter' or 'other', precisely if it is a digit
+                -- corresponding to the next expected parameter number.
+                Code.Letter ->
+                  charCodeEqDigit lexCC.lexCCChar paramNum
+                Code.Other ->
+                  charCodeEqDigit lexCC.lexCCChar paramNum
+                -- A char-cat of any other category is invalid.
                 _ -> False
-              -- Parse delimiter tokens after the parameter number, if present.
-              currentParameterDelimiters <- parseMacroParameterDelimiterText
-              -- Return this parameter, plus any remaining parameters.
-              laterResult <- case paramNum of
-                -- If we are parsing parameter nine, there can't be any more, so we
-                -- only expect to end the parameters.
-                ASCII.Digit9 -> getUnexpandedToken >>= headToParseEndOfParams
-                -- Otherwise, we can either end the parameters, or have some more,
-                -- starting from the successor of this paramNumit.
-                _ -> getUnexpandedToken >>= headToParseParameterDelimiterTextsFrom (succ paramNum)
-              pure $ currentParameterDelimiters <| laterResult
-          | otherwise =
-              empty
+              -- A control sequence is invalid.
+              _ -> False
+            -- Parse delimiter tokens after the parameter number, if present.
+            currentParameterDelimiters <- parseMacroParameterDelimiterText
+            -- Return this parameter, plus any remaining parameters.
+            laterResult <- case paramNum of
+              -- If we are parsing parameter nine, there can't be any more, so we
+              -- only expect to end the parameters.
+              ASCII.Digit9 -> do
+                Par.skipSatisfied satisfyThenInhibited lexTokenEndsParameters
+                pure Seq.empty
+              -- Otherwise, we can either end the parameters, or have some more,
+              -- starting from the successor of this paramNumit.
+              _ -> Par.anyLexInhibited >>= headToParseParameterDelimiterTextsFrom (succ paramNum)
+            pure $ currentParameterDelimiters <| laterResult
+        | otherwise =
+            Par.parseFailure "headToParseParameterDelimiterTextsFrom"
 
-        charCodeEqDigit :: Code.CharCode -> ASCII.Digit -> Bool
-        charCodeEqDigit charCode expectedDigit = case charCodeToDigit charCode of
-          Nothing -> False
-          Just seenDigit -> seenDigit == expectedDigit
+    lexTokenEndsParameters :: LexToken -> Bool
+    lexTokenEndsParameters = Par.lexTokenHasCategory Code.BeginGroup
+
+    charCodeEqDigit :: Code.CharCode -> ASCII.Digit -> Bool
+    charCodeEqDigit charCode expectedDigit = case charCodeToDigit charCode of
+      Nothing -> False
+      Just seenDigit -> seenDigit == expectedDigit
 
 charCodeToDigit :: Code.CharCode -> Maybe ASCII.Digit
 charCodeToDigit charCode = ASCII.toDigitMaybe (Code.codeAsAsciiChar charCode)
 
 parseMacroParameterDelimiterText :: MonadPrimTokenParse m => m ST.ParameterText
 parseMacroParameterDelimiterText = do
-  delimiterTokens <- PC.many $ Par.satisfyIf getUnexpandedToken isDelimiterToken
+  delimiterTokens <- PC.many $ Par.satisfyIf Par.satisfyThenInhibited isDelimiterToken
   pure $ ST.ParameterText $ Seq.fromList delimiterTokens
   where
     isDelimiterToken = \case
@@ -120,11 +119,11 @@ parseInhibitedMacroReplacementText = ST.InhibitedReplacementText . fst <$> Par.p
   where
     parseNext :: Int -> m (ST.MacroTextToken, Ordering)
     parseNext _depth =
-      getUnexpandedToken >>= \case
+      Par.anyLexInhibited >>= \case
         -- If we see a '#', parse the parameter number and return a token
         -- representing the call.
         Lex.CharCatLexToken Lex.LexCharCat {lexCCCat = Code.Parameter} -> do
-          textToken <- Par.satisfyThen getUnexpandedToken paramNumOrHash
+          textToken <- Par.satisfyThenInhibited paramNumOrHash
           pure (textToken, EQ)
         -- Otherwise, just return the ordinary lex token.
         lexToken ->

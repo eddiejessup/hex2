@@ -8,8 +8,8 @@ import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
@@ -95,11 +95,14 @@ data FileStreamModificationCommand = FileStreamModificationCommand FileStreamTyp
 data Assignment = Assignment {body :: AssignmentBody, scope :: HSt.Grouped.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
+data ShortDefTargetValue = ShortDefTargetValue PT.CharryQuantityType HexInt
+  deriving stock (Show, Eq, Generic)
+
 data ControlSequenceTarget
   = MacroTarget ST.MacroDefinition
   | LetTarget Lex.LexToken
   | FutureLetTarget FutureLetDefinition
-  | ShortDefineTarget PT.CharryQuantityType HexInt
+  | ShortDefineTarget ShortDefTargetValue
   | ReadTarget HexInt
   | FontTarget FontFileSpec
   deriving stock (Show, Eq, Generic)
