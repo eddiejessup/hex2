@@ -4,16 +4,15 @@ module Hex.Stage.Expand.Impl where
 
 import Data.Sequence qualified as Seq
 import Hex.Capability.Log.Interface (MonadHexLog)
-import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as HSt.Res
+import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken (PrimitiveToken)
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
-import Hex.Common.HexState.Interface.Resolve.ExpandableToken qualified as ST
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Impl qualified as Par
 import Hex.Common.Parse.Interface qualified as Par
@@ -30,7 +29,6 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
-import qualified Formatting as F
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype
@@ -64,22 +62,11 @@ instance
   ) =>
   MonadPrimTokenSource (MonadPrimTokenSourceT m)
   where
-  getPrimitiveToken = do
-    Log.log $ "Fetching primitive token (resolving and expanding)"
-    getPrimitiveTokenImpl
+  getPrimitiveToken = getPrimitiveTokenImpl
 
-  getResolvedToken = do
-    Log.log $ "Fetching resolved token (resolving but not expanding)"
-    getResolvedTokenImpl
+  getResolvedToken = getResolvedTokenImpl
 
-  getTokenInhibited = do
-    Log.log $ "Fetching lex-token (not resolving or expanding)"
-    mayLexToken <- Lex.getLexToken
-    case mayLexToken of
-      Just lt -> do
-        Log.log $ "While inhibited, got lex-token: " <> F.sformat Lex.fmtLexToken lt
-      Nothing -> pure ()
-    pure mayLexToken
+  getTokenInhibited = Lex.getLexToken
 
   pushConditionState condState = modifying' conditionStatesLens (cons condState)
 

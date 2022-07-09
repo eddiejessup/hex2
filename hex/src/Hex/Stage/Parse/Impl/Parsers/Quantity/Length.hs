@@ -20,14 +20,14 @@ parseUnsignedLength :: MonadPrimTokenParse m => m AST.UnsignedLength
 parseUnsignedLength =
   PC.choice
     [ AST.NormalLengthAsULength <$> parseNormalLength,
-      AST.CoercedLength . AST.InternalGlueAsLength <$> (anyPrim >>= Par.headToParseInternalGlue)
+      Par.try $ AST.CoercedLength . AST.InternalGlueAsLength <$> (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
 parseNormalLength :: MonadPrimTokenParse m => m AST.NormalLength
 parseNormalLength =
   PC.choice
     [ AST.LengthSemiConstant <$> parseFactor <*> parseUnit,
-      AST.InternalLength <$> (anyPrim >>= Par.headToParseInternalLength)
+      Par.try $ AST.InternalLength <$> (anyPrim >>= Par.headToParseInternalLength)
     ]
 
 -- NOTE: The parser order matters because TeX's grammar is ambiguous: '2.2'
@@ -35,11 +35,13 @@ parseNormalLength =
 -- ambiguity by prioritising the rational constant parser.
 -- NOTE: Also we need a `try` on the 'rational' parse, because it will gobble up
 -- the next digits before it fails when it doesn't see a ',' or '.'.
+-- NOTE: Also we put a 'try' on the normal-int case, just because we start with
+-- an 'any-prim' so it's likely to over-consume.
 parseFactor :: MonadPrimTokenParse m => m AST.Factor
 parseFactor =
   PC.choice
     [ Par.try $ AST.DecimalFractionFactor <$> parseRationalConstant,
-      Log.log "Parsing normal-int" >> AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
+      Par.try $ Log.log "Parsing normal-int" >> AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
     ]
 
 parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
@@ -77,7 +79,7 @@ parseUnit =
 
     parseInternalUnitLit =
       PC.choice
-        [ skipKeyword Expanding [Chr_ 'e', Chr_ 'm'] $> AST.Em,
+        [ Par.try $ skipKeyword Expanding [Chr_ 'e', Chr_ 'm'] $> AST.Em,
           skipKeyword Expanding [Chr_ 'e', Chr_ 'x'] $> AST.Ex
         ]
 

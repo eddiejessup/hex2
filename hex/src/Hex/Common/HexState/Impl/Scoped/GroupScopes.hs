@@ -86,7 +86,7 @@ localProperty lens_ = scopedLookup (view lens_)
 
 localCompleteProperty :: Lens' Scope (Maybe a) -> GroupScopes -> a
 localCompleteProperty lens_ =
-  fromMaybe (panic "Not property found for char-code in code-table") . localProperty lens_
+  fromMaybe (panic "No value found for supposedly complete property") . localProperty lens_
 
 -- | Set a scoped property which is contained in a map, indexed by some key.
 setScopedMapValue :: Ord k => (Lens' Scope (Map k v)) -> k -> v -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes

@@ -48,7 +48,7 @@ parseGlue :: MonadPrimTokenParse m => m AST.Glue
 parseGlue =
   PC.choice
     [ AST.ExplicitGlue <$> parseExplicitGlueSpec,
-      AST.InternalGlue <$> Par.parseSigned (anyPrim >>= Par.headToParseInternalGlue)
+      Par.try $ AST.InternalGlue <$> Par.parseSigned (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
 parseExplicitGlueSpec :: MonadPrimTokenParse m => m AST.ExplicitGlueSpec
@@ -68,7 +68,7 @@ parsePureFlex s =
     parsePresentFlex = do
       skipKeyword Expanding s
       PC.choice
-        [ AST.FinitePureFlex <$> Par.parseLength,
+        [ Par.try $ AST.FinitePureFlex <$> Par.parseLength,
           AST.InfPureFlex <$> parseInfFlexOfOrder
         ]
 
