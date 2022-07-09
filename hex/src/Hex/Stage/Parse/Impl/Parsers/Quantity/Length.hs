@@ -1,16 +1,17 @@
 module Hex.Stage.Parse.Impl.Parsers.Quantity.Length where
 
 import Control.Monad.Combinators qualified as PC
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
 parseLength :: MonadPrimTokenParse m => m AST.Length
 parseLength = AST.Length <$> Par.parseSigned parseUnsignedLength
@@ -32,11 +33,13 @@ parseNormalLength =
 -- NOTE: The parser order matters because TeX's grammar is ambiguous: '2.2'
 -- could be parsed as an integer constant, '2', followed by '.2'. We break the
 -- ambiguity by prioritising the rational constant parser.
+-- NOTE: Also we need a `try` on the 'rational' parse, because it will gobble up
+-- the next digits before it fails when it doesn't see a ',' or '.'.
 parseFactor :: MonadPrimTokenParse m => m AST.Factor
 parseFactor =
   PC.choice
-    [ AST.DecimalFractionFactor <$> parseRationalConstant,
-      AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
+    [ Par.try $ AST.DecimalFractionFactor <$> parseRationalConstant,
+      Log.log "Parsing normal-int" >> AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
     ]
 
 parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
@@ -60,13 +63,17 @@ parseUnit =
       (AST.PhysicalUnit <$> parseFrame <*> parsePhysicalUnitLit) <* skipOneOptionalSpace Expanding
     ]
   where
+    -- 'try' because we
     parseInternalUnit =
-      PC.choice
-        [ parseInternalUnitLit <* skipOneOptionalSpace Expanding,
-          AST.InternalIntUnit <$> (anyPrim >>= Par.headToParseInternalInt),
-          AST.InternalLengthUnit <$> (anyPrim >>= Par.headToParseInternalLength),
-          AST.InternalGlueUnit <$> (anyPrim >>= Par.headToParseInternalGlue)
-        ]
+      (parseInternalUnitLit <* skipOneOptionalSpace Expanding)
+        <|> ( Par.try $
+                anyPrim
+                  >>= choiceFlap
+                    [ fmap AST.InternalIntUnit <$> Par.headToParseInternalInt,
+                      fmap AST.InternalLengthUnit <$> Par.headToParseInternalLength,
+                      fmap AST.InternalGlueUnit <$> Par.headToParseInternalGlue
+                    ]
+            )
 
     parseInternalUnitLit =
       PC.choice
@@ -82,18 +89,15 @@ parseUnit =
     -- TODO: Use 'try' because keywords with common prefixes lead the parser
     -- down a blind alley. Could refactor to avoid, but it would be ugly.
     -- Leave as later optimisation.
-    -- TODO: Should we omit the last try in such cases?
-    -- NOTE: Can't trim number of 'try's naïvely, because they all suck up
-    -- initial space, which would also need backtracking.
     parsePhysicalUnitLit =
       PC.choice
-        [ skipKeyword Expanding [Chr_ 'b', Chr_ 'p'] $> Q.BigPoint,
-          skipKeyword Expanding [Chr_ 'c', Chr_ 'c'] $> Q.Cicero,
-          skipKeyword Expanding [Chr_ 'c', Chr_ 'm'] $> Q.Centimetre,
+        [ Par.try $ skipKeyword Expanding [Chr_ 'p', Chr_ 't'] $> Q.Point,
+          skipKeyword Expanding [Chr_ 'p', Chr_ 'c'] $> Q.Pica,
+          skipKeyword Expanding [Chr_ 'b', Chr_ 'p'] $> Q.BigPoint,
           skipKeyword Expanding [Chr_ 'd', Chr_ 'd'] $> Q.Didot,
           skipKeyword Expanding [Chr_ 'i', Chr_ 'n'] $> Q.Inch,
           skipKeyword Expanding [Chr_ 'm', Chr_ 'm'] $> Q.Millimetre,
-          skipKeyword Expanding [Chr_ 'p', Chr_ 'c'] $> Q.Pica,
-          skipKeyword Expanding [Chr_ 'p', Chr_ 't'] $> Q.Point,
-          skipKeyword Expanding [Chr_ 's', Chr_ 'p'] $> Q.ScaledPoint
+          skipKeyword Expanding [Chr_ 's', Chr_ 'p'] $> Q.ScaledPoint,
+          Par.try $ skipKeyword Expanding [Chr_ 'c', Chr_ 'c'] $> Q.Cicero,
+          skipKeyword Expanding [Chr_ 'c', Chr_ 'm'] $> Q.Centimetre
         ]

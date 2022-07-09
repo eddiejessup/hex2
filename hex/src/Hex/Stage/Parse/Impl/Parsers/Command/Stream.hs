@@ -14,6 +14,8 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
+import qualified Formatting as F
+import qualified Hex.Common.HexState.Interface.Resolve.PrimitiveToken as PT
 
 parseOpenFileStream :: MonadPrimTokenParse m => AST.FileStreamType -> m AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =
@@ -25,15 +27,15 @@ headToParseOpenOutput :: MonadPrimTokenParse m => AST.WritePolicy -> T.Primitive
 headToParseOpenOutput writePolicy = \case
   T.OpenOutputTok ->
     parseOpenFileStream (AST.FileOutput writePolicy)
-  _ ->
-    Par.parseFailure "headToParseOpenOutput"
+  t ->
+    Par.parseFailure $ "headToParseOpenOutput " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseCloseOutput :: MonadPrimTokenParse m => AST.WritePolicy -> T.PrimitiveToken -> m AST.FileStreamModificationCommand
 headToParseCloseOutput writePolicy = \case
   T.CloseOutputTok ->
     AST.FileStreamModificationCommand (AST.FileOutput writePolicy) AST.Close <$> Par.parseInt
-  _ ->
-    Par.parseFailure "headToParseOpenOutput"
+  t ->
+    Par.parseFailure $ "headToParseOpenOutput " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseWriteToStream :: MonadPrimTokenParse m => AST.WritePolicy -> T.PrimitiveToken -> m AST.StreamWriteCommand
 headToParseWriteToStream writePolicy = \case
@@ -44,8 +46,8 @@ headToParseWriteToStream writePolicy = \case
         AST.Immediate -> AST.ImmediateWriteText <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
         AST.Deferred -> AST.DeferredWriteText <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup
       pure $ AST.StreamWriteCommand n txt
-  _ ->
-    Par.parseFailure "headToParseOpenOutput"
+  t ->
+    Par.parseFailure $ "headToParseOpenOutput " <> F.sformat PT.fmtPrimitiveToken t
 
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
 parseFileName :: MonadPrimTokenParse m => m Q.HexFilePath

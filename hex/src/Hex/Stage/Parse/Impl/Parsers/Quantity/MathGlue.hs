@@ -12,6 +12,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Par
 import Hexlude
+import qualified Formatting as F
 
 parseMathGlue :: MonadPrimTokenParse m => m Par.MathGlue
 parseMathGlue =
@@ -44,6 +45,6 @@ headToParseInternalMathGlue =
       \case
         PT.LastGlueTok ->
           pure AST.LastMathGlue
-        _ ->
-          parseFailure "headToParseInternalMathGlue"
+        t ->
+          parseFailure $ "headToParseInternalMathGlue " <> F.sformat PT.fmtPrimitiveToken t
     ]

@@ -65,6 +65,9 @@ instance Lex.MonadLexTokenSource m => Lex.MonadLexTokenSource (ParseT m) where
 mkParseT :: Monad m => m (Either CPar.ParsingError a, ParseLog) -> ParseT m a
 mkParseT ma = ParseT $ ExceptT $ W.writerT ma
 
+resumeParseT :: Monad m => Either CPar.ParsingError a -> ParseLog -> ParseT m a
+resumeParseT v parseLog = ParseT $ ExceptT $ W.writer (v, parseLog)
+
 liftWriter :: Monad m => W.WriterT ParseLog m a -> ParseT m a
 liftWriter ma = ParseT $ lift ma
 
@@ -96,7 +99,7 @@ instance MonadTrans ParseT where
 -- We could make this get-the-source ability abstract, but let's keep it concrete, and
 -- therefore specialised to the particular Hex case.
 -- (We are implementing a backtracking parser.)
-instance (Monad m, Lex.MonadLexTokenSource (ParseT m)) => Alternative (ParseT m) where
+instance Monad m => Alternative (ParseT m) where
   empty = parseErrorImpl CPar.ParseDefaultFailure
 
   (<|>) :: ParseT m a -> ParseT m a -> ParseT m a
@@ -114,7 +117,7 @@ instance (Monad m, Lex.MonadLexTokenSource (ParseT m)) => Alternative (ParseT m)
         liftWriter $ W.tell pLog
         pure v
 
-instance (Lex.MonadLexTokenSource (ParseT m), Monad m) => MonadPlus (ParseT m)
+instance Monad m => MonadPlus (ParseT m)
 
 parseErrorEndOfInput :: Monad m => ParseT m a
 parseErrorEndOfInput = ParseT $ throwE CPar.EndOfInputParsingError
@@ -146,7 +149,7 @@ getUnexpandedTokenImpl = do
   Log.log $ "Parser: Getting lex-token"
   lt <- endOfInputToError Expand.getTokenInhibited
   recordLexToken lt
-  Log.log $ "Parser: Got unexpanded lex-token: " <> show lt
+  Log.log $ "Parser: Got unexpanded lex-token: " <> F.sformat Lex.fmtLexToken lt
   pure lt
 
 satisfyThenExpandingImpl ::
@@ -167,6 +170,24 @@ satisfyThenExpandingImpl f = do
           recordLexToken lt
           pure a
 
+tryImpl ::
+  (Monad m, MonadPrimTokenParse (ParseT m), Lex.MonadLexTokenSource (ParseT m)) =>
+  ParseT m a ->
+  ParseT m a
+tryImpl f = do
+  Log.log "Doing try"
+  st <- Lex.getSource
+  (errOrA, parseLog) <- lift $ runParseT f
+  case errOrA of
+    Left e -> do
+      Log.log $ "Try target failed with error: " <> F.sformat CPar.fmtParsingError e
+      Lex.putSource st
+    Right _ -> do
+      Log.log "Try target succeeded"
+      pure ()
+  -- Whether we succeeded or failed, package up the result as a ParseT.
+  resumeParseT errOrA parseLog
+
 satisfyThenInhibitedImpl ::
   (Monad m, MonadPrimTokenSource (ParseT m), Lex.MonadLexTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) =>
   (Lex.LexToken -> Maybe a) ->
@@ -186,12 +207,10 @@ satisfyThenInhibitedImpl f = do
           pure a
 
 instance (Monad m, Lex.MonadLexTokenSource (ParseT m), MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => MonadPrimTokenParse (ParseT m) where
-  -- getExpandedToken = getExpandedTokenErrImpl
-
-  -- getUnexpandedToken = getUnexpandedTokenImpl
-
   parseError = parseErrorImpl
 
   satisfyThenExpanding = satisfyThenExpandingImpl
 
   satisfyThenInhibited = satisfyThenInhibitedImpl
+
+  try = tryImpl

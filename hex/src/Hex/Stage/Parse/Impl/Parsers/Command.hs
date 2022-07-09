@@ -19,6 +19,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
+import qualified Formatting as F
 
 parseCommand :: MonadPrimTokenParse m => m AST.Command
 parseCommand =
@@ -152,5 +153,5 @@ headToParseCharCodeRef = \case
     pure $ AST.CharTokenRef i
   PT.ControlCharTok ->
     AST.CharCodeNrRef <$> Par.parseCharCodeInt
-  _ ->
-    parseFailure "headToParseCharCodeRef"
+  t ->
+    parseFailure $ "headToParseCharCodeRef " <> F.sformat PT.fmtPrimitiveToken t

@@ -14,6 +14,7 @@ import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
+import qualified Formatting as F
 
 parseMacroBody :: MonadPrimTokenParse m => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> m AST.AssignmentBody
 parseMacroBody defExpandType prefixes = do
@@ -66,7 +67,7 @@ parseMacroParameterSpecificationAndLeftBrace = do
               _ -> Par.anyLexInhibited >>= headToParseParameterDelimiterTextsFrom (succ paramNum)
             pure $ currentParameterDelimiters <| laterResult
         | otherwise =
-            Par.parseFailure "headToParseParameterDelimiterTextsFrom"
+            Par.parseFailure $ "headToParseParameterDelimiterTextsFrom " <> F.sformat Lex.fmtLexToken headToken
 
     lexTokenEndsParameters :: LexToken -> Bool
     lexTokenEndsParameters = Par.lexTokenHasCategory Code.BeginGroup

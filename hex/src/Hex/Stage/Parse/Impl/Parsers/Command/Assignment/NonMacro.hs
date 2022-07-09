@@ -3,8 +3,10 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro where
 import Control.Monad.Combinators qualified as PC
 -- import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 
+import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as PT
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
@@ -99,7 +101,7 @@ parseFontTarget = do
 
 headToParseCodeAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseCodeAssignment t = do
-  Log.log $ "Trying to parse code assignment " <> show t
+  Log.log $ "Trying to parse code assignment " <> F.sformat PT.fmtPrimitiveToken t
   (ref, tgt) <- parseXEqualsY Expanding (Par.headToParseCodeTableRef t) Par.parseInt
   pure $ AST.AssignCode $ AST.CodeAssignment ref tgt
 
@@ -129,7 +131,7 @@ headToParseModifyVariable = \case
     skipOptionalBy
     AST.ScaleVariable d var <$> Par.parseInt
   t ->
-    parseFailure $ "headToParseModifyVariable " <> show t
+    parseFailure $ "headToParseModifyVariable " <> F.sformat PT.fmtPrimitiveToken t
 
 parseNumericVariable :: MonadPrimTokenParse m => m AST.NumericVariable
 parseNumericVariable =

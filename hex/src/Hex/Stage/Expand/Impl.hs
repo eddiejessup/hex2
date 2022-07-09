@@ -30,6 +30,7 @@ import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
+import qualified Formatting as F
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
   deriving newtype
@@ -76,7 +77,7 @@ instance
     mayLexToken <- Lex.getLexToken
     case mayLexToken of
       Just lt -> do
-        Log.log $ "While inhibited, got lex-token: " <> show lt
+        Log.log $ "While inhibited, got lex-token: " <> F.sformat Lex.fmtLexToken lt
       Nothing -> pure ()
     pure mayLexToken
 

@@ -17,6 +17,8 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
 import qualified Hex.Common.Parse.Interface as Par
+import qualified Formatting as F
+import qualified Hex.Capability.Log.Interface as Log
 
 parseSigned :: forall m a. MonadPrimTokenParse m => m a -> m (AST.Signed a)
 parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
@@ -43,11 +45,13 @@ headToParseUnsignedInt headTok =
     headTok
 
 headToParseNormalInt :: forall m. MonadPrimTokenParse m => PrimitiveToken -> m AST.NormalInt
-headToParseNormalInt =
+headToParseNormalInt headToken = do
+  Log.log $ "headToParseNormalInt " <> F.sformat PT.fmtPrimitiveToken headToken
   choiceFlap
     [ \t -> liftLexHead headToParseConstantInt t <* skipOneOptionalSpace Expanding,
       fmap AST.InternalInt <$> headToParseInternalInt
     ]
+    headToken
   where
     headToParseConstantInt :: LexToken -> m AST.NormalInt
     headToParseConstantInt t
@@ -63,7 +67,7 @@ headToParseNormalInt =
       | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '`') t =
           AST.CharLikeCode <$> Par.satisfyThenInhibited parseCharLikeCodeInt
       | otherwise =
-          parseFailure "headToParseConstantInt"
+          parseFailure $ "headToParseConstantInt " <> F.sformat Lex.fmtLexToken t
 
     -- Case 10, character constant like "`c".
     parseCharLikeCodeInt :: LexToken -> Maybe Word8
@@ -101,7 +105,7 @@ headToParseInternalInt =
         PT.ParagraphShapeTok -> pure AST.ParShape
         PT.InputLineNrTok -> pure AST.InputLineNr
         PT.BadnessTok -> pure AST.Badness
-        _ -> parseFailure "headToParseInternalInt",
+        t -> parseFailure $ "headToParseInternalInt " <> F.sformat PT.fmtPrimitiveToken t,
       fmap AST.InternalIntVariable <$> headToParseIntVariable,
       fmap AST.InternalSpecialIntParameter <$> headToParseSpecialInt,
       fmap AST.InternalCodeTableRef <$> headToParseCodeTableRef,
@@ -138,22 +142,22 @@ headToParseMathCharToken :: MonadPrimTokenParse m => PT.PrimitiveToken -> m Q.He
 headToParseMathCharToken = \case
   PT.ShortDefTargetToken (PT.ShortDefTargetValue PT.MathCharQuantity c) ->
     pure c
-  _ ->
-    parseFailure "headToParseMathCharToken"
+  t ->
+    parseFailure $ "headToParseMathCharToken " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseFontSpecialCharRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.FontSpecialCharRef
 headToParseFontSpecialCharRef = \case
   PT.FontSpecialCharTok c ->
     AST.FontSpecialCharRef c <$> (anyPrim >>= headToParseFontRef)
-  _ ->
-    parseFailure "headToParseFontSpecialCharRef"
+  t ->
+    parseFailure $ "headToParseFontSpecialCharRef " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseFontRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.FontRef
 headToParseFontRef =
   choiceFlap
     [ \case
         PT.FontTok -> pure AST.CurrentFontRef
-        _ -> parseFailure "headToParseFontRef",
+        t -> parseFailure $ "headToParseFontRef " <> F.sformat PT.fmtPrimitiveToken t,
       fmap AST.FontTokenRef <$> headToParseFontRefToken,
       fmap AST.FamilyMemberFontRef <$> headToParseFamilyMember
     ]
@@ -161,12 +165,12 @@ headToParseFontRef =
 headToParseFontRefToken :: MonadPrimTokenParse m => PT.PrimitiveToken -> m HSt.Font.FontNumber
 headToParseFontRefToken = \case
   PT.FontRefToken n -> pure n
-  _ -> parseFailure "headToParseFontRefToken"
+  t -> parseFailure $ "headToParseFontRefToken " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseFamilyMember :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.FamilyMember
 headToParseFamilyMember = \case
   PT.FontRangeTok r -> AST.FamilyMember r <$> parseInt
-  _ -> parseFailure "headToParseFamilyMember"
+  t -> parseFailure $ "headToParseFamilyMember " <> F.sformat PT.fmtPrimitiveToken t
 
 -- ======================
 -- The remaining parsers aren't related to numbers, but because of coercion rules
@@ -180,7 +184,7 @@ headToParseInternalLength =
   choiceFlap
     [ \case
         PT.LastKernTok -> pure AST.LastKern
-        _ -> parseFailure "headToParseInternalLength",
+        t -> parseFailure $ "headToParseInternalLength " <> F.sformat PT.fmtPrimitiveToken t,
       fmap AST.InternalLengthVariable <$> headToParseLengthVariable,
       fmap AST.InternalSpecialLengthParameter <$> headToParseSpecialLength,
       fmap AST.InternalFontDimensionRef <$> headToParseFontDimensionRef,
@@ -191,16 +195,16 @@ headToParseFontDimensionRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m A
 headToParseFontDimensionRef = \case
   PT.FontDimensionTok ->
     AST.FontDimensionRef <$> parseInt <*> (anyPrim >>= headToParseFontRef)
-  _ ->
-    parseFailure "headToParseFontDimensionRef"
+  t ->
+    parseFailure $ "headToParseFontDimensionRef " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseBoxDimensionRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.BoxDimensionRef
 headToParseBoxDimensionRef = \case
   PT.BoxDimensionTok dim -> do
     boxNr <- parseExplicitRegisterLocation
     pure $ AST.BoxDimensionRef boxNr dim
-  _ ->
-    parseFailure "headToParseBoxDimensionRef"
+  t ->
+    parseFailure $ "headToParseBoxDimensionRef " <> F.sformat PT.fmtPrimitiveToken t
 
 -- Glue.
 
@@ -210,7 +214,7 @@ headToParseInternalGlue =
     [ fmap AST.InternalGlueVariable <$> headToParseGlueVariable,
       \case
         PT.LastGlueTok -> pure AST.LastGlue
-        _ -> parseFailure "headToParseInternalGlue"
+        t -> parseFailure $ "headToParseInternalGlue " <> F.sformat PT.fmtPrimitiveToken t
     ]
 
 -- Variables.
@@ -231,7 +235,7 @@ headToParseIntVariable = \case
   PT.RegisterVariableTok Q.IntQuantity ->
     AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.IntQuantRegisterType <$> parseExplicitRegisterLocation
   t ->
-    parseFailure $ "headToParseIntVariable " <> show t
+    parseFailure $ "headToParseIntVariable " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseLengthVariable :: MonadPrimTokenParse m => PT.PrimitiveToken -> m (AST.QuantVariableAST 'Q.LengthQuantity)
 headToParseLengthVariable = \case
@@ -241,8 +245,8 @@ headToParseLengthVariable = \case
     pure $ AST.RegisterVar $ AST.InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.LengthQuantRegisterType (HSt.Reg.RegisterLocation n))
   PT.RegisterVariableTok Q.LengthQuantity ->
     AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.LengthQuantRegisterType <$> parseExplicitRegisterLocation
-  _ ->
-    parseFailure "headToParseLengthVariable"
+  t ->
+    parseFailure $ "headToParseLengthVariable " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseGlueVariable :: MonadPrimTokenParse m => PT.PrimitiveToken -> m (AST.QuantVariableAST 'Q.GlueQuantity)
 headToParseGlueVariable = \case
@@ -252,8 +256,8 @@ headToParseGlueVariable = \case
     pure $ AST.RegisterVar $ AST.InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.GlueQuantRegisterType (HSt.Reg.RegisterLocation n))
   PT.RegisterVariableTok Q.GlueQuantity ->
     AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.GlueQuantRegisterType <$> parseExplicitRegisterLocation
-  _ ->
-    parseFailure "headToParseGlueVariable"
+  t ->
+    parseFailure $ "headToParseGlueVariable " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseMathGlueVariable :: MonadPrimTokenParse m => PT.PrimitiveToken -> m (AST.QuantVariableAST 'Q.MathGlueQuantity)
 headToParseMathGlueVariable = \case
@@ -269,8 +273,8 @@ headToParseMathGlueVariable = \case
   PT.RegisterVariableTok Q.MathGlueQuantity ->
     AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.MathGlueQuantRegisterType
       <$> parseExplicitRegisterLocation
-  _ ->
-    parseFailure "headToParseMathGlueVariable"
+  t ->
+    parseFailure $ "headToParseMathGlueVariable " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseTokenListVariable :: MonadPrimTokenParse m => PT.PrimitiveToken -> m (AST.QuantVariableAST 'Q.TokenListQuantity)
 headToParseTokenListVariable = \case
@@ -280,19 +284,19 @@ headToParseTokenListVariable = \case
     pure $ AST.RegisterVar $ AST.InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation HSt.Reg.TokenListQuantRegisterType (HSt.Reg.RegisterLocation n))
   PT.RegisterVariableTok Q.TokenListQuantity ->
     AST.RegisterVar . AST.ExplicitQuantRegisterLocation HSt.Reg.TokenListQuantRegisterType <$> parseExplicitRegisterLocation
-  _ ->
-    parseFailure "headToParseTokenListVariable"
+  t ->
+    parseFailure $ "headToParseTokenListVariable " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseSpecialInt :: MonadPrimTokenParse m => PT.PrimitiveToken -> m HSt.Param.SpecialIntParameter
 headToParseSpecialInt = \case
   PT.SpecialIntParameterTok p ->
     pure p
-  _ ->
-    parseFailure "headToParseSpecialInt"
+  t ->
+    parseFailure $ "headToParseSpecialInt " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseSpecialLength :: MonadPrimTokenParse m => PT.PrimitiveToken -> m HSt.Param.SpecialLengthParameter
 headToParseSpecialLength = \case
   PT.SpecialLengthParameterTok p ->
     pure p
-  _ ->
-    parseFailure "headToParseSpecialLength"
+  t ->
+    parseFailure $ "headToParseSpecialLength " <> F.sformat PT.fmtPrimitiveToken t

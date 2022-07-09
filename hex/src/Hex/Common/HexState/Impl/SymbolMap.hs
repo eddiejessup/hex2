@@ -1,7 +1,6 @@
 module Hex.Common.HexState.Impl.SymbolMap where
 
 import Data.Map.Strict qualified as Map
-import Data.Text qualified as Tx
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font
 import Hex.Common.HexState.Interface.Grouped
@@ -9,8 +8,8 @@ import Hex.Common.HexState.Interface.Parameter
 import Hex.Common.HexState.Interface.Register
 import Hex.Common.HexState.Interface.Resolve (ResolvedToken (..))
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
-import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.HexState.Interface.Resolve.ExpandableToken
+import Hex.Common.HexState.Interface.Resolve.PrimitiveToken
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.ListExtractor.Interface
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
@@ -352,8 +351,3 @@ initialSymbolMap =
       (_cs "nonstopmode", primTok $ InteractionModeTok NonStopMode),
       (_cs "batchmode", primTok $ InteractionModeTok BatchMode)
     ]
-
-renderUsableCodesToResolvedTokens :: [(Lex.LexToken, Maybe ResolvedToken)] -> Text
-renderUsableCodesToResolvedTokens xs = Tx.intercalate "\n\n" $ renderPair <$> xs
-  where
-    renderPair (lt, rt) = "In: " <> show lt <> "\nOut: " <> show rt

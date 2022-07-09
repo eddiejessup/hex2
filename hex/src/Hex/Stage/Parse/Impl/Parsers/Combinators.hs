@@ -12,6 +12,7 @@ import Hex.Stage.Lex.Interface.Extract (LexToken)
 import Hex.Stage.Lex.Interface.Extract qualified as Lex
 import Hexlude
 import qualified Hex.Capability.Log.Interface as Log
+import qualified Formatting as F
 
 data ExpansionMode = Expanding | Inhibited
   deriving stock (Show, Eq, Generic)
@@ -77,7 +78,7 @@ skipOptionalSpaces mode =
 liftLexHead :: MonadPrimTokenParse m => (LexToken -> m a) -> PrimitiveToken -> m a
 liftLexHead lexParser pt =
   case pt ^? PT.primTokLexTok of
-    Nothing -> Par.parseFailure "liftLexHead"
+    Nothing -> Par.parseFailure $ "liftLexHead " <> F.sformat PT.fmtPrimitiveToken pt
     Just lt -> lexParser lt
 
 primTokenHasCategory :: Code.CoreCatCode -> PrimitiveToken -> Bool

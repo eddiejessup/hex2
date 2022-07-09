@@ -1,7 +1,6 @@
 module Hex.Stage.Parse.Impl.Parsers.Quantity.Glue where
 
 import Control.Monad.Combinators qualified as PC
-import Data.Foldable qualified as Fold
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Resolve.PrimitiveToken qualified as T
@@ -13,6 +12,8 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
+import qualified Formatting as F
+import qualified Data.List as List
 
 headToParseModedAddGlue :: MonadPrimTokenParse m => Q.Axis -> T.PrimitiveToken -> m AST.Glue
 headToParseModedAddGlue axis = \case
@@ -81,9 +82,9 @@ parseInfFlexOfOrder = do
       1 -> pure Q.Fil1
       2 -> pure Q.Fil2
       3 -> pure Q.Fil3
-      _ -> Par.parseFailure "parseInfFlexOfOrder"
+      n -> Par.parseFailure $ "parseInfFlexOfOrder " <> F.sformat F.int n
   skipOptionalSpaces Expanding
   pure $ AST.InfFlexOfOrder factor order
   where
     parseNrLs =
-      Fold.length <$> PC.some (skipSatisfied satisfyLexThenExpanding $ matchNonActiveCharacterUncased (Chr_ 'l'))
+      List.length <$> PC.some (skipSatisfied satisfyLexThenExpanding $ matchNonActiveCharacterUncased (Chr_ 'l'))

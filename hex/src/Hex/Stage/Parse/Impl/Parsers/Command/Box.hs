@@ -13,13 +13,14 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
+import qualified Formatting as F
 
 headToParseLeadersSpec :: MonadPrimTokenParse m => Q.Axis -> PT.PrimitiveToken -> m AST.LeadersSpec
 headToParseLeadersSpec axis = \case
   PT.LeadersTok leaders ->
     AST.LeadersSpec leaders <$> parseBoxOrRule <*> (anyPrim >>= Par.headToParseModedAddGlue axis)
-  _ ->
-    parseFailure "headToParseLeadersSpec"
+  t ->
+    parseFailure $ "headToParseLeadersSpec " <> F.sformat PT.fmtPrimitiveToken t
 
 headToParseBox :: MonadPrimTokenParse m => PrimitiveToken -> m AST.Box
 headToParseBox = \case
@@ -35,8 +36,8 @@ headToParseBox = \case
     boxSpec <- parseBoxSpecification
     skipSatisfied satisfyLexThenExpanding $ lexTokenHasCategory Code.BeginGroup
     pure $ AST.ExplicitBox boxSpec boxType
-  _ ->
-    parseFailure "headToParseBox"
+  t ->
+    parseFailure $ "headToParseBox " <> F.sformat PT.fmtPrimitiveToken t
   where
     parseBoxSpecification = do
       spec <-
@@ -62,8 +63,8 @@ headToParseModedRule axis = \case
   PT.ModedCommand tokenAxis PT.RuleTok
     | axis == tokenAxis ->
         AST.Rule <$> go mempty
-  _ ->
-    parseFailure "headToParseModedRule"
+  t ->
+    parseFailure $ "headToParseModedRule " <> F.sformat PT.fmtPrimitiveToken t
   where
     go dims = do
       skipOptionalSpaces Expanding
@@ -88,5 +89,5 @@ headToParseFetchedBoxRef tgtAxis = \case
   PT.ModedCommand tokenAxis (PT.UnwrappedFetchedBoxTok fetchMode) | tgtAxis == tokenAxis -> do
     n <- Par.parseInt
     pure $ AST.FetchedBoxRef n fetchMode
-  _ ->
-    parseFailure "headToParseFetchedBoxRef"
+  t ->
+    parseFailure $ "headToParseFetchedBoxRef " <> F.sformat PT.fmtPrimitiveToken t
