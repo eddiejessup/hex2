@@ -20,7 +20,7 @@ class (Monad m) => MonadResolve m where
 getMayResolvedToken :: (MonadResolve m, HIn.MonadHexInput m) => m (Maybe (LT.LexToken, Either ResolutionError RT.ResolvedToken))
 getMayResolvedToken =
   -- Get a lex token.
-  HIn.getLexToken >>= \case
+  HIn.getNextLexToken >>= \case
     -- If no lex token, return nothing.
     Nothing -> pure Nothing
     -- If there is a lex token, try to resolve it.

@@ -14,6 +14,7 @@ import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
 import Hexlude
+import qualified Hex.Common.HexInput.Interface.CharSource as HIn
 
 data HModeCommandResult
   = ContinueHMode

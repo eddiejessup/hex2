@@ -14,6 +14,7 @@ import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hexlude
+import qualified Hex.Common.HexInput.Interface.CharSource as HIn
 
 data VModeCommandResult
   = ContinueMainVMode

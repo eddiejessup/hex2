@@ -9,7 +9,7 @@ lexAll :: MonadHexInput m => m [LT.LexToken]
 lexAll = go
   where
     go =
-      getLexToken >>= \case
+      getNextLexToken >>= \case
         Nothing ->
           pure []
         Just tok -> do

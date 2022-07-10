@@ -64,9 +64,7 @@ instance HIn.MonadHexInput m => HIn.MonadHexInput (ParseT m) where
 
   insertLexTokens = lift . HIn.insertLexTokens
 
-  peekTokenOnCurrentLine = lift HIn.peekTokenOnCurrentLine
-
-  getLexToken = lift HIn.getLexToken
+  getNextLexToken = lift HIn.getNextLexToken
 
 mkParseT :: Monad m => m (Either CPar.ParsingError a, ParseLog) -> ParseT m a
 mkParseT ma = ParseT $ ExceptT $ W.writerT ma

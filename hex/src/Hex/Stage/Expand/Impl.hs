@@ -65,7 +65,7 @@ instance
 
   getResolvedToken = getResolvedTokenImpl
 
-  getTokenInhibited = HIn.getLexToken
+  getTokenInhibited = HIn.getNextLexToken
 
   pushConditionState condState = modifying' conditionStatesLens (cons condState)
 

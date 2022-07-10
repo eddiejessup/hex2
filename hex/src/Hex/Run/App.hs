@@ -29,6 +29,7 @@ import Hexlude
 import System.IO (hFlush)
 import qualified Hex.Common.HexInput.Interface as HIn
 import qualified Hex.Common.HexInput.Impl as HIn
+import qualified Hex.Common.HexInput.Interface.CharSource as HIn
 
 data AppState = AppState
   { appHexState :: HSt.HexState,

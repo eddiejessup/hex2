@@ -43,9 +43,7 @@ instance HIn.MonadHexInput m => HIn.MonadHexInput (VListBuilderT m) where
 
   insertLexTokens = lift . HIn.insertLexTokens
 
-  peekTokenOnCurrentLine = lift HIn.peekTokenOnCurrentLine
-
-  getLexToken = lift HIn.getLexToken
+  getNextLexToken = lift HIn.getNextLexToken
 
 runVListBuilderT :: H.Inter.B.List.VList -> VListBuilderT m a -> m (a, H.Inter.B.List.VList)
 runVListBuilderT initVList app = runStateT (unVListBuilderT app) initVList
