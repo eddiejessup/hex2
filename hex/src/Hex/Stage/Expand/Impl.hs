@@ -25,7 +25,6 @@ import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as E
 import Hex.Stage.Expand.Impl.Expand qualified as Expand
 import Hex.Stage.Expand.Interface (ExpansionError (..), MonadPrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Expand
-import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
 import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
@@ -41,7 +40,7 @@ newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourc
       MonadState st,
       MonadError e,
       Res.MonadResolve,
-      Lex.MonadLexTokenSource,
+      HIn.MonadHexInput,
       Par.MonadPrimTokenParse,
       HSt.MonadHexState,
       MonadHexLog
@@ -54,7 +53,6 @@ instance
     AsType Res.ResolutionError e,
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
-    Lex.MonadLexTokenSource (MonadPrimTokenSourceT m),
     HIn.MonadHexInput (MonadPrimTokenSourceT m),
     HSt.MonadHexState (MonadPrimTokenSourceT m),
     MonadState s m,
@@ -67,7 +65,7 @@ instance
 
   getResolvedToken = getResolvedTokenImpl
 
-  getTokenInhibited = Lex.getLexToken
+  getTokenInhibited = HIn.getLexToken
 
   pushConditionState condState = modifying' conditionStatesLens (cons condState)
 
@@ -91,7 +89,7 @@ getResolvedTokenImpl ::
   ( Res.MonadResolve m,
     MonadError e m,
     AsType Res.ResolutionError e,
-    Lex.MonadLexTokenSource m
+    HIn.MonadHexInput m
   ) =>
   m (Maybe (LT.LexToken, RT.ResolvedToken))
 getResolvedTokenImpl =
@@ -125,7 +123,6 @@ getPrimitiveTokenImpl ::
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
     HIn.MonadHexInput m,
-    Lex.MonadLexTokenSource m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,
     MonadHexLog m

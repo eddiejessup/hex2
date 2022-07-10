@@ -16,16 +16,16 @@ import Hex.Stage.Interpret.CommandHandler.AllMode (InterpretError)
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
 import Hex.Stage.Interpret.CommandHandler.HMode qualified as Command.H
 import Hex.Stage.Interpret.CommandHandler.HMode qualified as HMode
-import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource (..))
 import Hexlude
+import qualified Hex.Common.HexInput.Interface as HIn
 
 instance
   ( Monad m,
     MonadEvaluate m,
-    MonadLexTokenSource m,
     MonadCommandSource m,
     MonadHexState m,
+    HIn.MonadHexInput m,
     MonadError e m,
     AsType InterpretError e,
     MonadHexLog m
@@ -39,9 +39,9 @@ instance
 extractHBoxListImpl ::
   forall m e.
   ( Eval.MonadEvaluate m,
-    MonadLexTokenSource m,
     MonadCommandSource m,
     HSt.MonadHexState m,
+    HIn.MonadHexInput m,
     MonadError e m,
     AsType AllMode.InterpretError e,
     MonadHexLog m
@@ -53,9 +53,9 @@ extractHBoxListImpl =
 extractParagraphListImpl ::
   forall m e.
   ( Eval.MonadEvaluate m,
-    MonadLexTokenSource m,
     MonadCommandSource m,
     HSt.MonadHexState m,
+    HIn.MonadHexInput m,
     MonadError e m,
     AsType AllMode.InterpretError e,
     MonadHexLog m
@@ -73,9 +73,9 @@ extractParagraphListImpl indentFlag = do
 buildHList ::
   forall m e.
   ( Eval.MonadEvaluate m,
-    MonadLexTokenSource m,
     MonadCommandSource m,
     HSt.MonadHexState m,
+    HIn.MonadHexInput m,
     MonadError e m,
     AsType AllMode.InterpretError e,
     MonadHexLog m
@@ -90,7 +90,7 @@ buildHList modeCtx initList = do
     go = do
       -- Get the state before reading the command,
       -- in case we need to revert to before the command.
-      sPreParse <- getSource
+      sPreParse <- HIn.getSource
       -- Read the next command.
       command <- AllMode.getNextCommandLogged
       -- Handle the next command, passing the old state in case we need to revert.

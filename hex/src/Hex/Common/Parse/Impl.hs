@@ -14,7 +14,6 @@ import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
 import Hex.Stage.Expand.Interface qualified as Expand
-import Hex.Stage.Lex.Interface qualified as Lex
 import Hexlude
 
 newtype ParseLog = ParseLog {unParseLog :: Seq LT.LexToken}
@@ -52,10 +51,22 @@ instance Expand.MonadPrimTokenSource m => Expand.MonadPrimTokenSource (ParseT m)
 
   peekConditionState = lift Expand.peekConditionState
 
-instance Lex.MonadLexTokenSource m => Lex.MonadLexTokenSource (ParseT m) where
-  getLexToken = lift Lex.getLexToken
+instance HIn.MonadHexInput m => HIn.MonadHexInput (ParseT m) where
+  endCurrentLine = lift HIn.endCurrentLine
 
-instance HIn.MonadHexInput m => HIn.MonadHexInput (ParseT m)
+  sourceIsFinished = lift HIn.sourceIsFinished
+
+  getSource = lift HIn.getSource
+
+  putSource = lift . HIn.putSource
+
+  insertLexToken = lift . HIn.insertLexToken
+
+  insertLexTokens = lift . HIn.insertLexTokens
+
+  peekTokenOnCurrentLine = lift HIn.peekTokenOnCurrentLine
+
+  getLexToken = lift HIn.getLexToken
 
 mkParseT :: Monad m => m (Either CPar.ParsingError a, ParseLog) -> ParseT m a
 mkParseT ma = ParseT $ ExceptT $ W.writerT ma

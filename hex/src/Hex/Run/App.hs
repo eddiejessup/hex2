@@ -20,9 +20,6 @@ import Hex.Stage.Expand.Impl (MonadPrimTokenSourceT (..))
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as Interpret
-import Hex.Stage.Lex.Impl (MonadLexTokenSourceT (..))
-import Hex.Stage.Lex.Interface (MonadLexTokenSource)
-import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Parse.Impl (MonadCommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hex.Stage.Resolve.Impl (MonadResolveT (..))
@@ -30,23 +27,22 @@ import Hex.Stage.Resolve.Interface (MonadResolve)
 import Hex.Stage.Resolve.Interface qualified as Resolve
 import Hexlude
 import System.IO (hFlush)
+import qualified Hex.Common.HexInput.Interface as HIn
+import qualified Hex.Common.HexInput.Impl as HIn
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
-    appLexBuffer :: LexBuffer,
+    appCharSource :: HIn.LoadedCharSource,
     appConditionStates :: Expand.ConditionStates
   }
   deriving stock (Generic)
-
-instance {-# OVERLAPPING #-} HasType LoadedCharSource AppState where
-  typed = #appLexBuffer % typed @LoadedCharSource
 
 newHexStateWithChars :: NonEmpty ByteString -> AppState
 newHexStateWithChars lines_ =
   let endLineChar = HSt.Param.newIntParameters ^. at' HSt.Param.EndLineChar >>= Code.fromHexInt
    in AppState
         { appHexState = HSt.newHexState,
-          appLexBuffer = newLexBuffer endLineChar lines_,
+          appCharSource = HIn.newCharSource endLineChar lines_,
           appConditionStates = Expand.newConditionStates
         }
 
@@ -61,15 +57,14 @@ newtype App a = App {unApp :: ReaderT HEnv.HexEnv (StateT AppState (ExceptT AppE
       MonadReader HEnv.HexEnv
     )
   deriving (MonadHexState) via (MonadHexStateImplT App)
-  deriving (MonadCharCatSource) via (MonadCharCatSourceT App)
   deriving (MonadEvaluate) via (MonadEvaluateT App)
   deriving (MonadResolve) via (MonadResolveT App)
-  deriving (MonadLexTokenSource) via (MonadLexTokenSourceT App)
+  deriving (HIn.MonadHexInput) via (HIn.MonadHexInputT App)
   deriving (MonadPrimTokenSource) via (MonadPrimTokenSourceT App)
   deriving (MonadCommandSource) via (MonadCommandSourceT App)
 
 data AppError
-  = AppLexError Lex.LexError
+  = AppLexError HIn.LexError
   | AppParseError Parse.ParsingError
   | AppExpansionError Expand.ExpansionError
   | AppInterpretError Interpret.InterpretError
@@ -84,7 +79,7 @@ instance {-# OVERLAPPING #-} AsType Parse.ParseUnexpectedError AppError where
 
 fmtAppError :: Format r (AppError -> r)
 fmtAppError = F.later $ \case
-  AppLexError lexError -> F.bformat Lex.fmtLexError lexError
+  AppLexError lexError -> F.bformat HIn.fmtLexError lexError
   AppParseError parseError -> F.bformat Parse.fmtParsingError parseError
   AppExpansionError expansionError -> F.bformat Expand.fmtExpansionError expansionError
   AppInterpretError interpretError -> F.bformat Interpret.fmtInterpretError interpretError

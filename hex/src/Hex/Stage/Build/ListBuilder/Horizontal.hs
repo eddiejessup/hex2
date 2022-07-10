@@ -9,9 +9,9 @@ import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Build.ListBuilder.Interface
 import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hex.Stage.Evaluate.Interface (MonadEvaluate (..))
-import Hex.Stage.Lex.Interface (MonadLexTokenSource (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource (..))
 import Hexlude
+import qualified Hex.Common.HexInput.Interface as HIn
 
 newtype HListBuilderT m a = HListBuilderT {unHListBuilderT :: StateT H.Inter.B.List.HList m a}
   deriving newtype
@@ -24,9 +24,25 @@ newtype HListBuilderT m a = HListBuilderT {unHListBuilderT :: StateT H.Inter.B.L
       MonadHexState,
       MonadCommandSource,
       MonadEvaluate,
-      MonadHexLog,
-      MonadLexTokenSource
+      MonadHexLog
     )
+
+instance HIn.MonadHexInput m => HIn.MonadHexInput (HListBuilderT m) where
+  endCurrentLine = lift HIn.endCurrentLine
+
+  sourceIsFinished = lift HIn.sourceIsFinished
+
+  getSource = lift HIn.getSource
+
+  putSource = lift . HIn.putSource
+
+  insertLexToken = lift . HIn.insertLexToken
+
+  insertLexTokens = lift . HIn.insertLexTokens
+
+  peekTokenOnCurrentLine = lift HIn.peekTokenOnCurrentLine
+
+  getLexToken = lift HIn.getLexToken
 
 runHListBuilderT :: H.Inter.B.List.HList -> HListBuilderT m a -> m (a, H.Inter.B.List.HList)
 runHListBuilderT initHList app = runStateT (unHListBuilderT app) initHList

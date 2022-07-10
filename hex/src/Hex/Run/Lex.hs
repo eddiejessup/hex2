@@ -2,10 +2,10 @@ module Hex.Run.Lex where
 
 import Formatting qualified as F
 import Hex.Common.Token.Lexed qualified as LT
-import Hex.Stage.Lex.Interface
 import Hexlude
+import Hex.Common.HexInput.Interface
 
-lexAll :: MonadLexTokenSource m => m [LT.LexToken]
+lexAll :: MonadHexInput m => m [LT.LexToken]
 lexAll = go
   where
     go =

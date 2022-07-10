@@ -9,12 +9,12 @@ import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.Parse.Impl (fmtParseLog, runParseTMaybe, ParseT)
 import Hex.Common.Parse.Interface (ParseUnexpectedError (..))
 import Hex.Stage.Expand.Interface qualified as Exp
-import Hex.Stage.Lex.Interface qualified as Lex
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
 import Hex.Stage.Parse.Interface
 import Hexlude
 import qualified Hex.Stage.Parse.Interface.AST.Command as Par
 import qualified Hex.Common.Parse.Interface as Par
+import qualified Hex.Common.HexInput.Interface as HIn
 
 newtype MonadCommandSourceT m a = MonadCommandSourceT {unMonadCommandSourceT :: m a}
   deriving newtype
@@ -26,18 +26,18 @@ newtype MonadCommandSourceT m a = MonadCommandSourceT {unMonadCommandSourceT :: 
       MonadError e,
       MonadHexState,
       Exp.MonadPrimTokenSource,
-      Lex.MonadLexTokenSource,
+      HIn.MonadHexInput,
       MonadHexLog
     )
 
 -- This is quite opaque so to explain:
--- We need (Lex.MonadLexTokenSource m, MonadPrimTokenSource m),
+-- We need (HIn.MonadHexInput m, MonadPrimTokenSource m),
 -- because we want 'PrimTokenParse (ParseT m),
 -- because that is what we want to run parseCommand in.
 -- The instance for 'PrimTokenParse (ParseT m)' requires the above to be true of `m`.
 -- So we require that here.
 instance
-  ( Lex.MonadLexTokenSource (MonadCommandSourceT m),
+  ( HIn.MonadHexInput (MonadCommandSourceT m),
     Exp.MonadPrimTokenSource (MonadCommandSourceT m),
     MonadError e (MonadCommandSourceT m),
     AsType ParseUnexpectedError e,

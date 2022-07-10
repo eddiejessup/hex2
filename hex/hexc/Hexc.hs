@@ -2,7 +2,6 @@ module Main where
 
 import Data.ByteString qualified as BS
 import Hex.Run.App qualified as Run
-import Hex.Run.Categorise qualified as Run.Cat
 import Hex.Run.Evaluate qualified as Run.Evaluate
 import Hex.Run.Expand qualified as Run.Expand
 import Hex.Run.Interpret qualified as Run.Interpret
@@ -52,8 +51,7 @@ dviRunParser =
     <$> strOption (long "file" <> short 'f' <> metavar "FILENAME" <> help "Output file")
 
 data RunMode
-  = CatMode
-  | LexMode
+  = LexMode
   | ResolveMode
   | ExpandMode
   | RawCommandMode
@@ -82,8 +80,7 @@ data DVIWriteOptions = DVIWriteOptions
 runModeParser :: Parser RunMode
 runModeParser =
   subparser
-    ( command "cat" (info (pure CatMode) (progDesc ""))
-        <> command "lex" (info (pure LexMode) (progDesc ""))
+    ( command "lex" (info (pure LexMode) (progDesc ""))
         <> command "resolve" (info (pure ResolveMode) (progDesc ""))
         <> command "expand" (info (pure ExpandMode) (progDesc ""))
         <> command "raw-command" (info (pure RawCommandMode) (progDesc ""))
@@ -124,9 +121,6 @@ main = do
         pure (cs, Just inPathStr)
   inputLines <- note (panic "No lines of input") (Run.toInputLines inputBytes)
   case opts.mode of
-    CatMode -> do
-      ccs <- Run.unsafeEvalApp inputLines Run.Cat.categoriseAll
-      putText $ sformat Run.Cat.fmtCategoriseResult ccs
     LexMode -> do
       lts <- Run.unsafeEvalApp inputLines Run.Lex.lexAll
       putText $ sformat Run.Lex.fmtLexResult lts

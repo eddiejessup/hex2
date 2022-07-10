@@ -110,6 +110,25 @@ class Monad m => MonadHexInput m where
 
   insertLexTokens :: Seq LT.LexToken -> m ()
 
+  peekTokenOnCurrentLine :: m (Maybe HexLineToken)
+
+  getLexToken :: m (Maybe LT.LexToken)
+
+data LexError
+  = TerminalEscapeCharacter
+  | InvalidCharacter
+  deriving stock (Show, Eq, Generic)
+
+fmtLexError :: Fmt LexError
+fmtLexError = F.shown
+
+-- -- Insert in reverse order, so, we insert the "r" of "relax" last, so we pop "r" next.
+-- insertLexTokensToSource :: (HasType LexBuffer s, MonadState s m) => Seq LT.LexToken -> m ()
+-- insertLexTokensToSource lts = forM_ (Seq.reverse lts) insertLexTokenToSource
+
+-- insertLexTokenToSource :: (HasType LexBuffer s, MonadState s m) => LT.LexToken -> m ()
+-- insertLexTokenToSource lt = modifying' (typed @LexBuffer % #bufferLexTokens) (lt :<|)
+
 -- getEndLineCharCode :: HSt.MonadHexState m => m (Maybe Code.CharCode)
 -- getEndLineCharCode =
 --   Code.fromHexInt <$> HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.EndLineChar)
