@@ -173,7 +173,8 @@ getPresentResolvedToken ::
   forall m e.
   (Expand.MonadPrimTokenSource m, MonadError e m, AsType ExpansionError e) =>
   m RT.ResolvedToken
-getPresentResolvedToken = Expand.getResolvedTokenErrorEOF (injectTyped Expand.EndOfInputWhileSkipping)
+getPresentResolvedToken =
+  Expand.getResolvedTokenErrorEOF (injectTyped Expand.EndOfInputWhileSkipping)
 
 skipUntilElseOrEndif ::
   forall m.

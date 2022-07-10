@@ -6,7 +6,7 @@ import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.Token.Lexed (LexCharCat (..), LexToken (..))
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
-import qualified Hex.Common.HexInput.Interface.CharSource as HIn
+import qualified Hex.Common.HexInput.Impl.CharSource as HIn
 import qualified Hex.Common.HexState.Interface as HSt
 import qualified Hex.Common.HexInput.Interface.CharSource as CharSource
 

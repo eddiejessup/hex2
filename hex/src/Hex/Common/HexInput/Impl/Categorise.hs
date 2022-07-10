@@ -4,8 +4,8 @@ import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.ByteString qualified as BS
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexInput.Interface.CharSource (HexLine (..))
-import Hex.Common.HexInput.Interface.CharSource qualified as HIn
+import Hex.Common.HexInput.Impl.CharSource (HexLine (..))
+import Hex.Common.HexInput.Impl.CharSource qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
 import Hexlude
 import qualified Hex.Common.HexInput.Interface.CharSource as CharSource

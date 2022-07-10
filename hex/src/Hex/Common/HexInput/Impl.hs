@@ -7,7 +7,7 @@ import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexInput.Interface (MonadHexInput (..))
 import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexInput.Interface.CharSource qualified as CharSource
+import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
