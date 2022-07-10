@@ -21,8 +21,10 @@ satisfyLexThen mode f = case mode of
   Expanding -> satisfyThenExpanding (\(lt, _pt) -> f lt)
   Inhibited -> satisfyThenInhibited f
 
-satisfyLexThenExpanding :: MonadPrimTokenParse m => (LT.LexToken -> Maybe a) -> m a
-satisfyLexThenExpanding = satisfyLexThen Expanding
+satisfyCharCatThen :: MonadPrimTokenParse m => ExpansionMode -> (LT.LexCharCat -> Maybe a) -> m a
+satisfyCharCatThen mode f = satisfyLexThen mode $ \case
+  LT.CharCatLexToken cc -> f cc
+  _ -> Nothing
 
 satisfyPrimThenExpanding :: MonadPrimTokenParse m => (PT.PrimitiveToken -> Maybe a) -> m a
 satisfyPrimThenExpanding f = satisfyThenExpanding (\(_lt, pt) -> f pt)
@@ -33,7 +35,7 @@ anyToken :: SatisfyThen m t t -> m t
 anyToken satisfyThen = satisfyThen Just
 
 anyLexExpanding :: MonadPrimTokenParse m => m LT.LexToken
-anyLexExpanding = anyToken satisfyLexThenExpanding
+anyLexExpanding = anyToken (satisfyLexThen Expanding)
 
 anyLexInhibited :: MonadPrimTokenParse m => m LT.LexToken
 anyLexInhibited = anyToken satisfyThenInhibited
@@ -53,8 +55,8 @@ skipOptional satisfyThen = void . optional . satisfyIf satisfyThen
 skipSatisfied :: MonadPlus m => SatisfyThen m t t -> (t -> Bool) -> m ()
 skipSatisfied satisfyThen = void . satisfyIf satisfyThen
 
-satisfyEquals :: MonadPrimTokenParse m => PrimitiveToken -> m ()
-satisfyEquals t = skipSatisfied satisfyPrimThenExpanding (== t)
+satisfyPrimEquals :: MonadPrimTokenParse m => PrimitiveToken -> m ()
+satisfyPrimEquals t = skipSatisfied satisfyPrimThenExpanding (== t)
 
 satisfyLexEquals :: MonadPrimTokenParse m => ExpansionMode -> LT.LexToken -> m ()
 satisfyLexEquals mode t = skipSatisfied (satisfyLexThen mode) (== t)
@@ -72,11 +74,11 @@ choiceFlap headToParsers t =
 -- <optional spaces> = <zero or more spaces>.
 skipOptionalSpaces :: MonadPrimTokenParse m => ExpansionMode -> m ()
 skipOptionalSpaces mode =
-  skipManySatisfied (satisfyLexThen mode) lexTokenIsSpace
+  skipManySatisfied (satisfyCharCatThen mode) charCatIsSpace
 
-liftLexHead :: MonadPrimTokenParse m => (LT.LexToken -> m a) -> PrimitiveToken -> m a
+liftLexHead :: MonadPrimTokenParse m => (LT.LexCharCat -> m a) -> PrimitiveToken -> m a
 liftLexHead lexParser pt =
-  case pt ^? PT.primTokLexTok of
+  case pt ^? PT.primTokCharCat of
     Nothing -> Par.parseFailure $ "liftLexHead " <> F.sformat PT.fmtPrimitiveToken pt
     Just lt -> lexParser lt
 
@@ -86,31 +88,30 @@ primTokenHasCategory = isOnly (PT.primTokCharCat % typed @Code.CoreCatCode)
 lexTokenHasCategory :: Code.CoreCatCode -> LT.LexToken -> Bool
 lexTokenHasCategory = isOnly LT.lexTokCategory
 
-lexTokenCatChar :: Code.CoreCatCode -> AffineFold LT.LexToken Code.CharCode
-lexTokenCatChar cat = LT.lexTokCharCat % filtered (isOnly (typed @Code.CoreCatCode) cat) % typed @Code.CharCode
+charCatHasCategory :: Code.CoreCatCode -> LT.LexCharCat -> Bool
+charCatHasCategory cat cc = cc.lexCCCat == cat
+
+charCatChar :: Code.CoreCatCode -> AffineFold LT.LexCharCat Code.CharCode
+charCatChar cat = filtered (isOnly (typed @Code.CoreCatCode) cat) % typed @Code.CharCode
 
 skipOneOptionalSpace :: (MonadPrimTokenParse m) => ExpansionMode -> m ()
-skipOneOptionalSpace mode = skipOptional (satisfyLexThen mode) lexTokenIsSpace
+skipOneOptionalSpace mode = skipOptional (satisfyCharCatThen mode) charCatIsSpace
 
 -- <space token> = character token of category [space], or a control sequence
 -- or active character \let equal to such.
-lexTokenIsSpace :: LT.LexToken -> Bool
-lexTokenIsSpace = lexTokenHasCategory Code.Space
+charCatIsSpace :: LT.LexCharCat -> Bool
+charCatIsSpace = charCatHasCategory Code.Space
 
-matchNonActiveCharacterUncased :: Code.CharCode -> LT.LexToken -> Bool
-matchNonActiveCharacterUncased a t =
-  case t ^? LT.lexTokCharCat of
-    Just cc ->
-      let aWord = a ^. typed @Word8
-          chrWord = cc ^. typed @Code.CharCode % typed @Word8
-       in (cc ^. typed @Code.CoreCatCode /= Code.Active) && (chrWord == H.Ascii.toUpper aWord || chrWord == H.Ascii.toLower aWord)
-    _ ->
-      False
+matchNonActiveCharacterUncased :: Code.CharCode -> LT.LexCharCat -> Bool
+matchNonActiveCharacterUncased a cc =
+  let aWord = a ^. typed @Word8
+      chrWord = cc ^. typed @Code.CharCode % typed @Word8
+    in (cc ^. typed @Code.CoreCatCode /= Code.Active) && (chrWord == H.Ascii.toUpper aWord || chrWord == H.Ascii.toLower aWord)
 
 skipKeyword :: MonadPrimTokenParse m => ExpansionMode -> [Code.CharCode] -> m ()
 skipKeyword mode s = do
   skipOptionalSpaces mode
-  for_ s (skipSatisfied (satisfyLexThen mode) . matchNonActiveCharacterUncased)
+  for_ s (skipSatisfied (satisfyCharCatThen mode) . matchNonActiveCharacterUncased)
 
 parseOptionalKeyword :: MonadPrimTokenParse m => ExpansionMode -> [Code.CharCode] -> m Bool
 parseOptionalKeyword mode s =
@@ -127,7 +128,10 @@ skipFillerExpanding = skipManySatisfied satisfyPrimThenExpanding isFillerItem
 skipOptionalEquals :: (MonadPrimTokenParse m) => ExpansionMode -> m ()
 skipOptionalEquals mode = do
   skipOptionalSpaces mode
-  skipOptional (satisfyLexThen mode) $ isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '=')
+  skipOptional (satisfyCharCatThen mode) $ isOnly (ccCatChar Code.Other) (Code.Chr_ '=')
+
+ccCatChar :: Code.CoreCatCode -> AffineFold LT.LexCharCat Code.CharCode
+ccCatChar cat = filtered (isOnly (typed @Code.CoreCatCode) cat) % typed @Code.CharCode
 
 parseControlSymbol :: MonadPrimTokenParse m => m ControlSymbol
 parseControlSymbol = Par.satisfyThenInhibited lextokToCSLike

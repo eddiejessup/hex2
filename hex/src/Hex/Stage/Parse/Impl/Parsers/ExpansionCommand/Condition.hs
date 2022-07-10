@@ -11,11 +11,11 @@ import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
 parseRelationExpanding :: MonadPrimTokenParse m => m Ordering
-parseRelationExpanding = Par.satisfyLexThenExpanding $ \t ->
+parseRelationExpanding = Par.satisfyCharCatThen Expanding $ \cc ->
   if
-      | Par.isOnly (Par.lexTokenCatChar Code.Other) (Code.Chr_ '<') t -> Just LT
-      | Par.isOnly (Par.lexTokenCatChar Code.Other) (Code.Chr_ '>') t -> Just GT
-      | Par.isOnly (Par.lexTokenCatChar Code.Other) (Code.Chr_ '=') t -> Just EQ
+      | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '<') cc -> Just LT
+      | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '>') cc -> Just GT
+      | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '=') cc -> Just EQ
       | otherwise -> Nothing
 
 parseConditionHead :: MonadPrimTokenParse m => ST.ConditionHeadTok -> m AST.ConditionHead

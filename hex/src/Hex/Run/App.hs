@@ -22,14 +22,12 @@ import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as Interpret
 import Hex.Stage.Parse.Impl (MonadCommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
-import Hex.Stage.Resolve.Impl (MonadResolveT (..))
-import Hex.Stage.Resolve.Interface (MonadResolve)
-import Hex.Stage.Resolve.Interface qualified as Resolve
 import Hexlude
 import System.IO (hFlush)
 import qualified Hex.Common.HexInput.Interface as HIn
 import qualified Hex.Common.HexInput.Impl as HIn
 import qualified Hex.Common.HexInput.Interface.CharSource as HIn
+import qualified Hex.Common.HexState.Interface as HSt
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
@@ -59,7 +57,6 @@ newtype App a = App {unApp :: ReaderT HEnv.HexEnv (StateT AppState (ExceptT AppE
     )
   deriving (MonadHexState) via (MonadHexStateImplT App)
   deriving (MonadEvaluate) via (MonadEvaluateT App)
-  deriving (MonadResolve) via (MonadResolveT App)
   deriving (HIn.MonadHexInput) via (HIn.MonadHexInputT App)
   deriving (MonadPrimTokenSource) via (MonadPrimTokenSourceT App)
   deriving (MonadCommandSource) via (MonadCommandSourceT App)
@@ -69,7 +66,7 @@ data AppError
   | AppParseError Parse.ParsingError
   | AppExpansionError Expand.ExpansionError
   | AppInterpretError Interpret.InterpretError
-  | AppResolutionError Resolve.ResolutionError
+  | AppResolutionError HSt.ResolutionError
   | AppEvaluationError Eval.EvaluationError
   | AppHexStateError HSt.HexStateError
   | AppTFMError TFM.TFMError
@@ -84,7 +81,7 @@ fmtAppError = F.later $ \case
   AppParseError parseError -> F.bformat Parse.fmtParsingError parseError
   AppExpansionError expansionError -> F.bformat Expand.fmtExpansionError expansionError
   AppInterpretError interpretError -> F.bformat Interpret.fmtInterpretError interpretError
-  AppResolutionError resolutionError -> F.bformat Resolve.fmtResolutionError resolutionError
+  AppResolutionError resolutionError -> F.bformat HSt.fmtResolutionError resolutionError
   AppEvaluationError evaluationError -> F.bformat Eval.fmtEvaluationError evaluationError
   AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError

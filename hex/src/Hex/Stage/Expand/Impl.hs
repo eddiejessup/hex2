@@ -26,7 +26,6 @@ import Hex.Stage.Expand.Impl.Expand qualified as Expand
 import Hex.Stage.Expand.Interface (ExpansionError (..), MonadPrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
-import Hex.Stage.Resolve.Interface qualified as Res
 import Hexlude
 
 newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
@@ -39,7 +38,6 @@ newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourc
       MonadIO,
       MonadState st,
       MonadError e,
-      Res.MonadResolve,
       HIn.MonadHexInput,
       Par.MonadPrimTokenParse,
       HSt.MonadHexState,
@@ -47,12 +45,11 @@ newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourc
     )
 
 instance
-  ( Res.MonadResolve (MonadPrimTokenSourceT m),
-    MonadError e (MonadPrimTokenSourceT m),
+  ( MonadError e (MonadPrimTokenSourceT m),
     AsType ExpansionError e,
-    AsType Res.ResolutionError e,
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
+    AsType HSt.ResolutionError e,
     HIn.MonadHexInput (MonadPrimTokenSourceT m),
     HSt.MonadHexState (MonadPrimTokenSourceT m),
     MonadState s m,
@@ -86,19 +83,19 @@ conditionStatesLens = typed @Expand.ConditionStates % #unConditionStates
 -- Note that the lex-token is just returned for debugging really.
 -- It is passed through unchanged from the lex-token-source.
 getResolvedTokenImpl ::
-  ( Res.MonadResolve m,
-    MonadError e m,
-    AsType Res.ResolutionError e,
-    HIn.MonadHexInput m
+  ( MonadError e m,
+    AsType HSt.ResolutionError e,
+    HIn.MonadHexInput m,
+    HSt.MonadHexState m
   ) =>
   m (Maybe (LT.LexToken, RT.ResolvedToken))
 getResolvedTokenImpl =
-  Res.getMayResolvedToken >>= \case
+  HIn.getMayResolvedToken >>= \case
     -- If nothing left in the input, return nothing.
     Nothing -> pure Nothing
     -- If we get a token, we only care about the resolved version.
     -- Check if resolution succeeded.
-    Just (lt, errOrResolvedTok) -> case errOrResolvedTok of
+    Just (lt, errOrRT) -> case errOrRT of
       -- If resolution failed, throw an error.
       Left e ->
         throwError $ injectTyped e
@@ -116,12 +113,11 @@ getResolvedTokenImpl =
 -- This is why we require `MonadPrimTokenSource m` in order to implement this
 -- very interface.
 getPrimitiveTokenImpl ::
-  ( Res.MonadResolve m,
-    MonadError e m,
+  ( MonadError e m,
     AsType ExpansionError e,
-    AsType Res.ResolutionError e,
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
+    AsType HSt.ResolutionError e,
     HIn.MonadHexInput m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,
@@ -144,12 +140,11 @@ data ExpansionResult
   | ExpandedToLexTokens (Seq LT.LexToken)
 
 expandResolvedTokenImpl ::
-  ( Res.MonadResolve m,
-    MonadError e m,
+  ( MonadError e m,
     AsType ExpansionError e,
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
-    AsType Res.ResolutionError e,
+    AsType HSt.ResolutionError e,
     HIn.MonadHexInput m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,
@@ -167,12 +162,11 @@ expandResolvedTokenImpl = \case
     ExpandedToLexTokens <$> parseEvalExpandExpansionCommand headTok
 
 expandLexTokenImpl ::
-  ( Res.MonadResolve m,
-    MonadError e m,
+  ( MonadError e m,
     AsType ExpansionError e,
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
-    AsType Res.ResolutionError e,
+    AsType HSt.ResolutionError e,
     HIn.MonadHexInput m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,
@@ -181,7 +175,7 @@ expandLexTokenImpl ::
   LT.LexToken ->
   m ExpansionResult
 expandLexTokenImpl lt =
-  Res.resolveLexToken lt >>= \case
+  HSt.resolveLexToken lt >>= \case
     Left resolveErr -> throwError $ injectTyped resolveErr
     Right rt -> expandResolvedTokenImpl rt
 
@@ -190,9 +184,8 @@ parseEvalExpandExpansionCommand ::
     AsType ExpansionError e,
     AsType Par.ParsingError e,
     AsType Eval.EvaluationError e,
-    AsType Res.ResolutionError e,
+    AsType HSt.ResolutionError e,
     HSt.MonadHexState m,
-    Res.MonadResolve m,
     MonadPrimTokenSource m,
     HIn.MonadHexInput m,
     MonadHexLog m
@@ -212,8 +205,7 @@ expandExpansionCommand ::
     AsType ExpansionError e,
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
-    AsType Res.ResolutionError e,
-    Res.MonadResolve m,
+    AsType HSt.ResolutionError e,
     HIn.MonadHexInput m,
     MonadPrimTokenSource m,
     HSt.MonadHexState m,

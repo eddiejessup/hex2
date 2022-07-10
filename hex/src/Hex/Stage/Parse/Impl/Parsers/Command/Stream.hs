@@ -55,20 +55,16 @@ parseFileName = do
   skipOptionalSpaces Expanding
   fileNameAsciiChars <-
     PC.some $
-      satisfyLexThenExpanding $ \lt -> do
-        -- First check that we get a char-cat (with ^?)
-        -- and that it has the right properties.
-        code <-
-          lt ^? LT.lexTokCharCat >>= \case
-            LT.LexCharCat c Code.Letter ->
-              Just c
-            LT.LexCharCat c Code.Other
-              | isValidOther c ->
-                  Just c
-            _ ->
-              Nothing
-        Just $ Code.codeAsAsciiChar code
-  skipSatisfied satisfyLexThenExpanding lexTokenIsSpace
+      satisfyCharCatThen Expanding $ \cc ->
+        Code.codeAsAsciiChar <$> (case cc of
+          -- Check that the char-cat has the right properties.
+          LT.LexCharCat c Code.Letter ->
+            Just c
+          LT.LexCharCat c Code.Other | isValidOther c ->
+            Just c
+          _ ->
+            Nothing)
+  skipSatisfied (satisfyCharCatThen Expanding) charCatIsSpace
   pure $ Q.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where
     isValidOther = \case

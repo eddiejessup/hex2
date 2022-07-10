@@ -25,11 +25,11 @@ parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
     parseOptionalSigns :: m [Q.Sign]
     parseOptionalSigns = do
       skipOptionalSpaces Expanding
-      PC.sepEndBy (satisfyLexThen Expanding signToPos) (skipOptionalSpaces Expanding)
+      PC.sepEndBy (satisfyCharCatThen Expanding signToPos) (skipOptionalSpaces Expanding)
       where
-        signToPos t
-          | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '+') t = Just Q.Positive
-          | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '-') t = Just Q.Negative
+        signToPos cc
+          | isOnly (ccCatChar Code.Other) (Code.Chr_ '+') cc = Just Q.Positive
+          | isOnly (ccCatChar Code.Other) (Code.Chr_ '-') cc = Just Q.Negative
           | otherwise = Nothing
 
 parseInt :: MonadPrimTokenParse m => m AST.HexInt
@@ -52,21 +52,21 @@ headToParseNormalInt headToken = do
     ]
     headToken
   where
-    headToParseConstantInt :: LT.LexToken -> m AST.NormalInt
-    headToParseConstantInt t
-      | Just w1 <- decCharToWord t = do
-          remainingWs <- PC.many (satisfyLexThen Expanding decCharToWord)
+    headToParseConstantInt :: LT.LexCharCat -> m AST.NormalInt
+    headToParseConstantInt cc
+      | Just w1 <- decCharToWord cc = do
+          remainingWs <- PC.many (satisfyCharCatThen Expanding decCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base10 (w1 : remainingWs)
-      | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '"') t = do
-          hexDigits <- PC.some (satisfyLexThen Expanding hexCharToWord)
+      | isOnly (ccCatChar Code.Other) (Code.Chr_ '"') cc = do
+          hexDigits <- PC.some (satisfyCharCatThen Expanding hexCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base16 hexDigits
-      | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '\'') t = do
-          octDigits <- PC.some (satisfyLexThen Expanding octCharToWord)
+      | isOnly (ccCatChar Code.Other) (Code.Chr_ '\'') cc = do
+          octDigits <- PC.some (satisfyCharCatThen Expanding octCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base8 octDigits
-      | isOnly (lexTokenCatChar Code.Other) (Code.Chr_ '`') t =
+      | isOnly (ccCatChar Code.Other) (Code.Chr_ '`') cc =
           AST.CharLikeCode <$> Par.satisfyThenInhibited parseCharLikeCodeInt
       | otherwise =
-          parseFailure $ "headToParseConstantInt " <> F.sformat LT.fmtLexToken t
+          parseFailure $ "headToParseConstantInt " <> F.sformat LT.fmtLexCharCat cc
 
     -- Case 10, character constant like "`c".
     parseCharLikeCodeInt :: LT.LexToken -> Maybe Word8
@@ -84,17 +84,20 @@ headToParseNormalInt headToken = do
           Nothing ->
             Nothing
 
-decCharToWord :: LT.LexToken -> Maybe Word8
+decCharToWord :: LT.LexCharCat -> Maybe Word8
 decCharToWord = fromCatChar Code.Other H.Ascii.fromDecDigit
 
-hexCharToWord :: LT.LexToken -> Maybe Word8
+hexCharToWord :: LT.LexCharCat -> Maybe Word8
 hexCharToWord lt = fromCatChar Code.Other H.Ascii.fromUpHexDigit lt <|> fromCatChar Code.Letter H.Ascii.fromUpHexAF lt
 
-octCharToWord :: LT.LexToken -> Maybe Word8
+octCharToWord :: LT.LexCharCat -> Maybe Word8
 octCharToWord = fromCatChar Code.Other H.Ascii.fromOctDigit
 
-fromCatChar :: Code.CoreCatCode -> (Word8 -> Maybe a) -> LT.LexToken -> Maybe a
-fromCatChar cat fromWord lt = (lt ^? lexTokenCatChar cat % typed @Word8) >>= fromWord
+fromCatChar :: Code.CoreCatCode -> (Word8 -> Maybe a) -> LT.LexCharCat -> Maybe a
+fromCatChar cat fromWord cc =
+  if cat == cc.lexCCCat
+    then fromWord cc.lexCCChar.unCharCode
+    else Nothing
 
 headToParseInternalInt :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.InternalInt
 headToParseInternalInt =

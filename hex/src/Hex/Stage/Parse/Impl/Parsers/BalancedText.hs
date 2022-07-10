@@ -25,7 +25,7 @@ data BalancedTextContext = AlreadySeenBeginGroup | ExpectingBeginGroup
 skipBeginGroupIfNeeded :: MonadPrimTokenParse m => BalancedTextContext -> m ()
 skipBeginGroupIfNeeded = \case
   AlreadySeenBeginGroup -> pure ()
-  ExpectingBeginGroup -> skipSatisfied Par.satisfyLexThenExpanding $ lexTokenHasCategory Code.BeginGroup
+  ExpectingBeginGroup -> skipSatisfied (Par.satisfyCharCatThen Expanding) $ charCatHasCategory Code.BeginGroup
 
 parseExpandedBalancedText :: MonadPrimTokenParse m => BalancedTextContext -> m HSt.TL.ExpandedBalancedText
 parseExpandedBalancedText ctx = do
@@ -33,7 +33,7 @@ parseExpandedBalancedText ctx = do
   HSt.TL.ExpandedBalancedText . HSt.TL.BalancedText . fst <$> parseNestedExprExpanded
   where
     parseNestedExprExpanded = parseNestedExpr $ \_depth -> do
-      lt <- anyToken Par.satisfyLexThenExpanding
+      lt <- anyLexExpanding
       -- Check for a begin- or end-group token. Anything else leaves the
       -- expression depth unchanged.
       pure (lt, lexTokenToGroupDepthChange lt)

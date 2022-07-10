@@ -9,15 +9,26 @@ import Hex.Common.HexState.Interface.Grouped qualified as Grouped
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as Reg
-import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
+import Hex.Common.HexState.Interface.Resolve qualified as HSt.Res
 import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved (ResolvedToken)
+import Hex.Common.Token.Resolved qualified as RT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hexlude
+import qualified Formatting as F
+
+data ResolutionError = UnknownSymbolError HSt.Res.ControlSymbol
+  deriving stock (Show, Generic)
+
+fmtResolutionError :: Fmt ResolutionError
+fmtResolutionError = F.later $ \case
+  UnknownSymbolError cSym ->
+    "Got unknown control-symbol: " <> F.bformat HSt.Res.fmtControlSymbol cSym
 
 class Monad m => MonadHexState m where
   getParameterValue :: Param.QuantParam q -> m (Var.QuantVariableTarget q)
@@ -44,9 +55,9 @@ class Monad m => MonadHexState m where
 
   setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> m ()
 
-  resolveSymbol :: ControlSymbol -> m (Maybe ResolvedToken)
+  resolveSymbol :: HSt.Res.ControlSymbol -> m (Maybe ResolvedToken)
 
-  setSymbol :: ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> m ()
+  setSymbol :: HSt.Res.ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> m ()
 
   loadFont :: Q.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
 
@@ -175,3 +186,20 @@ scaleRegisterValue ::
   m ()
 scaleRegisterValue qLoc scaleDirection arg scopeFlag =
   modifyRegisterValue qLoc (Q.scaleInDirection scaleDirection arg) scopeFlag
+
+
+resolveLexToken ::
+  MonadHexState m =>
+  LT.LexToken ->
+  m (Either ResolutionError RT.ResolvedToken)
+resolveLexToken = \case
+  LT.ControlSequenceLexToken cs -> do
+    resolveSymbolWithError (HSt.Res.ControlSequenceSymbol cs)
+  LT.CharCatLexToken (LT.LexCharCat c Code.Active) ->
+    resolveSymbolWithError $ HSt.Res.ActiveCharacterSymbol c
+  LT.CharCatLexToken lexCharCat ->
+    pure $ Right $ RT.PrimitiveToken $ PT.CharCatPair lexCharCat
+  where
+    resolveSymbolWithError cSym = resolveSymbol cSym >>= \case
+      Nothing -> pure $ Left $ UnknownSymbolError cSym
+      Just rt -> pure $ Right rt

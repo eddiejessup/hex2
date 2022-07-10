@@ -7,7 +7,6 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
-import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
@@ -47,13 +46,11 @@ parseFactor =
 parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
 parseRationalConstant = do
   Log.log "parseRationalConstant"
-  wholeDigits <- PC.many (satisfyLexThen Expanding Par.decCharToWord)
-  skipSatisfied satisfyLexThenExpanding $ \t -> case t ^? LT.lexTokCharCat of
-    Just cc ->
-      let chrCode = cc ^. typed @Code.CharCode
-       in (cc ^. typed @Code.CoreCatCode == Code.Other) && (chrCode == Code.Chr_ ',' || chrCode == Code.Chr_ '.')
-    Nothing -> False
-  fracDigits <- PC.many (satisfyLexThen Expanding Par.decCharToWord)
+  wholeDigits <- PC.many (satisfyCharCatThen Expanding Par.decCharToWord)
+  skipSatisfied (satisfyCharCatThen Expanding) $ \cc ->
+    let chrCode = cc ^. typed @Code.CharCode
+     in (cc ^. typed @Code.CoreCatCode == Code.Other) && (chrCode == Code.Chr_ ',' || chrCode == Code.Chr_ '.')
+  fracDigits <- PC.many (satisfyCharCatThen Expanding Par.decCharToWord)
   let v = AST.DecimalFraction {AST.wholeDigits, AST.fracDigits}
   Log.log $ "Successfully parsed rational constant, value: " <> show v
   pure v

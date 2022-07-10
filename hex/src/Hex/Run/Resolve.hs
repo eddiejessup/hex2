@@ -1,25 +1,26 @@
 module Hex.Run.Resolve where
 
 import Formatting qualified as F
+import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved qualified as RT
 import Hex.Run.App (App)
-import Hex.Stage.Resolve.Interface
 import Hexlude
+import qualified Hex.Common.HexInput.Interface as HIn
 
 -- Resolution mode will remain constant over the operation.
-resolveAll :: App [(LT.LexToken, Either ResolutionError RT.ResolvedToken)]
+resolveAll :: App [(LT.LexToken, Either HSt.ResolutionError RT.ResolvedToken)]
 resolveAll = go
   where
     go =
-      getMayResolvedToken >>= \case
+      HIn.getMayResolvedToken >>= \case
         Nothing ->
           pure []
         Just r -> do
           v <- go
           pure $ r : v
 
-fmtResolveResult :: Fmt [(LT.LexToken, Either ResolutionError RT.ResolvedToken)]
+fmtResolveResult :: Fmt [(LT.LexToken, Either HSt.ResolutionError RT.ResolvedToken)]
 fmtResolveResult = F.intercalated "\n\n" fmtOneResult
   where
     fmtOneResult =
@@ -29,4 +30,4 @@ fmtResolveResult = F.intercalated "\n\n" fmtOneResult
           4
           (F.fconst "--r--> " <> F.accessed snd fmtErrOrRT)
 
-    fmtErrOrRT = F.eithered fmtResolutionError RT.fmtResolvedToken
+    fmtErrOrRT = F.eithered HSt.fmtResolutionError RT.fmtResolvedToken

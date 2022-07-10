@@ -66,7 +66,7 @@ parseMacroArguments parameterSpec = do
 parseUndelimitedArgumentTokens :: forall m. MonadPrimTokenParse m => m HSt.TL.InhibitedBalancedText
 parseUndelimitedArgumentTokens = do
   -- Skip blank tokens (assumed to mean spaces).
-  PC.skipMany $ satisfyIf satisfyThenInhibited (lexTokenHasCategory Code.Space)
+  PC.skipMany $ satisfyIf (satisfyCharCatThen Inhibited) (charCatHasCategory Code.Space)
   anyLexInhibited >>= \case
     -- Note that we are throwing away the surrounding braces of the argument.
     LT.CharCatLexToken LT.LexCharCat {lexCCCat = Code.BeginGroup} ->

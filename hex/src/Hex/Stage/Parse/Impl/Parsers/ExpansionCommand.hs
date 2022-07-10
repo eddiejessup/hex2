@@ -56,10 +56,8 @@ headToParseExpansionCommand = \case
 
 parseControlSymbolBody :: MonadPrimTokenParse m => m LT.ControlSequence
 parseControlSymbolBody = do
-  controlSequenceCodes <- PC.manyTill getCharCode (satisfyEquals PT.EndCSNameTok)
+  controlSequenceCodes <- PC.manyTill getCharCode (satisfyPrimEquals PT.EndCSNameTok)
   pure $ LT.mkControlSequence controlSequenceCodes
   where
     getCharCode =
-      satisfyLexThenExpanding $ \case
-        LT.ControlSequenceLexToken _ -> Nothing
-        LT.CharCatLexToken lexCharCat -> Just lexCharCat.lexCCChar
+      satisfyCharCatThen Expanding $ \lexCharCat -> Just lexCharCat.lexCCChar

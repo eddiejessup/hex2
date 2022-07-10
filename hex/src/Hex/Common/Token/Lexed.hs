@@ -62,6 +62,9 @@ lexTokCharCode = lexTokCharCat % typed @Code.CharCode
 lexTokCategory :: AffineTraversal' LexToken Code.CoreCatCode
 lexTokCategory = lexTokCharCat % typed @Code.CoreCatCode
 
+charCatCatPrism :: Prism' LexToken LexCharCat
+charCatCatPrism = _Ctor @"CharCatLexToken"
+
 lexTokCharCat :: Prism' LexToken LexCharCat
 lexTokCharCat = _Ctor @"CharCatLexToken"
 

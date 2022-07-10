@@ -87,4 +87,4 @@ parseInfFlexOfOrder = do
   pure $ AST.InfFlexOfOrder factor order
   where
     parseNrLs =
-      List.length <$> PC.some (skipSatisfied satisfyLexThenExpanding $ matchNonActiveCharacterUncased (Chr_ 'l'))
+      List.length <$> PC.some (skipSatisfied (satisfyCharCatThen Expanding) $ matchNonActiveCharacterUncased (Chr_ 'l'))

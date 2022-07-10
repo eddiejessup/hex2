@@ -250,18 +250,15 @@ data PrimitiveToken
   | HyphenationPatternsTok -- \patterns
   -- > Setting interaction mode.
   | InteractionModeTok InteractionMode
-  | UnresolvedTok LT.LexToken
+  | CharCatPair LT.LexCharCat
   | -- Custom token for my own use.
     DebugShowState
   deriving stock (Show, Eq, Generic)
 
-primTokLexTok :: Prism' PrimitiveToken LT.LexToken
-primTokLexTok = _Ctor @"UnresolvedTok"
-
 primTokCharCat :: Prism' PrimitiveToken LT.LexCharCat
-primTokCharCat = primTokLexTok % LT.lexTokCharCat
+primTokCharCat = _Ctor @"CharCatPair"
 
 fmtPrimitiveToken :: Fmt PrimitiveToken
 fmtPrimitiveToken = F.later $ \case
-  UnresolvedTok lt -> F.bformat ("LexToken" |%| F.parenthesised LT.fmtLexToken) lt
+  CharCatPair cc -> F.bformat ("CharCatPair" |%| F.parenthesised LT.fmtLexCharCat) cc
   t -> F.bformat F.shown t

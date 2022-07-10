@@ -145,9 +145,9 @@ headToParseInternalQuantity =
 
 headToParseCharCodeRef :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.CharCodeRef
 headToParseCharCodeRef = \case
-  PT.UnresolvedTok (LT.CharCatLexToken (LT.LexCharCat c Code.Letter)) ->
+  PT.CharCatPair (LT.LexCharCat c Code.Letter) ->
     pure $ AST.CharRef c
-  PT.UnresolvedTok (LT.CharCatLexToken (LT.LexCharCat c Code.Other)) ->
+  PT.CharCatPair (LT.LexCharCat c Code.Other) ->
     pure $ AST.CharRef c
   PT.ShortDefTargetToken (PT.ShortDefTargetValue PT.CharQuantity i) ->
     pure $ AST.CharTokenRef i
