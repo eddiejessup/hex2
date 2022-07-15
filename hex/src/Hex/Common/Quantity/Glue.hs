@@ -163,7 +163,7 @@ fmtInfFlexOrder = F.later $ \case
   Fil2 -> "fill"
   Fil3 -> "filll"
 
-newtype InfLength = InfLength {unInfLength :: Int}
+newtype InfLength = InfLength {unInfLength :: HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
@@ -176,7 +176,7 @@ zeroInfLength = mempty
 -- stick to fewer than 16,384 fil-units. Tex actually does its calculations with
 -- integer multiples of 2^−16 fil (or fill or filll);
 bigFilLength :: InfLength
-bigFilLength = InfLength (2 ^ (16 :: Int))
+bigFilLength = InfLength $ HexInt (2 ^ (16 :: Int))
 
 scaleInfLengthByRational :: Rational -> InfLength -> InfLength
 scaleInfLengthByRational factor infLen =
@@ -188,7 +188,7 @@ fromBigFils factor =
 
 infLengthRatio :: InfLength -> InfLength -> Rational
 infLengthRatio a b =
-  let lenToInteger = view (typed @Int % to (fromIntegral @Int @Integer))
+  let lenToInteger = fromIntegral @Int @Integer . (.unInfLength.unHexInt)
    in lenToInteger a Ratio.% lenToInteger b
 
 fmtInfLengthMagnitude :: Fmt InfLength

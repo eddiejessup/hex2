@@ -5,7 +5,7 @@ import Hex.Common.Quantity.Length (scaleIntByRational)
 import Hex.Common.Quantity.Number
 import Hexlude
 
-newtype MathLength = MathLength {unMathLength :: Int}
+newtype MathLength = MathLength {unMathLength :: HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
@@ -14,7 +14,7 @@ newtype MathLength = MathLength {unMathLength :: Int}
 -- Verified empirically, by observing that the smallest usable 'muskip' is
 -- ~2^-16 mu.
 muLength :: MathLength
-muLength = MathLength (2 ^ (16 :: Int))
+muLength = MathLength $ HexInt (2 ^ (16 :: Int))
 
 scaleMathLengthByRational :: Rational -> MathLength -> MathLength
 scaleMathLengthByRational d p =

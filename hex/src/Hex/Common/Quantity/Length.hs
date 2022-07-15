@@ -10,27 +10,27 @@ import Hexlude
 -- The 'official' internal length quantity: integer number of scaled points.
 -- =========================================================================
 
-newtype Length = Length {unLength :: Int}
+newtype Length = Length {unLength :: HexInt}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord, Bounded)
+  deriving newtype (Eq, Ord)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
   deriving (Scalable) via (HexInt)
 
 lengthFromInt :: HexInt -> Length
-lengthFromInt n = Length (n.unHexInt)
+lengthFromInt n = Length n
 
 lengthAsInt :: Length -> HexInt
-lengthAsInt len = HexInt (len.unLength)
+lengthAsInt len = len.unLength
 
 -- | Scale a length by some integer. No rounding happens, ie no information is
 -- lost (assuming no overflow).
 
 -- | Scale an int by a rational number, rounding the result to the nearest
 -- integer.
-scaleIntByRational :: Rational -> Int -> Int
+scaleIntByRational :: Rational -> HexInt -> HexInt
 scaleIntByRational d p =
-  let spRational = fromIntegral @Int @Rational p
-   in round @Rational @Int (d * spRational)
+  let spRational = fromIntegral @Int @Rational p.unHexInt
+   in HexInt $ round @Rational @Int (d * spRational)
 
 -- | Scale a length by a rational number, rounding the result to the nearest
 -- integer.
@@ -52,7 +52,7 @@ zeroLength = mempty
 -- Find the ratio between two lengths.
 lengthRatio :: Length -> Length -> Rational
 lengthRatio a b =
-  let lenToInteger = view (typed @Int % to (fromIntegral @Int @Integer))
+  let lenToInteger = fromIntegral @Int @Integer . (.unLength.unHexInt)
    in lenToInteger a Ratio.% lenToInteger b
 
 -- Concepts.
@@ -81,7 +81,7 @@ fromUnit n unit = scaleLengthByRational n (inScaledPoint unit)
 
 -- 1 point is 2^16 scaled points. (65,536 scaled points)
 pointLength :: Length
-pointLength = Length (2 ^ (16 :: Int))
+pointLength = Length $ HexInt $ (2 ^ (16 :: Int))
 
 -- Functions related to units used in the TeX world.
 -- A scaled point is defined as a fraction:
@@ -121,17 +121,17 @@ inScaledPoint u = case u of
   Point -> pointLength
   Pica -> scaleLength (HexInt picaInPoint) pointLength
   -- 4,736,286.72 scaled points per inch.
-  Inch -> Length 4_736_287
+  Inch -> Length $ HexInt 4_736_287
   -- 65,781.76 scaled points per big-point.
-  BigPoint -> Length 65_782
+  BigPoint -> Length $ HexInt 65_782
   Centimetre -> scaleLength (HexInt 10) (inScaledPoint Millimetre)
   -- 2.8452755906 points per millimetre.
   -- 186,467.9811023622 scaled points per millimetre.
-  Millimetre -> Length 186_468
+  Millimetre -> Length $ HexInt 186_468
   -- 70,124.0864304235 scaled points per didot
-  Didot -> Length 70_124
+  Didot -> Length $ HexInt 70_124
   Cicero -> scaleLength (HexInt ciceroInDidot) (inScaledPoint Didot)
-  ScaledPoint -> Length 1
+  ScaledPoint -> Length $ HexInt 1
 
 -- Display.
 -- --------

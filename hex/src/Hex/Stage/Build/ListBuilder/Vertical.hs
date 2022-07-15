@@ -89,7 +89,7 @@ extendVList e (H.Inter.B.List.VList accSeq) = case e of
     HSt.setSpecialLengthParameter HSt.Param.PrevDepth (H.Inter.B.Box.boxDepth b)
     pure $
       H.Inter.B.List.VList $
-        if (prevDepth ^. typed @Int) <= -(Q.oneKPt ^. typed @Int)
+        if prevDepth <= (invert Q.oneKPt)
           then accSeq :|> e
           else
             let proposedBaselineLength = (blineGlue ^. #gDimen) ~~ prevDepth ~~ H.Inter.B.Box.boxHeight b

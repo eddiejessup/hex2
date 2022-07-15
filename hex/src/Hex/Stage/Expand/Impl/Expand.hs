@@ -224,7 +224,7 @@ charCodeAsMadeToken c =
 renderInternalQuantity :: Eval.InternalQuantity -> Seq LT.LexToken
 renderInternalQuantity = \case
   Eval.InternalIntQuantity n ->
-    tokensFromInt n.unHexInt
+    tokensFromInt n
   Eval.InternalLengthQuantity length ->
     tokensFromInt length.unLength
   Eval.InternalGlueQuantity glue ->
@@ -237,8 +237,8 @@ renderInternalQuantity = \case
     notImplemented "render TokenListVariableQuantity"
   where
     -- TODO: This is quite a sloppy implementation, using Int's `Show` instance.
-    tokensFromInt :: Int -> Seq LT.LexToken
-    tokensFromInt n = tokensFromText (show n)
+    tokensFromInt :: Q.HexInt -> Seq LT.LexToken
+    tokensFromInt n = tokensFromText (show n.unHexInt)
 
     tokensFromText :: Text -> Seq LT.LexToken
     tokensFromText t = Seq.fromList $ charCodeAsMadeToken <$> (Code.textAsCharCodes t)
