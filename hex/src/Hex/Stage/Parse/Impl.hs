@@ -16,7 +16,7 @@ import qualified Hex.Stage.Parse.Interface.AST.Command as Par
 import qualified Hex.Common.Parse.Interface as Par
 import qualified Hex.Common.HexInput.Interface as HIn
 
-newtype MonadCommandSourceT m a = MonadCommandSourceT {unMonadCommandSourceT :: m a}
+newtype CommandSourceT m a = CommandSourceT {unCommandSourceT :: m a}
   deriving newtype
     ( Functor,
       Applicative,
@@ -37,14 +37,14 @@ newtype MonadCommandSourceT m a = MonadCommandSourceT {unMonadCommandSourceT :: 
 -- The instance for 'PrimTokenParse (ParseT m)' requires the above to be true of `m`.
 -- So we require that here.
 instance
-  ( HIn.MonadHexInput (MonadCommandSourceT m),
-    Exp.MonadPrimTokenSource (MonadCommandSourceT m),
-    MonadError e (MonadCommandSourceT m),
+  ( HIn.MonadHexInput (CommandSourceT m),
+    Exp.MonadPrimTokenSource (CommandSourceT m),
+    MonadError e (CommandSourceT m),
     AsType ParseUnexpectedError e,
-    Log.MonadHexLog (MonadCommandSourceT m),
+    Log.MonadHexLog (CommandSourceT m),
     Monad m
   ) =>
-  MonadCommandSource (MonadCommandSourceT m)
+  MonadCommandSource (CommandSourceT m)
   where
   getCommand = getCommandImpl
 

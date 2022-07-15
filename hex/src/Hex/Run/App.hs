@@ -3,11 +3,12 @@ module Hex.Run.App where
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexEnv.Impl qualified as HEnv
 import Hex.Common.HexEnv.Interface qualified as HEnv
 import Hex.Common.HexInput.Impl qualified as HIn
 import Hex.Common.HexInput.Impl.CharSourceStack qualified as HIn
 import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexState.Impl (MonadHexStateImplT (..))
+import Hex.Common.HexState.Impl (HexStateT (..))
 import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as HSt.GroupScopes
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as HSt.Scope
@@ -17,14 +18,14 @@ import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Parse.Interface qualified as Parse
 import Hex.Common.TFM.Get qualified as TFM
-import Hex.Stage.Evaluate.Impl (MonadEvaluateT (..))
+import Hex.Stage.Evaluate.Impl (EvaluateT (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface (MonadEvaluate)
-import Hex.Stage.Expand.Impl (MonadPrimTokenSourceT (..))
+import Hex.Stage.Expand.Impl (PrimTokenSourceT (..))
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as Interpret
-import Hex.Stage.Parse.Impl (MonadCommandSourceT (..))
+import Hex.Stage.Parse.Impl (CommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
 import System.IO (hFlush)
@@ -58,11 +59,12 @@ newtype App a = App {unApp :: ReaderT HEnv.HexEnv (StateT AppState (ExceptT AppE
       MonadState AppState,
       MonadReader HEnv.HexEnv
     )
-  deriving (MonadHexState) via (MonadHexStateImplT App)
-  deriving (MonadEvaluate) via (MonadEvaluateT App)
-  deriving (HIn.MonadHexInput) via (HIn.MonadHexInputT App)
-  deriving (MonadPrimTokenSource) via (MonadPrimTokenSourceT App)
-  deriving (MonadCommandSource) via (MonadCommandSourceT App)
+  deriving (HEnv.MonadHexEnv) via (HEnv.HexEnvT App)
+  deriving (MonadHexState) via (HexStateT App)
+  deriving (MonadEvaluate) via (EvaluateT App)
+  deriving (HIn.MonadHexInput) via (HIn.HexInputT App)
+  deriving (MonadPrimTokenSource) via (PrimTokenSourceT App)
+  deriving (MonadCommandSource) via (CommandSourceT App)
 
 data AppError
   = AppLexError HIn.LexError
@@ -136,12 +138,3 @@ unsafeEvalApp chrs app = do
   evalApp chrs app >>= \case
     Left e -> panic $ sformat ("got error: " |%| fmtAppError) e
     Right v -> pure v
-
-newlineWord :: Word8
-newlineWord = 10
-
-carriageReturnWord :: Word8
-carriageReturnWord = 13
-
-carriageReturnCharCode :: Code.CharCode
-carriageReturnCharCode = Code.CharCode carriageReturnWord

@@ -35,6 +35,7 @@ import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hexlude
 import System.FilePath qualified as FilePath
+import qualified Hex.Common.HexEnv.Interface as HEnv
 
 data HexStateError
   = FontNotFound Q.HexFilePath
@@ -48,7 +49,7 @@ data HexStateError
 fmtHexStateError :: Fmt HexStateError
 fmtHexStateError = F.shown
 
-newtype MonadHexStateImplT m a = MonadHexStateImplT {unMonadHexStateImplT :: m a}
+newtype HexStateT m a = HexStateT {unHexStateT :: m a}
   deriving newtype
     ( Functor,
       Applicative,
@@ -57,71 +58,72 @@ newtype MonadHexStateImplT m a = MonadHexStateImplT {unMonadHexStateImplT :: m a
       MonadState st,
       MonadReader r,
       MonadError e,
-      MonadHexLog
+      MonadHexLog,
+      HEnv.MonadHexEnv
     )
 
 instance
   ( Monad m,
-    MonadHexLog (MonadHexStateImplT m),
-    MonadIO (MonadHexStateImplT m),
-    MonadState st (MonadHexStateImplT m),
+    MonadHexLog (HexStateT m),
+    MonadIO (HexStateT m),
+    MonadState st (HexStateT m),
     HasType HexState st,
-    Env.MonadHexEnv (MonadHexStateImplT m),
-    MonadError e (MonadHexStateImplT m),
+    Env.MonadHexEnv (HexStateT m),
+    MonadError e (HexStateT m),
     AsType HexStateError e,
     AsType TFM.TFMError e
   ) =>
-  MonadHexState (MonadHexStateImplT m)
+  MonadHexState (HexStateT m)
   where
-  getParameterValue :: HSt.Param.QuantParam q -> MonadHexStateImplT m (HSt.Var.QuantVariableTarget q)
+  getParameterValue :: HSt.Param.QuantParam q -> HexStateT m (HSt.Var.QuantVariableTarget q)
   getParameterValue p = getGroupScopesProperty (Sc.P.localParameterValue p)
 
-  setParameterValue :: HSt.Param.QuantParam q -> HSt.Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setParameterValue :: HSt.Param.QuantParam q -> HSt.Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   setParameterValue param value scopeFlag =
     modifyGroupScopes $ Sc.P.setParameterValue param value scopeFlag
 
-  getRegisterValue :: HSt.Reg.QuantRegisterLocation q -> MonadHexStateImplT m (HSt.Var.QuantVariableTarget q)
+  getRegisterValue :: HSt.Reg.QuantRegisterLocation q -> HexStateT m (HSt.Var.QuantVariableTarget q)
   getRegisterValue r = getGroupScopesProperty (Sc.R.localQuantRegisterValue r)
 
-  setQuantRegisterValue :: HSt.Reg.QuantRegisterLocation q -> (HSt.Var.QuantVariableTarget q) -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setQuantRegisterValue :: HSt.Reg.QuantRegisterLocation q -> (HSt.Var.QuantVariableTarget q) -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   setQuantRegisterValue param value scopeFlag =
     modifyGroupScopes $ Sc.R.setQuantRegisterValue param value scopeFlag
 
-  fetchBoxRegisterValue :: HSt.Reg.BoxFetchMode -> HSt.Reg.RegisterLocation -> MonadHexStateImplT m (Maybe (Box.Box Box.BaseBoxContents))
+  fetchBoxRegisterValue :: HSt.Reg.BoxFetchMode -> HSt.Reg.RegisterLocation -> HexStateT m (Maybe (Box.Box Box.BaseBoxContents))
   fetchBoxRegisterValue = fetchBoxRegisterValueImpl
 
-  setBoxRegisterValue :: HSt.Reg.RegisterLocation -> Maybe (Box.Box Box.BaseBoxContents) -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setBoxRegisterValue :: HSt.Reg.RegisterLocation -> Maybe (Box.Box Box.BaseBoxContents) -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   setBoxRegisterValue = setBoxRegisterValueImpl
 
-  getSpecialIntParameter :: HSt.Param.SpecialIntParameter -> (MonadHexStateImplT m) Q.HexInt
+  getSpecialIntParameter :: HSt.Param.SpecialIntParameter -> (HexStateT m) Q.HexInt
   getSpecialIntParameter p = use $ typed @HexState % stateSpecialIntParamLens p
 
-  getSpecialLengthParameter :: HSt.Param.SpecialLengthParameter -> (MonadHexStateImplT m) Q.Length
+  getSpecialLengthParameter :: HSt.Param.SpecialLengthParameter -> (HexStateT m) Q.Length
   getSpecialLengthParameter p = use $ typed @HexState % stateSpecialLengthParamLens p
 
-  setSpecialIntParameter :: HSt.Param.SpecialIntParameter -> Q.HexInt -> (MonadHexStateImplT m) ()
+  setSpecialIntParameter :: HSt.Param.SpecialIntParameter -> Q.HexInt -> (HexStateT m) ()
   setSpecialIntParameter p v = assign' (typed @HexState % stateSpecialIntParamLens p) v
 
-  setSpecialLengthParameter :: HSt.Param.SpecialLengthParameter -> Q.Length -> (MonadHexStateImplT m) ()
+  setSpecialLengthParameter :: HSt.Param.SpecialLengthParameter -> Q.Length -> (HexStateT m) ()
   setSpecialLengthParameter p v = assign' (typed @HexState % stateSpecialLengthParamLens p) v
 
-  getHexCode :: Code.CCodeType c -> Code.CharCode -> (MonadHexStateImplT m) (HSt.Code.CodeTableTarget c)
+  getHexCode :: Code.CCodeType c -> Code.CharCode -> (HexStateT m) (HSt.Code.CodeTableTarget c)
   getHexCode t p = getGroupScopesProperty (Sc.Code.localHexCode t p)
 
-  setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   setHexCode t idxCode code scopeFlag = modifyGroupScopes $ Sc.Code.setHexCode t idxCode code scopeFlag
 
-  resolveSymbol :: ControlSymbol -> (MonadHexStateImplT m) (Maybe ResolvedToken)
+  resolveSymbol :: ControlSymbol -> (HexStateT m) (Maybe ResolvedToken)
   resolveSymbol p = getGroupScopesProperty (Sc.Sym.localResolvedToken p)
 
-  setSymbol :: ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setSymbol :: ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   setSymbol symbol target scopeFlag =
     modifyGroupScopes $ Sc.Sym.setSymbol symbol target scopeFlag
 
   loadFont ::
     Q.HexFilePath ->
     H.Inter.B.Box.FontSpecification ->
-    MonadHexStateImplT m H.Inter.B.Box.FontDefinition
+    HexStateT m H.Inter.B.Box.FontDefinition
   loadFont fontPath spec = do
     absPath <-
       Env.findFilePath
@@ -150,10 +152,10 @@ instance
           fontName
         }
 
-  currentFontNumber :: MonadHexStateImplT m HSt.Font.FontNumber
+  currentFontNumber :: HexStateT m HSt.Font.FontNumber
   currentFontNumber = currentFontNumberImpl
 
-  currentFontSpaceGlue :: (MonadHexStateImplT m) (Maybe Q.Glue)
+  currentFontSpaceGlue :: (HexStateT m) (Maybe Q.Glue)
   currentFontSpaceGlue = do
     fInfo <- currentFontInfo
     let fontMetrics = fInfo.fontMetrics
@@ -162,7 +164,7 @@ instance
     let gShrink = Q.FinitePureFlex $ TFM.fontLengthParamLength fontMetrics (TFM.spaceShrink . TFM.params)
     pure $ Just $ Q.Glue {Q.gDimen = spacing, Q.gStretch, Q.gShrink}
 
-  currentFontCharacter :: Code.CharCode -> MonadHexStateImplT m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
+  currentFontCharacter :: Code.CharCode -> HexStateT m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
   currentFontCharacter chrCode = do
     fInfo <- currentFontInfo
     let fontMetrics = fInfo.fontMetrics
@@ -179,15 +181,15 @@ instance
           toLen (tfmChar.italicCorrection)
         )
 
-  selectFont :: HSt.Font.FontNumber -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  selectFont :: HSt.Font.FontNumber -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   selectFont fontNumber scopeFlag =
     modifyGroupScopes $ Sc.Font.setCurrentFontNr fontNumber scopeFlag
 
-  setFamilyMemberFont :: HSt.Font.FamilyMember -> HSt.Font.FontNumber -> HSt.Grouped.ScopeFlag -> MonadHexStateImplT m ()
+  setFamilyMemberFont :: HSt.Font.FamilyMember -> HSt.Font.FontNumber -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   setFamilyMemberFont familyMember fontNumber scopeFlag =
     modifyGroupScopes $ Sc.Font.setFamilyMemberFont familyMember fontNumber scopeFlag
 
-  setFontSpecialCharacter :: HSt.Font.FontSpecialChar -> HSt.Font.FontNumber -> Q.HexInt -> MonadHexStateImplT m ()
+  setFontSpecialCharacter :: HSt.Font.FontSpecialChar -> HSt.Font.FontNumber -> Q.HexInt -> HexStateT m ()
   setFontSpecialCharacter fontSpecialChar fontNumber value = do
     let fontSpecialCharLens = case fontSpecialChar of
           HSt.Font.HyphenChar -> #hyphenChar
@@ -197,21 +199,21 @@ instance
       Just _ -> pure ()
     assign' (typed @HexState % #fontInfos % at' fontNumber %? fontSpecialCharLens) value
 
-  setAfterAssignmentToken :: LT.LexToken -> MonadHexStateImplT m ()
+  setAfterAssignmentToken :: LT.LexToken -> HexStateT m ()
   setAfterAssignmentToken t = assign' (typed @HexState % #afterAssignmentToken) (Just t)
 
-  popAfterAssignmentToken :: MonadHexStateImplT m (Maybe LT.LexToken)
+  popAfterAssignmentToken :: HexStateT m (Maybe LT.LexToken)
   popAfterAssignmentToken = do
     v <- use (typed @HexState % #afterAssignmentToken)
     assign' (typed @HexState % #afterAssignmentToken) Nothing
     pure v
 
-  pushGroup :: Maybe HSt.Grouped.ScopedGroupType -> MonadHexStateImplT m ()
+  pushGroup :: Maybe HSt.Grouped.ScopedGroupType -> HexStateT m ()
   pushGroup mayScopedGroupType = do
     log "pushGroup"
     modifyGroupScopes $ Sc.GroupScopes.pushGroup mayScopedGroupType
 
-  popGroup :: HSt.Grouped.ChangeGroupTrigger -> MonadHexStateImplT m HSt.Grouped.HexGroupType
+  popGroup :: HSt.Grouped.ChangeGroupTrigger -> HexStateT m HSt.Grouped.HexGroupType
   popGroup exitTrigger = do
     use (typed @HexState % #groupScopes % to Sc.GroupScopes.popGroup) >>= \case
       Nothing -> throwError (injectTyped PoppedEmptyGroups)

@@ -19,8 +19,9 @@ import qualified Data.ByteString as BS
 import qualified Hex.Common.Quantity as Q
 import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
 import qualified Hex.Common.HexInput.Impl.CharSourceStack as CharSourceStack
+import qualified Hex.Common.HexEnv.Interface as HEnv
 
-newtype MonadHexInputT m a = MonadHexInputT {unMonadHexInputT :: m a}
+newtype HexInputT m a = HexInputT {unHexInputT :: m a}
   deriving newtype
     ( Functor,
       Applicative,
@@ -30,20 +31,21 @@ newtype MonadHexInputT m a = MonadHexInputT {unMonadHexInputT :: m a}
       MonadReader st,
       MonadError e,
       MonadHexState,
-      MonadHexLog
+      MonadHexLog,
+      HEnv.MonadHexEnv
     )
 
 instance
   ( Monad m,
-    MonadError e (MonadHexInputT m),
-    MonadState st (MonadHexInputT m),
-    Env.MonadHexEnv (MonadHexInputT m),
-    MonadIO (MonadHexInputT m),
-    HasType CharSourceStack st,
+    MonadError e (HexInputT m),
     AsType HIn.LexError e,
-    MonadHexState (MonadHexInputT m)
+    MonadState st (HexInputT m),
+    HasType CharSourceStack st,
+    Env.MonadHexEnv (HexInputT m),
+    MonadIO (HexInputT m),
+    MonadHexState (HexInputT m)
   ) =>
-  MonadHexInput (MonadHexInputT m)
+  MonadHexInput (HexInputT m)
   where
   endCurrentLine = endCurrentLineImpl
 
@@ -151,8 +153,8 @@ openInputFileImpl ::
     HasType CharSourceStack st,
     Env.MonadHexEnv m,
     MonadError e m,
-    MonadIO m,
-    AsType HIn.LexError e
+    AsType HIn.LexError e,
+    MonadIO m
   ) =>
   Q.HexFilePath ->
   m ()

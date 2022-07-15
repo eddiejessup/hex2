@@ -42,6 +42,12 @@ data LexToken
   | ControlSequenceLexToken ControlSequence
   deriving stock (Show, Eq, Generic)
 
+ccLex :: Char -> Code.CoreCatCode -> LexToken
+ccLex c cat = CharCatLexToken $ LexCharCat (Code.Chr_ c) cat
+
+csLex :: ByteString -> LexToken
+csLex t = ControlSequenceLexToken (ControlSequence t)
+
 fmtLexToken :: Fmt LexToken
 fmtLexToken = later $ \case
   CharCatLexToken lexCC ->

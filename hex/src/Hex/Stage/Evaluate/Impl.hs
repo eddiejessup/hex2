@@ -11,7 +11,7 @@ import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hexlude
 
-newtype MonadEvaluateT m a = MonadEvaluateT {unMonadEvaluateT :: m a}
+newtype EvaluateT m a = EvaluateT {unEvaluateT :: m a}
   deriving newtype
     ( Functor,
       Applicative,
@@ -25,11 +25,11 @@ newtype MonadEvaluateT m a = MonadEvaluateT {unMonadEvaluateT :: m a}
 
 instance
   ( Monad m,
-    MonadError e (MonadEvaluateT m),
+    MonadError e (EvaluateT m),
     AsType Eval.EvaluationError e,
-    MonadHexState (MonadEvaluateT m)
+    MonadHexState (EvaluateT m)
   ) =>
-  MonadEvaluate (MonadEvaluateT m)
+  MonadEvaluate (EvaluateT m)
   where
-  evalCommand :: P.Command -> MonadEvaluateT m E.Command
+  evalCommand :: P.Command -> EvaluateT m E.Command
   evalCommand = Eval.evalCommand

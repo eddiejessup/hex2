@@ -30,8 +30,8 @@ timeStats = do
     (yearInteger, monthOfYear, dayOfMonth) = Time.toGregorian localDay
   pure (secondsSinceMidnight, dayOfMonth, monthOfYear, yearInteger)
 
-newEndLineChar :: Int
-newEndLineChar = 13 -- '\r'
+newEndLineChar :: Q.HexInt
+newEndLineChar = Q.HexInt 13 -- '\r'
 
 newIntParameters :: MonadIO m => m (Map Param.IntParameter Q.HexInt)
 newIntParameters = do
@@ -40,7 +40,7 @@ newIntParameters = do
   pure $ Map.fromList
     [ (Param.Tolerance, Q.HexInt 10000),
       (Param.EscapeChar, Q.HexInt 92), -- '\'
-      (Param.EndLineChar, Q.HexInt newEndLineChar), -- We insert this at the end of each input line.
+      (Param.EndLineChar, newEndLineChar), -- We insert this at the end of each input line.
       (Param.MaxDeadCycles, Q.HexInt 25),
       (Param.HangAfter, Q.HexInt 1),
       (Param.Mag, Q.HexInt 1000),

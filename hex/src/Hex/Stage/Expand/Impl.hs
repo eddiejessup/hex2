@@ -28,7 +28,7 @@ import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
 import Hexlude
 
-newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourceT :: m a}
+newtype PrimTokenSourceT m a = PrimTokenSourceT {unPrimTokenSourceT :: m a}
   deriving newtype
     ( Functor,
       Applicative,
@@ -45,18 +45,18 @@ newtype MonadPrimTokenSourceT m a = MonadPrimTokenSourceT {unMonadPrimTokenSourc
     )
 
 instance
-  ( MonadError e (MonadPrimTokenSourceT m),
+  ( MonadError e (PrimTokenSourceT m),
     AsType ExpansionError e,
     AsType Eval.EvaluationError e,
     AsType Par.ParsingError e,
     AsType HSt.ResolutionError e,
-    HIn.MonadHexInput (MonadPrimTokenSourceT m),
-    HSt.MonadHexState (MonadPrimTokenSourceT m),
+    HIn.MonadHexInput (PrimTokenSourceT m),
+    HSt.MonadHexState (PrimTokenSourceT m),
     MonadState s m,
     HasType (Expand.ConditionStates) s,
     MonadHexLog m
   ) =>
-  MonadPrimTokenSource (MonadPrimTokenSourceT m)
+  MonadPrimTokenSource (PrimTokenSourceT m)
   where
   getPrimitiveToken = getPrimitiveTokenImpl
 
