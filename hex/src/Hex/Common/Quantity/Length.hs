@@ -16,8 +16,11 @@ newtype Length = Length {unLength :: Int}
   deriving (Semigroup, Monoid, Group) via (Sum Int)
   deriving (Scalable) via (HexInt)
 
-lengthFromHexInt :: HexInt -> Length
-lengthFromHexInt n = Length (n.unHexInt)
+lengthFromInt :: HexInt -> Length
+lengthFromInt n = Length (n.unHexInt)
+
+lengthAsInt :: Length -> HexInt
+lengthAsInt len = HexInt (len.unLength)
 
 -- | Scale a length by some integer. No rounding happens, ie no information is
 -- lost (assuming no overflow).

@@ -9,6 +9,9 @@ import Hexlude
 data Glue = Glue {gDimen :: Length, gStretch, gShrink :: PureFlex}
   deriving stock (Show, Eq, Generic)
 
+glueAsLength :: Glue -> Length
+glueAsLength g = g.gDimen
+
 instance Semigroup Glue where
   -- Add the lengths, and
   (Glue dA strA shrA) <> (Glue dB strB shrB) =

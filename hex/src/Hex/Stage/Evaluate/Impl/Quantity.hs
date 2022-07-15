@@ -61,8 +61,12 @@ evalIntConstantDigits x =
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
 
-evalCoercedInt :: p -> a
-evalCoercedInt _x = notImplemented "evalCoercedInt"
+evalCoercedInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.CoercedInt -> m Q.HexInt
+evalCoercedInt = \case
+  P.InternalLengthAsInt internalLength ->
+    Q.lengthAsInt <$> evalInternalLength internalLength
+  P.InternalGlueAsInt internalGlue ->
+    (Q.lengthAsInt . Q.glueAsLength) <$> evalInternalGlue internalGlue
 
 evalInternalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalInt -> m Q.HexInt
 evalInternalInt = \case
@@ -201,7 +205,7 @@ evalInternalUnit = \case
   P.Em -> notImplemented "evalInternalUnit: Em"
   P.Ex -> notImplemented "evalInternalUnit: Ex"
   P.InternalIntUnit internalInt ->
-    Q.lengthFromHexInt <$> evalInternalInt internalInt
+    Q.lengthFromInt <$> evalInternalInt internalInt
   P.InternalLengthUnit internalLength ->
     evalInternalLength internalLength
   P.InternalGlueUnit internalGlue ->
