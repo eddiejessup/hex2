@@ -33,17 +33,19 @@ newtype VListBuilderT m a = VListBuilderT {unVListBuilderT :: StateT H.Inter.B.L
 instance HIn.MonadHexInput m => HIn.MonadHexInput (VListBuilderT m) where
   endCurrentLine = lift HIn.endCurrentLine
 
-  sourceIsFinished = lift HIn.sourceIsFinished
+  inputIsFinished = lift HIn.inputIsFinished
 
-  getSource = lift HIn.getSource
+  getInput = lift HIn.getInput
 
-  putSource = lift . HIn.putSource
+  putInput = lift . HIn.putInput
 
   insertLexToken = lift . HIn.insertLexToken
 
   insertLexTokens = lift . HIn.insertLexTokens
 
   getNextLexToken = lift HIn.getNextLexToken
+
+  openInputFile x = lift $ HIn.openInputFile x
 
 runVListBuilderT :: H.Inter.B.List.VList -> VListBuilderT m a -> m (a, H.Inter.B.List.VList)
 runVListBuilderT initVList app = runStateT (unVListBuilderT app) initVList

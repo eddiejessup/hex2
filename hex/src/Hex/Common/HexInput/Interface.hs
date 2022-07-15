@@ -1,8 +1,9 @@
 module Hex.Common.HexInput.Interface where
 
 import Formatting qualified as F
-import Hex.Common.HexInput.Interface.CharSource
+import Hex.Common.HexInput.Interface.CharSourceStack
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved qualified as RT
 import Hexlude
@@ -11,6 +12,7 @@ data LexError
   = TerminalEscapeCharacter
   | InvalidCharacter
   | NoMoreLines
+  | InputFileNotFound Q.HexFilePath
   deriving stock (Show, Eq, Generic)
 
 fmtLexError :: Fmt LexError
@@ -19,17 +21,19 @@ fmtLexError = F.shown
 class Monad m => MonadHexInput m where
   endCurrentLine :: m ()
 
-  sourceIsFinished :: m Bool
+  inputIsFinished :: m Bool
 
-  getSource :: m LoadedCharSource
+  getInput :: m CharSourceStack
 
-  putSource :: LoadedCharSource -> m ()
+  putInput :: CharSourceStack -> m ()
 
   insertLexToken :: LT.LexToken -> m ()
 
   insertLexTokens :: Seq LT.LexToken -> m ()
 
   getNextLexToken :: m (Maybe LT.LexToken)
+
+  openInputFile :: Q.HexFilePath -> m ()
 
 -- If we can resolve lex-tokens, and we have a source of lex-tokens, we can
 -- provide a stream of resolved-tokens.

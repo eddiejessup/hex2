@@ -109,7 +109,7 @@ data HModeCommand
   | AddUnwrappedFetchedHBox Uneval.FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
 
-data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputSource, messageContents :: Text}
+data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputInput, messageContents :: Text}
   deriving stock (Show, Eq, Generic)
 
 data StreamWriteCommand = StreamWriteCommand {streamNumber :: Q.HexInt, writeText :: WriteText}

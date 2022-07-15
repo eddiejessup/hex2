@@ -3,6 +3,7 @@ module Hex.Stage.Interpret.CommandHandler.HMode where
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexInput.Interface qualified as HIn
+import Hex.Common.HexInput.Interface.CharSourceStack (CharSourceStack)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
@@ -14,7 +15,6 @@ import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
 import Hexlude
-import qualified Hex.Common.HexInput.Interface.CharSource as HIn
 
 data HModeCommandResult
   = ContinueHMode
@@ -30,7 +30,7 @@ handleCommandInHMode ::
     Build.MonadHListBuilder m,
     MonadHexListExtractor m
   ) =>
-  HIn.LoadedCharSource ->
+  CharSourceStack ->
   ListExtractor.ModeContext ->
   Eval.Command ->
   m HModeCommandResult
@@ -40,7 +40,7 @@ handleCommandInHMode oldSrc modeCtx = \case
       -- Insert the control sequence "\par" into the input. The control
       -- sequence's current meaning will be used, which might no longer be the \par
       -- primitive.
-      HIn.putSource oldSrc
+      HIn.putInput oldSrc
       HIn.insertLexToken LT.parToken
       pure ContinueHMode
     ListExtractor.InnerModeContext -> do

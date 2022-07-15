@@ -30,7 +30,7 @@ extractMainVListImpl = Build.V.execVListBuilderT (H.Inter.B.List.VList Empty) go
   where
     go :: Build.V.VListBuilderT m ()
     go = do
-      streamPreParse <- HIn.getSource
+      streamPreParse <- HIn.getInput
       command <- AllMode.getNextCommandLogged
       Command.V.handleCommandInMainVMode streamPreParse command >>= \case
         Command.V.EndMainVMode -> pure ()

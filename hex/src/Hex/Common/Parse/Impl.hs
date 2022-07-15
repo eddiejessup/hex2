@@ -54,17 +54,19 @@ instance Expand.MonadPrimTokenSource m => Expand.MonadPrimTokenSource (ParseT m)
 instance HIn.MonadHexInput m => HIn.MonadHexInput (ParseT m) where
   endCurrentLine = lift HIn.endCurrentLine
 
-  sourceIsFinished = lift HIn.sourceIsFinished
+  inputIsFinished = lift HIn.inputIsFinished
 
-  getSource = lift HIn.getSource
+  getInput = lift HIn.getInput
 
-  putSource = lift . HIn.putSource
+  putInput = lift . HIn.putInput
 
   insertLexToken = lift . HIn.insertLexToken
 
   insertLexTokens = lift . HIn.insertLexTokens
 
   getNextLexToken = lift HIn.getNextLexToken
+
+  openInputFile x = lift $ HIn.openInputFile x
 
 mkParseT :: Monad m => m (Either CPar.ParsingError a, ParseLog) -> ParseT m a
 mkParseT ma = ParseT $ ExceptT $ W.writerT ma
@@ -180,12 +182,12 @@ tryImpl ::
   ParseT m a
 tryImpl f = do
   Log.log "Doing try"
-  st <- HIn.getSource
+  st <- HIn.getInput
   (errOrA, parseLog) <- lift $ runParseT f
   case errOrA of
     Left e -> do
       Log.log $ "Try target failed with error: " <> F.sformat CPar.fmtParsingError e
-      HIn.putSource st
+      HIn.putInput st
     Right _ -> do
       Log.log "Try target succeeded"
       pure ()

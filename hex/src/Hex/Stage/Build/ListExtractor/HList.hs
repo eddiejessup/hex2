@@ -90,7 +90,7 @@ buildHList modeCtx initList = do
     go = do
       -- Get the state before reading the command,
       -- in case we need to revert to before the command.
-      sPreParse <- HIn.getSource
+      sPreParse <- HIn.getInput
       -- Read the next command.
       command <- AllMode.getNextCommandLogged
       -- Handle the next command, passing the old state in case we need to revert.

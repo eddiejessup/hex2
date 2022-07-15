@@ -5,10 +5,11 @@ import Data.ByteString qualified as BS
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexInput.Impl.CharSource (HexLine (..))
-import Hex.Common.HexInput.Impl.CharSource qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
 import Hexlude
-import qualified Hex.Common.HexInput.Interface.CharSource as CharSource
+import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack(..))
+import Hex.Common.HexInput.Impl.CharSourceStack qualified as CharSourceStack
+import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
 
 data RawCharCat = RawCharCat
   { rawCCChar :: Code.CharCode,
@@ -51,26 +52,26 @@ extractCharCatFromHexLinePure (HexLine xs) = runMaybeT $ do
 
 extractCharCatFromCurrentLine ::
   ( MonadState st m,
-    HasType CharSource.LoadedCharSource st,
+    HasType CharSourceStack st,
     HSt.MonadHexState m
   ) =>
   m (Maybe RawCharCat)
 extractCharCatFromCurrentLine = do
-  use (typed @CharSource.LoadedCharSource % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure >>= \case
+  use (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure >>= \case
     Nothing ->
       pure Nothing
     Just (charCat, restOfLine) -> do
-      assign' (typed @CharSource.LoadedCharSource % #workingLine % #sourceLine % #currentLine) restOfLine
+      assign' (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) restOfLine
       pure $ Just charCat
 
 peekCharCatOnCurrentLineImpl ::
   ( MonadState st m,
-    HasType CharSource.LoadedCharSource st,
+    HasType CharSourceStack st,
     HSt.MonadHexState m
   ) =>
   m (Maybe RawCharCat)
 peekCharCatOnCurrentLineImpl =
-  use (typed @CharSource.LoadedCharSource % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure <&> \case
+  use (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure <&> \case
     Nothing ->
       Nothing
     Just (charCat, _restOfLine) ->

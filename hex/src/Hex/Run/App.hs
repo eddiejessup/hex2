@@ -1,15 +1,17 @@
 module Hex.Run.App where
 
-import Data.ByteString qualified as BS
-import Data.List.NonEmpty qualified as L.NE
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Interface qualified as HEnv
+import Hex.Common.HexInput.Impl qualified as HIn
+import Hex.Common.HexInput.Impl.CharSourceStack qualified as HIn
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Impl (MonadHexStateImplT (..))
 import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface (MonadHexState)
+import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Parse.Interface qualified as Parse
 import Hex.Common.TFM.Get qualified as TFM
@@ -24,25 +26,20 @@ import Hex.Stage.Parse.Impl (MonadCommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
 import System.IO (hFlush)
-import qualified Hex.Common.HexInput.Interface as HIn
-import qualified Hex.Common.HexInput.Impl as HIn
-import qualified Hex.Common.HexInput.Interface.CharSource as HIn
-import qualified Hex.Common.HexState.Interface as HSt
-import qualified Hex.Common.HexInput.Impl.CharSource as HIn
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
-    appCharSource :: HIn.LoadedCharSource,
+    appCharSourceStack :: HIn.CharSourceStack,
     appConditionStates :: Expand.ConditionStates
   }
   deriving stock (Generic)
 
-newHexStateWithChars :: NonEmpty ByteString -> AppState
-newHexStateWithChars lines_ =
+newHexStateWithChars :: ByteString -> AppState
+newHexStateWithChars inputBytes =
   let endLineChar = HSt.Param.newIntParameters ^. at' HSt.Param.EndLineChar >>= Code.fromHexInt
    in AppState
         { appHexState = HSt.newHexState,
-          appCharSource = HIn.newCharSource endLineChar lines_,
+          appCharSourceStack = HIn.newCharSourceStack endLineChar inputBytes,
           appConditionStates = Expand.newConditionStates
         }
 
@@ -108,7 +105,7 @@ runAppGivenState appState app appEnv =
    in runExceptT $ runStateT x appState
 
 runAppGivenEnv ::
-  NonEmpty ByteString ->
+  ByteString ->
   App a ->
   HEnv.HexEnv ->
   IO (Either AppError (a, AppState))
@@ -117,7 +114,7 @@ runAppGivenEnv bs app appEnv = do
   runAppGivenState appState app appEnv
 
 runApp ::
-  NonEmpty ByteString ->
+  ByteString ->
   App a ->
   IO (Either AppError (a, AppState))
 runApp bs app =
@@ -126,10 +123,10 @@ runApp bs app =
     hFlush appEnv.logHandle
     pure a
 
-evalApp :: NonEmpty ByteString -> App a -> IO (Either AppError a)
+evalApp :: ByteString -> App a -> IO (Either AppError a)
 evalApp chrs = fmap (fmap fst) <$> runApp chrs
 
-unsafeEvalApp :: NonEmpty ByteString -> App a -> IO a
+unsafeEvalApp :: ByteString -> App a -> IO a
 unsafeEvalApp chrs app = do
   evalApp chrs app >>= \case
     Left e -> panic $ sformat ("got error: " |%| fmtAppError) e
@@ -143,9 +140,3 @@ carriageReturnWord = 13
 
 carriageReturnCharCode :: Code.CharCode
 carriageReturnCharCode = Code.CharCode carriageReturnWord
-
--- Split the input into lines, assuming '\n' line-termination characters.
--- We will append the \endlinechar to each input line as we traverse the lines.
--- We need at least one input line, to be the 'current line'.
-toInputLines :: ByteString -> Maybe (NonEmpty ByteString)
-toInputLines inputBytes = L.NE.nonEmpty (BS.split newlineWord inputBytes)

@@ -2,7 +2,6 @@
 module Hex.Common.HexInput.Impl.CharSource where
 
 import Data.ByteString qualified as BS
-import Data.List.NonEmpty qualified as L.NE
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Token.Lexed qualified as LT
@@ -15,7 +14,7 @@ import qualified Data.Sequence as Seq
 -- Empty working-line, Empty source-lines: At end of input
 
 -- The input to Tex is a sequence of “lines.”
-data LoadedCharSource = LoadedCharSource
+data CharSource = CharSource
   { -- | The line number of the current line.
     lineNr :: LineNr,
     workingLine :: WorkingLine,
@@ -23,12 +22,20 @@ data LoadedCharSource = LoadedCharSource
   }
   deriving stock (Show, Generic)
 
-newCharSource :: Maybe Code.CharCode -> NonEmpty ByteString -> LoadedCharSource
-newCharSource mayEndLineChar sourceLines =
-  LoadedCharSource
+newlineWord :: Word8
+newlineWord = 10
+
+-- Split the input into lines, assuming '\n' line-termination characters.
+-- We will append the \endlinechar to each input line as we traverse the lines.
+newCharSource :: Maybe Code.CharCode -> ByteString -> CharSource
+newCharSource mayEndLineChar sourceBytes =
+  let (workingLineBytes, restLines) = case BS.split newlineWord sourceBytes of
+        [] -> ("", [])
+        fstLine : rest -> (fstLine, rest)
+  in CharSource
     { lineNr = LineNr 1,
-      workingLine = newWorkingLine mayEndLineChar (L.NE.head sourceLines) ,
-      sourceLines = L.NE.tail sourceLines
+      workingLine = newWorkingLine mayEndLineChar workingLineBytes,
+      sourceLines = restLines
     }
 
 data WorkingLine = WorkingLine
@@ -67,7 +74,7 @@ newCurrentSourceLine mayEndLineChar sourceLineBytes = CurrentSourceLine {
   lineState = LineBegin
 }
 
-charSourceLineNr :: LoadedCharSource -> LineNr
+charSourceLineNr :: CharSource -> LineNr
 charSourceLineNr = (.lineNr)
 
 -- | A source line-number
@@ -109,15 +116,15 @@ mkHexLine mayEndLineChar bs =
         Just endLineChar -> spaceStripped <> BS.singleton (endLineChar.unCharCode)
    in HexLine withEndLine
 
-insertLexTokenToSource :: LT.LexToken -> LoadedCharSource -> LoadedCharSource
-insertLexTokenToSource lt loadedCharSource = loadedCharSource & #workingLine % #workingLexTokens %~ cons lt
+insertLexTokenToSource :: LT.LexToken -> CharSource -> CharSource
+insertLexTokenToSource lt charSource = charSource & #workingLine % #workingLexTokens %~ cons lt
 
 data HexLineToken
   = HexLineByte Word8
   | HexLineLexToken LT.LexToken
   deriving stock (Show, Eq, Generic)
 
-endSourceCurrentLine :: Maybe Code.CharCode -> LoadedCharSource -> Maybe LoadedCharSource
+endSourceCurrentLine :: Maybe Code.CharCode -> CharSource -> Maybe CharSource
 endSourceCurrentLine mayEndLineChar a =
   -- Get the next line from the unprocessed list.
   case uncons a.sourceLines of
@@ -133,7 +140,7 @@ endSourceCurrentLine mayEndLineChar a =
           & #workingLine .~ newWorkingLine mayEndLineChar nextLine
           & #sourceLines .~ restOfLines
 
-sourceIsFinished :: LoadedCharSource -> Bool
-sourceIsFinished loadedCharSource =
-  workingLineIsFinished (loadedCharSource.workingLine)
-  && null (loadedCharSource.sourceLines)
+sourceIsFinished :: CharSource -> Bool
+sourceIsFinished charSource =
+  workingLineIsFinished (charSource.workingLine)
+  && null (charSource.sourceLines)

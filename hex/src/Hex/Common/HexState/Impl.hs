@@ -66,8 +66,7 @@ instance
     MonadIO (MonadHexStateImplT m),
     MonadState st (MonadHexStateImplT m),
     HasType HexState st,
-    MonadReader r (MonadHexStateImplT m),
-    HasType [FilePath] r,
+    Env.MonadHexEnv (MonadHexStateImplT m),
     MonadError e (MonadHexStateImplT m),
     AsType HexStateError e,
     AsType TFM.TFMError e
@@ -124,11 +123,9 @@ instance
     H.Inter.B.Box.FontSpecification ->
     MonadHexStateImplT m H.Inter.B.Box.FontDefinition
   loadFont fontPath spec = do
-    searchDirs <- know (typed @[FilePath])
     absPath <-
       Env.findFilePath
         (Env.WithImplicitExtension "tfm")
-        searchDirs
         (fontPath ^. typed @FilePath)
         >>= note (injectTyped (FontNotFound fontPath))
 

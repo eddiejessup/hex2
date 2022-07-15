@@ -14,6 +14,11 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexInput.Impl.Lex qualified as HIn
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
+import qualified Hex.Common.HexEnv.Interface as Env
+import qualified Data.ByteString as BS
+import qualified Hex.Common.Quantity as Q
+import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
+import qualified Hex.Common.HexInput.Impl.CharSourceStack as CharSourceStack
 
 newtype MonadHexInputT m a = MonadHexInputT {unMonadHexInputT :: m a}
   deriving newtype
@@ -22,6 +27,7 @@ newtype MonadHexInputT m a = MonadHexInputT {unMonadHexInputT :: m a}
       Monad,
       MonadIO,
       MonadState st,
+      MonadReader st,
       MonadError e,
       MonadHexState,
       MonadHexLog
@@ -30,8 +36,10 @@ newtype MonadHexInputT m a = MonadHexInputT {unMonadHexInputT :: m a}
 instance
   ( Monad m,
     MonadError e (MonadHexInputT m),
-    MonadState st m,
-    HasType CharSource.LoadedCharSource st,
+    MonadState st (MonadHexInputT m),
+    Env.MonadHexEnv (MonadHexInputT m),
+    MonadIO (MonadHexInputT m),
+    HasType CharSourceStack st,
     AsType HIn.LexError e,
     MonadHexState (MonadHexInputT m)
   ) =>
@@ -39,11 +47,11 @@ instance
   where
   endCurrentLine = endCurrentLineImpl
 
-  sourceIsFinished = sourceIsFinishedImpl
+  inputIsFinished = inputIsFinishedImpl
 
-  getSource = use (typed @CharSource.LoadedCharSource)
+  getInput = use (typed @CharSourceStack)
 
-  putSource = assign' (typed @CharSource.LoadedCharSource)
+  putInput = assign' (typed @CharSourceStack)
 
   insertLexToken = insertLexTokenImpl
 
@@ -51,72 +59,75 @@ instance
 
   getNextLexToken = getNextLexTokenImpl
 
+  openInputFile = openInputFileImpl
+
 getEndLineCharCode :: HSt.MonadHexState m => m (Maybe Code.CharCode)
 getEndLineCharCode =
   Code.fromHexInt <$> HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.EndLineChar)
 
 endCurrentLineImpl ::
   ( MonadState st m,
-    HasType CharSource.LoadedCharSource st,
+    HasType CharSourceStack st,
     HSt.MonadHexState m,
     MonadError e m,
     AsType HIn.LexError e
   ) =>
   m ()
 endCurrentLineImpl = do
-  loadedCharSource <- use (typed @CharSource.LoadedCharSource)
+  stack <- use (typed @CharSourceStack)
   -- End the line, update the char-source to the new state
-  CharSource.endSourceCurrentLine <$> getEndLineCharCode <*> pure loadedCharSource >>= \case
-    Nothing -> throwError $ injectTyped HIn.NoMoreLines
-    Just newSource -> assign' (typed @CharSource.LoadedCharSource) newSource
+  CharSource.endSourceCurrentLine <$> getEndLineCharCode <*> pure (CharSourceStack.currentSource stack) >>= \case
+    Just newCharSource ->
+      assign' (typed @CharSourceStack % CharSourceStack.currentSourceLens) newCharSource
+    Nothing -> do
+      case CharSourceStack.endCurrentCharSource stack of
+        Nothing ->
+          throwError $ injectTyped HIn.NoMoreLines
+        Just newStack -> do
+          assign' (typed @CharSourceStack) newStack
 
-sourceIsFinishedImpl ::
-  ( MonadState st m,
-    HasType CharSource.LoadedCharSource st
-  ) =>
-  m Bool
-sourceIsFinishedImpl = do
-  CharSource.sourceIsFinished <$> use (typed @CharSource.LoadedCharSource)
+inputIsFinishedImpl :: (MonadState s m, HasType CharSourceStack s) => m Bool
+inputIsFinishedImpl = use (typed @CharSourceStack) <&> CharSourceStack.stackIsFinished
 
 -- Insert in reverse order, so, we insert the "r" of "relax" last, so we pop "r" next.
-insertLexTokensImpl :: (HasType CharSource.LoadedCharSource s, MonadState s m) => Seq LT.LexToken -> m ()
+insertLexTokensImpl :: (MonadState s m, HasType CharSourceStack s) => Seq LT.LexToken -> m ()
 insertLexTokensImpl lts = forM_ (Seq.reverse lts) insertLexTokenImpl
 
-insertLexTokenImpl :: (HasType CharSource.LoadedCharSource s, MonadState s m) => LT.LexToken -> m ()
+insertLexTokenImpl :: (MonadState s m, HasType CharSourceStack s) => LT.LexToken -> m ()
 insertLexTokenImpl lt =
   modifying'
-    (typed @CharSource.LoadedCharSource)
+    (typed @CharSourceStack % CharSourceStack.currentSourceLens)
     (CharSource.insertLexTokenToSource lt)
 
-extractNextLexTokenFromWorkingLineBuffer :: (HasType CharSource.LoadedCharSource s, MonadState s m) => m (Maybe LT.LexToken)
+extractNextLexTokenFromWorkingLineBuffer :: (MonadState s m, HasType CharSourceStack s) => m (Maybe LT.LexToken)
 extractNextLexTokenFromWorkingLineBuffer = do
-  use (typed @CharSource.LoadedCharSource % #workingLine % #workingLexTokens) >>= \case
+  use (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #workingLexTokens) >>= \case
     lt :<| ltRest -> do
-      assign' (typed @CharSource.LoadedCharSource % #workingLine % #workingLexTokens) ltRest
+      assign' (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #workingLexTokens) ltRest
       pure $ Just lt
-    Empty -> pure
-      Nothing
+    Empty ->
+      pure Nothing
 
 extractNextLexTokenFromWorkingLineSource ::
   ( MonadHexState m,
     MonadState st m,
-    HasType CharSource.LoadedCharSource st,
+    HasType CharSourceStack st,
     MonadError e m,
     AsType HIn.LexError e
   ) =>
   m (Maybe LT.LexToken)
 extractNextLexTokenFromWorkingLineSource = do
-  lineState <- use (typed @CharSource.LoadedCharSource % #workingLine % #sourceLine % #lineState)
+  lineState <- use (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #lineState)
   HIn.extractLexTokenFromSourceLine lineState >>= \case
     Nothing -> pure Nothing
     Just (lt, newLineState) -> do
-      assign' (typed @CharSource.LoadedCharSource % #workingLine % #sourceLine % #lineState) newLineState
+      assign' (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #lineState) newLineState
       pure $ Just lt
 
 getNextLexTokenImpl ::
   ( MonadHexState m,
     MonadState st m,
-    HasType CharSource.LoadedCharSource st,
+    HasType CharSourceStack st,
     MonadError e m,
     AsType HIn.LexError e
   ) =>
@@ -128,8 +139,29 @@ getNextLexTokenImpl = do
     Nothing ->
       extractNextLexTokenFromWorkingLineSource >>= \case
         Just lt -> pure $ Just lt
-        Nothing -> sourceIsFinishedImpl >>= \case
+        Nothing -> inputIsFinishedImpl >>= \case
           True -> pure Nothing
           False -> do
             endCurrentLineImpl
             getNextLexTokenImpl
+
+openInputFileImpl ::
+  ( MonadHexState m,
+    MonadState st m,
+    HasType CharSourceStack st,
+    Env.MonadHexEnv m,
+    MonadError e m,
+    MonadIO m,
+    AsType HIn.LexError e
+  ) =>
+  Q.HexFilePath ->
+  m ()
+openInputFileImpl inputPath = do
+  absPath <-
+    Env.findFilePath
+      (Env.WithImplicitExtension "tex")
+      (inputPath ^. typed @FilePath)
+      >>= note (injectTyped (HIn.InputFileNotFound inputPath))
+  newBytes <- liftIO $ BS.readFile absPath
+  endLineCode <- getEndLineCharCode
+  modifying' (typed @CharSourceStack) $ CharSourceStack.pushCharSource endLineCode newBytes

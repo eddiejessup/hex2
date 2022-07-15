@@ -58,7 +58,7 @@ getNextCommandLogged = do
 
 data OutputDestination
   = FileStream Q.HexInt
-  | StandardStream PT.StandardOutputSource
+  | StandardStream PT.StandardOutputInput
 
 writeToOutput :: Monad m => OutputDestination -> Text -> m ()
 writeToOutput _ _ = pure ()

@@ -258,9 +258,8 @@ expandExpansionCommand = \case
   -- - Expand to no tokens
   -- - Prepare to read from the specified file before looking at any more
   --   tokens from the current source.
-  E.OpenInputFile _filePath -> do
-    void $ notImplemented "OpenInputFile"
-    -- inputPath filePath
+  E.OpenInputFile filePath -> do
+    HIn.openInputFile filePath
     pure mempty
   E.EndInputFile ->
     notImplemented "EndInputFile"

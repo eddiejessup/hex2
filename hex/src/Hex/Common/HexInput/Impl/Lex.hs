@@ -8,7 +8,7 @@ import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
 import qualified Hex.Common.HexInput.Impl.CharSource as HIn
 import qualified Hex.Common.HexState.Interface as HSt
-import qualified Hex.Common.HexInput.Interface.CharSource as CharSource
+import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
 
 spaceTok :: LexToken
 spaceTok = CharCatLexToken $ LexCharCat (Code.Chr_ ' ') Code.Space
@@ -16,7 +16,7 @@ spaceTok = CharCatLexToken $ LexCharCat (Code.Chr_ ' ') Code.Space
 -- Take letters until we see end-of-input, or a non-letter. Leave the non-letter in the rest-of-input
 getLetterChars ::
   ( MonadState st m,
-    HasType CharSource.LoadedCharSource st,
+    HasType CharSourceStack st,
     HSt.MonadHexState m
   ) =>
   m (Seq Code.CharCode)
@@ -43,7 +43,7 @@ extractLexTokenFromSourceLine ::
     MonadError e m,
     AsType HIn.LexError e,
     MonadState st m,
-    HasType CharSource.LoadedCharSource st
+    HasType CharSourceStack st
   ) =>
   HIn.LineState ->
   m (Maybe (LexToken, HIn.LineState))

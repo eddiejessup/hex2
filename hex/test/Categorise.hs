@@ -17,9 +17,9 @@ import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
 
-newtype TestApp a = TestApp {unTestApp :: State LoadedCharSource a}
+newtype TestApp a = TestApp {unTestApp :: State CharSource a}
   deriving stock (Generic)
-  deriving newtype (Functor, Applicative, Monad, MonadState LoadedCharSource)
+  deriving newtype (Functor, Applicative, Monad, MonadState CharSource)
   deriving (MonadCharCatSource) via (MonadCharCatSourceT TestApp)
 
 codeToCat :: CharCode -> CatCode

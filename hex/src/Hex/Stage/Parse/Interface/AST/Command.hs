@@ -84,7 +84,7 @@ data StreamWriteCommand = StreamWriteCommand HexInt WriteText
   deriving stock (Show, Eq, Generic)
 
 data MessageWriteCommand = MessageWriteCommand
-  { messageDest :: PT.StandardOutputSource,
+  { messageDest :: PT.StandardOutputInput,
     messageContents :: HSt.TL.ExpandedBalancedText
   }
   deriving stock (Show, Eq, Generic)

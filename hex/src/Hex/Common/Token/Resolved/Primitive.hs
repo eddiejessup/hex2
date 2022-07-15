@@ -24,7 +24,7 @@ data ExpandDefFlag
   | InhibitDef
   deriving stock (Show, Eq, Generic)
 
-data StandardOutputSource
+data StandardOutputInput
   = StdOut
   | StdErr
   deriving stock (Show, Eq, Generic)
@@ -154,7 +154,7 @@ data PrimitiveToken
   | IgnoreSpacesTok -- \ignorespaces
   | SetAfterAssignmentTokenTok -- \afterassignment
   | AddToAfterGroupTokensTok -- \aftergroup
-  | MessageTok StandardOutputSource -- \message, \errmessage
+  | MessageTok StandardOutputInput -- \message, \errmessage
   | ImmediateTok -- \immediate
   | OpenInputTok -- \openin
   | CloseInputTok -- \closein

@@ -119,28 +119,27 @@ main = do
       FileInput inPathStr -> do
         cs <- BS.readFile inPathStr
         pure (cs, Just inPathStr)
-  inputLines <- note (panic "No lines of input") (Run.toInputLines inputBytes)
   case opts.mode of
     LexMode -> do
-      lts <- Run.unsafeEvalApp inputLines Run.Lex.lexAll
+      lts <- Run.unsafeEvalApp inputBytes Run.Lex.lexAll
       putText $ sformat Run.Lex.fmtLexResult lts
     ResolveMode -> do
-      resultList <- Run.unsafeEvalApp inputLines Run.Resolve.resolveAll
+      resultList <- Run.unsafeEvalApp inputBytes Run.Resolve.resolveAll
       putText $ sformat Run.Resolve.fmtResolveResult resultList
     ExpandMode -> do
-      resultList <- Run.unsafeEvalApp inputLines Run.Expand.expandAll
+      resultList <- Run.unsafeEvalApp inputBytes Run.Expand.expandAll
       putText $ sformat Run.Expand.fmtExpandResult resultList
     RawCommandMode -> do
-      commandList <- Run.unsafeEvalApp inputLines Run.Parse.parseAll
+      commandList <- Run.unsafeEvalApp inputBytes Run.Parse.parseAll
       putText $ sformat Run.Parse.fmtCommandList commandList
     EvalCommandMode -> do
-      commandList <- Run.unsafeEvalApp inputLines Run.Evaluate.evaluateAll
+      commandList <- Run.unsafeEvalApp inputBytes Run.Evaluate.evaluateAll
       putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
     VListMode -> do
-      vList <- Run.unsafeEvalApp inputLines Run.Interpret.interpretInMainVMode
+      vList <- Run.unsafeEvalApp inputBytes Run.Interpret.interpretInMainVMode
       putText $ sformat fmtVList vList
     ParaListMode -> do
-      (endReason, paraList) <- Run.unsafeEvalApp inputLines Run.Interpret.interpretInParaMode
+      (endReason, paraList) <- Run.unsafeEvalApp inputBytes Run.Interpret.interpretInParaMode
       putText $ "End reason: " <> show endReason
       putText $ sformat fmtHListMultiLine paraList
     _ ->
