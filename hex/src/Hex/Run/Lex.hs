@@ -1,9 +1,9 @@
 module Hex.Run.Lex where
 
 import Formatting qualified as F
+import Hex.Common.HexInput.Interface
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
-import Hex.Common.HexInput.Interface
 
 lexAll :: MonadHexInput m => m [LT.LexToken]
 lexAll = go

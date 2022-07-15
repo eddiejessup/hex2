@@ -1,9 +1,9 @@
 module Hex.Common.Token.Resolved where
 
-import Hexlude
-import qualified Formatting as F
+import Formatting qualified as F
 import Hex.Common.Token.Resolved.Expandable
 import Hex.Common.Token.Resolved.Primitive
+import Hexlude
 
 -- The result of resolving a symbol.
 data ResolvedToken

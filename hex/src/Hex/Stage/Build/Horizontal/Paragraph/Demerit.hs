@@ -1,9 +1,9 @@
 module Hex.Stage.Build.Horizontal.Paragraph.Demerit where
 
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hex.Stage.Build.Horizontal.Badness
 import Hex.Stage.Build.Horizontal.Paragraph.Types
+import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hexlude
 
 -- Demerit.

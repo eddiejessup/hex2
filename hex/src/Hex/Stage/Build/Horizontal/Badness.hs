@@ -19,5 +19,5 @@ finiteFlexBadness :: Q.Length -> Q.Length -> Badness
 finiteFlexBadness requiredFlex flexibility
   | flexibility == Q.zeroLength = infBadness
   | otherwise =
-    let r = Q.lengthRatio requiredFlex flexibility
-     in min infBadness $ Badness_ $ round $ (abs r ^ (3 :: Int)) * 100
+      let r = Q.lengthRatio requiredFlex flexibility
+       in min infBadness $ Badness_ $ round $ (abs r ^ (3 :: Int)) * 100

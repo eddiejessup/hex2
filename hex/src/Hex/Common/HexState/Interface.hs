@@ -2,6 +2,7 @@
 
 module Hex.Common.HexState.Interface where
 
+import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Font qualified as Font
@@ -20,7 +21,6 @@ import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hexlude
-import qualified Formatting as F
 
 data ResolutionError = UnknownSymbolError HSt.Res.ControlSymbol
   deriving stock (Show, Generic)
@@ -187,7 +187,6 @@ scaleRegisterValue ::
 scaleRegisterValue qLoc scaleDirection arg scopeFlag =
   modifyRegisterValue qLoc (Q.scaleInDirection scaleDirection arg) scopeFlag
 
-
 resolveLexToken ::
   MonadHexState m =>
   LT.LexToken ->
@@ -200,6 +199,7 @@ resolveLexToken = \case
   LT.CharCatLexToken lexCharCat ->
     pure $ Right $ RT.PrimitiveToken $ PT.CharCatPair lexCharCat
   where
-    resolveSymbolWithError cSym = resolveSymbol cSym >>= \case
-      Nothing -> pure $ Left $ UnknownSymbolError cSym
-      Just rt -> pure $ Right rt
+    resolveSymbolWithError cSym =
+      resolveSymbol cSym >>= \case
+        Nothing -> pure $ Left $ UnknownSymbolError cSym
+        Just rt -> pure $ Right rt

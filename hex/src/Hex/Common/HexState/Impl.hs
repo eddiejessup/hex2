@@ -8,6 +8,7 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Interface qualified as Env
+import Hex.Common.HexEnv.Interface qualified as HEnv
 import Hex.Common.HexState.Impl.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.Code
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
@@ -35,7 +36,6 @@ import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hexlude
 import System.FilePath qualified as FilePath
-import qualified Hex.Common.HexEnv.Interface as HEnv
 
 data HexStateError
   = FontNotFound Q.HexFilePath

@@ -2,24 +2,24 @@
 
 module Hex.Common.HexInput.Impl where
 
+import Data.ByteString qualified as BS
 import Data.Sequence qualified as Seq
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexEnv.Interface qualified as Env
+import Hex.Common.HexEnv.Interface qualified as HEnv
+import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
+import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
+import Hex.Common.HexInput.Impl.CharSourceStack qualified as CharSourceStack
+import Hex.Common.HexInput.Impl.Lex qualified as HIn
 import Hex.Common.HexInput.Interface (MonadHexInput (..))
 import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Common.HexInput.Impl.Lex qualified as HIn
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
-import qualified Hex.Common.HexEnv.Interface as Env
-import qualified Data.ByteString as BS
-import qualified Hex.Common.Quantity as Q
-import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
-import qualified Hex.Common.HexInput.Impl.CharSourceStack as CharSourceStack
-import qualified Hex.Common.HexEnv.Interface as HEnv
 
 newtype HexInputT m a = HexInputT {unHexInputT :: m a}
   deriving newtype
@@ -141,11 +141,12 @@ getNextLexTokenImpl = do
     Nothing ->
       extractNextLexTokenFromWorkingLineSource >>= \case
         Just lt -> pure $ Just lt
-        Nothing -> inputIsFinishedImpl >>= \case
-          True -> pure Nothing
-          False -> do
-            endCurrentLineImpl
-            getNextLexTokenImpl
+        Nothing ->
+          inputIsFinishedImpl >>= \case
+            True -> pure Nothing
+            False -> do
+              endCurrentLineImpl
+              getNextLexTokenImpl
 
 openInputFileImpl ::
   ( MonadHexState m,

@@ -13,11 +13,12 @@ data FontInfo = FontInfo
   deriving stock (Show, Generic)
 
 nullFontInfo :: FontInfo
-nullFontInfo = FontInfo
-  { fontMetrics = TFM.nullFont,
-    hyphenChar = Q.HexInt (-1),
-    skewChar = Q.HexInt (-1)
-  }
+nullFontInfo =
+  FontInfo
+    { fontMetrics = TFM.nullFont,
+      hyphenChar = Q.HexInt (-1),
+      skewChar = Q.HexInt (-1)
+    }
 
 fmtFontInfo :: Fmt FontInfo
 fmtFontInfo =

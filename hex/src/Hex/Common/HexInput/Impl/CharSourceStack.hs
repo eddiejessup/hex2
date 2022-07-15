@@ -1,9 +1,9 @@
 module Hex.Common.HexInput.Impl.CharSourceStack where
 
+import Data.List.NonEmpty qualified as L.NE
+import Hex.Common.Codes qualified as Code
 import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
 import Hexlude
-import Hex.Common.Codes qualified as Code
-import Data.List.NonEmpty qualified as L.NE
 
 -- The input to Tex is a sequence of “lines.”
 data CharSourceStack = CharSourceStack {unCharSourceStack :: NonEmpty CharSource.CharSource}
@@ -16,7 +16,7 @@ newCharSourceStack mayEndLineChar sourceBytes =
 pushCharSource :: Maybe Code.CharCode -> ByteString -> CharSourceStack -> CharSourceStack
 pushCharSource mayEndLineChar sourceBytes stack =
   let newSource = CharSource.newCharSource mayEndLineChar sourceBytes
-  in stack & #unCharSourceStack %~ L.NE.cons newSource
+   in stack & #unCharSourceStack %~ L.NE.cons newSource
 
 currentSourceLens :: Lens' CharSourceStack CharSource.CharSource
 currentSourceLens = #unCharSourceStack % nonEmptyHeadLens

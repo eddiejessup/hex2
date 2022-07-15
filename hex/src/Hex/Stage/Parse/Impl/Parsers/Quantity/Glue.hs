@@ -1,19 +1,19 @@
 module Hex.Stage.Parse.Impl.Parsers.Quantity.Glue where
 
 import Control.Monad.Combinators qualified as PC
+import Data.List qualified as List
+import Formatting qualified as F
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Token.Resolved.Primitive qualified as T
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Resolved.Primitive qualified as T
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
-import qualified Formatting as F
-import qualified Data.List as List
 
 headToParseModedAddGlue :: MonadPrimTokenParse m => Q.Axis -> T.PrimitiveToken -> m AST.Glue
 headToParseModedAddGlue axis = \case

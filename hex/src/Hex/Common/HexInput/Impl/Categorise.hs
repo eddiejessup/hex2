@@ -5,11 +5,11 @@ import Data.ByteString qualified as BS
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexInput.Impl.CharSource (HexLine (..))
+import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
+import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack (..))
+import Hex.Common.HexInput.Impl.CharSourceStack qualified as CharSourceStack
 import Hex.Common.HexState.Interface qualified as HSt
 import Hexlude
-import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack(..))
-import Hex.Common.HexInput.Impl.CharSourceStack qualified as CharSourceStack
-import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
 
 data RawCharCat = RawCharCat
   { rawCCChar :: Code.CharCode,

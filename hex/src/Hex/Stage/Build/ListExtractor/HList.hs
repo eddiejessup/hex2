@@ -4,6 +4,7 @@
 module Hex.Stage.Build.ListExtractor.HList where
 
 import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Build.ListBuilder.Horizontal qualified as Build.H
@@ -18,7 +19,6 @@ import Hex.Stage.Interpret.CommandHandler.HMode qualified as Command.H
 import Hex.Stage.Interpret.CommandHandler.HMode qualified as HMode
 import Hex.Stage.Parse.Interface (MonadCommandSource (..))
 import Hexlude
-import qualified Hex.Common.HexInput.Interface as HIn
 
 instance
   ( Monad m,

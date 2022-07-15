@@ -1,9 +1,9 @@
 module Hex.Common.Quantity.Number where
 
+import Data.Ratio qualified as Ratio
 import Formatting qualified as F
 import Hex.Common.Quantity.Common
 import Hexlude
-import qualified Data.Ratio as Ratio
 
 class Group a => Scalable a where
   scale :: HexInt -> a -> a

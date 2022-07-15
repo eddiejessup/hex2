@@ -123,8 +123,6 @@ instance HexCode CatCode where
     15 -> Just Invalid
     _ -> Nothing
 
-
-
 -- Not all Catcodes make it past the lexer.
 data CoreCatCode
   = BeginGroup -- 1
@@ -296,7 +294,6 @@ instance HexCode ChangeCaseCode where
     | n > 255 = Nothing
     | n == 0 = Just NoCaseChange
     | otherwise = ChangeToCode <$> fromHexInt h
-
 
 newtype LowerCaseCode = LowerCaseCode ChangeCaseCode
   deriving stock (Generic)

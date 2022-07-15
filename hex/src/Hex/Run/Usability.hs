@@ -2,8 +2,8 @@ module Hex.Run.Usability where
 
 import Data.Map qualified as Map
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
 import Hex.Common.HexState.Impl.Defaults.Code qualified as Defaults
+import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hexlude

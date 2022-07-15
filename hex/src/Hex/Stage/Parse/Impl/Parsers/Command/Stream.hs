@@ -56,14 +56,17 @@ parseFileName = do
   fileNameAsciiChars <-
     PC.some $
       satisfyCharCatThen Expanding $ \cc ->
-        Code.codeAsAsciiChar <$> (case cc of
-          -- Check that the char-cat has the right properties.
-          LT.LexCharCat c Code.Letter ->
-            Just c
-          LT.LexCharCat c Code.Other | isValidOther c ->
-            Just c
-          _ ->
-            Nothing)
+        Code.codeAsAsciiChar
+          <$> ( case cc of
+                  -- Check that the char-cat has the right properties.
+                  LT.LexCharCat c Code.Letter ->
+                    Just c
+                  LT.LexCharCat c Code.Other
+                    | isValidOther c ->
+                        Just c
+                  _ ->
+                    Nothing
+              )
   skipSatisfied (satisfyCharCatThen Expanding) charCatIsSpace
   pure $ Q.HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where

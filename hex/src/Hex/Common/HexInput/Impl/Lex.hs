@@ -2,13 +2,13 @@ module Hex.Common.HexInput.Impl.Lex where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexInput.Impl.Categorise qualified as Cat
+import Hex.Common.HexInput.Impl.CharSource qualified as HIn
+import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
 import Hex.Common.HexInput.Interface qualified as HIn
+import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.Token.Lexed (LexCharCat (..), LexToken (..))
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
-import qualified Hex.Common.HexInput.Impl.CharSource as HIn
-import qualified Hex.Common.HexState.Interface as HSt
-import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
 
 spaceTok :: LexToken
 spaceTok = CharCatLexToken $ LexCharCat (Code.Chr_ ' ') Code.Space

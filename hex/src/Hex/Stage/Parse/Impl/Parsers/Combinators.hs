@@ -106,7 +106,7 @@ matchNonActiveCharacterUncased :: Code.CharCode -> LT.LexCharCat -> Bool
 matchNonActiveCharacterUncased a cc =
   let aWord = a ^. typed @Word8
       chrWord = cc ^. typed @Code.CharCode % typed @Word8
-    in (cc ^. typed @Code.CoreCatCode /= Code.Active) && (chrWord == H.Ascii.toUpper aWord || chrWord == H.Ascii.toLower aWord)
+   in (cc ^. typed @Code.CoreCatCode /= Code.Active) && (chrWord == H.Ascii.toUpper aWord || chrWord == H.Ascii.toLower aWord)
 
 skipKeyword :: MonadPrimTokenParse m => ExpansionMode -> [Code.CharCode] -> m ()
 skipKeyword mode s = do

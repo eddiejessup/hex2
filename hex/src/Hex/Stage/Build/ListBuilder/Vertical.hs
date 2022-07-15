@@ -4,6 +4,7 @@ module Hex.Stage.Build.ListBuilder.Vertical where
 
 import Control.Monad.Trans (MonadTrans (..))
 import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -14,7 +15,6 @@ import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hex.Stage.Evaluate.Interface (MonadEvaluate (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource (..))
 import Hexlude
-import qualified Hex.Common.HexInput.Interface as HIn
 
 newtype VListBuilderT m a = VListBuilderT {unVListBuilderT :: StateT H.Inter.B.List.VList m a}
   deriving newtype

@@ -1,8 +1,8 @@
 module Hex.Common.TFM.Types where
 
+import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
 import Hexlude
-import qualified Formatting as F
 
 newtype LengthDesignSize = LengthDesignSize {unLengthDesignSize :: Rational}
   deriving stock (Show, Generic)
@@ -23,39 +23,40 @@ data Font = Font
   deriving stock (Show, Generic)
 
 nullFont :: Font
-nullFont = Font {
-  checksum = 0,
-  designFontSize = Q.zeroLength,
-  characterCodingScheme = Nothing,
-  family = Nothing,
-  params = nullFontParams,
-  ligKerns = [],
-  characters = mempty
-}
+nullFont =
+  Font
+    { checksum = 0,
+      designFontSize = Q.zeroLength,
+      characterCodingScheme = Nothing,
+      family = Nothing,
+      params = nullFontParams,
+      ligKerns = [],
+      characters = mempty
+    }
   where
-    nullFontParams = FontParams
-      { slant = 0.0,
-        spacing = zeroLengthDesignSize,
-        spaceStretch = zeroLengthDesignSize,
-        spaceShrink = zeroLengthDesignSize,
-        xHeight = zeroLengthDesignSize,
-        quad = zeroLengthDesignSize,
-        extraSpace = zeroLengthDesignSize,
-        extraParams = Nothing
-      }
+    nullFontParams =
+      FontParams
+        { slant = 0.0,
+          spacing = zeroLengthDesignSize,
+          spaceStretch = zeroLengthDesignSize,
+          spaceShrink = zeroLengthDesignSize,
+          xHeight = zeroLengthDesignSize,
+          quad = zeroLengthDesignSize,
+          extraSpace = zeroLengthDesignSize,
+          extraParams = Nothing
+        }
 
 fmtFont :: Fmt Font
 fmtFont =
   ("Checksum: " |%| F.accessed (.checksum) fmtChecksum |%| "\n")
-  <> ("Design font-size: " |%| F.accessed (.designFontSize) Q.fmtLengthWithUnit |%| "\n")
-  <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "None" F.stext) |%| "\n")
-  <> ("Family: " |%| fmtViewed (field @"family") (F.maybed "None" F.stext) |%| "\n")
-  |%| ("Params: [...]\n")
-  |%| ("ligKerns: [...]\n")
-  |%| ("characters: [...]\n")
+    <> ("Design font-size: " |%| F.accessed (.designFontSize) Q.fmtLengthWithUnit |%| "\n")
+    <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "None" F.stext) |%| "\n")
+    <> ("Family: " |%| fmtViewed (field @"family") (F.maybed "None" F.stext) |%| "\n")
+    |%| ("Params: [...]\n")
+    |%| ("ligKerns: [...]\n")
+    |%| ("characters: [...]\n")
   where
     fmtChecksum = F.int
-
 
 lengthFromFontDesignSize :: Font -> LengthDesignSize -> Q.Length
 lengthFromFontDesignSize font lengthInDS =

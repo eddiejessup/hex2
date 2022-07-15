@@ -2,10 +2,10 @@ module Hex.Stage.Build.Horizontal.Paragraph.Break where
 
 import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hex.Stage.Build.Horizontal.Badness
 import Hex.Stage.Build.Horizontal.Evaluate
 import Hex.Stage.Build.Horizontal.Paragraph.Types
+import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hexlude
 
 data ChunkedHListElem

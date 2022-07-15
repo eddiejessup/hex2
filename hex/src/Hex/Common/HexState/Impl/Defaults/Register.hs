@@ -1,11 +1,11 @@
 module Hex.Common.HexState.Impl.Defaults.Register where
 
-import Hex.Common.Quantity qualified as Q
-import Hexlude
 import Hex.Common.HexState.Impl.Defaults.Common (initialiseFiniteMap)
-import qualified Hex.Common.HexState.Interface.Register as Reg
-import qualified Hex.Stage.Build.BoxElem as Box
-import qualified Hex.Common.HexState.Interface.TokenList as TL
+import Hex.Common.HexState.Interface.Register qualified as Reg
+import Hex.Common.HexState.Interface.TokenList qualified as TL
+import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.BoxElem qualified as Box
+import Hexlude
 
 newIntRegister :: Map Reg.RegisterLocation Q.HexInt
 newIntRegister = initialiseFiniteMap (const mempty)

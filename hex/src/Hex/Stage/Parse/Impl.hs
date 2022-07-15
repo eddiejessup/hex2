@@ -5,16 +5,16 @@ module Hex.Stage.Parse.Impl where
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (MonadHexState)
-import Hex.Common.Parse.Impl (fmtParseLog, runParseTMaybe, ParseT)
+import Hex.Common.Parse.Impl (ParseT, fmtParseLog, runParseTMaybe)
 import Hex.Common.Parse.Interface (ParseUnexpectedError (..))
+import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Expand.Interface qualified as Exp
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
 import Hex.Stage.Parse.Interface
+import Hex.Stage.Parse.Interface.AST.Command qualified as Par
 import Hexlude
-import qualified Hex.Stage.Parse.Interface.AST.Command as Par
-import qualified Hex.Common.Parse.Interface as Par
-import qualified Hex.Common.HexInput.Interface as HIn
 
 newtype CommandSourceT m a = CommandSourceT {unCommandSourceT :: m a}
   deriving newtype
@@ -48,14 +48,14 @@ instance
   where
   getCommand = getCommandImpl
 
-
 getCommandImpl ::
   ( Monad m,
     Par.MonadPrimTokenParse (ParseT m),
     MonadError e m,
     AsType ParseUnexpectedError e,
     Log.MonadHexLog m
-  ) => m (Maybe Par.Command)
+  ) =>
+  m (Maybe Par.Command)
 getCommandImpl = do
   (mayCmd, pLog) <- runParseTMaybe Parsers.Command.parseCommand
   Log.log $ F.sformat ("Parsed command: " |%| fmtParseLog) pLog

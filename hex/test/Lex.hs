@@ -7,17 +7,17 @@ import Hex.Common.Codes
 import Hex.Common.HexEnv.Interface
 import Hex.Common.HexInput.Impl
 import Hex.Common.HexInput.Interface
+import Hex.Common.HexState.Impl
 import Hex.Common.HexState.Interface
+import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Grouped (ScopeFlag (Local))
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Run.App
+import Hex.Run.App qualified as App
 import Hex.Run.Lex (lexAll)
 import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
-import qualified Hex.Run.App as App
-import Hex.Common.HexState.Impl
-import qualified Hex.Common.HexState.Interface as HSt
-import Hex.Common.HexState.Interface.Grouped (ScopeFlag(Local))
 
 newtype TestApp a = TestApp {unTestApp :: StateT AppState (ExceptT AppError IO) a}
   deriving stock (Generic)

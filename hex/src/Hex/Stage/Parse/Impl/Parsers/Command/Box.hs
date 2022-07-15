@@ -1,19 +1,19 @@
 module Hex.Stage.Parse.Impl.Parsers.Command.Box where
 
 import Control.Monad.Combinators qualified as PC
+import Formatting qualified as F
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Token.Resolved.Primitive (PrimitiveToken)
-import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Resolved.Primitive (PrimitiveToken)
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Formatting as F
 
 headToParseLeadersSpec :: MonadPrimTokenParse m => Q.Axis -> PT.PrimitiveToken -> m AST.LeadersSpec
 headToParseLeadersSpec axis = \case

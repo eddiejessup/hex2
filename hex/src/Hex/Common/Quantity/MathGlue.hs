@@ -1,10 +1,10 @@
 module Hex.Common.Quantity.MathGlue where
 
+import Formatting qualified as F
 import Hex.Common.Quantity.Glue
 import Hex.Common.Quantity.MathLength
-import Hexlude
 import Hex.Common.Quantity.Number
-import qualified Formatting as F
+import Hexlude
 
 data MathGlue = MathGlue {mgDimen :: MathLength, mgStretch :: PureMathFlex, mgShrink :: PureMathFlex}
   deriving stock (Show, Eq, Generic)

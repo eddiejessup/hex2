@@ -2,8 +2,8 @@ module Hex.Stage.Build.Horizontal.Evaluate where
 
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hex.Stage.Build.Horizontal.Badness
+import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
 import Hexlude
 
 -- Widths, glue aggregates, box status.

@@ -1,12 +1,13 @@
 {-# LANGUAGE UndecidableInstances #-}
+
 module Hex.Common.HexInput.Impl.CharSource where
 
 import Data.ByteString qualified as BS
+import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
-import qualified Data.Sequence as Seq
 
 -- Non-Empty working line, non-empty source-lines: Midway through input
 -- Empty working-line, non-empty source-lines: At end-of-working-line, ready to read next source-line.
@@ -32,11 +33,11 @@ newCharSource mayEndLineChar sourceBytes =
   let (workingLineBytes, restLines) = case BS.split newlineWord sourceBytes of
         [] -> ("", [])
         fstLine : rest -> (fstLine, rest)
-  in CharSource
-    { lineNr = LineNr 1,
-      workingLine = newWorkingLine mayEndLineChar workingLineBytes,
-      sourceLines = restLines
-    }
+   in CharSource
+        { lineNr = LineNr 1,
+          workingLine = newWorkingLine mayEndLineChar workingLineBytes,
+          sourceLines = restLines
+        }
 
 data WorkingLine = WorkingLine
   { sourceLine :: CurrentSourceLine,
@@ -48,15 +49,16 @@ instance {-# OVERLAPPING #-} HasType WorkingLine st => HasType HexLine st where
   typed = typed @WorkingLine % #sourceLine % #currentLine
 
 newWorkingLine :: Maybe Code.CharCode -> ByteString -> WorkingLine
-newWorkingLine mayEndLineChar sourceLineBytes = WorkingLine {
-  workingLexTokens = Seq.empty,
-  sourceLine = newCurrentSourceLine mayEndLineChar sourceLineBytes
-}
+newWorkingLine mayEndLineChar sourceLineBytes =
+  WorkingLine
+    { workingLexTokens = Seq.empty,
+      sourceLine = newCurrentSourceLine mayEndLineChar sourceLineBytes
+    }
 
 workingLineIsFinished :: WorkingLine -> Bool
 workingLineIsFinished workingLine =
-  currentSourceLineIsFinished (workingLine.sourceLine) &&
-  Seq.null (workingLine.workingLexTokens)
+  currentSourceLineIsFinished (workingLine.sourceLine)
+    && Seq.null (workingLine.workingLexTokens)
 
 data CurrentSourceLine = CurrentSourceLine
   { -- | The line currently being read, after processing.
@@ -69,10 +71,11 @@ currentSourceLineIsFinished :: CurrentSourceLine -> Bool
 currentSourceLineIsFinished = BS.null . unHexLine . (.currentLine)
 
 newCurrentSourceLine :: Maybe Code.CharCode -> ByteString -> CurrentSourceLine
-newCurrentSourceLine mayEndLineChar sourceLineBytes = CurrentSourceLine {
-  currentLine = mkHexLine mayEndLineChar sourceLineBytes,
-  lineState = LineBegin
-}
+newCurrentSourceLine mayEndLineChar sourceLineBytes =
+  CurrentSourceLine
+    { currentLine = mkHexLine mayEndLineChar sourceLineBytes,
+      lineState = LineBegin
+    }
 
 charSourceLineNr :: CharSource -> LineNr
 charSourceLineNr = (.lineNr)
@@ -143,4 +146,4 @@ endSourceCurrentLine mayEndLineChar a =
 sourceIsFinished :: CharSource -> Bool
 sourceIsFinished charSource =
   workingLineIsFinished (charSource.workingLine)
-  && null (charSource.sourceLines)
+    && null (charSource.sourceLines)

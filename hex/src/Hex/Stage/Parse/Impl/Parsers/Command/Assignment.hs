@@ -2,14 +2,14 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Assignment where
 
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
-import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface qualified as Par
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.Macro qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Hex.Common.Parse.Interface as Par
 
 headToParseAssignment :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.Assignment
 headToParseAssignment = go mempty
