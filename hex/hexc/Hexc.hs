@@ -7,7 +7,6 @@ import Hex.Run.Expand qualified as Run.Expand
 import Hex.Run.Interpret qualified as Run.Interpret
 import Hex.Run.Lex qualified as Run.Lex
 import Hex.Run.Parse qualified as Run.Parse
-import Hex.Run.Resolve qualified as Run.Resolve
 import Hex.Stage.Build.ListElem (fmtHListMultiLine, fmtVList)
 import Hexlude
 import Options.Applicative
@@ -52,7 +51,6 @@ dviRunParser =
 
 data RunMode
   = LexMode
-  | ResolveMode
   | ExpandMode
   | RawCommandMode
   | EvalCommandMode
@@ -81,7 +79,6 @@ runModeParser :: Parser RunMode
 runModeParser =
   subparser
     ( command "lex" (info (pure LexMode) (progDesc ""))
-        <> command "resolve" (info (pure ResolveMode) (progDesc ""))
         <> command "expand" (info (pure ExpandMode) (progDesc ""))
         <> command "raw-command" (info (pure RawCommandMode) (progDesc ""))
         <> command "eval-command" (info (pure EvalCommandMode) (progDesc ""))
@@ -123,9 +120,6 @@ main = do
     LexMode -> do
       lts <- Run.unsafeEvalApp inputBytes Run.Lex.lexAll
       putText $ sformat Run.Lex.fmtLexResult lts
-    ResolveMode -> do
-      resultList <- Run.unsafeEvalApp inputBytes Run.Resolve.resolveAll
-      putText $ sformat Run.Resolve.fmtResolveResult resultList
     ExpandMode -> do
       resultList <- Run.unsafeEvalApp inputBytes Run.Expand.expandAll
       putText $ sformat Run.Expand.fmtExpandResult resultList
