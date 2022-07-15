@@ -268,10 +268,10 @@ initialSymbolMap =
       (_cs "everycr", primTok $ TokenListParamVarTok EveryCR),
       (_cs "errhelp", primTok $ TokenListParamVarTok ErrHelp),
       -- Special integers.
-      (_cs "spacefactor", primTok $ SpecialIntParameterTok SpaceFactorInt),
-      (_cs "prevgraf", primTok $ SpecialIntParameterTok PrevGrafInt),
-      (_cs "deadcycles", primTok $ SpecialIntParameterTok DeadCyclesInt),
-      (_cs "insertpenalties", primTok $ SpecialIntParameterTok InsertPenaltiesInt),
+      (_cs "spacefactor", primTok $ SpecialIntParameterTok SpaceFactor),
+      (_cs "prevgraf", primTok $ SpecialIntParameterTok PrevGraf),
+      (_cs "deadcycles", primTok $ SpecialIntParameterTok DeadCycles),
+      (_cs "insertpenalties", primTok $ SpecialIntParameterTok InsertPenalties),
       -- Special lengths.
       (_cs "prevdepth", primTok $ SpecialLengthParameterTok PrevDepth),
       (_cs "pagegoal", primTok $ SpecialLengthParameterTok PageGoal),

@@ -3,11 +3,8 @@
 module Hex.Common.Codes where
 
 import ASCII qualified
-import ASCII.Predicates qualified as ASCII.Pred
 import Data.ByteString qualified as BS
 import Data.Char qualified as Char
-import Data.Map.Strict qualified as Map
-import Data.Set qualified as Set
 import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
 import Hexlude
@@ -60,9 +57,6 @@ codesAsText cs = decodeUtf8 $ BS.pack $ cs <&> unCharCode
 codeInt :: CharCode -> Int
 codeInt = fromIntegral . unCharCode
 
-asciiPred :: (ASCII.Char -> Bool) -> CharCode -> Bool
-asciiPred f (CharCode w) = maybe False f (ASCII.word8ToCharMaybe w)
-
 instance HexCode CharCode where
   toHexInt charCode = Q.HexInt $ charCode ^. #unCharCode % to (fromIntegral @Word8 @Int)
 
@@ -73,10 +67,6 @@ instance HexCode CharCode where
 
 readCharCodes :: MonadIO m => FilePath -> m ByteString
 readCharCodes = liftIO . BS.readFile
-
-initialiseCharCodeMap :: (CharCode -> v) -> Map CharCode v
-initialiseCharCodeMap keyToVal =
-  Map.fromSet keyToVal (Set.fromList [minBound .. maxBound])
 
 -- Category code
 -----------------
@@ -133,33 +123,7 @@ instance HexCode CatCode where
     15 -> Just Invalid
     _ -> Nothing
 
-newCatCodes :: Map CharCode CatCode
-newCatCodes = initialiseCharCodeMap $ \case
-  Chr_ '\\' -> Escape
-  Chr_ ' ' -> CoreCatCode Space
-  Chr_ '%' -> Comment
-  Chr_ '\r' -> EndOfLine
-  Chr_ '\0' -> Ignored
-  Chr_ '\DEL' -> Invalid
-  c | asciiPred ASCII.Pred.isLetter c -> CoreCatCode Letter
-  _ -> CoreCatCode Other
 
--- Add useful extras beyond the technical defaults.
-usableCatCodes :: Map CharCode CatCode
-usableCatCodes = foldl' (\m (k, v) -> Map.insert k v m) newCatCodes extras
-  where
-    extras =
-      [ (Chr_ '^', CoreCatCode Superscript),
-        (Chr_ '{', CoreCatCode BeginGroup),
-        (Chr_ '}', CoreCatCode EndGroup),
-        (Chr_ '#', CoreCatCode Parameter)
-      ]
-
-catLookup :: Map CharCode CatCode -> CharCode -> CatCode
-catLookup m n = Map.findWithDefault Invalid n m
-
-usableCatLookup :: CharCode -> CatCode
-usableCatLookup = catLookup usableCatCodes
 
 -- Not all Catcodes make it past the lexer.
 data CoreCatCode
@@ -260,10 +224,6 @@ instance HexCode FamilyCharRef where
         pos <- fromHexInt (Q.HexInt (n .&. 0xFF))
         pure $ FamilyCharRef (Q.HexInt $ n `shiftR` 8) pos
 
--- All delcodes are −1 until they are changed by a \delcode command.
-newDelimiterCodes :: Map CharCode DelimiterCode
-newDelimiterCodes = initialiseCharCodeMap $ const $ NotADelimiter (Q.HexInt (-1))
-
 -- Math code.
 -- ----------
 
@@ -313,21 +273,6 @@ instance HexCode MathClass where
 
   fromHexInt = Just . toEnum . Q.unHexInt
 
--- The ten digits have \mathcode x = x + "7000.
--- The 52 letters have \mathcode x = x + "7100.
--- Otherwise,          \mathcode x = x
--- Put otherwise: letters are class 7, family 1; digits are class 7, family 0.
-newMathCodes :: Map CharCode MathCode
-newMathCodes = initialiseCharCodeMap f
-  where
-    f c
-      | asciiPred ASCII.Pred.isDigit c =
-          NormalMathCode VariableFamily (FamilyCharRef (Q.HexInt 0) c)
-      | asciiPred ASCII.Pred.isLetter c =
-          NormalMathCode VariableFamily (FamilyCharRef (Q.HexInt 1) c)
-      | otherwise =
-          NormalMathCode Ordinary (FamilyCharRef (Q.HexInt 0) c)
-
 -- Change case code.
 -- -----------------
 
@@ -352,17 +297,6 @@ instance HexCode ChangeCaseCode where
     | n == 0 = Just NoCaseChange
     | otherwise = ChangeToCode <$> fromHexInt h
 
--- By default, all \uccode and \lccode values are zero except that the
--- letters a to z and A to Z have \uccode values A to Z and \lccode values a to
--- z.
-newCaseCodes :: ASCII.Case -> Map CharCode ChangeCaseCode
-newCaseCodes destCase = initialiseCharCodeMap f
-  where
-    f c = case ASCII.word8ToCharMaybe (unCharCode c) of
-      Just asciiChar
-        | ASCII.Pred.isLetter asciiChar ->
-            ChangeToCode $ codeFromAsciiChar $ ASCII.toCaseChar destCase asciiChar
-      _ -> NoCaseChange
 
 newtype LowerCaseCode = LowerCaseCode ChangeCaseCode
   deriving stock (Generic)
@@ -372,9 +306,6 @@ fmtLowerCaseCode :: Fmt LowerCaseCode
 fmtLowerCaseCode = F.later $ \case
   LowerCaseCode c -> "Lowercase: " <> F.bformat fmtChangeCaseCode c
 
-newLowercaseCodes :: Map CharCode LowerCaseCode
-newLowercaseCodes = LowerCaseCode <$> newCaseCodes ASCII.LowerCase
-
 newtype UpperCaseCode = UpperCaseCode ChangeCaseCode
   deriving stock (Generic)
   deriving newtype (Show, Eq, HexCode)
@@ -382,9 +313,6 @@ newtype UpperCaseCode = UpperCaseCode ChangeCaseCode
 fmtUpperCaseCode :: Fmt UpperCaseCode
 fmtUpperCaseCode = F.later $ \case
   UpperCaseCode c -> "Uppercase: " <> F.bformat fmtChangeCaseCode c
-
-newUppercaseCodes :: Map CharCode UpperCaseCode
-newUppercaseCodes = UpperCaseCode <$> newCaseCodes ASCII.UpperCase
 
 -- Space factor code.
 ---------------------
@@ -402,15 +330,6 @@ instance HexCode SpaceFactorCode where
     | n < 0 = Nothing
     | n >= 0x8000 = Nothing
     | otherwise = Just $ SpaceFactorCode $ Q.HexInt n
-
--- By default, all characters have a space factor code of 1000, except that the
--- uppercase letters ‘A’ through ‘Z’ have code 999.
-newspaceFactorCodes :: Map CharCode SpaceFactorCode
-newspaceFactorCodes = initialiseCharCodeMap $ SpaceFactorCode . f
-  where
-    f c
-      | asciiPred ASCII.Pred.isUpper c = Q.HexInt 999
-      | otherwise = Q.HexInt 1000
 
 -- Common.
 

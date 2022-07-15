@@ -2,6 +2,7 @@ module Hex.Common.HexState.Impl.Type where
 
 import Data.Map.Strict qualified as Map
 import Formatting qualified as F
+import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, fmtGroupScopes, newGroupScopes)
@@ -33,16 +34,18 @@ fmtHexState =
       F.accessed (.groupScopes) fmtGroupScopes
     ]
 
-newHexState :: HexState
-newHexState =
-  HexState
-    { fontInfos = newFontInfos,
-      specialInts = Param.newSpecialIntParameters,
-      specialLengths = Param.newSpecialLengthParameters,
-      outFileStreams = mempty,
-      afterAssignmentToken = Nothing,
-      groupScopes = newGroupScopes
-    }
+newHexState :: MonadIO m => m HexState
+newHexState = do
+  groupScopes <- newGroupScopes
+  pure
+    HexState
+      { fontInfos = newFontInfos,
+        specialInts = Defaults.newSpecialIntParameters,
+        specialLengths = Defaults.newSpecialLengthParameters,
+        outFileStreams = mempty,
+        afterAssignmentToken = Nothing,
+        groupScopes
+      }
   where
     newFontInfos = Map.fromList [(nullFontNumber, HSt.Font.nullFontInfo)]
 

@@ -9,6 +9,8 @@ import Hex.Common.HexInput.Impl.CharSourceStack qualified as HIn
 import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Impl (MonadHexStateImplT (..))
 import Hex.Common.HexState.Impl qualified as HSt
+import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as HSt.GroupScopes
+import Hex.Common.HexState.Impl.Scoped.Scope qualified as HSt.Scope
 import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
@@ -34,14 +36,17 @@ data AppState = AppState
   }
   deriving stock (Generic)
 
-newHexStateWithChars :: ByteString -> AppState
-newHexStateWithChars inputBytes =
-  let endLineChar = HSt.Param.newIntParameters ^. at' HSt.Param.EndLineChar >>= Code.fromHexInt
-   in AppState
-        { appHexState = HSt.newHexState,
-          appCharSourceStack = HIn.newCharSourceStack endLineChar inputBytes,
-          appConditionStates = Expand.newConditionStates
-        }
+newAppStateWithChars :: MonadIO m => ByteString -> m AppState
+newAppStateWithChars inputBytes = do
+  appHexState <- HSt.newHexState
+  let endLineCharInt = appHexState ^. #groupScopes % #globalScope % #intParameters % at' HSt.Param.EndLineChar
+      endLineChar = endLineCharInt >>= Code.fromHexInt
+  pure
+    AppState
+      { appHexState,
+        appCharSourceStack = HIn.newCharSourceStack endLineChar inputBytes,
+        appConditionStates = Expand.newConditionStates
+      }
 
 newtype App a = App {unApp :: ReaderT HEnv.HexEnv (StateT AppState (ExceptT AppError IO)) a}
   deriving newtype
@@ -110,7 +115,7 @@ runAppGivenEnv ::
   HEnv.HexEnv ->
   IO (Either AppError (a, AppState))
 runAppGivenEnv bs app appEnv = do
-  let appState = newHexStateWithChars bs
+  appState <- newAppStateWithChars bs
   runAppGivenState appState app appEnv
 
 runApp ::

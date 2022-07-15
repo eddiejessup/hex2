@@ -19,8 +19,10 @@ data GroupScopes = GroupScopes
   }
   deriving stock (Show, Generic)
 
-newGroupScopes :: GroupScopes
-newGroupScopes = GroupScopes {globalScope = newGlobalScope, groups = []}
+newGroupScopes :: MonadIO m => m GroupScopes
+newGroupScopes = do
+  globalScope <- newGlobalScope
+  pure GroupScopes {globalScope, groups = []}
 
 pushGroup :: Maybe Group.ScopedGroupType -> GroupScopes -> GroupScopes
 pushGroup groupType =

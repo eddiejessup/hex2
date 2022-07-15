@@ -6,7 +6,12 @@ import Hexlude
 
 newtype RegisterLocation = RegisterLocation {unRegisterLocation :: Q.HexInt}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord)
+  deriving newtype (Eq, Ord, Enum)
+
+instance Bounded RegisterLocation where
+  minBound = RegisterLocation $ Q.HexInt 0
+
+  maxBound = RegisterLocation $ Q.HexInt 255
 
 data QuantRegisterLocation (q :: Q.QuantityType)
   = QuantRegisterLocation (QuantRegisterType q) RegisterLocation

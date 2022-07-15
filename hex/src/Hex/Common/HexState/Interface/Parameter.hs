@@ -1,8 +1,6 @@
 module Hex.Common.HexState.Interface.Parameter where
 
-import Data.Map.Strict qualified as Map
 import Formatting qualified as F
-import Hex.Common.HexState.Interface.TokenList qualified as TL
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -140,10 +138,10 @@ fmtTokenListParameter :: Fmt TokenListParameter
 fmtTokenListParameter = F.shown
 
 data SpecialIntParameter
-  = SpaceFactorInt
-  | PrevGrafInt
-  | DeadCyclesInt
-  | InsertPenaltiesInt
+  = SpaceFactor
+  | PrevGraf
+  | DeadCycles
+  | InsertPenalties
   deriving stock (Show, Eq, Ord, Generic)
 
 fmtSpecialIntParameter :: Fmt SpecialIntParameter
@@ -174,42 +172,3 @@ data QuantParam (a :: Q.QuantityType) where
 deriving stock instance Show (QuantParam a)
 
 deriving stock instance Eq (QuantParam a)
-
-newIntParameters :: Map IntParameter Q.HexInt
-newIntParameters =
-  Map.fromList
-    [ (Tolerance, Q.HexInt 10000),
-      (EscapeChar, Q.HexInt 92), -- '\'
-      (EndLineChar, Q.HexInt newEndLineChar), -- We insert this at the end of each input line.
-      (MaxDeadCycles, Q.HexInt 25),
-      (HangAfter, Q.HexInt 1),
-      (Mag, Q.HexInt 1000),
-      (Time, Q.HexInt 1),
-      (Day, Q.HexInt 1),
-      (Month, Q.HexInt 1),
-      (Year, Q.HexInt 1970)
-    ]
-
-newEndLineChar :: Int
-newEndLineChar = 13 -- '\r'
-
-newLengthParameters :: Map LengthParameter Q.Length
-newLengthParameters = mempty
-
-newGlueParameters :: Map GlueParameter Q.Glue
-newGlueParameters = mempty
-
-newMathGlueParameters :: Map MathGlueParameter Q.MathGlue
-newMathGlueParameters = mempty
-
-newTokenListParameters :: Map TokenListParameter TL.BalancedText
-newTokenListParameters = mempty
-
-newSpecialIntParameters :: Map SpecialIntParameter Q.HexInt
-newSpecialIntParameters = mempty
-
-newSpecialLengthParameters :: Map SpecialLengthParameter Q.Length
-newSpecialLengthParameters =
-  Map.fromList
-    [ (PrevDepth, invert Q.oneKPt)
-    ]

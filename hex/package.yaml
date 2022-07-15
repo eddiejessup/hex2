@@ -35,6 +35,7 @@ library:
     - protolude
     - text
     - transformers
+    - time
 
 ghc-options:
   - -Wall
