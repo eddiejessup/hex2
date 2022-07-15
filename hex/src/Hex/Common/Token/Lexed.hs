@@ -27,6 +27,9 @@ data LexCharCat = LexCharCat
   }
   deriving stock (Show, Eq, Generic)
 
+lcc :: Char -> Code.CoreCatCode -> LexCharCat
+lcc c cat = LexCharCat (Code.Chr_ c) cat
+
 fmtLexCharCat :: Fmt LexCharCat
 fmtLexCharCat =
   let f1 = fmtLexCharCatChar
@@ -43,7 +46,7 @@ data LexToken
   deriving stock (Show, Eq, Generic)
 
 ccLex :: Char -> Code.CoreCatCode -> LexToken
-ccLex c cat = CharCatLexToken $ LexCharCat (Code.Chr_ c) cat
+ccLex c cat = CharCatLexToken $ lcc c cat
 
 csLex :: ByteString -> LexToken
 csLex t = ControlSequenceLexToken (ControlSequence t)

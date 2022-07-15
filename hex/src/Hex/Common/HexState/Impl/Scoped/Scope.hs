@@ -8,7 +8,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Impl.Defaults.Code qualified as Defaults
 import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
 import Hex.Common.HexState.Impl.Defaults.Register qualified as Defaults
-import Hex.Common.HexState.Impl.SymbolMap (initialSymbolMap)
+import Hex.Common.HexState.Impl.Defaults.Symbol qualified as Defaults
 import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register
@@ -67,7 +67,7 @@ newGlobalScope = do
     Scope
       { currentFontNr = Just nullFontNumber,
         familyMemberFonts = mempty,
-        symbolMap = initialSymbolMap,
+        symbolMap = Defaults.initialSymbolMap,
         catCodes = Defaults.newCatCodes,
         mathCodes = Defaults.newMathCodes,
         lowerCaseCodes = Defaults.newLowercaseCodes,

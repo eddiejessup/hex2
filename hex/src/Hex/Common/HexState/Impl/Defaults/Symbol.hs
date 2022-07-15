@@ -1,4 +1,4 @@
-module Hex.Common.HexState.Impl.SymbolMap where
+module Hex.Common.HexState.Impl.Defaults.Symbol where
 
 import Data.Map.Strict qualified as Map
 import Hex.Common.Codes qualified as Code

@@ -6,75 +6,62 @@ import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes
 import Hex.Common.HexEnv.Interface
 import Hex.Common.HexInput.Impl
-import Hex.Common.HexInput.Impl.CharSourceStack
-import Hex.Common.HexInput.Impl.CharSourceStack qualified as HIn
 import Hex.Common.HexInput.Interface
-import Hex.Common.HexState.Impl.Defaults.Parameter (newEndLineChar)
 import Hex.Common.HexState.Interface
-import Hex.Common.HexState.Interface.Parameter qualified as Param
-import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Token.Lexed qualified as LT
+import Hex.Run.App
 import Hex.Run.Lex (lexAll)
 import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
+import qualified Hex.Run.App as App
+import Hex.Common.HexState.Impl
+import qualified Hex.Common.HexState.Interface as HSt
+import Hex.Common.HexState.Interface.Grouped (ScopeFlag(Local))
 
-newtype TestApp a = TestApp {unTestApp :: StateT CharSourceStack (ExceptT (Identity LexError) IO) a}
+newtype TestApp a = TestApp {unTestApp :: StateT AppState (ExceptT AppError IO) a}
   deriving stock (Generic)
   deriving newtype
     ( Functor,
       Applicative,
       Monad,
-      MonadError (Identity LexError),
-      MonadState CharSourceStack,
+      MonadError AppError,
+      MonadState AppState,
       MonadIO
     )
   deriving (MonadHexInput) via (HexInputT TestApp)
+  deriving (MonadHexState) via (HexStateT TestApp)
 
 instance MonadHexEnv TestApp where
   findFilePath = notImplemented "findFilePath"
-
-codeToCat :: CharCode -> CatCode
-codeToCat = \case
-  Chr_ '\\' -> Escape
-  Chr_ ' ' -> CoreCatCode Space
-  Chr_ '%' -> Comment
-  Chr_ '\r' -> EndOfLine
-  Chr_ '^' -> CoreCatCode Superscript
-  Chr_ 'a' -> CoreCatCode Letter
-  Chr_ 'b' -> CoreCatCode Letter
-  _ -> CoreCatCode Other
 
 instance Log.MonadHexLog TestApp where
   log _ = pure ()
   logInternalState = pure ()
 
-instance MonadHexState TestApp where
-  getHexCode CCatCodeType code = pure $ codeToCat code
-  getHexCode _ _ = notImplemented "getHexCode"
-
-  getParameterValue :: Param.QuantParam q -> TestApp (Var.QuantVariableTarget q)
-  getParameterValue (Param.IntQuantParam Param.EndLineChar) = pure newEndLineChar
-  getParameterValue _ = notImplemented "getParameterValue"
-
-runTestApp :: ByteString -> TestApp a -> IO a
+runTestApp :: ByteString -> TestApp a -> IO (a, AppState)
 runTestApp bs app = do
-  let stack = HIn.newCharSourceStack (Just (Chr_ '\r')) bs
-      io = runExceptT (evalStateT (app.unTestApp) stack)
+  st <- App.newAppStateWithChars bs
+  let io = runExceptT (runStateT (app.unTestApp) st)
   io >>= \case
-    Left (Identity err) -> panic $ show err
+    Left appError -> panic $ show appError
     Right a -> pure a
 
+evalTestApp :: ByteString -> TestApp a -> IO a
+evalTestApp bs app = fst <$> runTestApp bs app
+
 testLexAll :: ByteString -> IO [LT.LexToken]
-testLexAll bs = runTestApp bs lexAll
+testLexAll bs = evalTestApp bs $ do
+  HSt.setHexCode CCatCodeType (Chr_ '^') (CoreCatCode Superscript) Local
+  lexAll
 
 assertSuccessLexEqual :: ByteString -> [LT.LexToken] -> IO ()
 assertSuccessLexEqual inp expected = do
   res <- testLexAll inp
   assertEqual
     ""
-    res
     expected
+    res
 
 letter :: Char -> LT.LexToken
 letter c = LT.ccLex c Letter
@@ -137,8 +124,8 @@ twoCarets = do
 triodUp :: Assertion
 triodUp = do
   assertSuccessLexEqual
-    "^^?"
-    [ LT.CharCatLexToken (LT.LexCharCat (CharCode (63 + 64)) Other),
+    "^^<"
+    [ LT.CharCatLexToken (LT.LexCharCat (CharCode (60 + 64)) Other),
       space
     ]
 

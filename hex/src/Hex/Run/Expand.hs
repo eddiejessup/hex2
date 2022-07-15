@@ -3,11 +3,10 @@ module Hex.Run.Expand where
 import Formatting qualified as F
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Primitive
-import Hex.Run.App (App)
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource (..))
 import Hexlude
 
-expandAll :: App [(LT.LexToken, PrimitiveToken)]
+expandAll :: MonadPrimTokenSource m => m [(LT.LexToken, PrimitiveToken)]
 expandAll = go
   where
     go =

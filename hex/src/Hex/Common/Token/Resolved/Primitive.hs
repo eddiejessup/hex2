@@ -262,3 +262,6 @@ fmtPrimitiveToken :: Fmt PrimitiveToken
 fmtPrimitiveToken = F.later $ \case
   CharCatPair cc -> F.bformat ("CharCatPair" |%| F.parenthesised LT.fmtLexCharCat) cc
   t -> F.bformat F.shown t
+
+ccp :: Char -> CoreCatCode -> PrimitiveToken
+ccp c cat = CharCatPair $ LT.lcc c cat
