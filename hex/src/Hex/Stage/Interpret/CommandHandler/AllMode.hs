@@ -53,7 +53,7 @@ getNextCommandLogged ::
   m Eval.Command
 getNextCommandLogged = do
   cmd <- Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
-  Log.log $ F.sformat ("Read command: " |%| F.shown) cmd
+  Log.infoLog $ F.sformat ("Read command: " |%| F.shown) cmd
   pure cmd
 
 data OutputDestination
@@ -282,10 +282,9 @@ handleModeIndependentCommand = \case
             notImplemented "SetBoxRegister to VSplitBox"
           Eval.ExplicitBox spec boxType -> do
             HSt.pushGroup (Just HSt.Group.ExplicitBoxScopeGroup)
-            Log.log "Extracting explicit box"
+            Log.debugLog "Extracting explicit box"
             extractedBox <- extractExplicitBox spec boxType
-            Log.log "Extracted explicit box"
-            Log.log $ F.sformat H.Inter.B.Box.fmtBaseBox extractedBox
+            Log.debugLog $ F.sformat ("Extracted explicit box: " |%| H.Inter.B.Box.fmtBaseBox) extractedBox
             HSt.setBoxRegisterValue lhsIdx (Just extractedBox) scope
       Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
         HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef

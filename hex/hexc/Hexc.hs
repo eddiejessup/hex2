@@ -1,6 +1,7 @@
 module Main where
 
 import Data.ByteString qualified as BS
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Run.App qualified as Run
 import Hex.Run.Evaluate qualified as Run.Evaluate
 import Hex.Run.Expand qualified as Run.Expand
@@ -10,6 +11,7 @@ import Hex.Run.Parse qualified as Run.Parse
 import Hex.Stage.Build.ListElem (fmtHListMultiLine, fmtVList)
 import Hexlude
 import Options.Applicative
+import System.FilePath qualified as Path
 
 data Input = FileInput FilePath | StdInput | ExpressionInput ByteString
 
@@ -67,7 +69,7 @@ data AppOptions = AppOptions
   { mode :: RunMode,
     input :: Input,
     searchDirs :: [FilePath],
-    withAmbles :: Bool
+    logLevel :: Log.LogLevel
   }
 
 data DVIWriteOptions = DVIWriteOptions
@@ -92,7 +94,15 @@ appOptionsParser =
     <$> runModeParser
     <*> inputParser
     <*> many (strOption (long "dir" <> short 'd' <> metavar "SEARCH_DIR" <> help "Directory to search for support files"))
-    <*> switch (long "amble" <> short 'a' <> help "Surround input with pre- and post-amble")
+    <*> option
+      (maybeReader Log.readLogLevel)
+      ( long "log"
+          <> short 'l'
+          <> metavar "LOG_LEVEL"
+          <> showDefault
+          <> value Log.Info
+          <> help "Minimum log level to output"
+      )
 
 appOptionsParserInfo :: ParserInfo AppOptions
 appOptionsParserInfo =
@@ -106,34 +116,35 @@ appOptionsParserInfo =
 main :: IO ()
 main = do
   opts <- execParser appOptionsParserInfo
-  (inputBytes, _maybeInPath) <-
+  (inputBytes, extraSearchDirs) <-
     case opts.input of
       StdInput -> do
         cs <- liftIO BS.getContents
-        pure (cs, Nothing)
+        pure (cs, [])
       ExpressionInput cs -> do
-        pure (cs, Nothing)
+        pure (cs, [])
       FileInput inPathStr -> do
         cs <- BS.readFile inPathStr
-        pure (cs, Just inPathStr)
+        pure (cs, [Path.takeDirectory inPathStr])
+  let searchDirs = opts.searchDirs <> extraSearchDirs
   case opts.mode of
     LexMode -> do
-      lts <- Run.unsafeEvalApp inputBytes Run.Lex.lexAll
+      lts <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Lex.lexAll
       putText $ sformat Run.Lex.fmtLexResult lts
     ExpandMode -> do
-      resultList <- Run.unsafeEvalApp inputBytes Run.Expand.expandAll
+      resultList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Expand.expandAll
       putText $ sformat Run.Expand.fmtExpandResult resultList
     RawCommandMode -> do
-      commandList <- Run.unsafeEvalApp inputBytes Run.Parse.parseAll
+      commandList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Parse.parseAll
       putText $ sformat Run.Parse.fmtCommandList commandList
     EvalCommandMode -> do
-      commandList <- Run.unsafeEvalApp inputBytes Run.Evaluate.evaluateAll
+      commandList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Evaluate.evaluateAll
       putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
     VListMode -> do
-      vList <- Run.unsafeEvalApp inputBytes Run.Interpret.interpretInMainVMode
+      vList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Interpret.interpretInMainVMode
       putText $ sformat fmtVList vList
     ParaListMode -> do
-      (endReason, paraList) <- Run.unsafeEvalApp inputBytes Run.Interpret.interpretInParaMode
+      (endReason, paraList) <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Interpret.interpretInParaMode
       putText $ "End reason: " <> show endReason
       putText $ sformat fmtHListMultiLine paraList
     _ ->

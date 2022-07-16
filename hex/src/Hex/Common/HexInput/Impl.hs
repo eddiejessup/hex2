@@ -20,6 +20,8 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
+import qualified Formatting as F
 
 newtype HexInputT m a = HexInputT {unHexInputT :: m a}
   deriving newtype
@@ -43,7 +45,8 @@ instance
     HasType CharSourceStack st,
     Env.MonadHexEnv (HexInputT m),
     MonadIO (HexInputT m),
-    MonadHexState (HexInputT m)
+    MonadHexState (HexInputT m),
+    MonadHexLog m
   ) =>
   MonadHexInput (HexInputT m)
   where
@@ -115,7 +118,8 @@ extractNextLexTokenFromWorkingLineSource ::
     MonadState st m,
     HasType CharSourceStack st,
     MonadError e m,
-    AsType HIn.LexError e
+    AsType HIn.LexError e,
+    MonadHexLog m
   ) =>
   m (Maybe LT.LexToken)
 extractNextLexTokenFromWorkingLineSource = do
@@ -123,6 +127,14 @@ extractNextLexTokenFromWorkingLineSource = do
   HIn.extractLexTokenFromSourceLine lineState >>= \case
     Nothing -> pure Nothing
     Just (lt, newLineState) -> do
+      -- Logging.
+      lineNr <- use (typed @CharSourceStack % CharSourceStack.currentSourceLens % #lineNr)
+      let logFmtString = CharSource.fmtLineNr |%| ": Fetched lex-token from source: " |%| LT.fmtLexToken
+      Log.log Log.Info $
+        if newLineState == lineState
+          then F.sformat logFmtString lineNr lt
+          else F.sformat (logFmtString |%| ", " |%| CharSource.fmtLineState |%| " -> " |%| CharSource.fmtLineState) lineNr lt lineState newLineState
+      -- Back to logic.
       assign' (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #lineState) newLineState
       pure $ Just lt
 
@@ -131,7 +143,8 @@ getNextLexTokenImpl ::
     MonadState st m,
     HasType CharSourceStack st,
     MonadError e m,
-    AsType HIn.LexError e
+    AsType HIn.LexError e,
+    MonadHexLog m
   ) =>
   m (Maybe LT.LexToken)
 getNextLexTokenImpl = do

@@ -40,19 +40,19 @@ parseFactor :: MonadPrimTokenParse m => m AST.Factor
 parseFactor =
   PC.choice
     [ Par.try $ AST.DecimalFractionFactor <$> parseRationalConstant,
-      Par.try $ Log.log "Parsing normal-int" >> AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
+      Par.try $ Log.debugLog "Parsing normal-int" >> AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
     ]
 
 parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
 parseRationalConstant = do
-  Log.log "parseRationalConstant"
+  Log.debugLog "parseRationalConstant"
   wholeDigits <- PC.many (satisfyCharCatThen Expanding Par.decCharToWord)
   skipSatisfied (satisfyCharCatThen Expanding) $ \cc ->
     let chrCode = cc ^. typed @Code.CharCode
      in (cc ^. typed @Code.CoreCatCode == Code.Other) && (chrCode == Code.Chr_ ',' || chrCode == Code.Chr_ '.')
   fracDigits <- PC.many (satisfyCharCatThen Expanding Par.decCharToWord)
   let v = AST.DecimalFraction {AST.wholeDigits, AST.fracDigits}
-  Log.log $ "Successfully parsed rational constant, value: " <> show v
+  Log.debugLog $ "Successfully parsed rational constant, value: " <> show v
   pure v
 
 parseUnit :: MonadPrimTokenParse m => m AST.Unit

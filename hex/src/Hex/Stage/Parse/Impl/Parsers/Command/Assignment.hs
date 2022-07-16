@@ -28,7 +28,7 @@ headToParseAssignment = go mempty
                   else HSt.Grouped.Local
             }
       t -> do
-        Log.log "Parsing assignment, did not see prefix"
+        Log.debugLog "Parsing assignment, did not see prefix"
         body <- Par.headToParseNonMacroAssignmentBody t
         pure $
           AST.Assignment

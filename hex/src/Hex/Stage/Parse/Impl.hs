@@ -58,5 +58,5 @@ getCommandImpl ::
   m (Maybe Par.Command)
 getCommandImpl = do
   (mayCmd, pLog) <- runParseTMaybe Parsers.Command.parseCommand
-  Log.log $ F.sformat ("Parsed command: " |%| fmtParseLog) pLog
+  Log.infoLog $ F.sformat ("Parsed command: " |%| fmtParseLog) pLog
   pure mayCmd

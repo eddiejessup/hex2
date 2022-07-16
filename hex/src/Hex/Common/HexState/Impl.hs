@@ -5,7 +5,7 @@ module Hex.Common.HexState.Impl where
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
 import Formatting qualified as F
-import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Capability.Log.Interface (MonadHexLog (..), debugLog)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Interface qualified as Env
 import Hex.Common.HexEnv.Interface qualified as HEnv
@@ -210,7 +210,7 @@ instance
 
   pushGroup :: Maybe HSt.Grouped.ScopedGroupType -> HexStateT m ()
   pushGroup mayScopedGroupType = do
-    log "pushGroup"
+    debugLog "pushGroup"
     modifyGroupScopes $ Sc.GroupScopes.pushGroup mayScopedGroupType
 
   popGroup :: HSt.Grouped.ChangeGroupTrigger -> HexStateT m HSt.Grouped.HexGroupType

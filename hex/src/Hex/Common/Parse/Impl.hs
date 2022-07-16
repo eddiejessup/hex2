@@ -34,7 +34,7 @@ newtype ParseT m a = ParseT {unParseT :: ExceptT CPar.ParsingError (W.WriterT Pa
   deriving newtype (Functor, Applicative, Monad, MonadError CPar.ParsingError)
 
 instance Log.MonadHexLog m => Log.MonadHexLog (ParseT m) where
-  log x = lift $ Log.log x
+  log x y = lift $ Log.log x y
 
   logInternalState = lift Log.logInternalState
 
@@ -145,17 +145,17 @@ recordLexToken lt = liftWriter $ W.tell $ ParseLog $ Seq.singleton lt
 -- Like `getExpandedTokenImpl`, but on end-of-input raise an error so the parse fails.
 getExpandedTokenErrImpl :: (Monad m, MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => ParseT m (LT.LexToken, PT.PrimitiveToken)
 getExpandedTokenErrImpl = do
-  Log.log $ "Parser: Getting primitive-token"
+  Log.debugLog $ "Parser: Getting primitive-token"
   r@(lt, _) <- endOfInputToError Expand.getPrimitiveToken
   recordLexToken lt
   pure r
 
 getUnexpandedTokenImpl :: (Monad m, MonadPrimTokenSource (ParseT m), Log.MonadHexLog (ParseT m)) => ParseT m LT.LexToken
 getUnexpandedTokenImpl = do
-  Log.log $ "Parser: Getting lex-token"
+  Log.debugLog $ "Parser: Getting lex-token"
   lt <- endOfInputToError Expand.getTokenInhibited
   recordLexToken lt
-  Log.log $ "Parser: Got unexpanded lex-token: " <> F.sformat LT.fmtLexToken lt
+  Log.debugLog $ "Parser: Got unexpanded lex-token: " <> F.sformat LT.fmtLexToken lt
   pure lt
 
 satisfyThenExpandingImpl ::
@@ -172,7 +172,7 @@ satisfyThenExpandingImpl f = do
           HIn.insertLexToken lt
           CPar.parseFailure $ "satisfyThenExpandingImpl, test failed for primitive-token: " <> F.sformat PT.fmtPrimitiveToken pt
         Just a -> do
-          Log.log $ "Committing token while expanding: " <> F.sformat LT.fmtLexToken lt
+          Log.debugLog $ "Committing token while expanding: " <> F.sformat LT.fmtLexToken lt
           recordLexToken lt
           pure a
 
@@ -181,15 +181,15 @@ tryImpl ::
   ParseT m a ->
   ParseT m a
 tryImpl f = do
-  Log.log "Doing try"
+  Log.debugLog "Doing try"
   st <- HIn.getInput
   (errOrA, parseLog) <- lift $ runParseT f
   case errOrA of
     Left e -> do
-      Log.log $ "Try target failed with error: " <> F.sformat CPar.fmtParsingError e
+      Log.debugLog $ "Try target failed with error: " <> F.sformat CPar.fmtParsingError e
       HIn.putInput st
     Right _ -> do
-      Log.log "Try target succeeded"
+      Log.debugLog "Try target succeeded"
       pure ()
   -- Whether we succeeded or failed, package up the result as a ParseT.
   resumeParseT errOrA parseLog
@@ -208,7 +208,7 @@ satisfyThenInhibitedImpl f = do
           HIn.insertLexToken lt
           CPar.parseFailure $ "satisfyThenInhibitedImpl, test failed for lex-token: " <> F.sformat LT.fmtLexToken lt
         Just a -> do
-          Log.log $ "Committing token while inhibited: " <> F.sformat LT.fmtLexToken lt
+          Log.debugLog $ "Committing token while inhibited: " <> F.sformat LT.fmtLexToken lt
           recordLexToken lt
           pure a
 

@@ -45,7 +45,7 @@ headToParseUnsignedInt headTok =
 
 headToParseNormalInt :: forall m. MonadPrimTokenParse m => PrimitiveToken -> m AST.NormalInt
 headToParseNormalInt headToken = do
-  Log.log $ "headToParseNormalInt " <> F.sformat PT.fmtPrimitiveToken headToken
+  Log.debugLog $ "headToParseNormalInt " <> F.sformat PT.fmtPrimitiveToken headToken
   choiceFlap
     [ \t -> liftLexHead headToParseConstantInt t <* skipOneOptionalSpace Expanding,
       fmap AST.InternalInt <$> headToParseInternalInt

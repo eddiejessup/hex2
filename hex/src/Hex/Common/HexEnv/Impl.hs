@@ -10,30 +10,32 @@ import System.FilePath qualified as Path
 
 data HexEnv = HexEnv
   { logHandle :: Handle,
+    logLevel :: Log.LogLevel,
     searchDirs :: [FilePath]
   }
   deriving stock (Generic)
 
-newHexEnv :: Handle -> [FilePath] -> HexEnv
-newHexEnv logHandle searchDirs =
+newHexEnv :: Handle -> Log.LogLevel -> [FilePath] -> HexEnv
+newHexEnv logHandle logLevel searchDirs =
   HexEnv
     { logHandle,
+      logLevel,
       searchDirs
     }
 
 -- | Set up the enironment in this 'with'-style, to ensure we clean up the log
 -- handle when we're finished.
-withHexEnv :: (HexEnv -> IO a) -> IO a
-withHexEnv k = do
+withHexEnv :: [FilePath] -> Log.LogLevel -> (HexEnv -> IO a) -> IO a
+withHexEnv extraSearchDirs logLevel k = do
   cwd <- Dir.getCurrentDirectory
   let searchDirs =
-        [ cwd,
+        extraSearchDirs ++ [ cwd,
           "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/cm/",
           "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/knuth-lib",
           "/usr/local/texlive/2022/texmf-dist/tex/generic/hyphen"
         ]
   withFile "log.txt" WriteMode $ \hexLogHandle -> do
-    k $ newHexEnv hexLogHandle searchDirs
+    k $ newHexEnv hexLogHandle logLevel searchDirs
 
 findFilePathImpl :: MonadIO m => FindFilePolicy -> [FilePath] -> FilePath -> m (Maybe FilePath)
 findFilePathImpl findPolicy dirs tgtFile = do

@@ -147,9 +147,9 @@ parseControlSymbol = Par.satisfyThenInhibited lextokToCSLike
 parseXEqualsY :: MonadPrimTokenParse m => ExpansionMode -> m a -> m b -> m (a, b)
 parseXEqualsY mode parseX parseY = do
   x <- parseX
-  Log.log "Successfully parsed X of X=Y"
+  Log.debugLog "Successfully parsed X of X=Y"
   skipOptionalEquals mode
-  Log.log "Successfully parsed equals-sign of X=Y"
+  Log.debugLog "Successfully parsed equals-sign of X=Y"
   y <- parseY
-  Log.log "Successfully parsed Y of X=Y"
+  Log.debugLog "Successfully parsed Y of X=Y"
   pure (x, y)

@@ -57,6 +57,7 @@ executables:
       - hex
       - bytestring
       - optparse-applicative
+      - filepath
 
 tests:
   hex-test:

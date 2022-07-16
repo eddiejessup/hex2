@@ -29,6 +29,7 @@ import Hex.Stage.Parse.Impl (CommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
 import System.IO (hFlush)
+import qualified Hex.Capability.Log.Interface as Log
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
@@ -92,9 +93,10 @@ fmtAppError = F.later $ \case
   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
 
 instance MonadHexLog App where
-  log msg = do
+  log lvl msg = do
     logFileHandle <- know $ typed @Handle
-    liftIO $ hPutStrLn logFileHandle msg
+    logLevel <- know $ typed @Log.LogLevel
+    when (lvl >= logLevel) $ liftIO $ hPutStrLn logFileHandle $ Log.showLevelEqualWidth logLevel <> msg
 
   logInternalState = do
     logFileHandle <- know $ typed @Handle
@@ -121,20 +123,22 @@ runAppGivenEnv bs app appEnv = do
   runAppGivenState appState app appEnv
 
 runApp ::
+  [FilePath] ->
+  Log.LogLevel ->
   ByteString ->
   App a ->
   IO (Either AppError (a, AppState))
-runApp bs app =
-  HEnv.withHexEnv $ \appEnv -> do
+runApp extraSearchDirs logLevel bs app =
+  HEnv.withHexEnv extraSearchDirs logLevel $ \appEnv -> do
     a <- runAppGivenEnv bs app appEnv
     hFlush appEnv.logHandle
     pure a
 
-evalApp :: ByteString -> App a -> IO (Either AppError a)
-evalApp chrs = fmap (fmap fst) <$> runApp chrs
+evalApp :: [FilePath] -> Log.LogLevel -> ByteString -> App a -> IO (Either AppError a)
+evalApp extraSearchDirs logLevel chrs = fmap (fmap fst) <$> runApp extraSearchDirs logLevel chrs
 
-unsafeEvalApp :: ByteString -> App a -> IO a
-unsafeEvalApp chrs app = do
-  evalApp chrs app >>= \case
+unsafeEvalApp :: [FilePath] -> Log.LogLevel -> ByteString -> App a -> IO a
+unsafeEvalApp extraSearchDirs logLevel chrs app = do
+  evalApp extraSearchDirs logLevel chrs app >>= \case
     Left e -> panic $ sformat ("got error: " |%| fmtAppError) e
     Right v -> pure v

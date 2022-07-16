@@ -114,7 +114,7 @@ parseCommand =
     PT.DumpTok ->
       pure $ AST.VModeCommand AST.Dump
     t -> do
-      Log.log "Generic command"
+      Log.debugLog "Generic command"
       PC.choice
         [ AST.ModeIndependentCommand . AST.Assign <$> Par.headToParseAssignment t,
           AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.headToParseOpenOutput AST.Deferred t,

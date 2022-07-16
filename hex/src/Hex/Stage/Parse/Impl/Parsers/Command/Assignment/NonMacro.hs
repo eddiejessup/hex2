@@ -101,7 +101,7 @@ parseFontTarget = do
 
 headToParseCodeAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.AssignmentBody
 headToParseCodeAssignment t = do
-  Log.log $ "Trying to parse code assignment " <> F.sformat PT.fmtPrimitiveToken t
+  Log.debugLog $ "Trying to parse code assignment " <> F.sformat PT.fmtPrimitiveToken t
   (ref, tgt) <- parseXEqualsY Expanding (Par.headToParseCodeTableRef t) Par.parseInt
   pure $ AST.AssignCode $ AST.CodeAssignment ref tgt
 
@@ -151,36 +151,36 @@ skipOptionalBy =
 
 headToParseVariableAssignment :: MonadPrimTokenParse m => T.PrimitiveToken -> m AST.VariableAssignment
 headToParseVariableAssignment t = do
-  Log.log $ "Parsing headToParseVariableAssignment with head: " <> F.sformat PT.fmtPrimitiveToken t
+  Log.debugLog $ "Parsing headToParseVariableAssignment with head: " <> F.sformat PT.fmtPrimitiveToken t
   PC.choice
     [ do
-        Log.log "Parsing 'IntVariable' assignment"
+        Log.debugLog "Parsing 'IntVariable' assignment"
         (var, tgt) <- parseXEqualsY Expanding (Par.headToParseIntVariable t) Par.parseInt
         pure $ AST.IntVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
-        Log.log "Parsing 'LengthVariable' assignment"
+        Log.debugLog "Parsing 'LengthVariable' assignment"
         (var, tgt) <- parseXEqualsY Expanding (Par.headToParseLengthVariable t) Par.parseLength
         pure $ AST.LengthVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
-        Log.log "Parsing 'GlueVariable' assignment"
+        Log.debugLog "Parsing 'GlueVariable' assignment"
         (var, tgt) <- parseXEqualsY Expanding (Par.headToParseGlueVariable t) Par.parseGlue
         pure $ AST.GlueVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
-        Log.log "Parsing 'MathGlueVariable' assignment"
+        Log.debugLog "Parsing 'MathGlueVariable' assignment"
         (var, tgt) <- parseXEqualsY Expanding (Par.headToParseMathGlueVariable t) Par.parseMathGlue
         pure $ AST.MathGlueVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
-        Log.log "Parsing 'TokenListVariable' assignment"
+        Log.debugLog "Parsing 'TokenListVariable' assignment"
         (var, tgt) <- parseXEqualsY Expanding (Par.headToParseTokenListVariable t) parseTokenListTarget
         pure $ AST.TokenListVariableAssignment $ AST.QuantVariableAssignment var tgt,
       -- Unofficial variable assignments, separated because of being
       -- global in the TeXbook.
       do
-        Log.log "Parsing 'SpecialInt' assignment"
+        Log.debugLog "Parsing 'SpecialInt' assignment"
         (var, tgt) <- parseXEqualsY Expanding (Par.headToParseSpecialInt t) Par.parseInt
         pure $ AST.SpecialIntParameterVariableAssignment var tgt,
       do
-        Log.log "Parsing 'SpecialLength' assignment"
+        Log.debugLog "Parsing 'SpecialLength' assignment"
         (var, tgt) <- parseXEqualsY Expanding (Par.headToParseSpecialLength t) Par.parseLength
         pure $ AST.SpecialLengthParameterVariableAssignment var tgt
     ]

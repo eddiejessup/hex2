@@ -85,9 +85,6 @@ newtype LineNr = LineNr {unLineNr :: Int}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Enum)
 
-fmtMayLineNr :: Fmt (Maybe LineNr)
-fmtMayLineNr = F.maybed "?" fmtLineNr
-
 fmtLineNr :: Fmt LineNr
 fmtLineNr = F.later $ \ln ->
   F.bformat (F.left 4 ' ') ln.unLineNr
@@ -97,6 +94,12 @@ data LineState
   | LineMiddle
   | LineBegin
   deriving stock (Eq, Generic, Show)
+
+fmtLineState :: Fmt LineState
+fmtLineState = F.later $ \case
+  SkippingBlanks -> "SkippingBlanks"
+  LineMiddle -> "LineMiddle"
+  LineBegin -> "LineBegin"
 
 -- Represents a line of input, with trailing spaces removed and \endlinechar
 -- appended.

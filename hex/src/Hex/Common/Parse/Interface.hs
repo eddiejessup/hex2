@@ -66,5 +66,5 @@ class (Monad m, Alternative m, MonadPlus m, Log.MonadHexLog m) => MonadPrimToken
 
 parseFailure :: MonadPrimTokenParse m => Text -> m a
 parseFailure msg = do
-  Log.log $ "Parse failure: " <> msg
+  Log.debugLog $ "Parse failure: " <> msg
   parseError $ ParseExplicitFailure msg
