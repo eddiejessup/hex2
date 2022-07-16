@@ -46,7 +46,10 @@ intRatio a b =
    in intToInteger a Ratio.% intToInteger b
 
 fmtHexInt :: Fmt HexInt
-fmtHexInt = "H." |%| F.accessed (.unHexInt) F.shown
+fmtHexInt = "H." |%| fmtHexIntSimple
+
+fmtHexIntSimple :: Fmt HexInt
+fmtHexIntSimple = F.accessed (.unHexInt) F.shown
 
 zeroInt :: HexInt
 zeroInt = mempty

@@ -30,7 +30,7 @@ shrinkMathLength :: HexInt -> MathLength -> MathLength
 shrinkMathLength = shrink
 
 fmtMathLengthMagnitude :: Fmt MathLength
-fmtMathLengthMagnitude = fmtViewed #unMathLength F.shown
+fmtMathLengthMagnitude = F.accessed (.unMathLength) fmtHexIntSimple
 
 fmtMathLengthWithUnit :: Fmt MathLength
 fmtMathLengthWithUnit = fmtMathLengthMagnitude |%| "mu"

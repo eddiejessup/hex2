@@ -130,7 +130,7 @@ extractNextLexTokenFromWorkingLineSource = do
       -- Logging.
       lineNr <- use (typed @CharSourceStack % CharSourceStack.currentSourceLens % #lineNr)
       let logFmtString = CharSource.fmtLineNr |%| ": Fetched lex-token from source: " |%| LT.fmtLexToken
-      Log.log Log.Info $
+      Log.infoLog $
         if newLineState == lineState
           then F.sformat logFmtString lineNr lt
           else F.sformat (logFmtString |%| ", " |%| CharSource.fmtLineState |%| " -> " |%| CharSource.fmtLineState) lineNr lt lineState newLineState

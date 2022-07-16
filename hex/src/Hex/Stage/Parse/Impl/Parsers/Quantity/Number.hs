@@ -9,7 +9,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), ParseUnexpectedErrorCause (..), UnexpectedPrimitiveToken (..), parseFailure)
+import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), ParseUnexpectedError (..), UnexpectedPrimitiveToken (..), parseFailure)
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT

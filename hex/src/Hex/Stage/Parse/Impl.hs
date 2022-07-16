@@ -7,8 +7,7 @@ import Hex.Capability.Log.Interface (MonadHexLog)
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (MonadHexState)
-import Hex.Common.Parse.Impl (ParseT, fmtParseLog, runParseTMaybe)
-import Hex.Common.Parse.Interface (ParseUnexpectedError (..))
+import Hex.Common.Parse.Impl (ParseT, ParsingErrorWithContext, fmtParseLog, runParseTMaybe)
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Stage.Expand.Interface qualified as Exp
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
@@ -40,7 +39,7 @@ instance
   ( HIn.MonadHexInput (CommandSourceT m),
     Exp.MonadPrimTokenSource (CommandSourceT m),
     MonadError e (CommandSourceT m),
-    AsType ParseUnexpectedError e,
+    AsType ParsingErrorWithContext e,
     Log.MonadHexLog (CommandSourceT m),
     Monad m
   ) =>
@@ -52,7 +51,7 @@ getCommandImpl ::
   ( Monad m,
     Par.MonadPrimTokenParse (ParseT m),
     MonadError e m,
-    AsType ParseUnexpectedError e,
+    AsType ParsingErrorWithContext e,
     Log.MonadHexLog m
   ) =>
   m (Maybe Par.Command)

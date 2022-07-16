@@ -2,7 +2,6 @@ module Hex.Stage.Parse.Impl.Parsers.Command where
 
 import Control.Monad.Combinators qualified as PC
 import Formatting qualified as F
-import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
@@ -114,7 +113,6 @@ parseCommand =
     PT.DumpTok ->
       pure $ AST.VModeCommand AST.Dump
     t -> do
-      Log.debugLog "Generic command"
       PC.choice
         [ AST.ModeIndependentCommand . AST.Assign <$> Par.headToParseAssignment t,
           AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.headToParseOpenOutput AST.Deferred t,

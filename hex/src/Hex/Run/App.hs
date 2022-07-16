@@ -2,6 +2,7 @@ module Hex.Run.App where
 
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Impl qualified as HEnv
 import Hex.Common.HexEnv.Interface qualified as HEnv
@@ -16,7 +17,7 @@ import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Common.Parse.Interface qualified as Parse
+import Hex.Common.Parse.Impl qualified as Parse
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Stage.Evaluate.Impl (EvaluateT (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
@@ -29,7 +30,6 @@ import Hex.Stage.Parse.Impl (CommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
 import System.IO (hFlush)
-import qualified Hex.Capability.Log.Interface as Log
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
@@ -69,7 +69,7 @@ newtype App a = App {unApp :: ReaderT HEnv.HexEnv (StateT AppState (ExceptT AppE
 
 data AppError
   = AppLexError HIn.LexError
-  | AppParseError Parse.ParsingError
+  | AppParseError Parse.ParsingErrorWithContext
   | AppExpansionError Expand.ExpansionError
   | AppInterpretError Interpret.InterpretError
   | AppResolutionError HSt.ResolutionError
@@ -78,13 +78,10 @@ data AppError
   | AppTFMError TFM.TFMError
   deriving stock (Show, Generic)
 
-instance {-# OVERLAPPING #-} AsType Parse.ParseUnexpectedError AppError where
-  _Typed = _Typed @Parse.ParsingError % _Typed @Parse.ParseUnexpectedError
-
 fmtAppError :: Format r (AppError -> r)
 fmtAppError = F.later $ \case
   AppLexError lexError -> F.bformat HIn.fmtLexError lexError
-  AppParseError parseError -> F.bformat Parse.fmtParsingError parseError
+  AppParseError parseError -> F.bformat Parse.fmtParsingErrorWithContext parseError
   AppExpansionError expansionError -> F.bformat Expand.fmtExpansionError expansionError
   AppInterpretError interpretError -> F.bformat Interpret.fmtInterpretError interpretError
   AppResolutionError resolutionError -> F.bformat HSt.fmtResolutionError resolutionError
@@ -99,10 +96,8 @@ instance MonadHexLog App where
     when (lvl >= logLevel) $ liftIO $ hPutStrLn logFileHandle $ Log.showLevelEqualWidth logLevel <> msg
 
   logInternalState = do
-    logFileHandle <- know $ typed @Handle
     hexState <- use $ typed @HSt.HexState
-    let msg = sformat HSt.fmtHexState hexState
-    liftIO $ hPutStrLn logFileHandle msg
+    log Log.Info $ sformat HSt.fmtHexState hexState
 
 runAppGivenState ::
   AppState ->

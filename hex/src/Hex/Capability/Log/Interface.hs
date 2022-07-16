@@ -31,7 +31,7 @@ debugLog :: MonadHexLog m => Text -> m ()
 debugLog = log Debug
 
 infoLog :: MonadHexLog m => Text -> m ()
-infoLog = log Debug
+infoLog = log Info
 
 instance MonadHexLog m => MonadHexLog (StateT s m) where
   log x y = lift $ log x y
