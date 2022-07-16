@@ -88,6 +88,9 @@ instance Monoid PureFlex where
 zeroFlex :: PureFlex
 zeroFlex = FinitePureFlex zeroLength
 
+finFlex :: Length -> PureFlex
+finFlex = FinitePureFlex
+
 filFlex :: InfLength -> PureFlex
 filFlex x = InfPureFlex (InfFlexOfOrder x Fil1)
 
@@ -133,10 +136,10 @@ pureAsNetFlex = \case
 
 highestNetFlexOrder :: NetFlex -> PureFlex
 highestNetFlexOrder flex
-  | flex ^. #fil3Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex ^. #fil3Flex) Fil3)
-  | flex ^. #fil2Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex ^. #fil2Flex) Fil2)
-  | flex ^. #fil1Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex ^. #fil1Flex) Fil1)
-  | otherwise = FinitePureFlex (flex ^. #finiteFlex)
+  | flex.fil3Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex.fil3Flex) Fil3)
+  | flex.fil2Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex.fil2Flex) Fil2)
+  | flex.fil1Flex /= zeroInfLength = InfPureFlex (InfFlexOfOrder (flex.fil1Flex) Fil1)
+  | otherwise = FinitePureFlex flex.finiteFlex
 
 -- BiNetFlex.
 data BiNetFlex = BiNetFlex {biStretch, biShrink :: NetFlex}
