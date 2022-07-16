@@ -59,7 +59,7 @@ class Monad m => MonadHexState m where
 
   setSymbol :: HSt.Res.ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> m ()
 
-  loadFont :: Q.HexFilePath -> H.Inter.B.Box.FontSpecification -> m H.Inter.B.Box.FontDefinition
+  loadFont :: Q.HexFilePath -> H.Inter.B.Box.FontSpecification -> m (H.Inter.B.Box.FontDefinition, Font.FontNumber)
 
   selectFont :: Font.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
 

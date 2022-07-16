@@ -5,7 +5,6 @@ import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Resolve qualified as Res
@@ -155,9 +154,9 @@ handleModeIndependentCommand = \case
           Eval.ReadTarget _readInt -> do
             notImplemented "ReadTarget"
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
-            fontDefinition <- HSt.loadFont fontPath fontSpec
+            (fontDefinition, fontNr) <- HSt.loadFont fontPath fontSpec
             Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontDefinition fontDefinition
-            pure $ Just $ RT.PrimitiveToken $ PT.FontRefToken $ fontDefinition ^. typed @HSt.Font.FontNumber
+            pure $ Just $ RT.PrimitiveToken $ PT.FontRefToken fontNr
         case maySymbolTarget of
           Nothing ->
             pure ()
@@ -267,7 +266,7 @@ handleModeIndependentCommand = \case
                     HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
       Eval.SelectFont fNr -> do
         HSt.selectFont fNr scope
-        Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection $ H.Inter.B.Box.FontSelection fNr
+        Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemFontSelection fNr
       Eval.SetFamilyMember familyMember fontNumber ->
         HSt.setFamilyMemberFont familyMember fontNumber scope
       -- Start a new level of grouping. Enter inner mode.

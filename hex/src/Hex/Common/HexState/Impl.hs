@@ -123,7 +123,7 @@ instance
   loadFont ::
     Q.HexFilePath ->
     H.Inter.B.Box.FontSpecification ->
-    HexStateT m H.Inter.B.Box.FontDefinition
+    HexStateT m (H.Inter.B.Box.FontDefinition, HSt.Font.FontNumber)
   loadFont fontPath spec = do
     fontBytes <-
       Env.findAndReadFile
@@ -142,15 +142,17 @@ instance
     assign' (typed @HexState % #fontInfos % at' fontNr) (Just fontInfo)
 
     let fontName = Tx.pack $ FilePath.takeBaseName (fontPath ^. typed @FilePath)
-    pure
-      H.Inter.B.Box.FontDefinition
-        { fontDefChecksum = fontInfo.fontMetrics.checksum,
-          fontDefDesignSize = fontInfo.fontMetrics.designFontSize,
-          fontDefDesignScale = designScale,
-          fontNr,
-          fontPath,
-          fontName
-        }
+
+        fontDef =
+          H.Inter.B.Box.FontDefinition
+            { fontDefChecksum = fontInfo.fontMetrics.checksum,
+              fontDefDesignSize = fontInfo.fontMetrics.designFontSize,
+              fontDefDesignScale = designScale,
+              fontPath,
+              fontName
+            }
+
+    pure (fontDef, fontNr)
 
   currentFontNumber :: HexStateT m HSt.Font.FontNumber
   currentFontNumber = currentFontNumberImpl

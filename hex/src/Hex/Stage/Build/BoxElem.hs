@@ -94,7 +94,7 @@ fmtVBoxElemOneLine = F.later $ \case
 data BaseElem
   = ElemBox (Box BaseBoxContents)
   | ElemFontDefinition FontDefinition
-  | ElemFontSelection FontSelection
+  | ElemFontSelection HSt.Font.FontNumber
   | ElemKern Kern
   deriving stock (Show, Generic)
 
@@ -115,6 +115,14 @@ newtype Kern = Kern {unKern :: Q.Length}
 
 data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: Q.Length}
   deriving stock (Show, Eq, Generic, Functor, Foldable)
+
+boxSpanAlongAxis :: Q.Axis -> Box a -> Q.Length
+boxSpanAlongAxis ax b = case ax of
+  Q.Vertical -> boxHeightAndDepth b
+  Q.Horizontal -> b.boxWidth
+
+boxHeightAndDepth :: Box a -> Q.Length
+boxHeightAndDepth b = b.boxHeight <> b.boxDepth
 
 fmtBoxDimens :: Fmt (Box a)
 fmtBoxDimens =
@@ -180,6 +188,9 @@ vBoxElemTraversal = #unVBoxElemSeq % traversed
 newtype Rule = Rule {unRule :: Box ()}
   deriving stock (Show, Eq, Generic)
 
+fmtRule :: Fmt Rule
+fmtRule = F.accessed (.unRule) fmtBoxDimens |%| "\\rule{}"
+
 newtype CharBox = CharBox {unCharacter :: Box Codes.CharCode}
   deriving stock (Show, Generic)
 
@@ -192,18 +203,17 @@ fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> F.prefixed "\\c" f
 charBoxChar :: CharBox -> Char
 charBoxChar = view $ #unCharacter % #contents % to Codes.unsafeCodeAsChar
 
-newtype FontSelection = FontSelection HSt.Font.FontNumber
-  deriving stock (Show, Generic)
-
 data FontDefinition = FontDefinition
   { fontDefChecksum :: Word32,
     fontDefDesignSize :: Q.Length,
     fontDefDesignScale :: Q.Length,
     fontPath :: Q.HexFilePath,
-    fontName :: Text,
-    fontNr :: HSt.Font.FontNumber
+    fontName :: Text
   }
   deriving stock (Show, Generic)
+
+fmtFontDefinition :: Fmt FontDefinition
+fmtFontDefinition = "Font " |%| F.accessed (.fontName) (F.squoted F.stext)
 
 data FontSpecification
   = NaturalFont
