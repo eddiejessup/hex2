@@ -125,7 +125,7 @@ runParseT parseT = Accum.runAccumT (runExceptT $ unParseT parseT) mempty
 runParseTMaybe :: (MonadError e m, AsType ParsingErrorWithContext e, Log.MonadHexLog m) => ParseT m a -> m (Maybe a, ParseLog)
 runParseTMaybe p = do
   (errOrA, pLog) <- runParseT p
-  Log.infoLog $ "After running parseT in Maybe ctx, parse-log looks like: " <> F.sformat fmtParseLog pLog
+  Log.debugLog $ "After running parseT in Maybe ctx, parse-log looks like: " <> F.sformat fmtParseLog pLog
   case errOrA of
     Left (ParsingErrorWithContext EndOfInputParsingError _) -> pure (Nothing, pLog)
     Left e@(ParsingErrorWithContext (UnexpectedParsingError _userError) _) -> throwError $ injectTyped e
@@ -150,12 +150,12 @@ instance (Monad m, Log.MonadHexLog (ParseT m)) => Alternative (ParseT m) where
     -- If the parse fails, do the same for the second parser.
     case errOrV of
       Left _ -> do
-        Log.infoLog $ "After running first option in alternative with failure, parse-log looks like: " <> F.sformat fmtParseLog pLog
+        Log.debugLog $ "After running first option in alternative with failure, parse-log looks like: " <> F.sformat fmtParseLog pLog
         -- This should actually run in the ParseT monad,
         -- because failure here does mean failure of the monad.
         b
       Right v -> do
-        Log.infoLog $ "After running first option in alternative with success, parse-log looks like: " <> F.sformat fmtParseLog pLog
+        Log.debugLog $ "After running first option in alternative with success, parse-log looks like: " <> F.sformat fmtParseLog pLog
         -- Add the log we got from the 'a' parser.
         parseTAdd pLog
         pure v
@@ -189,11 +189,9 @@ tryImpl f = do
   (errOrA, pLog) <- lift $ runParseT f
   case errOrA of
     Left e -> do
-      Log.infoLog $ "After running parseT in try ctx, with failure, parse-log looks like: " <> F.sformat fmtParseLog pLog
       Log.debugLog $ "Try target failed with error: " <> F.sformat fmtParsingErrorWithContext e
       HIn.putInput st
     Right _ -> do
-      Log.infoLog $ "After running parseT in try ctx, with success, parse-log looks like: " <> F.sformat fmtParseLog pLog
       Log.debugLog "Try target succeeded"
       pure ()
   -- Whether we succeeded or failed, package up the result as a ParseT.
@@ -209,16 +207,13 @@ satisfyThenCommon parser f = do
     Nothing ->
       CPar.parseFailure "satisfyThen, no next primitive token"
     Just x@(lt, _) -> do
-      pLog0 <- parseTLook
-      Log.infoLog $ "Doing satisfyThen, parse-log looks like: " <> F.sformat fmtParseLog pLog0
       case f x of
         Nothing -> do
           HIn.insertLexToken lt
           CPar.parseFailure $ "satisfyThen, test failed on lex-token: " <> F.sformat LT.fmtLexToken lt
         Just a -> do
           recordLexToken lt
-          pLog <- parseTLook
-          Log.infoLog $ "Committing token: " <> F.sformat LT.fmtLexToken lt <> ", parse-log looks like: " <> F.sformat fmtParseLog pLog
+          Log.infoLog $ "Committing token: " <> F.sformat LT.fmtLexToken lt
           pure a
 
 satisfyThenExpandingImpl ::

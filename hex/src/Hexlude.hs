@@ -23,6 +23,9 @@ module Hexlude
     foldMapM,
     nothingToError,
     know,
+    seqHeadMay,
+    seqLastMay,
+    indexed,
   )
 where
 
@@ -115,3 +118,20 @@ know ::
   Optic' k is e a ->
   m a
 know o = asks (view o)
+
+seqLastMay :: Seq a -> Maybe a
+seqLastMay = \case
+  _ :|> x -> Just x
+  _ -> Nothing
+
+seqHeadMay :: Seq a -> Maybe a
+seqHeadMay = \case
+  x :<| _ -> Just x
+  _ -> Nothing
+
+-- Taken from package ilist-0.4.0.1.
+indexed :: [a] -> [(Int, a)]
+indexed xs = go 0 xs
+  where
+    go i (a : as) = (i, a) : go (i + 1) as
+    go _ _ = []

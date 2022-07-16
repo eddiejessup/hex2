@@ -14,6 +14,16 @@ data VListElem
   | ListPenalty Penalty
   deriving stock (Show, Generic)
 
+vListElemIsBox :: VListElem -> Bool
+vListElemIsBox = \case
+  VListBaseElem baseElem -> case baseElem of
+    H.Inter.B.Box.ElemBox _ -> True
+    H.Inter.B.Box.ElemFontDefinition _ -> False
+    H.Inter.B.Box.ElemFontSelection _ -> False
+    H.Inter.B.Box.ElemKern _ -> False
+  ListGlue _ -> False
+  ListPenalty _ -> False
+
 newtype Penalty = Penalty {unPenalty :: Q.HexInt}
   deriving stock (Show, Eq, Generic)
 
@@ -88,6 +98,7 @@ hListElemNaturalHeight = \case
 
 newtype HList = HList {unHList :: Seq HListElem}
   deriving stock (Show, Generic)
+  deriving newtype (Semigroup, Monoid)
 
 hListElemTraversal :: Traversal' HList HListElem
 hListElemTraversal = #unHList % traversed
@@ -127,9 +138,13 @@ fmtHListElem = F.later $ \case
 
 newtype VList = VList {unVList :: Seq VListElem}
   deriving stock (Show, Generic)
+  deriving newtype (Semigroup, Monoid)
 
 vListElemTraversal :: Traversal' VList VListElem
 vListElemTraversal = #unVList % traversed
+
+vListContainsBoxes :: VList -> Bool
+vListContainsBoxes = anyOf vListElemTraversal vListElemIsBox
 
 fmtVList :: Fmt VList
 fmtVList = F.prefixed "\\vlist\n=====\n" $ fmtViewed #unVList fmtVListElemSeq

@@ -31,7 +31,7 @@ pushGroup groupType =
 popGroup :: GroupScopes -> Maybe (HexGroup, GroupScopes)
 popGroup groupScopes =
   groupScopes ^. #groups % to O.uncons <&> \(poppedGroup, postPopGroups) ->
-    (poppedGroup, groupScopes & #groups .~ postPopGroups)
+    (poppedGroup, groupScopes & #groups !~ postPopGroups)
 
 fmtGroupScopes :: Fmt GroupScopes
 fmtGroupScopes =
@@ -124,4 +124,4 @@ unsetScopedProperty scopeValueLens scopeFlag groupScopes =
   let scopesToUnsetTraversal = case scopeFlag of
         HSt.Grouped.Global -> scopesTraversal
         HSt.Grouped.Local -> castOptic localMostScopeLens
-   in groupScopes & scopesToUnsetTraversal % scopeValueLens .~ Nothing
+   in groupScopes & scopesToUnsetTraversal % scopeValueLens !~ Nothing

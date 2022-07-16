@@ -2,7 +2,9 @@ module Hex.Stage.Build.Horizontal.Paragraph.Break where
 
 import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.Horizontal.Badness
+import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
+import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Page
+import Hex.Stage.Build.AnyDirection.Evaluate qualified as Page
 import Hex.Stage.Build.Horizontal.Evaluate
 import Hex.Stage.Build.Horizontal.Paragraph.Types
 import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
@@ -10,7 +12,7 @@ import Hexlude
 
 data ChunkedHListElem
   = HListChunk (Seq H.Inter.B.List.HListElem)
-  | HListBreakItem H.Inter.B.List.HListElem BreakItem
+  | HListBreakItem H.Inter.B.List.HListElem Page.BreakItem
   deriving stock (Show, Generic)
 
 fmtChunkedHListElem :: Fmt ChunkedHListElem
@@ -111,7 +113,7 @@ newtype LineSequence = LineSequence {unLineSequence :: Seq Line}
 
 data DiscardingState = Discarding | NotDiscarding
 
-withBreaks :: H.Inter.B.List.HList -> Seq (H.Inter.B.List.HListElem, Maybe BreakItem)
+withBreaks :: H.Inter.B.List.HList -> Seq (H.Inter.B.List.HListElem, Maybe Page.BreakItem)
 withBreaks = seqOf (#unHList % to toAdjacents % folded % to (\adj@(_, e, _) -> (e, hListElemToBreakItem adj)))
 
 breakGreedy ::
@@ -123,14 +125,14 @@ breakGreedy ::
 breakGreedy dw _tol _lp (H.Inter.B.List.HList allEs) =
   let finalisedHList = finaliseHList (H.Inter.B.List.HList allEs)
 
-      eWBs :: Seq (H.Inter.B.List.HListElem, Maybe BreakItem)
+      eWBs :: Seq (H.Inter.B.List.HListElem, Maybe Page.BreakItem)
       eWBs = withBreaks finalisedHList
 
       lineSeq = go (LineSequence Empty, Line Empty, NotDiscarding) eWBs
    in -- Map from the line breaking types to our result type.
       seqOf (#unLineSequence % folded % #unLine % to H.Inter.B.List.HList) lineSeq
   where
-    go :: (LineSequence, Line, DiscardingState) -> Seq (H.Inter.B.List.HListElem, Maybe BreakItem) -> LineSequence
+    go :: (LineSequence, Line, DiscardingState) -> Seq (H.Inter.B.List.HListElem, Maybe Page.BreakItem) -> LineSequence
     go st@(lnSeq@(LineSequence lns), ln@(Line lnEs), discarding) = \case
       Empty -> LineSequence (lns :|> ln)
       aEs@((e, mayBI) :<| rEs) ->
@@ -143,13 +145,15 @@ breakGreedy dw _tol _lp (H.Inter.B.List.HList allEs) =
               Nothing ->
                 go (lnSeq, Line (lnEs :|> e), NotDiscarding) rEs
               Just bI ->
-                let (_spec, b) = listFlexSpec (H.Inter.B.List.HList lnEs) dw
-                 in if b < infBadness
-                      then
+                let spec = listFlexSpec (H.Inter.B.List.HList lnEs) dw
+                    b = Page.glueFlexSpecBadness spec
+                 in case b of
+                      Bad.InfiniteBadness ->
                         let newLnSeq = lns :|> ln
                             newEs = case bI of
-                              GlueBreak _ -> aEs
-                              KernBreak _ -> aEs
-                              PenaltyBreak _ -> rEs
+                              Page.GlueBreak _ -> aEs
+                              Page.KernBreak _ -> aEs
+                              Page.PenaltyBreak _ -> rEs
                          in go (LineSequence newLnSeq, Line Empty, Discarding) newEs
-                      else go (lnSeq, Line (lnEs :|> e), NotDiscarding) rEs
+                      Bad.FiniteBadness _finiteBadness ->
+                        go (lnSeq, Line (lnEs :|> e), NotDiscarding) rEs

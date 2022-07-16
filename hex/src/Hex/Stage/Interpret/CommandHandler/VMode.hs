@@ -5,11 +5,11 @@ import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexInput.Interface.CharSourceStack (CharSourceStack)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
-import Hex.Stage.Build.Horizontal.Paragraph.Break qualified as H.Inter.B.List.H.Para
-import Hex.Stage.Build.Horizontal.Set qualified as H.Inter.B.List.H
+import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.Horizontal.Paragraph.Break qualified as List.H.Para
+import Hex.Stage.Build.Horizontal.Set qualified as List.H
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
+import Hex.Stage.Build.ListElem qualified as List
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
@@ -39,11 +39,11 @@ handleCommandInMainVMode oldSrc = \case
       pure EndMainVMode
     Uneval.AddVGlue _g -> do
       notImplemented "handleCommandInMainVMode: AddVGlue"
-    -- H.Inter.Eval.evalASTGlue g >>= extendVListStateT . H.Inter.B.List.ListGlue
+    -- H.Inter.Eval.evalASTGlue g >>= extendVListStateT . List.ListGlue
     --   pure ContinueMainVMode
     --  (Eval.AddVRule astRule) -> do
     --   rule <- H.Inter.Eval.evalASTVModeRule astRule
-    --   extendVListStateT $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
+    --   extendVListStateT $ List.VListBaseElem $ Box.ElemBox $ Box.RuleContents <$ rule ^. #unRule
     --   pure ContinueMainVMode
     Uneval.Dump ->
       notImplemented "handleCommandInMainVMode: Dump"
@@ -83,6 +83,12 @@ handleCommandInMainVMode oldSrc = \case
   where
     addPara :: ListExtractor.IndentFlag -> m VModeCommandResult
     addPara indentFlag = do
+      -- Just before switching to horizontal mode to begin scanning a paragraph,
+      -- TEX inserts the glue specified by \parskip into the vertical list that
+      -- will contain the paragraph, unless that vertical list is empty so far.
+      parSkipGlue <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.ParSkip)
+      Build.addVListElement $ List.ListGlue parSkipGlue
+
       -- If the command shifts to horizontal mode, run '\indent', and re-read
       -- the stream as if the command hadn't been read.
       HIn.putInput oldSrc
@@ -98,30 +104,30 @@ extendVListWithParagraphStateT ::
   ( HSt.MonadHexState m,
     Build.MonadHexListBuilder m
   ) =>
-  H.Inter.B.List.HList ->
+  List.HList ->
   m ()
 extendVListWithParagraphStateT paraHList = do
   lineBoxes <- setAndBreakHListToHBoxes paraHList
   for_ lineBoxes $ \b ->
-    Build.addVListElement $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox (H.Inter.B.Box.HBoxContents <$> b)
+    Build.addVListElement $ List.VListBaseElem $ Box.ElemBox (Box.HBoxContents <$> b)
 
 setAndBreakHListToHBoxes ::
   ( HSt.MonadHexState m
   ) =>
-  H.Inter.B.List.HList ->
-  m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBoxElemSeq))
+  List.HList ->
+  m (Seq (Box.Box Box.HBoxElemSeq))
 setAndBreakHListToHBoxes hList = do
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
   lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
   linePen <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
-  let lineHLists = H.Inter.B.List.H.Para.breakGreedy hSize lineTol linePen hList
+  let lineHLists = List.H.Para.breakGreedy hSize lineTol linePen hList
 
   pure $
     lineHLists <&> \lineHList ->
-      let (hBoxElems, _) = H.Inter.B.List.H.setList lineHList hSize
+      let (hBoxElems, _) = List.H.setList lineHList hSize
           -- TODO: Implement proper interline glue.
-          boxHeight = H.Inter.B.Box.hBoxNaturalHeight hBoxElems
-          boxDepth = H.Inter.B.Box.hBoxNaturalDepth hBoxElems
+          boxHeight = Box.hBoxNaturalHeight hBoxElems
+          boxDepth = Box.hBoxNaturalDepth hBoxElems
           -- TODO: Is this correct?
           boxWidth = hSize
-       in H.Inter.B.Box.Box {contents = hBoxElems, boxWidth, boxHeight, boxDepth}
+       in Box.Box {contents = hBoxElems, boxWidth, boxHeight, boxDepth}

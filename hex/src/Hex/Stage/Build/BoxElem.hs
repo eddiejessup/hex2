@@ -171,6 +171,9 @@ hBoxNaturalWidth =
 newtype VBoxElemSeq = VBoxElemSeq {unVBoxElemSeq :: Seq VBoxElem}
   deriving stock (Show, Generic)
 
+fmtVBoxElemSeq :: Fmt VBoxElemSeq
+fmtVBoxElemSeq = F.accessed (.unVBoxElemSeq) (F.intercalated "\n" fmtVBoxElemOneLine)
+
 vBoxElemTraversal :: Traversal' VBoxElemSeq VBoxElem
 vBoxElemTraversal = #unVBoxElemSeq % traversed
 

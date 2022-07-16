@@ -2,12 +2,12 @@
 
 module Hex.Common.HexEnv.Impl where
 
+import Data.ByteString qualified as BS
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexEnv.Interface
 import Hexlude
 import System.Directory qualified as Dir
 import System.FilePath qualified as Path
-import qualified Data.ByteString as BS
 
 data HexEnv = HexEnv
   { logHandle :: Handle,
@@ -30,11 +30,12 @@ withHexEnv :: [FilePath] -> Log.LogLevel -> (HexEnv -> IO a) -> IO a
 withHexEnv extraSearchDirs logLevel k = do
   cwd <- Dir.getCurrentDirectory
   let searchDirs =
-        extraSearchDirs ++ [ cwd,
-          "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/cm/",
-          "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/knuth-lib",
-          "/usr/local/texlive/2022/texmf-dist/tex/generic/hyphen"
-        ]
+        extraSearchDirs
+          ++ [ cwd,
+               "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/cm/",
+               "/usr/local/texlive/2022/texmf-dist/fonts/tfm/public/knuth-lib",
+               "/usr/local/texlive/2022/texmf-dist/tex/generic/hyphen"
+             ]
   withFile "log.txt" WriteMode $ \hexLogHandle -> do
     k $ newHexEnv hexLogHandle logLevel searchDirs
 

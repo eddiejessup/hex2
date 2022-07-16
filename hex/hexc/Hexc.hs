@@ -7,6 +7,7 @@ import Hex.Run.Evaluate qualified as Run.Evaluate
 import Hex.Run.Expand qualified as Run.Expand
 import Hex.Run.Interpret qualified as Run.Interpret
 import Hex.Run.Lex qualified as Run.Lex
+import Hex.Run.Paginate qualified as Run.Paginate
 import Hex.Run.Parse qualified as Run.Parse
 import Hex.Stage.Build.ListElem (fmtHListMultiLine, fmtVList)
 import Hexlude
@@ -86,6 +87,7 @@ runModeParser =
         <> command "eval-command" (info (pure EvalCommandMode) (progDesc ""))
         <> command "vlist" (info (pure VListMode) (progDesc ""))
         <> command "paralist" (info (pure ParaListMode) (progDesc ""))
+        <> command "page" (info (pure PageMode) (progDesc ""))
     )
 
 appOptionsParser :: Parser AppOptions
@@ -140,13 +142,16 @@ main = do
     EvalCommandMode -> do
       commandList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Evaluate.evaluateAll
       putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
-    VListMode -> do
-      vList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Interpret.interpretInMainVMode
-      putText $ sformat fmtVList vList
     ParaListMode -> do
       (endReason, paraList) <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Interpret.interpretInParaMode
       putText $ "End reason: " <> show endReason
       putText $ sformat fmtHListMultiLine paraList
+    VListMode -> do
+      vList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Interpret.interpretInMainVMode
+      putText $ sformat fmtVList vList
+    PageMode -> do
+      pages <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Paginate.paginateAll
+      putText $ sformat Run.Paginate.fmtPages pages
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
   pure ()

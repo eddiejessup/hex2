@@ -282,4 +282,4 @@ expandExpansionCommand = \case
             Code.NoCaseChange ->
               lt
             Code.ChangeToCode uc ->
-              lt & _Typed @LT.LexCharCat % typed @Code.CharCode .~ uc
+              lt & _Typed @LT.LexCharCat % typed @Code.CharCode !~ uc

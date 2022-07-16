@@ -143,8 +143,8 @@ endSourceCurrentLine mayEndLineChar a =
       Just $
         a
           & #lineNr %~ succ
-          & #workingLine .~ newWorkingLine mayEndLineChar nextLine
-          & #sourceLines .~ restOfLines
+          & #workingLine !~ newWorkingLine mayEndLineChar nextLine
+          & #sourceLines !~ restOfLines
 
 sourceIsFinished :: CharSource -> Bool
 sourceIsFinished charSource =

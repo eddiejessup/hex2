@@ -223,3 +223,13 @@ shrinkInfFlexOfOrder i (InfFlexOfOrder infLen order) =
 
 fmtInfFlexOfOrder :: Fmt InfFlexOfOrder
 fmtInfFlexOfOrder = fmtViewed (typed @InfLength) fmtInfLengthMagnitude <> F.fconst " " <> fmtViewed (typed @InfFlexOrder) fmtInfFlexOrder
+
+-- Directed flex (stretch or shrink indicated.)
+
+data FlexDirection
+  = Stretch
+  | Shrink
+  deriving stock (Show, Generic)
+
+data FlexInDirection = FlexInDirection {flexDirection :: FlexDirection, flexAmount :: PureFlex}
+  deriving stock (Show, Generic)

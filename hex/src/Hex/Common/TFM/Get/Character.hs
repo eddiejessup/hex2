@@ -63,10 +63,3 @@ characters minCode charInfos recipes widths heights depths italicCorrs =
   do
     charList <- mapM (character recipes widths heights depths italicCorrs) charInfos
     pure $ IntMap.fromList $ (\(idx, c) -> (idx + fromIntegral @Word16 @Int minCode, c)) <$> indexed charList
-  where
-    -- Taken from package ilist-0.4.0.1.
-    indexed :: [a] -> [(Int, a)]
-    indexed xs = go 0 xs
-      where
-        go i (a : as) = (i, a) : go (i + 1) as
-        go _ _ = []
