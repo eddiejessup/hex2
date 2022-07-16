@@ -1,11 +1,8 @@
 module Hex.Common.TFM.Get where
 
 import ASCII qualified
-import Control.Arrow (left)
-import Data.ByteString qualified as BS
 import Data.Serialize qualified as Ser
 import Data.Text qualified as Tx
-import Formatting qualified as F
 import Hex.Common.TFM.Get.CharInfo qualified as TFM.Get.CharInfo
 import Hex.Common.TFM.Get.Character qualified as TFM.Get.Character
 import Hex.Common.TFM.Get.Common qualified as TFM.Get.Common
@@ -18,25 +15,7 @@ import Hex.Common.TFM.Get.TableParams qualified as TFM.Get.TableParams
 import Hex.Common.TFM.Types
 import Hexlude
 
-newtype TFMError = TFMError Text
-  deriving stock (Show, Generic)
-
-fmtTfmError :: Fmt TFMError
-fmtTfmError = "TFM Error: " |%| F.shown
-
-parseTFMFile :: (MonadIO m, MonadError e m, AsType TFMError e) => FilePath -> m Font
-parseTFMFile path =
-  liftIO (BS.readFile path) <&> parseTFMBytes >>= \case
-    Left err -> throwError $ injectTyped $ TFMError err
-    Right v -> pure v
-
-parseTFMFileIO :: FilePath -> IO Font
-parseTFMFileIO path =
-  runExceptT (parseTFMFile path) >>= \case
-    Left (Identity err) -> panic $ F.sformat fmtTfmError err
-    Right v -> pure v
-
-parseTFMBytes :: ByteString -> Either Text Font
+parseTFMBytes :: forall e m. (MonadError e m, AsType TFMError e) => ByteString -> m Font
 parseTFMBytes bs = do
   tableParams <- runGetText TFM.Get.TableParams.getTableParams bs
 
@@ -65,4 +44,7 @@ parseTFMBytes bs = do
         characters = chars
       }
   where
-    runGetText m b = left Tx.pack $ Ser.runGet m b
+    runGetText :: Ser.Get d -> ByteString -> m d
+    runGetText m b = case Ser.runGet m b of
+      Left e -> throwError $ injectTyped (TFMError $ Tx.pack e)
+      Right v -> pure v

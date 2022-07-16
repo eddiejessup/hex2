@@ -1,6 +1,7 @@
 import Expand qualified
 import Hexlude
 import Lex qualified
+import State qualified
 import Test.Tasty
 
 main :: IO ()
@@ -11,5 +12,6 @@ tests =
   testGroup
     "Tests"
     [ Lex.tests,
-      Expand.tests
+      Expand.tests,
+      State.tests
     ]

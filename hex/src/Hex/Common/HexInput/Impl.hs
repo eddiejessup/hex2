@@ -2,9 +2,10 @@
 
 module Hex.Common.HexInput.Impl where
 
-import Data.ByteString qualified as BS
 import Data.Sequence qualified as Seq
+import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Interface qualified as Env
 import Hex.Common.HexEnv.Interface qualified as HEnv
@@ -20,8 +21,6 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
-import qualified Formatting as F
 
 newtype HexInputT m a = HexInputT {unHexInputT :: m a}
   deriving newtype
@@ -44,7 +43,6 @@ instance
     MonadState st (HexInputT m),
     HasType CharSourceStack st,
     Env.MonadHexEnv (HexInputT m),
-    MonadIO (HexInputT m),
     MonadHexState (HexInputT m),
     MonadHexLog m
   ) =>
@@ -167,17 +165,15 @@ openInputFileImpl ::
     HasType CharSourceStack st,
     Env.MonadHexEnv m,
     MonadError e m,
-    AsType HIn.LexError e,
-    MonadIO m
+    AsType HIn.LexError e
   ) =>
   Q.HexFilePath ->
   m ()
 openInputFileImpl inputPath = do
-  absPath <-
-    Env.findFilePath
+  inputBytes <-
+    Env.findAndReadFile
       (Env.WithImplicitExtension "tex")
       (inputPath ^. typed @FilePath)
       >>= note (injectTyped (HIn.InputFileNotFound inputPath))
-  newBytes <- liftIO $ BS.readFile absPath
   endLineCode <- getEndLineCharCode
-  modifying' (typed @CharSourceStack) $ CharSourceStack.pushCharSource endLineCode newBytes
+  modifying' (typed @CharSourceStack) $ CharSourceStack.pushCharSource endLineCode inputBytes

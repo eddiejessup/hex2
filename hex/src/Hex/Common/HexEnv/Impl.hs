@@ -7,6 +7,7 @@ import Hex.Common.HexEnv.Interface
 import Hexlude
 import System.Directory qualified as Dir
 import System.FilePath qualified as Path
+import qualified Data.ByteString as BS
 
 data HexEnv = HexEnv
   { logHandle :: Handle,
@@ -59,6 +60,8 @@ newtype HexEnvT m a = HexEnvT {unMonadHexInputImplT :: m a}
     )
 
 instance (Monad (HexEnvT m), MonadIO (HexEnvT m), MonadReader e (HexEnvT m), HasType HexEnv e) => MonadHexEnv (HexEnvT m) where
-  findFilePath findPolicy tgtFile = do
+  findAndReadFile findPolicy tgtFile = do
     searchDirs <- know (typed @HexEnv % typed @[FilePath])
-    findFilePathImpl findPolicy searchDirs tgtFile
+    findFilePathImpl findPolicy searchDirs tgtFile >>= \case
+      Nothing -> pure Nothing
+      Just absPath -> Just <$> liftIO (BS.readFile absPath)

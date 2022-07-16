@@ -4,6 +4,12 @@ import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
+newtype TFMError = TFMError Text
+  deriving stock (Show, Generic)
+
+fmtTfmError :: Fmt TFMError
+fmtTfmError = "TFM Error: " |%| F.shown
+
 newtype LengthDesignSize = LengthDesignSize {unLengthDesignSize :: Rational}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)

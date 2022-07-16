@@ -18,7 +18,7 @@ import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Parse.Impl qualified as Parse
-import Hex.Common.TFM.Get qualified as TFM
+import Hex.Common.TFM.Types qualified as TFM
 import Hex.Stage.Evaluate.Impl (EvaluateT (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface (MonadEvaluate)

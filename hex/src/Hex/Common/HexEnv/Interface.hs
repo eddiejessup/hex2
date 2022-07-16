@@ -9,4 +9,4 @@ data FindFilePolicy
   | WithImplicitExtension Text
 
 class Monad m => MonadHexEnv m where
-  findFilePath :: FindFilePolicy -> FilePath -> m (Maybe FilePath)
+  findAndReadFile :: FindFilePolicy -> FilePath -> m (Maybe ByteString)

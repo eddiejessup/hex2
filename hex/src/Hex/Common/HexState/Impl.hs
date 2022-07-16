@@ -125,13 +125,13 @@ instance
     H.Inter.B.Box.FontSpecification ->
     HexStateT m H.Inter.B.Box.FontDefinition
   loadFont fontPath spec = do
-    absPath <-
-      Env.findFilePath
+    fontBytes <-
+      Env.findAndReadFile
         (Env.WithImplicitExtension "tfm")
         (fontPath ^. typed @FilePath)
         >>= note (injectTyped (FontNotFound fontPath))
 
-    fontInfo <- readFontInfo absPath
+    fontInfo <- readFontInfo fontBytes
 
     let designScale = H.Inter.B.Box.fontSpecToDesignScale fontInfo.fontMetrics.designFontSize spec
 
@@ -141,7 +141,7 @@ instance
           Just (i, _) -> succ i
     assign' (typed @HexState % #fontInfos % at' fontNr) (Just fontInfo)
 
-    let fontName = Tx.pack $ FilePath.takeBaseName absPath
+    let fontName = Tx.pack $ FilePath.takeBaseName (fontPath ^. typed @FilePath)
     pure
       H.Inter.B.Box.FontDefinition
         { fontDefChecksum = fontInfo.fontMetrics.checksum,
@@ -256,10 +256,10 @@ readFontInfo ::
     AsType TFM.TFMError e,
     MonadHexState m
   ) =>
-  FilePath ->
+  ByteString ->
   m Sc.Font.FontInfo
-readFontInfo fontPath = do
-  fontMetrics <- TFM.parseTFMFile fontPath
+readFontInfo fontBytes = do
+  fontMetrics <- TFM.parseTFMBytes fontBytes
   hyphenChar <- getParameterValue (HSt.Param.IntQuantParam HSt.Param.DefaultHyphenChar)
   skewChar <- getParameterValue (HSt.Param.IntQuantParam HSt.Param.DefaultSkewChar)
   pure Sc.Font.FontInfo {fontMetrics, hyphenChar, skewChar}

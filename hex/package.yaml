@@ -67,6 +67,8 @@ tests:
       - hex
       - tasty
       - tasty-hunit
+      - containers
+      - bytestring
 
 default-extensions:
   - DataKinds

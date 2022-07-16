@@ -3,6 +3,7 @@
 
 module Expand where
 
+import Common qualified as T
 import Hex.Common.Codes (CoreCatCode (..))
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Grouped (ScopeFlag (..))
@@ -13,7 +14,6 @@ import Hex.Run.Expand (expandAll)
 import Hex.Stage.Expand.Impl
 import Hex.Stage.Expand.Interface
 import Hexlude
-import Lex qualified as T
 import Test.Tasty
 import Test.Tasty.HUnit
 
