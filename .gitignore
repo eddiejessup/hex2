@@ -1,10 +1,12 @@
 .DS_Store
 dist-newstyle/
 *.tfm
+*.log
+*.dvi
+*.pdf
 hex.cabal
 log.txt
-texput.log
 plain.tex
 plain_test.tex
 texbook.tex
-texbook.pdf
+test_docs/
