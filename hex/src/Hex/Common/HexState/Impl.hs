@@ -7,7 +7,7 @@ import Data.Text qualified as Tx
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..), debugLog)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.Instruction qualified as DVI
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexEnv.Interface qualified as Env
 import Hex.Common.HexEnv.Interface qualified as HEnv
 import Hex.Common.HexState.Impl.Font qualified as Sc.Font
@@ -137,7 +137,7 @@ instance
 
     mayLastKey <- use $ typed @HexState % #fontInfos % to Map.lookupMax
     let fontNr = case mayLastKey of
-          Nothing -> HSt.Font.FontNumber $ Q.HexInt 0
+          Nothing -> DVI.FontNumber $ Q.HexInt 0
           Just (i, _) -> succ i
     assign' (typed @HexState % #fontInfos % at' fontNr) (Just fontInfo)
 
@@ -155,7 +155,7 @@ instance
 
     pure fontDef
 
-  currentFontNumber :: HexStateT m HSt.Font.FontNumber
+  currentFontNumber :: HexStateT m DVI.FontNumber
   currentFontNumber = currentFontNumberImpl
 
   currentFontSpaceGlue :: (HexStateT m) (Maybe Q.Glue)
@@ -184,15 +184,15 @@ instance
           toLen (tfmChar.italicCorrection)
         )
 
-  selectFont :: HSt.Font.FontNumber -> HSt.Grouped.ScopeFlag -> HexStateT m ()
+  selectFont :: DVI.FontNumber -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   selectFont fontNumber scopeFlag =
     modifyGroupScopes $ Sc.Font.setCurrentFontNr fontNumber scopeFlag
 
-  setFamilyMemberFont :: HSt.Font.FamilyMember -> HSt.Font.FontNumber -> HSt.Grouped.ScopeFlag -> HexStateT m ()
+  setFamilyMemberFont :: HSt.Font.FamilyMember -> DVI.FontNumber -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   setFamilyMemberFont familyMember fontNumber scopeFlag =
     modifyGroupScopes $ Sc.Font.setFamilyMemberFont familyMember fontNumber scopeFlag
 
-  setFontSpecialCharacter :: HSt.Font.FontSpecialChar -> HSt.Font.FontNumber -> Q.HexInt -> HexStateT m ()
+  setFontSpecialCharacter :: HSt.Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> HexStateT m ()
   setFontSpecialCharacter fontSpecialChar fontNumber value = do
     let fontSpecialCharLens = case fontSpecialChar of
           HSt.Font.HyphenChar -> #hyphenChar

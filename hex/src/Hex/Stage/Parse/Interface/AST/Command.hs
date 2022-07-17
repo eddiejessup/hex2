@@ -4,7 +4,7 @@ module Hex.Stage.Parse.Interface.AST.Command where
 
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Font qualified as HSt.Font
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Register
@@ -129,7 +129,7 @@ data AssignmentBody
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont HSt.Font.FontNumber
+  | SelectFont DVI.FontNumber
   | SetFamilyMember FamilyMember FontRef
   | SetParShape HexInt [Length]
   | SetBoxRegister ExplicitRegisterLocation Box

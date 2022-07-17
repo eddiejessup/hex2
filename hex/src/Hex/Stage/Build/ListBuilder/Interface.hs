@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 module Hex.Stage.Build.ListBuilder.Interface where
 
 import Hex.Stage.Build.ListElem qualified as B

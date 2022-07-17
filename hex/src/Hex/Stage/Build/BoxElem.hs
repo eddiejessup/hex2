@@ -2,8 +2,7 @@ module Hex.Stage.Build.BoxElem where
 
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
-import Hex.Common.DVI.Instruction qualified as DVI
-import Hex.Common.HexState.Interface.Font qualified as HSt.Font
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -95,7 +94,7 @@ fmtVBoxElemOneLine = F.later $ \case
 data BaseElem
   = ElemBox BaseBox
   | ElemFontDefinition DVI.FontDefinition
-  | ElemFontSelection HSt.Font.FontNumber
+  | ElemFontSelection DVI.FontNumber
   | ElemKern Kern
   deriving stock (Show, Generic)
 

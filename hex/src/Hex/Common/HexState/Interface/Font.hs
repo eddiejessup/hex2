@@ -4,13 +4,6 @@ import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
-newtype FontNumber = FontNumber {fontNumber :: Q.HexInt}
-  deriving stock (Show)
-  deriving newtype (Eq, Ord, Enum)
-
-fmtFontNumber :: Fmt FontNumber
-fmtFontNumber = "FontNumber " |%| F.accessed (.fontNumber) Q.fmtHexInt
-
 data FontSpecialChar
   = HyphenChar -- \hyphenchar
   | SkewChar -- \skewchar

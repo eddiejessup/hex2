@@ -5,6 +5,7 @@ import ASCII.Char qualified
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -207,7 +208,7 @@ data PrimitiveToken
     LetCharCat LT.LexCharCat
   | -- A control sequence representing a particular font, such as defined through
     -- \font.
-    FontRefToken HSt.Font.FontNumber
+    FontRefToken DVI.FontNumber
   | -- Heads of register references.
     RegisterVariableTok Q.QuantityType
   | -- Heads of int-ref definitions.

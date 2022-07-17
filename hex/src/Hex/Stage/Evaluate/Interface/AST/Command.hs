@@ -4,6 +4,7 @@ module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
@@ -127,8 +128,8 @@ data AssignmentBody
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont HSt.Font.FontNumber
-  | SetFamilyMember HSt.Font.FamilyMember HSt.Font.FontNumber
+  | SelectFont DVI.FontNumber
+  | SetFamilyMember HSt.Font.FamilyMember DVI.FontNumber
   | SetParShape Uneval.HexInt [Uneval.Length]
   | SetBoxRegister HSt.Register.RegisterLocation Box
   | -- Global assignments.

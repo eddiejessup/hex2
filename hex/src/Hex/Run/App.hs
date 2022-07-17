@@ -4,6 +4,7 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
+import Hex.Common.DVI.SpecInstruction qualified as DVIS
 import Hex.Common.HexEnv.Impl qualified as HEnv
 import Hex.Common.HexEnv.Interface qualified as HEnv
 import Hex.Common.HexInput.Impl qualified as HIn
@@ -76,6 +77,7 @@ data AppError
   | AppEvaluationError Eval.EvaluationError
   | AppHexStateError HSt.HexStateError
   | AppTFMError TFM.TFMError
+  | AppDVIError DVIS.DVIError
   deriving stock (Show, Generic)
 
 fmtAppError :: Format r (AppError -> r)
@@ -88,6 +90,7 @@ fmtAppError = F.later $ \case
   AppEvaluationError evaluationError -> F.bformat Eval.fmtEvaluationError evaluationError
   AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
+  AppDVIError dviError -> F.bformat DVIS.fmtDVIError dviError
 
 instance MonadHexLog App where
   log lvl msg = do

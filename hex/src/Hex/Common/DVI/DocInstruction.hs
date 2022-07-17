@@ -1,35 +1,40 @@
-module Hex.Common.DVI.Instruction where
+module Hex.Common.DVI.DocInstruction where
 
 import Formatting qualified as F
-import Hex.Common.Box qualified as Box
-import Hex.Common.HexState.Interface.Font qualified as HSt.Font
+import Hex.Common.Codes qualified as Code
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
-data DVIInstruction
+data DocInstruction
   = BeginNewPage
+  | EndPage
   | DefineFont FontDefinition
-  | SelectFont HSt.Font.FontNumber
-  | AddCharacter Box.CharBox
-  | AddRule Box.Rule
+  | SelectFont FontNumber
+  | AddCharacter Code.CharCode
+  | AddRule RuleSpan
   | Move Axis Q.Length
   | PushStack
   | PopStack
   -- \| DoSpecial Text
   deriving stock (Show, Generic)
 
-fmtDviInstruction :: Fmt DVIInstruction
-fmtDviInstruction = F.later $ \case
+data RuleSpan = RuleSpan {vSpan, hSpan :: Q.Length}
+  deriving stock (Show, Generic)
+
+fmtDocInstruction :: Fmt DocInstruction
+fmtDocInstruction = F.later $ \case
   BeginNewPage ->
     "BeginNewPage"
+  EndPage ->
+    "EndPage"
   DefineFont fontDefinition ->
     F.bformat ("DefineFont " |%| fmtFontDefinition) fontDefinition
   SelectFont fontNumber ->
-    F.bformat ("SelectFont " |%| HSt.Font.fmtFontNumber) fontNumber
+    F.bformat ("SelectFont " |%| fmtFontNumber) fontNumber
   AddCharacter charBox ->
-    F.bformat ("AddCharacter " |%| Box.fmtCharBox) charBox
+    F.bformat ("AddCharacter " |%| Code.fmtCharCode) charBox
   AddRule rule ->
-    F.bformat ("AddRule " |%| Box.fmtRule) rule
+    F.bformat ("AddRule " |%| F.shown) rule
   Move Vertical len ->
     F.bformat ("Move Down " |%| Q.fmtLengthWithUnit) len
   Move Horizontal len ->
@@ -45,9 +50,16 @@ data FontDefinition = FontDefinition
     fontDefDesignScale :: Q.Length,
     fontPath :: HexFilePath,
     fontName :: Text,
-    fontNr :: HSt.Font.FontNumber
+    fontNr :: FontNumber
   }
   deriving stock (Show, Generic)
 
 fmtFontDefinition :: Fmt FontDefinition
 fmtFontDefinition = "Font " |%| F.accessed (.fontName) (F.squoted F.stext)
+
+newtype FontNumber = FontNumber {unFontNumber :: Q.HexInt}
+  deriving stock (Show)
+  deriving newtype (Eq, Ord, Enum)
+
+fmtFontNumber :: Fmt FontNumber
+fmtFontNumber = "FontNumber " |%| F.accessed (.unFontNumber) Q.fmtHexInt

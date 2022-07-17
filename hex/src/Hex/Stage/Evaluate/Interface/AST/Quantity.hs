@@ -3,6 +3,7 @@
 module Hex.Stage.Evaluate.Interface.AST.Quantity where
 
 import Hex.Common.Codes qualified as Code
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.TokenList qualified as TL
 import Hex.Common.Quantity qualified as Q
@@ -24,5 +25,5 @@ data InternalQuantity
   | TokenListVariableQuantity TL.BalancedText
   deriving stock (Show, Eq, Generic)
 
-data FontSpecialCharRef = FontSpecialCharRef HSt.Font.FontSpecialChar HSt.Font.FontNumber
+data FontSpecialCharRef = FontSpecialCharRef HSt.Font.FontSpecialChar DVI.FontNumber
   deriving stock (Show, Eq, Generic)

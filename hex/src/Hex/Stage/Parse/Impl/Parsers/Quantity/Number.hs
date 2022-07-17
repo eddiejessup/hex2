@@ -6,7 +6,7 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.Font qualified as HSt.Font
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), ParseUnexpectedError (..), UnexpectedPrimitiveToken (..), parseFailure)
@@ -164,7 +164,7 @@ headToParseFontRef =
       fmap AST.FamilyMemberFontRef <$> headToParseFamilyMember
     ]
 
-headToParseFontRefToken :: MonadPrimTokenParse m => PT.PrimitiveToken -> m HSt.Font.FontNumber
+headToParseFontRefToken :: MonadPrimTokenParse m => PT.PrimitiveToken -> m DVI.FontNumber
 headToParseFontRefToken = \case
   PT.FontRefToken n -> pure n
   t -> parseFailure $ "headToParseFontRefToken " <> F.sformat PT.fmtPrimitiveToken t

@@ -47,7 +47,7 @@ import Hexlude.Concept
 import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)
-import Protolude hiding (isDigit, isLower, isSpace, isUpper, length, log, notImplemented, to, uncons, unsnoc, words, (%))
+import Protolude hiding (U1, isDigit, isLower, isSpace, isUpper, length, log, notImplemented, to, uncons, unsnoc, words, (%))
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a

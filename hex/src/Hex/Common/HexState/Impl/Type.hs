@@ -2,19 +2,19 @@ module Hex.Common.HexState.Impl.Type where
 
 import Data.Map.Strict qualified as Map
 import Formatting qualified as F
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, fmtGroupScopes, newGroupScopes)
 import Hex.Common.HexState.Impl.Scoped.Scope (nullFontNumber)
-import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
 
 data HexState = HexState
-  { fontInfos :: Map Font.FontNumber HSt.Font.FontInfo,
+  { fontInfos :: Map DVI.FontNumber HSt.Font.FontInfo,
     outFileStreams :: Map Q.FourBitInt Handle,
     -- Global parameters.
     specialInts :: Map Param.SpecialIntParameter Q.HexInt,
@@ -27,7 +27,7 @@ data HexState = HexState
 fmtHexState :: Fmt HexState
 fmtHexState =
   mconcat
-    [ fmtMapWithHeading "FontInfos" (.fontInfos) Font.fmtFontNumber HSt.Font.fmtFontInfo,
+    [ fmtMapWithHeading "FontInfos" (.fontInfos) DVI.fmtFontNumber HSt.Font.fmtFontInfo,
       fmtMapWithHeading "Special integer parameters" (.specialInts) Param.fmtSpecialIntParameter Q.fmtHexInt,
       fmtMapWithHeading "Special length parameters" (.specialLengths) Param.fmtSpecialLengthParameter Q.fmtLengthWithUnit,
       F.prefixed "After-assignnment token: " $ F.accessed (.afterAssignmentToken) (F.maybed "None" LT.fmtLexToken) |%| "\n",
@@ -55,7 +55,7 @@ stateSpecialLengthParamLens p = #specialLengths % at' p % non Q.zeroLength
 stateSpecialIntParamLens :: Param.SpecialIntParameter -> Lens' HexState Q.HexInt
 stateSpecialIntParamLens p = #specialInts % at' p % non Q.zeroInt
 
-stateFontInfoLens :: Font.FontNumber -> Lens' HexState (Maybe HSt.Font.FontInfo)
+stateFontInfoLens :: DVI.FontNumber -> Lens' HexState (Maybe HSt.Font.FontInfo)
 stateFontInfoLens fNr = #fontInfos % at' fNr
 
 fmtSpecialInts :: Fmt (Map Param.SpecialIntParameter Q.HexInt)
@@ -82,6 +82,6 @@ currentFontNumberImpl ::
   ( MonadState st m,
     HasType HexState st
   ) =>
-  m Font.FontNumber
+  m DVI.FontNumber
 currentFontNumberImpl =
   getGroupScopesProperty Sc.Font.localCurrentFontNr

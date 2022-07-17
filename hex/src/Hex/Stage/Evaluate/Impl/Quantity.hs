@@ -5,6 +5,7 @@ import Data.Ratio qualified as Ratio
 import Data.Sequence qualified as Seq
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
@@ -411,7 +412,7 @@ evalInternalMathGlue = \case
   P.LastMathGlue ->
     notImplemented "evalInternalGlue: LastMathGlue"
 
-evalFontRef :: HSt.MonadHexState m => P.FontRef -> m HSt.Font.FontNumber
+evalFontRef :: HSt.MonadHexState m => P.FontRef -> m DVI.FontNumber
 evalFontRef = \case
   P.FontTokenRef fontNumber -> pure fontNumber
   P.CurrentFontRef -> HSt.currentFontNumber

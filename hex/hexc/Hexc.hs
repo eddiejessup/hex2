@@ -62,8 +62,8 @@ data RunMode
   | ParaSetMode
   | VListMode
   | PageMode
-  | DVIInstructionsMode
-  | RawDVIInstructionsMode
+  | DVIDocInstructionMode
+  | DVISpecInstructionMode
   | DVIWriteMode DVIWriteOptions
   deriving stock (Show)
 
@@ -89,7 +89,8 @@ runModeParser =
         <> command "vlist" (info (pure VListMode) (progDesc ""))
         <> command "paralist" (info (pure ParaListMode) (progDesc ""))
         <> command "page" (info (pure PageMode) (progDesc ""))
-        <> command "dvi" (info (pure DVIInstructionsMode) (progDesc ""))
+        <> command "doc-dvi" (info (pure DVIDocInstructionMode) (progDesc ""))
+        <> command "spec-dvi" (info (pure DVISpecInstructionMode) (progDesc ""))
     )
 
 appOptionsParser :: Parser AppOptions
@@ -154,9 +155,12 @@ main = do
     PageMode -> do
       pages <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Paginate.paginateAll
       putText $ sformat Run.Paginate.fmtPages pages
-    DVIInstructionsMode -> do
-      dviInstrs <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Render.renderToDviInstructions
-      putText $ sformat Run.Render.fmtDviInstructions dviInstrs
+    DVIDocInstructionMode -> do
+      dviDocInstrs <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Render.renderToDocInstructions
+      putText $ sformat Run.Render.fmtDocInstructions dviDocInstrs
+    DVISpecInstructionMode -> do
+      dviSpecInstrs <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Render.renderToSpecInstructions
+      putText $ sformat Run.Render.fmtSpecInstructions dviSpecInstrs
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
   pure ()

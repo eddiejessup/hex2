@@ -23,5 +23,5 @@ data Axis
   | Vertical
   deriving stock (Show, Eq, Generic)
 
-newtype HexFilePath = HexFilePath FilePath
+newtype HexFilePath = HexFilePath {unHexFilePath :: FilePath}
   deriving stock (Show, Eq, Generic)

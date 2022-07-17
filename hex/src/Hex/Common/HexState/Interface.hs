@@ -5,7 +5,7 @@ module Hex.Common.HexState.Interface where
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.Instruction qualified as DVI
+import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
@@ -63,13 +63,13 @@ class Monad m => MonadHexState m where
 
   loadFont :: HexFilePath -> TFM.FontSpecification -> m DVI.FontDefinition
 
-  selectFont :: Font.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
+  selectFont :: DVI.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
 
-  setFamilyMemberFont :: Font.FamilyMember -> Font.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
+  setFamilyMemberFont :: Font.FamilyMember -> DVI.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
 
-  currentFontNumber :: m Font.FontNumber
+  currentFontNumber :: m DVI.FontNumber
 
-  setFontSpecialCharacter :: Font.FontSpecialChar -> Font.FontNumber -> Q.HexInt -> m ()
+  setFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> m ()
 
   currentFontCharacter :: Code.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
 
