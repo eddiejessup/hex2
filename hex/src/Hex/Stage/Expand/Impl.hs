@@ -13,7 +13,6 @@ import Hex.Common.HexState.Interface.Resolve qualified as HSt.Res
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Parse.Impl qualified as Par
 import Hex.Common.Parse.Interface qualified as Par
-import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved qualified as RT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
@@ -272,10 +271,10 @@ expandExpansionCommand = \case
           pure lt
         LT.CharCatLexToken lexCharCat -> do
           changeCaseCode <- case vDirection of
-            Q.Upward -> do
+            Upward -> do
               ucCode <- HSt.getHexCode (Code.CUpperCaseCodeType) lexCharCat.lexCCChar
               pure $ ucCode ^. typed @Code.ChangeCaseCode
-            Q.Downward -> do
+            Downward -> do
               lcCode <- HSt.getHexCode (Code.CLowerCaseCodeType) lexCharCat.lexCCChar
               pure $ lcCode ^. typed @Code.ChangeCaseCode
           pure $ case changeCaseCode of

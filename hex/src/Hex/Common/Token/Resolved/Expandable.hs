@@ -2,7 +2,6 @@ module Hex.Common.Token.Resolved.Expandable where
 
 import ASCII qualified
 import Formatting qualified as F
-import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Primitive
 import Hexlude
@@ -96,7 +95,7 @@ data ExpansionCommandHeadToken
   | InputTok -- \input
   | EndInputTok -- \endinput
   | TheTok -- \the
-  | ChangeCaseTok Q.VDirection -- \uppercase, \lowercase
+  | ChangeCaseTok VDirection -- \uppercase, \lowercase
   deriving stock (Show, Eq, Generic)
 
 fmtExpansionCommandHeadTokenType :: Fmt ExpansionCommandHeadToken

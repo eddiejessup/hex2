@@ -2,6 +2,7 @@
 
 module Hex.Stage.Parse.Interface.AST.Quantity where
 
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -217,7 +218,7 @@ data FontRef
 data FamilyMember = FamilyMember HSt.Font.FontRange HexInt
   deriving stock (Show, Eq, Generic)
 
-data BoxDimensionRef = BoxDimensionRef ExplicitRegisterLocation Q.BoxDim
+data BoxDimensionRef = BoxDimensionRef ExplicitRegisterLocation Box.BoxDim
   deriving stock (Show, Eq, Generic)
 
 data FontDimensionRef = FontDimensionRef HexInt FontRef

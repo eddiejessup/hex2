@@ -2,10 +2,10 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Box where
 
 import Control.Monad.Combinators qualified as PC
 import Formatting qualified as F
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Parse.Interface (MonadPrimTokenParse (..), parseFailure)
-import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Resolved.Primitive (PrimitiveToken)
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Impl.Parsers.Combinators
@@ -15,7 +15,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-headToParseLeadersSpec :: MonadPrimTokenParse m => Q.Axis -> PT.PrimitiveToken -> m AST.LeadersSpec
+headToParseLeadersSpec :: MonadPrimTokenParse m => Axis -> PT.PrimitiveToken -> m AST.LeadersSpec
 headToParseLeadersSpec axis = \case
   PT.LeadersTok leaders ->
     AST.LeadersSpec leaders <$> parseBoxOrRule <*> (anyPrim >>= Par.headToParseModedAddGlue axis)
@@ -53,12 +53,12 @@ parseBoxOrRule :: MonadPrimTokenParse m => m AST.BoxOrRule
 parseBoxOrRule =
   PC.choice
     [ AST.BoxOrRuleBox <$> (anyPrim >>= headToParseBox),
-      AST.BoxOrRuleRule Q.Horizontal <$> (anyPrim >>= (headToParseModedRule Q.Horizontal)),
-      AST.BoxOrRuleRule Q.Vertical <$> (anyPrim >>= (headToParseModedRule Q.Vertical))
+      AST.BoxOrRuleRule Horizontal <$> (anyPrim >>= (headToParseModedRule Horizontal)),
+      AST.BoxOrRuleRule Vertical <$> (anyPrim >>= (headToParseModedRule Vertical))
     ]
 
 -- \hrule and such.
-headToParseModedRule :: MonadPrimTokenParse m => Q.Axis -> PT.PrimitiveToken -> m AST.Rule
+headToParseModedRule :: MonadPrimTokenParse m => Axis -> PT.PrimitiveToken -> m AST.Rule
 headToParseModedRule axis = \case
   PT.ModedCommand tokenAxis PT.RuleTok
     | axis == tokenAxis ->
@@ -71,9 +71,9 @@ headToParseModedRule axis = \case
       mayDim <-
         PC.optional $
           PC.choice
-            [ parseRuleDimen [Chr_ 'w', Chr_ 'i', Chr_ 'd', Chr_ 't', Chr_ 'h'] Q.BoxWidth,
-              parseRuleDimen [Chr_ 'h', Chr_ 'e', Chr_ 'i', Chr_ 'g', Chr_ 'h', Chr_ 't'] Q.BoxHeight,
-              parseRuleDimen [Chr_ 'd', Chr_ 'e', Chr_ 'p', Chr_ 't', Chr_ 'h'] Q.BoxDepth
+            [ parseRuleDimen [Chr_ 'w', Chr_ 'i', Chr_ 'd', Chr_ 't', Chr_ 'h'] Box.BoxWidth,
+              parseRuleDimen [Chr_ 'h', Chr_ 'e', Chr_ 'i', Chr_ 'g', Chr_ 'h', Chr_ 't'] Box.BoxHeight,
+              parseRuleDimen [Chr_ 'd', Chr_ 'e', Chr_ 'p', Chr_ 't', Chr_ 'h'] Box.BoxDepth
             ]
       case mayDim of
         Just newDim -> go (dims :|> newDim)
@@ -84,7 +84,7 @@ headToParseModedRule axis = \case
       ln <- Par.parseLength
       pure (dimType, ln)
 
-headToParseFetchedBoxRef :: MonadPrimTokenParse m => Q.Axis -> PT.PrimitiveToken -> m AST.FetchedBoxRef
+headToParseFetchedBoxRef :: MonadPrimTokenParse m => Axis -> PT.PrimitiveToken -> m AST.FetchedBoxRef
 headToParseFetchedBoxRef tgtAxis = \case
   PT.ModedCommand tokenAxis (PT.UnwrappedFetchedBoxTok fetchMode) | tgtAxis == tokenAxis -> do
     n <- Par.parseInt

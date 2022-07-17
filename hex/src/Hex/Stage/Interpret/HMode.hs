@@ -1,19 +1,20 @@
-module Hex.Stage.Interpret.CommandHandler.HMode where
+module Hex.Stage.Interpret.HMode where
 
 import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexInput.Interface.CharSourceStack (CharSourceStack)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
-import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
+import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface (MonadHexListExtractor)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
-import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
+import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hexlude
 
 data HModeCommandResult
@@ -47,14 +48,14 @@ handleCommandInHMode oldSrc modeCtx = \case
       throwError $ injectTyped $ AllMode.VModeCommandInInnerHMode
   Eval.HModeCommand hModeCommand -> case hModeCommand of
     Eval.AddHGlue g -> do
-      Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue g
+      Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue g
       pure ContinueHMode
     Eval.AddCharacter c -> do
       charBox <- charAsBox c
-      Build.addHListElement $ H.Inter.B.List.HListHBaseElem $ H.Inter.B.Box.ElemCharacter charBox
+      Build.addHListElement $ ListElem.HListHBaseElem $ BoxElem.ElemCharacter charBox
       pure ContinueHMode
     Eval.AddHRule rule -> do
-      Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.VListBaseElem $ H.Inter.B.Box.ElemBox $ H.Inter.B.Box.RuleContents <$ rule ^. #unRule
+      Build.addHListElement $ ListElem.HVListElem $ ListElem.VListBaseElem $ BoxElem.ElemBox $ BoxElem.ruleAsBaseBox rule
       pure ContinueHMode
     Eval.AddControlSpace ->
       notImplemented "AddControlSpace"
@@ -74,7 +75,7 @@ handleCommandInHMode oldSrc modeCtx = \case
       notImplemented "AddUnwrappedFetchedHBox"
   Eval.AddSpace -> do
     spaceGlue <- HSt.currentFontSpaceGlue >>= note (injectTyped AllMode.NoFontSelected)
-    Build.addHListElement $ H.Inter.B.List.HVListElem $ H.Inter.B.List.ListGlue spaceGlue
+    Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue spaceGlue
     pure ContinueHMode
   Eval.StartParagraph indentFlag -> do
     hModeStartParagraph indentFlag
@@ -108,16 +109,16 @@ charAsBox ::
     AsType AllMode.InterpretError e
   ) =>
   Codes.CharCode ->
-  m H.Inter.B.Box.CharBox
+  m Box.CharBox
 charAsBox char = do
   (width, height, depth, _) <- HSt.currentFontCharacter char >>= note (injectTyped AllMode.NoFontSelected)
   pure $
-    H.Inter.B.Box.CharBox
-      H.Inter.B.Box.Box
-        { H.Inter.B.Box.contents = char,
-          H.Inter.B.Box.boxWidth = width ^. typed @Q.Length,
-          H.Inter.B.Box.boxHeight = height ^. typed @Q.Length,
-          H.Inter.B.Box.boxDepth = depth ^. typed @Q.Length
+    Box.CharBox
+      Box.Box
+        { contents = char,
+          boxWidth = width ^. typed @Q.Length,
+          boxHeight = height ^. typed @Q.Length,
+          boxDepth = depth ^. typed @Q.Length
         }
 
 hModeStartParagraph ::

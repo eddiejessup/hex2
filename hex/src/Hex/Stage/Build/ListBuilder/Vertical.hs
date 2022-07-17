@@ -7,6 +7,7 @@ import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..))
 import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.Box qualified as Box
 import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
@@ -91,13 +92,13 @@ extendVList e vList@(List.VList accSeq) = case e of
     blineGlue <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.BaselineSkip)
     skipLimit <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.LineSkipLimit)
     skip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.LineSkip)
-    HSt.setSpecialLengthParameter HSt.Param.PrevDepth (Box.boxDepth b)
+    HSt.setSpecialLengthParameter HSt.Param.PrevDepth (b.unBaseBox.boxDepth)
     if prevDepth <= (invert Q.oneKPt)
       then do
         Log.infoLog $ "extendVList: Adding box element without interline glue because prevDepth is " <> F.sformat Q.fmtLengthWithUnit prevDepth
         pure $ List.VList $ accSeq :|> e
       else do
-        let proposedBaselineLength = blineGlue.gDimen ~~ prevDepth ~~ Box.boxHeight b
+        let proposedBaselineLength = blineGlue.gDimen ~~ prevDepth ~~ b.unBaseBox.boxHeight
         Log.infoLog $ "extendVList: Proposed baseline length: " <> F.sformat Q.fmtLengthWithUnit proposedBaselineLength <> ", skip limit: " <> F.sformat Q.fmtLengthWithUnit skipLimit
         -- Intuition: set the distance between baselines to \baselineskip, but no
         -- closer than \lineskiplimit [theBaselineLengthMin], in which case

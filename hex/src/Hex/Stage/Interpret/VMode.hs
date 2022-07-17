@@ -1,6 +1,7 @@
-module Hex.Stage.Interpret.CommandHandler.VMode where
+module Hex.Stage.Interpret.VMode where
 
 import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Common.Box qualified as Box
 import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexInput.Interface.CharSourceStack (CharSourceStack)
 import Hex.Common.HexState.Interface qualified as HSt
@@ -12,7 +13,7 @@ import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListElem qualified as List
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
-import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
+import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hexlude
 
@@ -109,7 +110,7 @@ extendVListWithParagraphStateT ::
 extendVListWithParagraphStateT paraHList = do
   lineBoxes <- setAndBreakHListToHBoxes paraHList
   for_ lineBoxes $ \b ->
-    Build.addVListElement $ List.VListBaseElem $ Box.ElemBox (Box.HBoxContents <$> b)
+    Build.addVListElement $ List.VListBaseElem $ Box.ElemBox $ Box.BaseBox (Box.HBoxContents <$> b)
 
 setAndBreakHListToHBoxes ::
   ( HSt.MonadHexState m

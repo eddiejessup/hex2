@@ -1,38 +1,39 @@
 module Hex.Stage.Build.Horizontal.Evaluate where
 
+import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.AnyDirection.Evaluate qualified as Eval
 import Hex.Stage.Build.BoxElem qualified as Box
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
 -- Widths, glue aggregates, box status.
 
-hListNaturalWidth :: H.Inter.B.List.HList -> Q.Length
-hListNaturalWidth = foldMapOf H.Inter.B.List.hListElemTraversal hListElemNaturalWidth
+hListNaturalWidth :: ListElem.HList -> Q.Length
+hListNaturalWidth = foldMapOf ListElem.hListElemTraversal hListElemNaturalWidth
 
-hListElemNaturalWidth :: H.Inter.B.List.HListElem -> Q.Length
+hListElemNaturalWidth :: ListElem.HListElem -> Q.Length
 hListElemNaturalWidth = \case
-  H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue glue) ->
+  ListElem.HVListElem (ListElem.ListGlue glue) ->
     glue ^. #gDimen
-  H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty _) ->
+  ListElem.HVListElem (ListElem.ListPenalty _) ->
     Q.zeroLength
-  H.Inter.B.List.HVListElem (H.Inter.B.List.VListBaseElem (Box.ElemBox b)) ->
-    b ^. #boxWidth
-  H.Inter.B.List.HVListElem (H.Inter.B.List.VListBaseElem (Box.ElemFontDefinition _)) ->
+  ListElem.HVListElem (ListElem.VListBaseElem (Box.ElemBox b)) ->
+    b.unBaseBox.boxWidth
+  ListElem.HVListElem (ListElem.VListBaseElem (Box.ElemFontDefinition _)) ->
     Q.zeroLength
-  H.Inter.B.List.HVListElem (H.Inter.B.List.VListBaseElem (Box.ElemFontSelection _)) ->
+  ListElem.HVListElem (ListElem.VListBaseElem (Box.ElemFontSelection _)) ->
     Q.zeroLength
-  H.Inter.B.List.HVListElem (H.Inter.B.List.VListBaseElem (Box.ElemKern kern)) ->
+  ListElem.HVListElem (ListElem.VListBaseElem (Box.ElemKern kern)) ->
     kern ^. typed @Q.Length
-  H.Inter.B.List.HListHBaseElem (Box.ElemCharacter character) ->
+  ListElem.HListHBaseElem (Box.ElemCharacter character) ->
     character ^. #unCharacter % #boxWidth
 
-hListNetBiFlex :: H.Inter.B.List.HList -> Q.BiNetFlex
-hListNetBiFlex = foldOf (H.Inter.B.List.hListElemTraversal % hListElemBiFlex)
+hListNetBiFlex :: ListElem.HList -> Q.BiNetFlex
+hListNetBiFlex = foldOf (ListElem.hListElemTraversal % hListElemBiFlex)
   where
-    hListElemBiFlex :: AffineFold H.Inter.B.List.HListElem Q.BiNetFlex
-    hListElemBiFlex = _Typed @H.Inter.B.List.VListElem % _Typed @Q.Glue % to Q.asBiNetFlex
+    hListElemBiFlex :: AffineFold ListElem.HListElem Q.BiNetFlex
+    hListElemBiFlex = _Typed @ListElem.VListElem % _Typed @Q.Glue % to Q.asBiNetFlex
 
 -- If x > w, TEX attempts to shrink the contents of the box in a similar way;
 -- the glue order is the highest subscript i such that zi  ̸= 0, and the glue
@@ -69,6 +70,6 @@ hListNetBiFlex = foldOf (H.Inter.B.List.hListElemTraversal % hListElemBiFlex)
 -- >>> applyGlueFlexSpec (NeedsToFlex (ImperfectGlueFlexSpec {flexDirection = Shrink, netFlexInDirection = Q.FinitePureFlex (Q.pt 1), excessWidth = (Q.pt 1)})) (Q.Glue (Q.pt 1) (Q.finFlex (Q.pt 1)) (Q.finFlex (Q.pt 1)))
 -- SetGlue {sgDimen = Length {unLength = HexInt {unHexInt = 0}}}
 
-listFlexSpec :: H.Inter.B.List.HList -> Q.Length -> Eval.GlueFlexSpec
+listFlexSpec :: ListElem.HList -> Q.Length -> Eval.GlueFlexSpec
 listFlexSpec hList desiredWidth =
   Eval.glueFlexSpec ((hListNaturalWidth hList) ~~ desiredWidth) (hListNetBiFlex hList)

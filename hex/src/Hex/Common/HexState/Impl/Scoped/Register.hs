@@ -27,11 +27,11 @@ localQuantRegisterValue (HSt.Reg.QuantRegisterLocation regType loc) = case regTy
   HSt.Reg.MathGlueQuantRegisterType -> fromMaybe Q.zeroMathGlue . HSt.GroupScopes.localProperty (#mathGlueRegister % at' loc)
   HSt.Reg.TokenListQuantRegisterType -> fromMaybe HSt.TL.emptyBalancedText . HSt.GroupScopes.localProperty (#tokenListRegister % at' loc)
 
-setBoxRegisterValue :: HSt.Reg.RegisterLocation -> Box.Box Box.BaseBoxContents -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
+setBoxRegisterValue :: HSt.Reg.RegisterLocation -> Box.BaseBox -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
 setBoxRegisterValue = HSt.GroupScopes.setScopedMapValue #boxRegister
 
 unsetBoxRegisterValue :: HSt.Reg.RegisterLocation -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
 unsetBoxRegisterValue = HSt.GroupScopes.unsetScopedMapValue #boxRegister
 
-localBoxRegisterValue :: HSt.Reg.RegisterLocation -> GroupScopes -> Maybe (Box.Box Box.BaseBoxContents)
+localBoxRegisterValue :: HSt.Reg.RegisterLocation -> GroupScopes -> Maybe Box.BaseBox
 localBoxRegisterValue loc = HSt.GroupScopes.localProperty (#boxRegister % at' loc)

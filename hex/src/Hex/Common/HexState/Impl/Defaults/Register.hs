@@ -4,7 +4,7 @@ import Hex.Common.HexState.Impl.Defaults.Common (initialiseFiniteMap)
 import Hex.Common.HexState.Interface.Register qualified as Reg
 import Hex.Common.HexState.Interface.TokenList qualified as TL
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hexlude
 
 newIntRegister :: Map Reg.RegisterLocation Q.HexInt
@@ -23,5 +23,5 @@ newTokenListRegister :: Map Reg.RegisterLocation TL.BalancedText
 newTokenListRegister = initialiseFiniteMap (const mempty)
 
 -- A box register may actually be empty, it isn't a complete property.
-newBoxRegister :: Map Reg.RegisterLocation (Box.Box Box.BaseBoxContents)
+newBoxRegister :: Map Reg.RegisterLocation BoxElem.BaseBox
 newBoxRegister = mempty

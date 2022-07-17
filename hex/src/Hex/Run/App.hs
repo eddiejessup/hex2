@@ -25,7 +25,7 @@ import Hex.Stage.Evaluate.Interface (MonadEvaluate)
 import Hex.Stage.Expand.Impl (PrimTokenSourceT (..))
 import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
 import Hex.Stage.Expand.Interface qualified as Expand
-import Hex.Stage.Interpret.CommandHandler.AllMode qualified as Interpret
+import Hex.Stage.Interpret.AllMode qualified as Interpret
 import Hex.Stage.Parse.Impl (CommandSourceT (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude

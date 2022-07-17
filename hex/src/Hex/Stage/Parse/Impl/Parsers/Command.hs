@@ -120,14 +120,14 @@ parseCommand =
           AST.ModeIndependentCommand . AST.WriteToStream <$> Par.headToParseWriteToStream AST.Deferred t,
           AST.ModeIndependentCommand . AST.AddBox AST.NaturalPlacement <$> Par.headToParseBox t,
           AST.HModeCommand . AST.AddCharacter <$> headToParseCharCodeRef t,
-          AST.HModeCommand . AST.AddHGlue <$> Par.headToParseModedAddGlue Q.Horizontal t,
-          AST.HModeCommand . AST.AddHLeaders <$> Par.headToParseLeadersSpec Q.Horizontal t,
-          AST.HModeCommand . AST.AddHRule <$> Par.headToParseModedRule Q.Horizontal t,
-          AST.HModeCommand . AST.AddUnwrappedFetchedHBox <$> Par.headToParseFetchedBoxRef Q.Horizontal t,
-          AST.VModeCommand . AST.AddVGlue <$> Par.headToParseModedAddGlue Q.Vertical t,
-          AST.VModeCommand . AST.AddVLeaders <$> Par.headToParseLeadersSpec Q.Vertical t,
-          AST.VModeCommand . AST.AddVRule <$> Par.headToParseModedRule Q.Vertical t,
-          AST.VModeCommand . AST.AddUnwrappedFetchedVBox <$> Par.headToParseFetchedBoxRef Q.Vertical t
+          AST.HModeCommand . AST.AddHGlue <$> Par.headToParseModedAddGlue Horizontal t,
+          AST.HModeCommand . AST.AddHLeaders <$> Par.headToParseLeadersSpec Horizontal t,
+          AST.HModeCommand . AST.AddHRule <$> Par.headToParseModedRule Horizontal t,
+          AST.HModeCommand . AST.AddUnwrappedFetchedHBox <$> Par.headToParseFetchedBoxRef Horizontal t,
+          AST.VModeCommand . AST.AddVGlue <$> Par.headToParseModedAddGlue Vertical t,
+          AST.VModeCommand . AST.AddVLeaders <$> Par.headToParseLeadersSpec Vertical t,
+          AST.VModeCommand . AST.AddVRule <$> Par.headToParseModedRule Vertical t,
+          AST.VModeCommand . AST.AddUnwrappedFetchedVBox <$> Par.headToParseFetchedBoxRef Vertical t
         ]
 
 headToParseInternalQuantity :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.InternalQuantity

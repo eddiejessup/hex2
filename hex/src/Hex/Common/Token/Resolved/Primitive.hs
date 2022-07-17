@@ -3,6 +3,7 @@ module Hex.Common.Token.Resolved.Primitive where
 import ASCII qualified
 import ASCII.Char qualified
 import Formatting qualified as F
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
@@ -59,7 +60,7 @@ data ModedCommandPrimitiveToken
   = SpecifiedGlueTok -- \vskip, \hskip
   | PresetGlueTok PresetGlueType -- \{v,h}{fil,fill,filneg,ss}
   | AlignedMaterialTok -- \halign, \valign
-  | ShiftedBoxTok Q.Direction -- \moveleft, \moveright, \raise, \lower
+  | ShiftedBoxTok Direction -- \moveleft, \moveright, \raise, \lower
   | UnwrappedFetchedBoxTok HSt.Register.BoxFetchMode -- \un{v,h}{box,copy}
   | RuleTok -- \hrule, \vrule
   deriving stock (Show, Eq, Generic)
@@ -172,7 +173,7 @@ data PrimitiveToken
   | StartParagraphTok ListExtractor.IndentFlag -- \indent, \noindent
   | EndParagraphTok -- \par
   -- Starters of mode-specific commands with almost mode-independent grammar.
-  | ModedCommand Q.Axis ModedCommandPrimitiveToken
+  | ModedCommand Axis ModedCommandPrimitiveToken
   | -- Starters of Vertical-Mode-specific commands.
     EndTok -- \end
   | DumpTok -- \dump
@@ -213,7 +214,7 @@ data PrimitiveToken
     ShortDefHeadTok CharryQuantityType
   | -- > Modifying variable values with arithmetic.
     AdvanceVarTok -- \advance
-  | ScaleVarTok Q.VDirection -- \multiply, \divide.
+  | ScaleVarTok VDirection -- \multiply, \divide.
   | CodeTypeTok CodeType
   | -- > Aliasing tokens.
     LetTok -- \let
@@ -228,7 +229,7 @@ data PrimitiveToken
   -- Internal lengths.
   | LastKernTok -- \lastkern
   | FontDimensionTok -- \fontdimen
-  | BoxDimensionTok Q.BoxDim -- \ht, \wd, \dp
+  | BoxDimensionTok Box.BoxDim -- \ht, \wd, \dp
   -- Internal glues.
   | LastGlueTok -- \lastskip
   -- Specifying boxes.

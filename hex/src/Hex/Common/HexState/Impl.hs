@@ -7,6 +7,7 @@ import Data.Text qualified as Tx
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (MonadHexLog (..), debugLog)
 import Hex.Common.Codes qualified as Code
+import Hex.Common.DVI.Instruction qualified as DVI
 import Hex.Common.HexEnv.Interface qualified as Env
 import Hex.Common.HexEnv.Interface qualified as HEnv
 import Hex.Common.HexState.Impl.Font qualified as Sc.Font
@@ -32,13 +33,12 @@ import Hex.Common.TFM.Get qualified as TFM
 import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved (ResolvedToken)
-import Hex.Stage.Build.BoxElem qualified as Box
-import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
+import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hexlude
 import System.FilePath qualified as FilePath
 
 data HexStateError
-  = FontNotFound Q.HexFilePath
+  = FontNotFound HexFilePath
   | MissingFontNumber
   | BadPath Text
   | CharacterCodeNotFound
@@ -89,10 +89,10 @@ instance
   setQuantRegisterValue param value scopeFlag =
     modifyGroupScopes $ Sc.R.setQuantRegisterValue param value scopeFlag
 
-  fetchBoxRegisterValue :: HSt.Reg.BoxFetchMode -> HSt.Reg.RegisterLocation -> HexStateT m (Maybe (Box.Box Box.BaseBoxContents))
+  fetchBoxRegisterValue :: HSt.Reg.BoxFetchMode -> HSt.Reg.RegisterLocation -> HexStateT m (Maybe BoxElem.BaseBox)
   fetchBoxRegisterValue = fetchBoxRegisterValueImpl
 
-  setBoxRegisterValue :: HSt.Reg.RegisterLocation -> Maybe (Box.Box Box.BaseBoxContents) -> HSt.Grouped.ScopeFlag -> HexStateT m ()
+  setBoxRegisterValue :: HSt.Reg.RegisterLocation -> Maybe BoxElem.BaseBox -> HSt.Grouped.ScopeFlag -> HexStateT m ()
   setBoxRegisterValue = setBoxRegisterValueImpl
 
   getSpecialIntParameter :: HSt.Param.SpecialIntParameter -> (HexStateT m) Q.HexInt
@@ -121,9 +121,9 @@ instance
     modifyGroupScopes $ Sc.Sym.setSymbol symbol target scopeFlag
 
   loadFont ::
-    Q.HexFilePath ->
-    H.Inter.B.Box.FontSpecification ->
-    HexStateT m (H.Inter.B.Box.FontDefinition, HSt.Font.FontNumber)
+    HexFilePath ->
+    TFM.FontSpecification ->
+    HexStateT m DVI.FontDefinition
   loadFont fontPath spec = do
     fontBytes <-
       Env.findAndReadFile
@@ -133,7 +133,7 @@ instance
 
     fontInfo <- readFontInfo fontBytes
 
-    let designScale = H.Inter.B.Box.fontSpecToDesignScale fontInfo.fontMetrics.designFontSize spec
+    let designScale = TFM.fontSpecToDesignScale fontInfo.fontMetrics.designFontSize spec
 
     mayLastKey <- use $ typed @HexState % #fontInfos % to Map.lookupMax
     let fontNr = case mayLastKey of
@@ -144,15 +144,16 @@ instance
     let fontName = Tx.pack $ FilePath.takeBaseName (fontPath ^. typed @FilePath)
 
         fontDef =
-          H.Inter.B.Box.FontDefinition
+          DVI.FontDefinition
             { fontDefChecksum = fontInfo.fontMetrics.checksum,
               fontDefDesignSize = fontInfo.fontMetrics.designFontSize,
               fontDefDesignScale = designScale,
               fontPath,
-              fontName
+              fontName,
+              fontNr
             }
 
-    pure (fontDef, fontNr)
+    pure fontDef
 
   currentFontNumber :: HexStateT m HSt.Font.FontNumber
   currentFontNumber = currentFontNumberImpl
@@ -272,7 +273,7 @@ fetchBoxRegisterValueImpl ::
   ) =>
   HSt.Reg.BoxFetchMode ->
   HSt.Reg.RegisterLocation ->
-  m (Maybe (Box.Box Box.BaseBoxContents))
+  m (Maybe BoxElem.BaseBox)
 fetchBoxRegisterValueImpl fetchMode loc = do
   mayV <- getGroupScopesProperty (Sc.R.localBoxRegisterValue loc)
   case fetchMode of
@@ -285,7 +286,7 @@ setBoxRegisterValueImpl ::
     HasType HexState st
   ) =>
   HSt.Reg.RegisterLocation ->
-  Maybe (Box.Box Box.BaseBoxContents) ->
+  Maybe BoxElem.BaseBox ->
   HSt.Grouped.ScopeFlag ->
   m ()
 setBoxRegisterValueImpl loc mayV scope =

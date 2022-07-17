@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-missing-methods #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 module State where
@@ -9,9 +8,8 @@ import Hex.Common.HexState.Impl.Type qualified as HSt
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font (FontNumber (..))
 import Hex.Common.HexState.Interface.Grouped (ScopeFlag (..))
-import Hex.Common.Quantity qualified as Q
+import Hex.Common.TFM.Types qualified as TFM
 import Hex.Run.App
-import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
 import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
@@ -31,5 +29,5 @@ testLoadSelectFont = do
   where
     go :: T.TestApp ()
     go = do
-      fontDef <- HSt.loadFont (Q.HexFilePath "cmr10") H.Inter.B.Box.NaturalFont
+      fontDef <- HSt.loadFont (HexFilePath "cmr10") TFM.NaturalFont
       HSt.selectFont (fontDef ^. typed @FontNumber) Local

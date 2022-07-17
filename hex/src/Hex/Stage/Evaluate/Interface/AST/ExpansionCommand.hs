@@ -25,10 +25,10 @@ data ExpansionCommand
   | ExpandAfter LT.LexToken LT.LexToken
   | NoExpand LT.LexToken
   | GetMarkRegister ST.MarkRegister
-  | OpenInputFile Q.HexFilePath
+  | OpenInputFile HexFilePath
   | EndInputFile
   | RenderInternalQuantity Eval.InternalQuantity
-  | ChangeCase Q.VDirection HSt.TL.InhibitedBalancedText
+  | ChangeCase VDirection HSt.TL.InhibitedBalancedText
   deriving stock (Show, Eq, Generic)
 
 data ConditionOutcome = IfConditionOutcome IfOutcome | CaseConditionOutcome Q.HexInt

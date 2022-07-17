@@ -3,7 +3,9 @@
 module Hex.Common.HexState.Interface where
 
 import Formatting qualified as F
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.DVI.Instruction qualified as DVI
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
@@ -13,13 +15,13 @@ import Hex.Common.HexState.Interface.Register qualified as Reg
 import Hex.Common.HexState.Interface.Resolve qualified as HSt.Res
 import Hex.Common.HexState.Interface.Variable qualified as Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved (ResolvedToken)
 import Hex.Common.Token.Resolved qualified as RT
 import Hex.Common.Token.Resolved.Primitive qualified as PT
-import Hex.Stage.Build.BoxElem qualified as Box
-import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
+import Hex.Stage.Build.BoxElem qualified as BoxElem
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
 data ResolutionError = UnknownSymbolError HSt.Res.ControlSymbol
@@ -39,9 +41,9 @@ class Monad m => MonadHexState m where
 
   setQuantRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> m ()
 
-  fetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> m (Maybe (Box.Box Box.BaseBoxContents))
+  fetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> m (Maybe BoxElem.BaseBox)
 
-  setBoxRegisterValue :: Reg.RegisterLocation -> Maybe (Box.Box Box.BaseBoxContents) -> HSt.Grouped.ScopeFlag -> m ()
+  setBoxRegisterValue :: Reg.RegisterLocation -> Maybe BoxElem.BaseBox -> HSt.Grouped.ScopeFlag -> m ()
 
   getSpecialIntParameter :: Param.SpecialIntParameter -> m Q.HexInt
 
@@ -59,7 +61,7 @@ class Monad m => MonadHexState m where
 
   setSymbol :: HSt.Res.ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> m ()
 
-  loadFont :: Q.HexFilePath -> H.Inter.B.Box.FontSpecification -> m (H.Inter.B.Box.FontDefinition, Font.FontNumber)
+  loadFont :: HexFilePath -> TFM.FontSpecification -> m DVI.FontDefinition
 
   selectFont :: Font.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
 
@@ -108,19 +110,20 @@ instance MonadHexState m => MonadHexState (StateT a m) where
   pushGroup x = lift $ pushGroup x
   popGroup x = lift $ popGroup x
 
-getParIndentBox :: MonadHexState m => m H.Inter.B.List.HListElem
+getParIndentBox :: MonadHexState m => m ListElem.HListElem
 getParIndentBox = do
   boxWidth <- getParameterValue (Param.LengthQuantParam Param.ParIndent)
   pure $
-    H.Inter.B.List.HVListElem $
-      H.Inter.B.List.VListBaseElem $
-        H.Inter.B.Box.ElemBox $
-          H.Inter.B.Box.Box
-            { H.Inter.B.Box.contents = H.Inter.B.Box.HBoxContents (H.Inter.B.Box.HBoxElemSeq Empty),
-              H.Inter.B.Box.boxWidth,
-              H.Inter.B.Box.boxHeight = mempty,
-              H.Inter.B.Box.boxDepth = mempty
-            }
+    ListElem.HVListElem $
+      ListElem.VListBaseElem $
+        BoxElem.ElemBox $
+          BoxElem.BaseBox $
+            Box.Box
+              { contents = BoxElem.HBoxContents (BoxElem.HBoxElemSeq Empty),
+                boxWidth,
+                boxHeight = mempty,
+                boxDepth = mempty
+              }
 
 modifyParameterValue ::
   forall (q :: Q.QuantityType) m.
@@ -161,7 +164,7 @@ scaleParameterValue ::
   forall q m.
   (MonadHexState m, Q.Scalable (Var.QuantVariableTarget q)) =>
   Param.QuantParam q ->
-  Q.VDirection ->
+  VDirection ->
   Q.HexInt ->
   HSt.Grouped.ScopeFlag ->
   m ()
@@ -180,7 +183,7 @@ advanceRegisterValue loc plusVal =
 scaleRegisterValue ::
   (MonadHexState m, Q.Scalable (Var.QuantVariableTarget q)) =>
   Reg.QuantRegisterLocation q ->
-  Q.VDirection ->
+  VDirection ->
   Q.HexInt ->
   HSt.Grouped.ScopeFlag ->
   m ()

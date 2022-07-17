@@ -8,12 +8,12 @@ import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Build.ListBuilder.Interface
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Evaluate.Interface (MonadEvaluate (..))
 import Hex.Stage.Parse.Interface (MonadCommandSource (..))
 import Hexlude
 
-newtype HListBuilderT m a = HListBuilderT {unHListBuilderT :: StateT H.Inter.B.List.HList m a}
+newtype HListBuilderT m a = HListBuilderT {unHListBuilderT :: StateT ListElem.HList m a}
   deriving newtype
     ( Functor,
       Applicative,
@@ -44,10 +44,10 @@ instance HIn.MonadHexInput m => HIn.MonadHexInput (HListBuilderT m) where
 
   openInputFile x = lift $ HIn.openInputFile x
 
-runHListBuilderT :: H.Inter.B.List.HList -> HListBuilderT m a -> m (a, H.Inter.B.List.HList)
+runHListBuilderT :: ListElem.HList -> HListBuilderT m a -> m (a, ListElem.HList)
 runHListBuilderT initHList app = runStateT (unHListBuilderT app) initHList
 
-execHListBuilderT :: Monad m => H.Inter.B.List.HList -> HListBuilderT m a -> m H.Inter.B.List.HList
+execHListBuilderT :: Monad m => ListElem.HList -> HListBuilderT m a -> m ListElem.HList
 execHListBuilderT initHList app = execStateT (unHListBuilderT app) initHList
 
 instance MonadTrans HListBuilderT where
@@ -57,9 +57,9 @@ instance (HSt.MonadHexState m) => MonadHListBuilder (HListBuilderT m) where
   addHListElement = addHListElementImpl
 
 instance (HSt.MonadHexState m) => MonadHexListBuilder (HListBuilderT m) where
-  addVListElement e = addHListElementImpl (H.Inter.B.List.HVListElem e)
+  addVListElement e = addHListElementImpl (ListElem.HVListElem e)
 
-addHListElementImpl :: HSt.MonadHexState m => H.Inter.B.List.HListElem -> HListBuilderT m ()
+addHListElementImpl :: HSt.MonadHexState m => ListElem.HListElem -> HListBuilderT m ()
 addHListElementImpl e = do
   hList <- HListBuilderT $ get
   newHList <- lift $ extendHList e hList
@@ -69,8 +69,8 @@ addHListElementImpl e = do
 -- this keeps things symmetric with the 'vlist' case.
 extendHList ::
   Monad m =>
-  H.Inter.B.List.HListElem ->
-  H.Inter.B.List.HList ->
-  m H.Inter.B.List.HList
-extendHList e (H.Inter.B.List.HList accSeq) =
-  pure $ H.Inter.B.List.HList $ accSeq :|> e
+  ListElem.HListElem ->
+  ListElem.HList ->
+  m ListElem.HList
+extendHList e (ListElem.HList accSeq) =
+  pure $ ListElem.HList $ accSeq :|> e

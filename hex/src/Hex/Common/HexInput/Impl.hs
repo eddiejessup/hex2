@@ -18,7 +18,6 @@ import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
 
@@ -167,7 +166,7 @@ openInputFileImpl ::
     MonadError e m,
     AsType HIn.LexError e
   ) =>
-  Q.HexFilePath ->
+  HexFilePath ->
   m ()
 openInputFileImpl inputPath = do
   inputBytes <-

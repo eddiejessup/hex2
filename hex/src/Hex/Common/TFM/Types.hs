@@ -74,6 +74,22 @@ lengthFromDesignSize (LengthDesignSize d) = Q.scaleLengthByRational d
 fontLengthParamLength :: Font -> (Font -> LengthDesignSize) -> Q.Length
 fontLengthParamLength font getLengthInDS = lengthFromFontDesignSize font (getLengthInDS font)
 
+data FontSpecification
+  = NaturalFont
+  | FontAt Q.Length
+  | FontScaled Q.HexInt
+  deriving stock (Show, Eq, Generic)
+
+fontSpecToDesignScale :: Q.Length -> FontSpecification -> Q.Length
+fontSpecToDesignScale designSize = \case
+  NaturalFont ->
+    designSize
+  FontAt length ->
+    length
+  FontScaled scaleFactor ->
+    let scaleFactorRational = Q.intRatio scaleFactor (Q.HexInt 1000)
+     in Q.scaleLengthByRational scaleFactorRational designSize
+
 data FontParams = FontParams
   { -- `slant`, the amount of italic slant, which is used to help position
     -- accents. For example, `slant = 0.25` means that when you go up one unit,
@@ -161,13 +177,6 @@ data CharacterSpecial
   = ExtensibleRecipeSpecial Recipe
   | LigKernIndex Word8
   | NextLargerChar Word8
-  deriving stock (Show)
-
-data Tag
-  = Plain
-  | LigKern
-  | Chain
-  | Extensible
   deriving stock (Show)
 
 data Recipe = Recipe

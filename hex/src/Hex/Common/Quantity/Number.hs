@@ -2,7 +2,6 @@ module Hex.Common.Quantity.Number where
 
 import Data.Ratio qualified as Ratio
 import Formatting qualified as F
-import Hex.Common.Quantity.Common
 import Hexlude
 
 class Group a => Scalable a where

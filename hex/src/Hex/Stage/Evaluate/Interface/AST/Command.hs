@@ -2,6 +2,7 @@
 
 module Hex.Stage.Evaluate.Interface.AST.Command where
 
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
@@ -12,11 +13,12 @@ import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Common.Token.Resolved.Primitive qualified as PT
-import Hex.Stage.Build.BoxElem (FontSpecification, Kern, Rule)
-import Hex.Stage.Build.ListElem (Penalty)
+import Hex.Stage.Build.BoxElem qualified as BoxElem
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
@@ -80,8 +82,8 @@ data ModeIndependentCommand
   = Assign Assignment
   | Relax
   | IgnoreSpaces
-  | AddPenalty Penalty
-  | AddKern Kern
+  | AddPenalty ListElem.Penalty
+  | AddKern BoxElem.Kern
   | AddMathKern Q.MathLength
   | RemoveItem PT.RemovableItem
   | SetAfterAssignmentToken LT.LexToken
@@ -105,7 +107,7 @@ data HModeCommand
   | EnterMathMode
   | AddHGlue Q.Glue
   | AddHLeaders Uneval.LeadersSpec
-  | AddHRule Rule
+  | AddHRule Box.Rule
   | AddUnwrappedFetchedHBox Uneval.FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
 
@@ -159,7 +161,7 @@ data ControlSequenceTarget
   | FontTarget FontFileSpec
   deriving stock (Show, Eq, Generic)
 
-data FontFileSpec = FontFileSpec FontSpecification Q.HexFilePath
+data FontFileSpec = FontFileSpec TFM.FontSpecification HexFilePath
   deriving stock (Show, Eq, Generic)
 
 data Box
@@ -197,7 +199,7 @@ data VariableModification
   | AdvanceLengthVariable (HSt.Var.QuantVariable 'Q.LengthQuantity) (HSt.Var.QuantVariableTarget 'Q.LengthQuantity)
   | AdvanceGlueVariable (HSt.Var.QuantVariable 'Q.GlueQuantity) (HSt.Var.QuantVariableTarget 'Q.GlueQuantity)
   | AdvanceMathGlueVariable (HSt.Var.QuantVariable 'Q.MathGlueQuantity) (HSt.Var.QuantVariableTarget 'Q.MathGlueQuantity)
-  | ScaleVariable Q.VDirection NumericVariable Q.HexInt
+  | ScaleVariable VDirection NumericVariable Q.HexInt
   deriving stock (Show, Eq, Generic)
 
 data NumericVariable

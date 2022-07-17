@@ -1,15 +1,16 @@
 module Hex.Stage.Build.ListElem where
 
 import Formatting qualified as F
+import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
+import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hexlude
 
 -- Elements.
 
 -- Vertical list.
 data VListElem
-  = VListBaseElem H.Inter.B.Box.BaseElem
+  = VListBaseElem BoxElem.BaseElem
   | ListGlue Q.Glue
   | ListPenalty Penalty
   deriving stock (Show, Generic)
@@ -17,10 +18,10 @@ data VListElem
 vListElemIsBox :: VListElem -> Bool
 vListElemIsBox = \case
   VListBaseElem baseElem -> case baseElem of
-    H.Inter.B.Box.ElemBox _ -> True
-    H.Inter.B.Box.ElemFontDefinition _ -> False
-    H.Inter.B.Box.ElemFontSelection _ -> False
-    H.Inter.B.Box.ElemKern _ -> False
+    BoxElem.ElemBox _ -> True
+    BoxElem.ElemFontDefinition _ -> False
+    BoxElem.ElemFontSelection _ -> False
+    BoxElem.ElemKern _ -> False
   ListGlue _ -> False
   ListPenalty _ -> False
 
@@ -32,66 +33,66 @@ newtype Penalty = Penalty {unPenalty :: Q.HexInt}
 -- TODO: Ligature, DiscretionaryBreak, Math on/off, V-adust
 data HListElem
   = HVListElem VListElem
-  | HListHBaseElem H.Inter.B.Box.HBaseElem
+  | HListHBaseElem BoxElem.HBaseElem
   deriving stock (Show, Generic)
 
 hListElemNaturalWidth :: HListElem -> Q.Length
 hListElemNaturalWidth = \case
   HVListElem vListElem -> case vListElem of
     VListBaseElem baseElem -> case baseElem of
-      H.Inter.B.Box.ElemBox box ->
-        box.boxWidth
-      H.Inter.B.Box.ElemFontDefinition _fontDefinition ->
+      BoxElem.ElemBox box ->
+        box.unBaseBox.boxWidth
+      BoxElem.ElemFontDefinition _fontDefinition ->
         Q.zeroLength
-      H.Inter.B.Box.ElemFontSelection _fontSelection ->
+      BoxElem.ElemFontSelection _fontSelection ->
         Q.zeroLength
-      H.Inter.B.Box.ElemKern kern ->
+      BoxElem.ElemKern kern ->
         kern.unKern
     ListGlue glue ->
       glue.gDimen
     ListPenalty _penalty -> Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
-    H.Inter.B.Box.ElemCharacter charBox ->
+    BoxElem.ElemCharacter charBox ->
       charBox.unCharacter.boxWidth
 
 hListElemNaturalDepth :: HListElem -> Q.Length
 hListElemNaturalDepth = \case
   HVListElem vListElem -> case vListElem of
     VListBaseElem baseElem -> case baseElem of
-      H.Inter.B.Box.ElemBox box ->
-        box.boxDepth
-      H.Inter.B.Box.ElemFontDefinition _fontDefinition ->
+      BoxElem.ElemBox box ->
+        box.unBaseBox.boxDepth
+      BoxElem.ElemFontDefinition _fontDefinition ->
         Q.zeroLength
-      H.Inter.B.Box.ElemFontSelection _fontSelection ->
+      BoxElem.ElemFontSelection _fontSelection ->
         Q.zeroLength
-      H.Inter.B.Box.ElemKern _kern ->
+      BoxElem.ElemKern _kern ->
         Q.zeroLength
     ListGlue _glue ->
       Q.zeroLength
     ListPenalty _penalty ->
       Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
-    H.Inter.B.Box.ElemCharacter charBox ->
+    BoxElem.ElemCharacter charBox ->
       charBox.unCharacter.boxDepth
 
 hListElemNaturalHeight :: HListElem -> Q.Length
 hListElemNaturalHeight = \case
   HVListElem vListElem -> case vListElem of
     VListBaseElem baseElem -> case baseElem of
-      H.Inter.B.Box.ElemBox box ->
-        box.boxHeight
-      H.Inter.B.Box.ElemFontDefinition _fontDefinition ->
+      BoxElem.ElemBox box ->
+        box.unBaseBox.boxHeight
+      BoxElem.ElemFontDefinition _fontDefinition ->
         Q.zeroLength
-      H.Inter.B.Box.ElemFontSelection _fontSelection ->
+      BoxElem.ElemFontSelection _fontSelection ->
         Q.zeroLength
-      H.Inter.B.Box.ElemKern _kern ->
+      BoxElem.ElemKern _kern ->
         Q.zeroLength
     ListGlue _glue ->
       Q.zeroLength
     ListPenalty _penalty ->
       Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
-    H.Inter.B.Box.ElemCharacter charBox ->
+    BoxElem.ElemCharacter charBox ->
       charBox.unCharacter.boxHeight
 
 -- Lists.
@@ -134,7 +135,7 @@ fmtHListElemsOneLine = F.commaSpaceSep fmtHListElem
 fmtHListElem :: Fmt HListElem
 fmtHListElem = F.later $ \case
   HVListElem vEl -> bformat fmtVListElem vEl
-  HListHBaseElem e -> bformat H.Inter.B.Box.fmtHBaseElem e
+  HListHBaseElem e -> bformat BoxElem.fmtHBaseElem e
 
 newtype VList = VList {unVList :: Seq VListElem}
   deriving stock (Show, Generic)
@@ -155,7 +156,7 @@ fmtVListElemSeq = F.intercalated "\n\n" fmtVListElem
 fmtVListElem :: F.Format r (VListElem -> r)
 fmtVListElem = F.later $ \case
   VListBaseElem e ->
-    bformat H.Inter.B.Box.fmtBaseElemOneLine e
+    bformat BoxElem.fmtBaseElemOneLine e
   ListGlue g ->
     bformat Q.fmtGlue g
   ListPenalty _ ->

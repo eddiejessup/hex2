@@ -1,5 +1,6 @@
 module Hex.Stage.Build.Vertical.Evaluate where
 
+import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.AnyDirection.Evaluate qualified as Eval
 import Hex.Stage.Build.BoxElem qualified as Box
@@ -16,7 +17,7 @@ vListElemNaturalHeight = \case
   List.ListPenalty _ ->
     Q.zeroLength
   List.VListBaseElem (Box.ElemBox b) ->
-    b.boxHeight
+    b.unBaseBox.boxHeight
   List.VListBaseElem (Box.ElemFontDefinition _) ->
     Q.zeroLength
   List.VListBaseElem (Box.ElemFontSelection _) ->

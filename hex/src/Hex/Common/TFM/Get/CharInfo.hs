@@ -1,7 +1,7 @@
 module Hex.Common.TFM.Get.CharInfo where
 
 import Data.Serialize.Get qualified as Ser
-import Hex.Common.TFM.Types
+import Hex.Common.TFM.Get.Types qualified as Internal
 import Hexlude
 
 data CharInfo = CharInfo
@@ -9,7 +9,7 @@ data CharInfo = CharInfo
     heightIdx :: Word8,
     depthIdx :: Word8,
     italicCorrectionIdx :: Word8,
-    tag :: Tag,
+    tag :: Internal.Tag,
     charRemainder :: Word8
   }
 
@@ -21,10 +21,10 @@ getCharInfo =
     italicTagByte <- Ser.getWord8
     charRemainder <- Ser.getWord8
     let tag = case italicTagByte .&. 0x3 of
-          0 -> Plain
-          1 -> LigKern
-          2 -> Chain
-          3 -> Extensible
+          0 -> Internal.Plain
+          1 -> Internal.LigKern
+          2 -> Internal.Chain
+          3 -> Internal.Extensible
           _ -> panic "impossible"
     pure
       CharInfo

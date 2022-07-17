@@ -1,6 +1,7 @@
 module Hex.Common.HexState.Impl.Defaults.Symbol where
 
 import Data.Map.Strict qualified as Map
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font
 import Hex.Common.HexState.Interface.Grouped
@@ -31,10 +32,10 @@ condTok :: ConditionHeadTok -> ResolvedToken
 condTok e = expandHeadTok $ ConditionTok $ ConditionHeadTok e
 
 vModeTok :: ModedCommandPrimitiveToken -> ResolvedToken
-vModeTok e = primTok $ ModedCommand Q.Vertical e
+vModeTok e = primTok $ ModedCommand Vertical e
 
 hModeTok :: ModedCommandPrimitiveToken -> ResolvedToken
-hModeTok e = primTok $ ModedCommand Q.Horizontal e
+hModeTok e = primTok $ ModedCommand Horizontal e
 
 initialSymbolMap :: H.Res.SymbolMap
 initialSymbolMap =
@@ -76,8 +77,8 @@ initialSymbolMap =
       (_cs "input", expandHeadTok InputTok),
       (_cs "endinput", expandHeadTok EndInputTok),
       (_cs "the", expandHeadTok TheTok),
-      (_cs "uppercase", expandHeadTok $ ChangeCaseTok Q.Upward),
-      (_cs "lowercase", expandHeadTok $ ChangeCaseTok Q.Downward),
+      (_cs "uppercase", expandHeadTok $ ChangeCaseTok Upward),
+      (_cs "lowercase", expandHeadTok $ ChangeCaseTok Downward),
       -- Arguments of expansion-commands.
       (_cs "endcsname", primTok EndCSNameTok),
       -- Nothing special.
@@ -130,10 +131,10 @@ initialSymbolMap =
       -- Other moded.
       (_cs "halign", hModeTok AlignedMaterialTok),
       (_cs "valign", vModeTok AlignedMaterialTok),
-      (_cs "moveleft", hModeTok $ ShiftedBoxTok Q.Backward),
-      (_cs "moveright", hModeTok $ ShiftedBoxTok Q.Forward),
-      (_cs "raise", vModeTok $ ShiftedBoxTok Q.Backward),
-      (_cs "lower", vModeTok $ ShiftedBoxTok Q.Forward),
+      (_cs "moveleft", hModeTok $ ShiftedBoxTok Backward),
+      (_cs "moveright", hModeTok $ ShiftedBoxTok Forward),
+      (_cs "raise", vModeTok $ ShiftedBoxTok Backward),
+      (_cs "lower", vModeTok $ ShiftedBoxTok Forward),
       (_cs "unvbox", vModeTok $ UnwrappedFetchedBoxTok Pop),
       (_cs "unhbox", hModeTok $ UnwrappedFetchedBoxTok Pop),
       (_cs "unvcopy", vModeTok $ UnwrappedFetchedBoxTok Lookup),
@@ -298,8 +299,8 @@ initialSymbolMap =
       (_cs "toksdef", primTok $ ShortDefHeadTok $ QuantityType Q.TokenListQuantity),
       -- Modify variables.
       (_cs "advance", primTok AdvanceVarTok),
-      (_cs "multiply", primTok $ ScaleVarTok Q.Upward),
-      (_cs "divide", primTok $ ScaleVarTok Q.Downward),
+      (_cs "multiply", primTok $ ScaleVarTok Upward),
+      (_cs "divide", primTok $ ScaleVarTok Downward),
       -- Code types.
       (_cs "catcode", primTok $ CodeTypeTok Code.CatCodeType),
       (_cs "mathcode", primTok $ CodeTypeTok Code.MathCodeType),
@@ -322,9 +323,9 @@ initialSymbolMap =
       -- Internal length.
       (_cs "lastkern", primTok LastKernTok),
       (_cs "fontdimen", primTok FontDimensionTok),
-      (_cs "ht", primTok $ BoxDimensionTok Q.BoxHeight),
-      (_cs "wd", primTok $ BoxDimensionTok Q.BoxWidth),
-      (_cs "dp", primTok $ BoxDimensionTok Q.BoxDepth),
+      (_cs "ht", primTok $ BoxDimensionTok Box.BoxHeight),
+      (_cs "wd", primTok $ BoxDimensionTok Box.BoxWidth),
+      (_cs "dp", primTok $ BoxDimensionTok Box.BoxDepth),
       -- Internal glue.
       (_cs "lastskip", primTok LastGlueTok),
       -- Specifying a box.

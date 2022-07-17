@@ -7,20 +7,20 @@ import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Page
 import Hex.Stage.Build.AnyDirection.Evaluate qualified as Page
 import Hex.Stage.Build.Horizontal.Evaluate
 import Hex.Stage.Build.Horizontal.Paragraph.Types
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
 data ChunkedHListElem
-  = HListChunk (Seq H.Inter.B.List.HListElem)
-  | HListBreakItem H.Inter.B.List.HListElem Page.BreakItem
+  = HListChunk (Seq ListElem.HListElem)
+  | HListBreakItem ListElem.HListElem Page.BreakItem
   deriving stock (Show, Generic)
 
 fmtChunkedHListElem :: Fmt ChunkedHListElem
 fmtChunkedHListElem = F.later $ \case
-  HListChunk els -> bformat (F.commaSpaceSep H.Inter.B.List.fmtHListElem) els
+  HListChunk els -> bformat (F.commaSpaceSep ListElem.fmtHListElem) els
   HListBreakItem _ b -> bformat ("Break: " |%| F.shown) b
 
-chunkHList :: H.Inter.B.List.HList -> Seq ChunkedHListElem
+chunkHList :: ListElem.HList -> Seq ChunkedHListElem
 chunkHList hList = foldl' f Empty (withBreaks hList)
   where
     f fState (x, mayBreak) = case mayBreak of
@@ -51,27 +51,27 @@ toAdjacents xs = case foldl' f AtFirstElem xs of
                 (_ :|> (_, left, _)) -> Just left
            in acc :|> (maybeLeft, v, Just right)
 
-finaliseHList :: H.Inter.B.List.HList -> H.Inter.B.List.HList
-finaliseHList (H.Inter.B.List.HList Empty) =
-  H.Inter.B.List.HList mempty
-finaliseHList (H.Inter.B.List.HList elems@(elemInit :|> lastElem)) =
+finaliseHList :: ListElem.HList -> ListElem.HList
+finaliseHList (ListElem.HList Empty) =
+  ListElem.HList mempty
+finaliseHList (ListElem.HList elems@(elemInit :|> lastElem)) =
   let -- Remove the final item if it's glue.
       trimmedElems = case lastElem of
-        H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue _) -> elemInit
+        ListElem.HVListElem (ListElem.ListGlue _) -> elemInit
         _ -> elems
       -- Add extra bits to finish the list.
       finishedElems = trimmedElems >< finishingElems
-   in H.Inter.B.List.HList finishedElems
+   in ListElem.HList finishedElems
   where
     -- \penalty10k \hfil \penalty-10k.
-    finishingElems :: Seq H.Inter.B.List.HListElem
+    finishingElems :: Seq ListElem.HListElem
     finishingElems =
       Empty
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ Q.HexInt Q.tenK)
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListGlue (Q.filStretchGlue Q.bigFilLength))
-        :|> H.Inter.B.List.HVListElem (H.Inter.B.List.ListPenalty $ H.Inter.B.List.Penalty $ Q.HexInt $ -Q.tenK)
+        :|> ListElem.HVListElem (ListElem.ListPenalty $ ListElem.Penalty $ Q.HexInt Q.tenK)
+        :|> ListElem.HVListElem (ListElem.ListGlue (Q.filStretchGlue Q.bigFilLength))
+        :|> ListElem.HVListElem (ListElem.ListPenalty $ ListElem.Penalty $ Q.HexInt $ -Q.tenK)
 
-newtype Line = Line {unLine :: Seq H.Inter.B.List.HListElem}
+newtype Line = Line {unLine :: Seq ListElem.HListElem}
   deriving stock (Show, Generic)
 
 newtype LineSequence = LineSequence {unLineSequence :: Seq Line}
@@ -103,9 +103,9 @@ newtype LineSequence = LineSequence {unLineSequence :: Seq Line}
 --   Q.Length -> -- HSize
 --   Q.HexInt -> -- Tolerance
 --   Q.HexInt -> -- LinePenalty
---   H.Inter.B.List.HList ->
---   m (Seq (H.Inter.B.Box.Box H.Inter.B.Box.HBox))
--- breakParagraph _ _ _ (H.Inter.B.List.HList Empty) =
+--   ListElem.HList ->
+--   m (Seq (BoxElem.Box BoxElem.HBox))
+-- breakParagraph _ _ _ (ListElem.HList Empty) =
 --   pure mempty
 -- breakParagraph dw tol lp hList = do
 --   let elemsWithBreaks = finaliseHList hList
@@ -113,26 +113,26 @@ newtype LineSequence = LineSequence {unLineSequence :: Seq Line}
 
 data DiscardingState = Discarding | NotDiscarding
 
-withBreaks :: H.Inter.B.List.HList -> Seq (H.Inter.B.List.HListElem, Maybe Page.BreakItem)
+withBreaks :: ListElem.HList -> Seq (ListElem.HListElem, Maybe Page.BreakItem)
 withBreaks = seqOf (#unHList % to toAdjacents % folded % to (\adj@(_, e, _) -> (e, hListElemToBreakItem adj)))
 
 breakGreedy ::
   Q.Length -> -- HSize
   Q.HexInt -> -- Tolerance
   Q.HexInt -> -- LinePenalty
-  H.Inter.B.List.HList ->
-  Seq H.Inter.B.List.HList
-breakGreedy dw _tol _lp (H.Inter.B.List.HList allEs) =
-  let finalisedHList = finaliseHList (H.Inter.B.List.HList allEs)
+  ListElem.HList ->
+  Seq ListElem.HList
+breakGreedy dw _tol _lp (ListElem.HList allEs) =
+  let finalisedHList = finaliseHList (ListElem.HList allEs)
 
-      eWBs :: Seq (H.Inter.B.List.HListElem, Maybe Page.BreakItem)
+      eWBs :: Seq (ListElem.HListElem, Maybe Page.BreakItem)
       eWBs = withBreaks finalisedHList
 
       lineSeq = go (LineSequence Empty, Line Empty, NotDiscarding) eWBs
    in -- Map from the line breaking types to our result type.
-      seqOf (#unLineSequence % folded % #unLine % to H.Inter.B.List.HList) lineSeq
+      seqOf (#unLineSequence % folded % #unLine % to ListElem.HList) lineSeq
   where
-    go :: (LineSequence, Line, DiscardingState) -> Seq (H.Inter.B.List.HListElem, Maybe Page.BreakItem) -> LineSequence
+    go :: (LineSequence, Line, DiscardingState) -> Seq (ListElem.HListElem, Maybe Page.BreakItem) -> LineSequence
     go st@(lnSeq@(LineSequence lns), ln@(Line lnEs), discarding) = \case
       Empty -> LineSequence (lns :|> ln)
       aEs@((e, mayBI) :<| rEs) ->
@@ -145,7 +145,7 @@ breakGreedy dw _tol _lp (H.Inter.B.List.HList allEs) =
               Nothing ->
                 go (lnSeq, Line (lnEs :|> e), NotDiscarding) rEs
               Just bI ->
-                let spec = listFlexSpec (H.Inter.B.List.HList lnEs) dw
+                let spec = listFlexSpec (ListElem.HList lnEs) dw
                     b = Page.glueFlexSpecBadness spec
                  in case b of
                       Bad.InfiniteBadness ->

@@ -8,15 +8,15 @@ import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Build.ListBuilder.Horizontal qualified as Build.H
-import Hex.Stage.Build.ListElem qualified as H.Inter.B.List
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface (MonadHexListExtractor)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface (MonadEvaluate (..))
 import Hex.Stage.Evaluate.Interface qualified as Eval
-import Hex.Stage.Interpret.CommandHandler.AllMode (InterpretError)
-import Hex.Stage.Interpret.CommandHandler.AllMode qualified as AllMode
-import Hex.Stage.Interpret.CommandHandler.HMode qualified as Command.H
-import Hex.Stage.Interpret.CommandHandler.HMode qualified as HMode
+import Hex.Stage.Interpret.AllMode (InterpretError)
+import Hex.Stage.Interpret.AllMode qualified as AllMode
+import Hex.Stage.Interpret.HMode qualified as Command.H
+import Hex.Stage.Interpret.HMode qualified as HMode
 import Hex.Stage.Parse.Interface (MonadCommandSource (..))
 import Hexlude
 
@@ -46,9 +46,9 @@ extractHBoxListImpl ::
     AsType AllMode.InterpretError e,
     MonadHexLog m
   ) =>
-  m H.Inter.B.List.HList
+  m ListElem.HList
 extractHBoxListImpl =
-  snd <$> buildHList ListExtractor.InnerModeContext (H.Inter.B.List.HList mempty)
+  snd <$> buildHList ListExtractor.InnerModeContext (ListElem.HList mempty)
 
 extractParagraphListImpl ::
   forall m e.
@@ -61,14 +61,14 @@ extractParagraphListImpl ::
     MonadHexLog m
   ) =>
   ListExtractor.IndentFlag ->
-  m (ListExtractor.EndHListReason, H.Inter.B.List.HList)
+  m (ListExtractor.EndHListReason, ListElem.HList)
 extractParagraphListImpl indentFlag = do
   initList <- case indentFlag of
     ListExtractor.Indent ->
       singleton <$> HSt.getParIndentBox
     ListExtractor.DoNotIndent ->
       pure mempty
-  buildHList ListExtractor.OuterModeContext (H.Inter.B.List.HList initList)
+  buildHList ListExtractor.OuterModeContext (ListElem.HList initList)
 
 buildHList ::
   forall m e.
@@ -81,8 +81,8 @@ buildHList ::
     MonadHexLog m
   ) =>
   ListExtractor.ModeContext ->
-  H.Inter.B.List.HList ->
-  m (ListExtractor.EndHListReason, H.Inter.B.List.HList)
+  ListElem.HList ->
+  m (ListExtractor.EndHListReason, ListElem.HList)
 buildHList modeCtx initList = do
   Build.H.runHListBuilderT initList go
   where

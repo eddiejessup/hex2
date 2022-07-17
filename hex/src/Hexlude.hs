@@ -10,6 +10,7 @@ module Hexlude
     module Data.Group,
     module Data.Sequence.Optics,
     module Formatting,
+    module Hexlude.Concept,
     traceShowIdM,
     traceResultM,
     notImplemented,
@@ -42,6 +43,7 @@ import Data.Sequence.Optics (seqOf)
 import Data.Text.Lazy.Builder qualified as Text.Lazy
 import Formatting (Format, bformat, later, sformat)
 import Formatting qualified as F
+import Hexlude.Concept
 import Optics.At ()
 import Optics.Core hiding (Empty)
 import Optics.State (assign', modifying', use)

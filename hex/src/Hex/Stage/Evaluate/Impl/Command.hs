@@ -2,10 +2,10 @@ module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Resolved.Primitive qualified as PT
-import Hex.Stage.Build.BoxElem qualified as Box
-import Hex.Stage.Build.BoxElem qualified as Elem
-import Hex.Stage.Build.ListElem qualified as Elem
+import Hex.Stage.Build.BoxElem qualified as BoxElem
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
@@ -55,8 +55,8 @@ evalModeIndepCmd = \case
   P.Assign assignment -> E.Assign <$> evalAssignment assignment
   P.Relax -> pure E.Relax
   P.IgnoreSpaces -> pure E.IgnoreSpaces
-  P.AddPenalty hexInt -> E.AddPenalty . Elem.Penalty <$> Eval.evalInt hexInt
-  P.AddKern length -> E.AddKern . Elem.Kern <$> Eval.evalLength length
+  P.AddPenalty hexInt -> E.AddPenalty . ListElem.Penalty <$> Eval.evalInt hexInt
+  P.AddKern length -> E.AddKern . BoxElem.Kern <$> Eval.evalLength length
   P.AddMathKern mathLength -> E.AddMathKern <$> Eval.evalMathLength mathLength
   P.RemoveItem removableItem -> pure $ E.RemoveItem removableItem
   P.SetAfterAssignmentToken lexToken -> pure $ E.SetAfterAssignmentToken lexToken
@@ -205,11 +205,11 @@ evalShortDefineTargetValue :: (MonadError e m, AsType Eval.EvaluationError e, HS
 evalShortDefineTargetValue (P.ShortDefTargetValue charryQuantityType tgtValInt) =
   PT.ShortDefTargetValue charryQuantityType <$> Eval.evalInt tgtValInt
 
-evalFontSpecification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.FontSpecification -> m Box.FontSpecification
+evalFontSpecification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.FontSpecification -> m TFM.FontSpecification
 evalFontSpecification = \case
-  P.NaturalFont -> pure Box.NaturalFont
-  P.FontAt len -> Box.FontAt <$> Eval.evalLength len
-  P.FontScaled n -> Box.FontScaled <$> Eval.evalInt n
+  P.NaturalFont -> pure TFM.NaturalFont
+  P.FontAt len -> TFM.FontAt <$> Eval.evalLength len
+  P.FontScaled n -> TFM.FontScaled <$> Eval.evalInt n
 
 evalCodeAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.CodeAssignment -> m E.CodeAssignment
 evalCodeAssignment codeAssignment = do

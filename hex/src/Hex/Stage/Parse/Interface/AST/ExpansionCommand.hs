@@ -2,7 +2,6 @@ module Hex.Stage.Parse.Interface.AST.ExpansionCommand where
 
 import Data.Sequence qualified as Seq
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
-import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as PT.Syn
 import Hex.Common.Token.Resolved.Expandable qualified as ST
@@ -51,7 +50,7 @@ data ExpansionCommand
   | ExpandAfter LT.LexToken LT.LexToken
   | NoExpand LT.LexToken
   | GetMarkRegister ST.MarkRegister
-  | OpenInputFile Q.HexFilePath
+  | OpenInputFile HexFilePath
   | EndInputFile
   | RenderInternalQuantity InternalQuantity
-  | ChangeCase Q.VDirection HSt.TL.InhibitedBalancedText
+  | ChangeCase VDirection HSt.TL.InhibitedBalancedText

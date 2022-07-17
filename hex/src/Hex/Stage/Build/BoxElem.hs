@@ -1,7 +1,8 @@
 module Hex.Stage.Build.BoxElem where
 
 import Formatting qualified as F
-import Hex.Common.Codes qualified as Codes
+import Hex.Common.Box qualified as Box
+import Hex.Common.DVI.Instruction qualified as DVI
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.Quantity qualified as Q
 import Hexlude
@@ -18,7 +19,7 @@ hBoxElemNaturalWidth = \case
   HVBoxElem vBoxElem -> case vBoxElem of
     VBoxBaseElem baseElem -> case baseElem of
       ElemBox box ->
-        box.boxWidth
+        box.unBaseBox.boxWidth
       ElemFontDefinition _fontDefinition ->
         Q.zeroLength
       ElemFontSelection _fontSelection ->
@@ -36,7 +37,7 @@ hBoxElemNaturalDepth = \case
   HVBoxElem vBoxElem -> case vBoxElem of
     VBoxBaseElem baseElem -> case baseElem of
       ElemBox box ->
-        box.boxDepth
+        box.unBaseBox.boxDepth
       ElemFontDefinition _fontDefinition ->
         Q.zeroLength
       ElemFontSelection _fontSelection ->
@@ -54,7 +55,7 @@ hBoxElemNaturalHeight = \case
   HVBoxElem vBoxElem -> case vBoxElem of
     VBoxBaseElem baseElem -> case baseElem of
       ElemBox box ->
-        box.boxHeight
+        box.unBaseBox.boxHeight
       ElemFontDefinition _fontDefinition ->
         Q.zeroLength
       ElemFontSelection _fontSelection ->
@@ -74,12 +75,12 @@ fmtHBoxElem = F.later $ \case
 
 -- TODO: Ligature, DiscretionaryBreak, Math on/off, V-adust
 newtype HBaseElem
-  = ElemCharacter CharBox
+  = ElemCharacter Box.CharBox
   deriving stock (Show)
 
 fmtHBaseElem :: Fmt HBaseElem
 fmtHBaseElem = F.later $ \case
-  ElemCharacter c -> bformat fmtCharBoxWithDimens c
+  ElemCharacter c -> bformat Box.fmtCharBoxWithDimens c
 
 data VBoxElem
   = VBoxBaseElem BaseElem
@@ -92,8 +93,8 @@ fmtVBoxElemOneLine = F.later $ \case
   BoxGlue sg -> bformat fmtSetGlue sg
 
 data BaseElem
-  = ElemBox (Box BaseBoxContents)
-  | ElemFontDefinition FontDefinition
+  = ElemBox BaseBox
+  | ElemFontDefinition DVI.FontDefinition
   | ElemFontSelection HSt.Font.FontNumber
   | ElemKern Kern
   deriving stock (Show, Generic)
@@ -110,26 +111,6 @@ fmtBaseElemOneLine = F.later $ \case
 
 newtype Kern = Kern {unKern :: Q.Length}
   deriving stock (Show, Eq, Generic)
-
--- Boxes.
-
-data Box a = Box {contents :: a, boxWidth, boxHeight, boxDepth :: Q.Length}
-  deriving stock (Show, Eq, Generic, Functor, Foldable)
-
-boxSpanAlongAxis :: Q.Axis -> Box a -> Q.Length
-boxSpanAlongAxis ax b = case ax of
-  Q.Vertical -> boxHeightAndDepth b
-  Q.Horizontal -> b.boxWidth
-
-boxHeightAndDepth :: Box a -> Q.Length
-boxHeightAndDepth b = b.boxHeight <> b.boxDepth
-
-fmtBoxDimens :: Fmt (Box a)
-fmtBoxDimens =
-  let fmtWidth = fmtViewed #boxWidth Q.fmtLengthWithUnit
-      fmtHeight = fmtViewed #boxHeight Q.fmtLengthWithUnit
-      fmtDepth = fmtViewed #boxDepth Q.fmtLengthWithUnit
-   in F.squared $ F.fconst "⇿" <> fmtWidth <> F.fconst "↥" <> fmtHeight <> F.fconst "↧" <> fmtDepth
 
 -- Element constituents.
 
@@ -151,8 +132,14 @@ fmtBaseBoxContents = F.later $ \case
   VBoxContents vboxElemSeq -> bformat (F.prefixed "\\vbox" $ fmtViewed #unVBoxElemSeq (F.braced (F.commaSpaceSep fmtVBoxElemOneLine))) vboxElemSeq
   RuleContents -> "\\rule{}"
 
-fmtBaseBox :: Fmt (Box BaseBoxContents)
-fmtBaseBox = fmtBoxDimens <> fmtViewed #contents fmtBaseBoxContents
+newtype BaseBox = BaseBox {unBaseBox :: Box.Box BaseBoxContents}
+  deriving stock (Show, Generic)
+
+fmtBaseBox :: Fmt BaseBox
+fmtBaseBox = F.accessed (.unBaseBox) (Box.fmtBoxDimens <> F.accessed (.contents) fmtBaseBoxContents)
+
+ruleAsBaseBox :: Box.Rule -> BaseBox
+ruleAsBaseBox (Box.Rule box) = BaseBox $ box <&> \() -> RuleContents
 
 newtype HBoxElemSeq = HBoxElemSeq {unHBoxElemSeq :: Seq HBoxElem}
   deriving stock (Show, Generic)
@@ -184,49 +171,3 @@ fmtVBoxElemSeq = F.accessed (.unVBoxElemSeq) (F.intercalated "\n" fmtVBoxElemOne
 
 vBoxElemTraversal :: Traversal' VBoxElemSeq VBoxElem
 vBoxElemTraversal = #unVBoxElemSeq % traversed
-
-newtype Rule = Rule {unRule :: Box ()}
-  deriving stock (Show, Eq, Generic)
-
-fmtRule :: Fmt Rule
-fmtRule = F.accessed (.unRule) fmtBoxDimens |%| "\\rule{}"
-
-newtype CharBox = CharBox {unCharacter :: Box Codes.CharCode}
-  deriving stock (Show, Generic)
-
-fmtCharBox :: Fmt CharBox
-fmtCharBox = fmtViewed (to charBoxChar) (F.squoted F.char)
-
-fmtCharBoxWithDimens :: Fmt CharBox
-fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> F.prefixed "\\c" fmtCharBox
-
-charBoxChar :: CharBox -> Char
-charBoxChar = view $ #unCharacter % #contents % to Codes.unsafeCodeAsChar
-
-data FontDefinition = FontDefinition
-  { fontDefChecksum :: Word32,
-    fontDefDesignSize :: Q.Length,
-    fontDefDesignScale :: Q.Length,
-    fontPath :: Q.HexFilePath,
-    fontName :: Text
-  }
-  deriving stock (Show, Generic)
-
-fmtFontDefinition :: Fmt FontDefinition
-fmtFontDefinition = "Font " |%| F.accessed (.fontName) (F.squoted F.stext)
-
-data FontSpecification
-  = NaturalFont
-  | FontAt Q.Length
-  | FontScaled Q.HexInt
-  deriving stock (Show, Eq, Generic)
-
-fontSpecToDesignScale :: Q.Length -> FontSpecification -> Q.Length
-fontSpecToDesignScale designSize = \case
-  NaturalFont ->
-    designSize
-  FontAt length ->
-    length
-  FontScaled scaleFactor ->
-    let scaleFactorRational = Q.intRatio scaleFactor (Q.HexInt 1000)
-     in Q.scaleLengthByRational scaleFactorRational designSize

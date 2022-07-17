@@ -3,6 +3,7 @@ module Hex.Stage.Evaluate.Impl.Quantity where
 import Data.List qualified as List
 import Data.Ratio qualified as Ratio
 import Data.Sequence qualified as Seq
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
@@ -12,7 +13,7 @@ import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.BoxElem qualified as H.Inter.B.Box
+import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
@@ -247,12 +248,12 @@ evalRule ::
   m Q.Length ->
   m Q.Length ->
   m Q.Length ->
-  m H.Inter.B.Box.Rule
+  m Box.Rule
 evalRule (P.Rule dims) defaultW defaultH defaultD = do
-  w <- ruleDimen Q.BoxWidth defaultW
-  h <- ruleDimen Q.BoxHeight defaultH
-  d <- ruleDimen Q.BoxDepth defaultD
-  pure $ H.Inter.B.Box.Rule $ H.Inter.B.Box.Box () w h d
+  w <- ruleDimen Box.BoxWidth defaultW
+  h <- ruleDimen Box.BoxHeight defaultH
+  d <- ruleDimen Box.BoxDepth defaultD
+  pure $ Box.Rule $ Box.Box () w h d
   where
     ruleDimen d defaultDim = case Seq.filter (\(dim, _len) -> dim == d) dims of
       _ :|> (_, lastDim) ->
@@ -263,7 +264,7 @@ evalRule (P.Rule dims) defaultW defaultH defaultD = do
 evalVModeRule ::
   (MonadHexState m, MonadError e m, AsType Eval.EvaluationError e) =>
   P.Rule ->
-  m H.Inter.B.Box.Rule
+  m Box.Rule
 evalVModeRule rule =
   evalRule rule defaultWidth defaultHeight defaultDepth
   where
@@ -274,7 +275,7 @@ evalVModeRule rule =
 evalHModeRule ::
   (MonadHexState m, MonadError e m, AsType Eval.EvaluationError e) =>
   P.Rule ->
-  m H.Inter.B.Box.Rule
+  m Box.Rule
 evalHModeRule rule =
   evalRule rule defaultWidth defaultHeight defaultDepth
   where
@@ -391,10 +392,10 @@ evalBoxDimensionRef (P.BoxDimensionRef loc boxDim) = do
   eLoc <- evalExplicitRegisterLocation loc
   HSt.fetchBoxRegisterValue HSt.Reg.Lookup eLoc <&> \case
     Nothing -> Q.zeroLength
-    Just bx -> case boxDim of
-      Q.BoxWidth -> bx.boxWidth
-      Q.BoxHeight -> bx.boxHeight
-      Q.BoxDepth -> bx.boxDepth
+    Just (BoxElem.BaseBox bx) -> case boxDim of
+      Box.BoxWidth -> bx.boxWidth
+      Box.BoxHeight -> bx.boxHeight
+      Box.BoxDepth -> bx.boxDepth
 
 evalInternalGlue :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalGlue -> m Q.Glue
 evalInternalGlue = \case

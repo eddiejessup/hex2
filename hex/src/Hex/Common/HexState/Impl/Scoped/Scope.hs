@@ -53,7 +53,7 @@ data Scope = Scope
     glueRegister :: QuantRegisterMap 'Q.GlueQuantity,
     mathGlueRegister :: QuantRegisterMap 'Q.MathGlueQuantity,
     tokenListRegister :: QuantRegisterMap 'Q.TokenListQuantity,
-    boxRegister :: RegisterMap (Box.Box Box.BaseBoxContents)
+    boxRegister :: RegisterMap Box.BaseBox
   }
   deriving stock (Show, Generic)
 

@@ -2,6 +2,7 @@ module Hex.Common.TFM.Get.Character where
 
 import Data.IntMap qualified as IntMap
 import Hex.Common.TFM.Get.CharInfo qualified as TFM.Get.CharInfo
+import Hex.Common.TFM.Get.Types qualified as Internal
 import Hex.Common.TFM.Types
 import Hexlude
 
@@ -24,10 +25,10 @@ character recipes widths heights depths italicCorrs charInfo =
     let remainder = TFM.Get.CharInfo.charRemainder charInfo
     -- If the character is special, get its particular extra attributes.
     special <- case TFM.Get.CharInfo.tag charInfo of
-      Plain -> pure Nothing
-      LigKern -> pure $ Just $ LigKernIndex remainder
-      Chain -> pure $ Just $ NextLargerChar remainder
-      Extensible -> do
+      Internal.Plain -> pure Nothing
+      Internal.LigKern -> pure $ Just $ LigKernIndex remainder
+      Internal.Chain -> pure $ Just $ NextLargerChar remainder
+      Internal.Extensible -> do
         recipe <- note (injectTyped $ TFMError "Bad recipe index") $ atMay recipes (fromIntegral @Word8 @Int remainder)
         pure $ Just $ ExtensibleRecipeSpecial recipe
     pure
