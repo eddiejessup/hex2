@@ -23,6 +23,10 @@ encodeSpecInstruction :: SpecInstruction -> ByteString
 encodeSpecInstruction i =
   Ser.runPut $ specInstructionByteBuilder i
 
+encodeSpecInstructions :: [SpecInstruction] -> ByteString
+encodeSpecInstructions is =
+  Ser.runPut $ for_ is specInstructionByteBuilder
+
 putOp :: Word8 -> Put
 putOp = put
 

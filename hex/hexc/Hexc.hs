@@ -51,7 +51,7 @@ inputParser = fileInputParser <|> stdInputParser <|> expressionParser
 dviRunParser :: Parser DVIWriteOptions
 dviRunParser =
   DVIWriteOptions
-    <$> strOption (long "file" <> short 'f' <> metavar "FILENAME" <> help "Output file")
+    <$> strOption (long "out" <> short 'o' <> metavar "FILENAME" <> help "Output DVI file")
 
 data RunMode
   = LexMode
@@ -91,6 +91,7 @@ runModeParser =
         <> command "page" (info (pure PageMode) (progDesc ""))
         <> command "doc-dvi" (info (pure DVIDocInstructionMode) (progDesc ""))
         <> command "spec-dvi" (info (pure DVISpecInstructionMode) (progDesc ""))
+        <> command "dvi" (info (DVIWriteMode <$> dviRunParser) (progDesc ""))
     )
 
 appOptionsParser :: Parser AppOptions
@@ -161,6 +162,9 @@ main = do
     DVISpecInstructionMode -> do
       dviSpecInstrs <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Render.renderToSpecInstructions
       putText $ sformat Run.Render.fmtSpecInstructions dviSpecInstrs
+    DVIWriteMode dviOptions -> do
+      dviBytes <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Render.renderToDVIBytes
+      BS.writeFile (dviOptions.dviOutputPath) dviBytes
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
   pure ()

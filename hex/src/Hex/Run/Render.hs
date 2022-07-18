@@ -11,6 +11,7 @@ import Hex.Run.App qualified as App
 import Hex.Run.Paginate qualified as Paginate
 import Hex.Stage.Render.DVI qualified as DVI
 import Hexlude
+import qualified Hex.Common.DVI.SpecInstruction.Encode as DVI.Enc
 
 renderToDocInstructions :: App [DVI.DocInstruction]
 renderToDocInstructions = do
@@ -31,3 +32,9 @@ renderToSpecInstructions = do
 
 fmtSpecInstructions :: Fmt [DVIS.SpecInstruction]
 fmtSpecInstructions = F.unlined DVIS.fmtSpecInstruction
+
+renderToDVIBytes :: App ByteString
+renderToDVIBytes = do
+  specInstrs <- renderToSpecInstructions
+  pure $ DVI.Enc.encodeSpecInstructions specInstrs
+
