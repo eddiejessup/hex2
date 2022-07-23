@@ -20,7 +20,7 @@ import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.Horizontal.Set qualified as Build.H.Set
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListElem qualified as ListElem
-import Hex.Stage.Build.ListExtractor.Interface (MonadHexListExtractor)
+import Hex.Stage.Build.ListExtractor.Interface (HexListExtractor)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
@@ -44,15 +44,14 @@ data AllModeCommandResult
   | DidNotSeeEndBox
 
 getNextCommandLogged ::
-  ( Eval.MonadEvaluate m,
-    Par.MonadCommandSource m,
-    MonadError e m,
-    AsType InterpretError e,
-    Log.MonadHexLog m
+  ( Eval.HexEvaluate :> es,
+    Par.CommandSource :> es,
+    Error InterpretError :> es,
+    Log.HexLog :> es
   ) =>
-  m Eval.Command
+  Eff es Eval.Command
 getNextCommandLogged = do
-  cmd <- Eval.getEvalCommandErrorEOF $ injectTyped UnexpectedEndOfInput
+  cmd <- Eval.getEvalCommand >>= note UnexpectedEndOfInput
   Log.infoLog $ F.sformat ("Read command: " |%| F.shown) cmd
   pure cmd
 
@@ -85,14 +84,14 @@ writeToOutput _ _ = pure ()
 -- liftIO $ hPutStrLn logHandle txtTxt
 
 handleModeIndependentCommand ::
-  ( HSt.MonadHexState m,
-    Log.MonadHexLog m,
-    HIn.MonadHexInput m,
-    Build.MonadHexListBuilder m,
-    MonadHexListExtractor m
+  ( HSt.EHexState :> es,
+    Log.HexLog :> es,
+    HIn.HexInput :> es,
+    Build.HexListBuilder :> es,
+    ListExtractor.HexListExtractor :> es
   ) =>
   Eval.ModeIndependentCommand ->
-  m AllModeCommandResult
+  Eff es AllModeCommandResult
 handleModeIndependentCommand = \case
   Eval.DebugShowState -> do
     Log.logInternalState
@@ -329,7 +328,7 @@ handleModeIndependentCommand = \case
   --     Eval.ExplicitBox spec boxType -> do
   --       -- Start a new level of grouping. Enter inner mode.
   --       eSpec <- texEvaluate spec
-  --       modifying' (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
+  --       modifying (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
   --       b <- extractExplicitBox eSpec boxType
   --       Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemBox b
   --   pure DidNotSeeEndBox
@@ -350,7 +349,7 @@ lengthToSetAtFromSpec spec naturalLength = case spec of
   Eval.To toLength -> toLength
   Eval.Spread spreadLength -> naturalLength <> spreadLength
 
-extractExplicitBox :: MonadHexListExtractor m => Eval.BoxSpecification -> PT.ExplicitBoxType -> m BoxElem.BaseBox
+extractExplicitBox :: HexListExtractor :> es => Eval.BoxSpecification -> PT.ExplicitBoxType -> Eff es BoxElem.BaseBox
 extractExplicitBox spec = \case
   PT.ExplicitHBoxType -> do
     hList <- ListExtractor.extractHBoxList

@@ -24,13 +24,13 @@ newtype TestApp a = TestApp {unTestApp :: StateT AppState (ExceptT AppError IO) 
       MonadIO
     )
   deriving (MonadHexInput) via (HexInputT TestApp)
-  deriving (MonadHexState) via (HexStateT TestApp)
+  deriving (EHexState) via (HexStateT TestApp)
 
 instance MonadHexEnv TestApp where
   findAndReadFile (WithImplicitExtension "tfm") "cmr10" = Just <$> liftIO (BS.readFile "test/cmr10.tfm")
   findAndReadFile _ _ = pure Nothing
 
-instance Log.MonadHexLog TestApp where
+instance Log.HexLog TestApp where
   log _ _ = pure ()
   logInternalState = pure ()
 

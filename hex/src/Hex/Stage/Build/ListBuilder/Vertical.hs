@@ -2,14 +2,12 @@
 
 module Hex.Stage.Build.ListBuilder.Vertical where
 
-import Control.Monad.Trans (MonadTrans (..))
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
-import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Capability.Log.Interface (HexLog (..))
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
-import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexState.Interface (MonadHexState)
+import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
@@ -17,64 +15,19 @@ import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Break
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.ListBuilder.Interface
 import Hex.Stage.Build.ListElem qualified as List
-import Hex.Stage.Evaluate.Interface (MonadEvaluate (..))
-import Hex.Stage.Parse.Interface (MonadCommandSource (..))
 import Hexlude
 
-newtype VListBuilderT m a = VListBuilderT {unVListBuilderT :: StateT List.VList m a}
-  deriving newtype
-    ( Functor,
-      Applicative,
-      Monad,
-      MonadIO,
-      MonadReader r,
-      MonadError e,
-      MonadHexState,
-      MonadCommandSource,
-      MonadEvaluate,
-      MonadHexLog
-    )
-
-instance HIn.MonadHexInput m => HIn.MonadHexInput (VListBuilderT m) where
-  endCurrentLine = lift HIn.endCurrentLine
-
-  inputIsFinished = lift HIn.inputIsFinished
-
-  getInput = lift HIn.getInput
-
-  putInput = lift . HIn.putInput
-
-  insertLexToken = lift . HIn.insertLexToken
-
-  insertLexTokens = lift . HIn.insertLexTokens
-
-  getNextLexToken = lift HIn.getNextLexToken
-
-  openInputFile x = lift $ HIn.openInputFile x
-
-runVListBuilderT :: List.VList -> VListBuilderT m a -> m (a, List.VList)
-runVListBuilderT initVList app = runStateT (unVListBuilderT app) initVList
-
-execVListBuilderT :: Monad m => List.VList -> VListBuilderT m a -> m List.VList
-execVListBuilderT initVList app = execStateT (unVListBuilderT app) initVList
-
-instance MonadTrans VListBuilderT where
-  lift = VListBuilderT . lift
-
-instance (HSt.MonadHexState m, Log.MonadHexLog m) => MonadHexListBuilder (VListBuilderT m) where
-  addVListElement = addVListElementImpl
-
-addVListElementImpl :: (HSt.MonadHexState m, Log.MonadHexLog m) => List.VListElem -> VListBuilderT m ()
+addVListElementImpl :: (HSt.EHexState :> es, Log.HexLog :> es, State List.VList :> es) => List.VListElem -> Eff es ()
 addVListElementImpl e = do
-  vList <- VListBuilderT $ get
-  newVList <- lift $ extendVList e vList
-  VListBuilderT $ put newVList
+  vList <- get
+  newVList <- extendVList e vList
+  put newVList
 
 extendVList ::
-  (HSt.MonadHexState m, Log.MonadHexLog m) =>
+  (HSt.EHexState :> es, Log.HexLog :> es) =>
   List.VListElem ->
   List.VList ->
-  m List.VList
+  Eff es List.VList
 extendVList e vList@(List.VList accSeq) = case e of
   -- TODO: topskip
   List.VListBaseElem (Box.ElemBox b) -> do
@@ -123,3 +76,7 @@ extendVList e vList@(List.VList accSeq) = case e of
       else do
         Log.infoLog $ "extendVList: Adding non-box element: " <> F.sformat List.fmtVListElem e
         pure (List.VList (accSeq :|> e))
+
+runHexListBuilderVMode :: [EHexState, HexLog] :>> es => List.VList -> Eff (HexListBuilder : es) a -> Eff es List.VList
+runHexListBuilderVMode initList = reinterpret (execStateLocal initList) $ \_ -> \case
+  AddVListElement e -> addVListElementImpl e

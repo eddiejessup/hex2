@@ -6,7 +6,7 @@ import Data.Sequence qualified as Seq
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.DVI.DocInstruction qualified as DVI
-import Hex.Common.HexState.Interface (MonadHexState)
+import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -23,10 +23,10 @@ import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
 
 evalSignedValue ::
-  (Monad m, Group b) =>
-  (a -> m b) ->
+  Group b =>
+  (a -> Eff es b) ->
   P.Signed a ->
-  m b
+  Eff es b
 evalSignedValue evalU (P.Signed signs u) = do
   let eSign = evalSigns signs
   eU <- evalU u
@@ -37,16 +37,16 @@ evalSignedValue evalU (P.Signed signs u) = do
     evalSigns :: [Q.Sign] -> Q.Sign
     evalSigns = mconcat
 
-evalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.HexInt -> m Q.HexInt
+evalInt :: [Error Eval.EvaluationError, EHexState] :>> es => P.HexInt -> Eff es Q.HexInt
 evalInt n = do
   evalSignedValue evalUnsignedInt n.unInt
 
-evalUnsignedInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.UnsignedInt -> m Q.HexInt
+evalUnsignedInt :: [Error Eval.EvaluationError, EHexState] :>> es => P.UnsignedInt -> Eff es Q.HexInt
 evalUnsignedInt = \case
   P.NormalUnsignedInt normalInt -> evalNormalInt normalInt
   P.CoercedUnsignedInt coercedInt -> evalCoercedInt coercedInt
 
-evalNormalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.NormalInt -> m Q.HexInt
+evalNormalInt :: [Error Eval.EvaluationError, EHexState] :>> es => P.NormalInt -> Eff es Q.HexInt
 evalNormalInt = \case
   P.IntConstant intConstantDigits -> pure $ Q.HexInt $ evalIntConstantDigits intConstantDigits
   P.CharLikeCode word8 -> pure $ Q.HexInt $ word8ToInt word8
@@ -63,14 +63,14 @@ evalIntConstantDigits x =
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
 
-evalCoercedInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.CoercedInt -> m Q.HexInt
+evalCoercedInt :: [Error Eval.EvaluationError, EHexState] :>> es => P.CoercedInt -> Eff es Q.HexInt
 evalCoercedInt = \case
   P.InternalLengthAsInt internalLength ->
     Q.lengthAsInt <$> evalInternalLength internalLength
   P.InternalGlueAsInt internalGlue ->
     (Q.lengthAsInt . Q.glueAsLength) <$> evalInternalGlue internalGlue
 
-evalInternalInt :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalInt -> m Q.HexInt
+evalInternalInt :: [Error Eval.EvaluationError, EHexState] :>> es => P.InternalInt -> Eff es Q.HexInt
 evalInternalInt = \case
   P.InternalIntVariable v -> evalQuantVariableAsTarget v
   P.InternalSpecialIntParameter v -> HSt.getSpecialIntParameter v
@@ -85,14 +85,14 @@ evalInternalInt = \case
 
 -- | Evaluate the code-table-ref, but only as far as the raw reference. Don't
 -- look up the actual value in the reference.
-evalCodeTableRefAsRef :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.CodeTableRef -> m E.CodeTableRef
+evalCodeTableRefAsRef :: [Error Eval.EvaluationError, EHexState] :>> es => P.CodeTableRef -> Eff es E.CodeTableRef
 evalCodeTableRefAsRef codeTableRef =
   E.CodeTableRef
     <$> pure codeTableRef.codeType
     <*> evalCharCodeInt codeTableRef.codeIndex
 
 -- | Evaluate the code-table-ref, in the sense of looking up the referred value.
-evalCodeTableRefAsTarget :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.CodeTableRef -> m Q.HexInt
+evalCodeTableRefAsTarget :: [Error Eval.EvaluationError, EHexState] :>> es => P.CodeTableRef -> Eff es Q.HexInt
 evalCodeTableRefAsTarget codeTableRef = do
   eCodeTableRef <- evalCodeTableRefAsRef codeTableRef
   case eCodeTableRef.codeTableType of
@@ -103,40 +103,34 @@ evalCodeTableRefAsTarget codeTableRef = do
     Code.SpaceFactorCodeType -> HSt.getHexCode Code.CSpaceFactorCodeType eCodeTableRef.codeTableChar <&> Code.toHexInt
     Code.DelimiterCodeType -> HSt.getHexCode Code.CDelimiterCodeType eCodeTableRef.codeTableChar <&> Code.toHexInt
 
-evalQuantVariableAsVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.QuantVariableAST a -> m (HSt.Var.QuantVariable a)
+evalQuantVariableAsVariable :: [Error Eval.EvaluationError, EHexState] :>> es => P.QuantVariableAST a -> Eff es (HSt.Var.QuantVariable a)
 evalQuantVariableAsVariable = \case
   P.ParamVar intParam -> pure $ HSt.Var.ParamVar intParam
   P.RegisterVar registerLocation -> HSt.Var.RegisterVar <$> evalRegisterLocationAsLocation registerLocation
 
 evalQuantVariableAsTarget ::
-  ( MonadError e m,
-    AsType Eval.EvaluationError e,
-    HSt.MonadHexState m
-  ) =>
+  [Error Eval.EvaluationError, EHexState] :>> es =>
   P.QuantVariableAST a ->
-  m (HSt.Var.QuantVariableTarget a)
+  Eff es (HSt.Var.QuantVariableTarget a)
 evalQuantVariableAsTarget =
   evalQuantVariableAsVariable >=> \case
     HSt.Var.ParamVar p -> HSt.getParameterValue p
     HSt.Var.RegisterVar loc -> HSt.getRegisterValue loc
 
 evalRegisterLocationAsLocation ::
-  ( MonadError e m,
-    AsType Eval.EvaluationError e,
-    HSt.MonadHexState m
-  ) =>
+  [Error Eval.EvaluationError, EHexState] :>> es =>
   P.QuantRegisterLocation q ->
-  m (HSt.Reg.QuantRegisterLocation q)
+  Eff es (HSt.Reg.QuantRegisterLocation q)
 evalRegisterLocationAsLocation = \case
   P.ExplicitQuantRegisterLocation regType loc ->
     HSt.Reg.QuantRegisterLocation regType <$> evalExplicitRegisterLocation loc
   P.InternalQuantRegisterLocation loc ->
     pure loc
 
-evalExplicitRegisterLocation :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.ExplicitRegisterLocation -> m HSt.Reg.RegisterLocation
+evalExplicitRegisterLocation :: [Error Eval.EvaluationError, EHexState] :>> es => P.ExplicitRegisterLocation -> Eff es HSt.Reg.RegisterLocation
 evalExplicitRegisterLocation explicitRegisterLocation = HSt.Reg.RegisterLocation <$> evalInt explicitRegisterLocation.unExplicitRegisterLocation
 
-evalFontSpecialCharRef :: P.FontSpecialCharRef -> m Q.HexInt
+evalFontSpecialCharRef :: P.FontSpecialCharRef -> Eff es Q.HexInt
 evalFontSpecialCharRef = notImplemented "evalFontSpecialCharRef"
 
 -- | Convert a list of digits in some base, into the integer they represent in
@@ -145,18 +139,18 @@ digitsToInt :: Int -> [Int] -> Int
 digitsToInt base digs =
   foldl' (\a b -> a * base + b) 0 digs
 
-evalLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Length -> m Q.Length
+evalLength :: [Error Eval.EvaluationError, EHexState] :>> es => P.Length -> Eff es Q.Length
 evalLength len =
   evalSignedValue evalUnsignedLength len.unLength
 
-evalUnsignedLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.UnsignedLength -> m Q.Length
+evalUnsignedLength :: [Error Eval.EvaluationError, EHexState] :>> es => P.UnsignedLength -> Eff es Q.Length
 evalUnsignedLength = \case
   P.NormalLengthAsULength normalLength ->
     evalNormalLength normalLength
   P.CoercedLength (P.InternalGlueAsLength internalGlue) ->
     (.gDimen) <$> evalInternalGlue internalGlue
 
-evalNormalLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.NormalLength -> m Q.Length
+evalNormalLength :: [Error Eval.EvaluationError, EHexState] :>> es => P.NormalLength -> Eff es Q.Length
 evalNormalLength = \case
   P.LengthSemiConstant factor unit -> do
     eFactor <- evalFactor factor
@@ -164,7 +158,7 @@ evalNormalLength = \case
     pure $ Q.scaleLengthByRational eFactor eUnit
   P.InternalLength internalLength -> evalInternalLength internalLength
 
-evalFactor :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Factor -> m Rational
+evalFactor :: [Error Eval.EvaluationError, EHexState] :>> es => P.Factor -> Eff es Rational
 evalFactor = \case
   P.NormalIntFactor normalInt -> do
     hexInt <- evalNormalInt normalInt
@@ -185,7 +179,7 @@ evalDecimalFraction v =
     decDigitsToInt words =
       fromIntegral @Int @Integer $ digitsToInt 10 $ word8ToInt <$> words
 
-evalUnit :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Unit -> m Q.Length
+evalUnit :: [Error Eval.EvaluationError, EHexState] :>> es => P.Unit -> Eff es Q.Length
 evalUnit = \case
   P.PhysicalUnit physicalUnitFrame physicalUnit -> do
     eFrame <- evalPhysicalUnitFrame physicalUnitFrame
@@ -194,7 +188,7 @@ evalUnit = \case
   P.InternalUnit internalUnit -> do
     evalInternalUnit internalUnit
 
-evalPhysicalUnitFrame :: (MonadHexState m) => P.PhysicalUnitFrame -> m Rational
+evalPhysicalUnitFrame :: EHexState :> es => P.PhysicalUnitFrame -> Eff es Rational
 evalPhysicalUnitFrame = \case
   P.MagnifiedFrame ->
     pure 1.0
@@ -202,7 +196,7 @@ evalPhysicalUnitFrame = \case
     _mag <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Mag)
     notImplemented "evalPhysicalUnitFrame: MagnifiedFrame"
 
-evalInternalUnit :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalUnit -> m Q.Length
+evalInternalUnit :: [Error Eval.EvaluationError, EHexState] :>> es => P.InternalUnit -> Eff es Q.Length
 evalInternalUnit = \case
   P.Em -> notImplemented "evalInternalUnit: Em"
   P.Ex -> notImplemented "evalInternalUnit: Ex"
@@ -213,29 +207,29 @@ evalInternalUnit = \case
   P.InternalGlueUnit internalGlue ->
     (.gDimen) <$> evalInternalGlue internalGlue
 
-evalGlue :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.Glue -> m Q.Glue
+evalGlue :: [Error Eval.EvaluationError, EHexState] :>> es => P.Glue -> Eff es Q.Glue
 evalGlue = \case
   P.ExplicitGlue explicitGlueSpec -> evalExplicitGlueSpec explicitGlueSpec
   P.InternalGlue signedInternalGlue -> evalSignedValue evalInternalGlue signedInternalGlue
 
-evalExplicitGlueSpec :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.ExplicitGlueSpec -> m Q.Glue
+evalExplicitGlueSpec :: [Error Eval.EvaluationError, EHexState] :>> es => P.ExplicitGlueSpec -> Eff es Q.Glue
 evalExplicitGlueSpec P.ExplicitGlueSpec {egLength, egStretch, egShrink} = do
   gDimen <- evalLength egLength
   gStretch <- evalMayFlex egStretch
   gShrink <- evalMayFlex egShrink
   pure $ Q.Glue {gDimen, gStretch, gShrink}
 
-evalMayFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => Maybe P.PureFlex -> m Q.PureFlex
+evalMayFlex :: [Error Eval.EvaluationError, EHexState] :>> es => Maybe P.PureFlex -> Eff es Q.PureFlex
 evalMayFlex = \case
   Nothing -> pure Q.zeroFlex
   Just flex -> evalPureFlex flex
 
-evalPureFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.PureFlex -> m Q.PureFlex
+evalPureFlex :: [Error Eval.EvaluationError, EHexState] :>> es => P.PureFlex -> Eff es Q.PureFlex
 evalPureFlex = \case
   P.FinitePureFlex finiteFlexLength -> Q.FinitePureFlex <$> evalLength finiteFlexLength
   P.InfPureFlex infFlexOfOrder -> Q.InfPureFlex <$> evalInfFlexOfOrder infFlexOfOrder
 
-evalInfFlexOfOrder :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InfFlexOfOrder -> m Q.InfFlexOfOrder
+evalInfFlexOfOrder :: [Error Eval.EvaluationError, EHexState] :>> es => P.InfFlexOfOrder -> Eff es Q.InfFlexOfOrder
 evalInfFlexOfOrder (P.InfFlexOfOrder signedFactor infFlexOrder) = do
   -- Wrap/unwrap via a 'Sum' newtype, to get the 'Sum' instance of 'Group', so
   -- we get the negative of the rational when needed.
@@ -244,12 +238,12 @@ evalInfFlexOfOrder (P.InfFlexOfOrder signedFactor infFlexOrder) = do
   pure $ Q.InfFlexOfOrder factorInfLength infFlexOrder
 
 evalRule ::
-  (MonadHexState m, MonadError e m, AsType Eval.EvaluationError e) =>
+  [EHexState, Error Eval.EvaluationError] :>> es =>
   P.Rule ->
-  m Q.Length ->
-  m Q.Length ->
-  m Q.Length ->
-  m Box.Rule
+  Eff es Q.Length ->
+  Eff es Q.Length ->
+  Eff es Q.Length ->
+  Eff es Box.Rule
 evalRule (P.Rule dims) defaultW defaultH defaultD = do
   w <- ruleDimen Box.BoxWidth defaultW
   h <- ruleDimen Box.BoxHeight defaultH
@@ -263,9 +257,9 @@ evalRule (P.Rule dims) defaultW defaultH defaultD = do
         defaultDim
 
 evalVModeRule ::
-  (MonadHexState m, MonadError e m, AsType Eval.EvaluationError e) =>
+  [EHexState, Error Eval.EvaluationError] :>> es =>
   P.Rule ->
-  m Box.Rule
+  Eff es Box.Rule
 evalVModeRule rule =
   evalRule rule defaultWidth defaultHeight defaultDepth
   where
@@ -274,9 +268,9 @@ evalVModeRule rule =
     defaultDepth = pure Q.zeroLength
 
 evalHModeRule ::
-  (MonadHexState m, MonadError e m, AsType Eval.EvaluationError e) =>
+  [EHexState, Error Eval.EvaluationError] :>> es =>
   P.Rule ->
-  m Box.Rule
+  Eff es Box.Rule
 evalHModeRule rule =
   evalRule rule defaultWidth defaultHeight defaultDepth
   where
@@ -285,72 +279,72 @@ evalHModeRule rule =
     defaultDepth = notImplemented "evalHModeRule: defaultDepth"
 
 evalChar ::
-  (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
+  [Error EvaluationError, EHexState] :>> es =>
   P.CharCodeRef ->
-  m Code.CharCode
+  Eff es Code.CharCode
 evalChar = \case
   P.CharRef c -> pure c
   P.CharTokenRef c -> noteRange c
   P.CharCodeNrRef n -> evalCharCodeInt n
 
 evalCharCodeInt ::
-  (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
+  [Error EvaluationError, EHexState] :>> es =>
   P.CharCodeInt ->
-  m Code.CharCode
+  Eff es Code.CharCode
 evalCharCodeInt n =
   evalInt n.unCharCodeInt >>= noteRange
 
-noteRange :: (Code.HexCode a, MonadError e m, AsType EvaluationError e) => Q.HexInt -> m a
+noteRange :: (Code.HexCode a, Error EvaluationError :> es) => Q.HexInt -> Eff es a
 noteRange x =
   note
-    (injectTyped ValueNotInRange)
+    (ValueNotInRange)
     (Code.fromHexInt x)
 
-evalMathLength :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.MathLength -> m Q.MathLength
+evalMathLength :: [Error EvaluationError, EHexState] :>> es => P.MathLength -> Eff es Q.MathLength
 evalMathLength mathLength = evalSignedValue (evalUnsignedMathLength) (mathLength.unMathLength)
 
-evalUnsignedMathLength :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.UnsignedMathLength -> m Q.MathLength
+evalUnsignedMathLength :: [Error EvaluationError, EHexState] :>> es => P.UnsignedMathLength -> Eff es Q.MathLength
 evalUnsignedMathLength = \case
   P.NormalMathLengthAsUMathLength normalMathLength -> evalNormalMathLength normalMathLength
   P.CoercedMathLength coercedMathLength -> evalCoercedMathLength coercedMathLength
 
-evalNormalMathLength :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.NormalMathLength -> m Q.MathLength
+evalNormalMathLength :: [Error EvaluationError, EHexState] :>> es => P.NormalMathLength -> Eff es Q.MathLength
 evalNormalMathLength = \case
   P.MathLengthSemiConstant factor mathUnit -> do
     eFactor <- evalFactor factor
     eMathUnit <- evalMathUnit mathUnit
     pure $ Q.scaleMathLengthByRational eFactor eMathUnit
 
-evalMathUnit :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.MathUnit -> m Q.MathLength
+evalMathUnit :: [Error EvaluationError, EHexState] :>> es => P.MathUnit -> Eff es Q.MathLength
 evalMathUnit = \case
   P.Mu ->
     pure Q.muLength
   P.InternalMathGlueAsUnit internalMathGlue ->
     (.mgDimen) <$> evalInternalMathGlue internalMathGlue
 
-evalCoercedMathLength :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.CoercedMathLength -> m Q.MathLength
+evalCoercedMathLength :: [Error EvaluationError, EHexState] :>> es => P.CoercedMathLength -> Eff es Q.MathLength
 evalCoercedMathLength = \case
   P.InternalMathGlueAsMathLength internalMathGlue ->
     (.mgDimen) <$> evalInternalMathGlue internalMathGlue
 
-evalMathGlue :: (MonadError e m, AsType EvaluationError e, MonadHexState m) => P.MathGlue -> m Q.MathGlue
+evalMathGlue :: [Error EvaluationError, EHexState] :>> es => P.MathGlue -> Eff es Q.MathGlue
 evalMathGlue = \case
   P.ExplicitMathGlue mathLength mayMathStretch mayMathShrink -> do
     Q.MathGlue <$> evalMathLength mathLength <*> evalMayMathFlex mayMathStretch <*> evalMayMathFlex mayMathShrink
   P.InternalMathGlue signedInternalMathGlue -> do
     evalSignedValue evalInternalMathGlue signedInternalMathGlue
 
-evalMayMathFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => Maybe P.PureMathFlex -> m Q.PureMathFlex
+evalMayMathFlex :: [Error Eval.EvaluationError, EHexState] :>> es => Maybe P.PureMathFlex -> Eff es Q.PureMathFlex
 evalMayMathFlex = \case
   Nothing -> pure Q.zeroMathFlex
   Just flex -> evalPureMathFlex flex
 
-evalPureMathFlex :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.PureMathFlex -> m Q.PureMathFlex
+evalPureMathFlex :: [Error Eval.EvaluationError, EHexState] :>> es => P.PureMathFlex -> Eff es Q.PureMathFlex
 evalPureMathFlex = \case
   P.FinitePureMathFlex finiteFlexMathLength -> Q.FinitePureMathFlex <$> evalMathLength finiteFlexMathLength
   P.InfPureMathFlex infFlexOfOrder -> Q.InfPureMathFlex <$> evalInfFlexOfOrder infFlexOfOrder
 
-evalTokenListAssignmentTarget :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.TokenListAssignmentTarget -> m HSt.TL.BalancedText
+evalTokenListAssignmentTarget :: [Error Eval.EvaluationError, EHexState] :>> es => P.TokenListAssignmentTarget -> Eff es HSt.TL.BalancedText
 evalTokenListAssignmentTarget = \case
   P.TokenListAssignmentVar var ->
     evalQuantVariableAsTarget var
@@ -358,9 +352,9 @@ evalTokenListAssignmentTarget = \case
     pure inhibitedBalancedText.unInhibitedBalancedText
 
 evalInternalQuantity ::
-  (MonadError e m, AsType EvaluationError e, MonadHexState m) =>
+  [Error EvaluationError, EHexState] :>> es =>
   P.InternalQuantity ->
-  m E.InternalQuantity
+  Eff es E.InternalQuantity
 evalInternalQuantity = \case
   P.InternalIntQuantity internalInt ->
     E.InternalIntQuantity <$> evalInternalInt internalInt
@@ -375,7 +369,7 @@ evalInternalQuantity = \case
   P.TokenListVariableQuantity _tokenListVariable ->
     notImplemented "evalInternalQuantity: TokenListVariableQuantity"
 
-evalInternalLength :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalLength -> m Q.Length
+evalInternalLength :: [Error Eval.EvaluationError, EHexState] :>> es => P.InternalLength -> Eff es Q.Length
 evalInternalLength = \case
   P.InternalLengthVariable lengthVariable ->
     evalQuantVariableAsTarget lengthVariable
@@ -388,7 +382,7 @@ evalInternalLength = \case
   P.LastKern ->
     notImplemented "evalInternalLength: LastKern"
 
-evalBoxDimensionRef :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.BoxDimensionRef -> m Q.Length
+evalBoxDimensionRef :: [Error Eval.EvaluationError, EHexState] :>> es => P.BoxDimensionRef -> Eff es Q.Length
 evalBoxDimensionRef (P.BoxDimensionRef loc boxDim) = do
   eLoc <- evalExplicitRegisterLocation loc
   HSt.fetchBoxRegisterValue HSt.Reg.Lookup eLoc <&> \case
@@ -398,25 +392,25 @@ evalBoxDimensionRef (P.BoxDimensionRef loc boxDim) = do
       Box.BoxHeight -> bx.boxHeight
       Box.BoxDepth -> bx.boxDepth
 
-evalInternalGlue :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalGlue -> m Q.Glue
+evalInternalGlue :: [Error Eval.EvaluationError, EHexState] :>> es => P.InternalGlue -> Eff es Q.Glue
 evalInternalGlue = \case
   P.InternalGlueVariable glueVariable ->
     evalQuantVariableAsTarget glueVariable
   P.LastGlue ->
     notImplemented "evalInternalGlue: LastGlue"
 
-evalInternalMathGlue :: (MonadError e m, AsType Eval.EvaluationError e, MonadHexState m) => P.InternalMathGlue -> m Q.MathGlue
+evalInternalMathGlue :: [Error Eval.EvaluationError, EHexState] :>> es => P.InternalMathGlue -> Eff es Q.MathGlue
 evalInternalMathGlue = \case
   P.InternalMathGlueVariable mathGlueVariable ->
     evalQuantVariableAsTarget mathGlueVariable
   P.LastMathGlue ->
     notImplemented "evalInternalGlue: LastMathGlue"
 
-evalFontRef :: HSt.MonadHexState m => P.FontRef -> m DVI.FontNumber
+evalFontRef :: EHexState :> es => P.FontRef -> Eff es DVI.FontNumber
 evalFontRef = \case
   P.FontTokenRef fontNumber -> pure fontNumber
   P.CurrentFontRef -> HSt.currentFontNumber
   P.FamilyMemberFontRef _familyMember -> notImplemented "evalFontRef: FamilyMemberFontRef"
 
-evalFamilyMember :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.FamilyMember -> m HSt.Font.FamilyMember
+evalFamilyMember :: [Error Eval.EvaluationError, EHexState] :>> es => P.FamilyMember -> Eff es HSt.Font.FamilyMember
 evalFamilyMember (P.FamilyMember fontRange n) = HSt.Font.FamilyMember fontRange <$> evalInt n

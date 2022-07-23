@@ -19,16 +19,16 @@ fmtEvaluationError = F.later $ \case
   InvalidTokenInBalancedText pt -> "Invalid token in balanced text: " <> F.bformat LT.fmtControlSequence pt
 
 evalBalancedTextToText ::
-  (MonadError e m, AsType EvaluationError e) =>
+  Error EvaluationError :> es =>
   LT.BalancedText ->
-  m Text
+  Eff es Text
 evalBalancedTextToText bt = do
   -- For each primitive-token in the expanded-balanced-text.
   msgAsciiChars <- forM bt.unBalancedText $ \lt ->
     -- Get the lex-char-cat from the token, if it is the correct token type.
     case lt of
       -- If it is the wrong type, throw an error.
-      LT.ControlSequenceLexToken cs -> throwError $ injectTyped $ InvalidTokenInBalancedText cs
+      LT.ControlSequenceLexToken cs -> throwError $ InvalidTokenInBalancedText cs
       -- Otherwise, convert the char-code to its equivalent ASCII-character.
       LT.CharCatLexToken lexCharCat ->
         pure $ Code.codeAsAsciiChar $ lexCharCat.lexCCChar
@@ -36,7 +36,7 @@ evalBalancedTextToText bt = do
   pure $ ASCII.charListToText $ toList msgAsciiChars
 
 evalExpandedBalancedTextToText ::
-  (MonadError e m, AsType EvaluationError e) =>
+  Error EvaluationError :> es =>
   HSt.TL.ExpandedBalancedText ->
-  m Text
+  Eff es Text
 evalExpandedBalancedTextToText ebt = evalBalancedTextToText (ebt.unExpandedBalancedText)

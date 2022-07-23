@@ -65,7 +65,7 @@ instance HexCode CharCode where
     | n < 0 = Nothing
     | otherwise = Just $ CharCode $ fromIntegral @Int @Word8 n
 
-readCharCodes :: MonadIO m => FilePath -> m ByteString
+readCharCodes :: IOE :> es => FilePath -> Eff es ByteString
 readCharCodes = liftIO . BS.readFile
 
 -- Category code

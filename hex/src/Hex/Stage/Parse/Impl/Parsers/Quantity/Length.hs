@@ -4,7 +4,7 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (PrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Parse.Impl.Parsers.Combinators
@@ -12,21 +12,21 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
 
-parseLength :: MonadPrimTokenParse m => m AST.Length
+parseLength :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Length
 parseLength = AST.Length <$> Par.parseSigned parseUnsignedLength
 
-parseUnsignedLength :: MonadPrimTokenParse m => m AST.UnsignedLength
+parseUnsignedLength :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.UnsignedLength
 parseUnsignedLength =
   PC.choice
     [ AST.NormalLengthAsULength <$> parseNormalLength,
-      Par.try $ AST.CoercedLength . AST.InternalGlueAsLength <$> (anyPrim >>= Par.headToParseInternalGlue)
+      Par.tryParse $ AST.CoercedLength . AST.InternalGlueAsLength <$> (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
-parseNormalLength :: MonadPrimTokenParse m => m AST.NormalLength
+parseNormalLength :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.NormalLength
 parseNormalLength =
   PC.choice
     [ AST.LengthSemiConstant <$> parseFactor <*> parseUnit,
-      Par.try $ AST.InternalLength <$> (anyPrim >>= Par.headToParseInternalLength)
+      Par.tryParse $ AST.InternalLength <$> (anyPrim >>= Par.headToParseInternalLength)
     ]
 
 -- NOTE: The parser order matters because TeX's grammar is ambiguous: '2.2'
@@ -36,14 +36,14 @@ parseNormalLength =
 -- the next digits before it fails when it doesn't see a ',' or '.'.
 -- NOTE: Also we put a 'try' on the normal-int case, just because we start with
 -- an 'any-prim' so it's likely to over-consume.
-parseFactor :: MonadPrimTokenParse m => m AST.Factor
+parseFactor :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Factor
 parseFactor =
   PC.choice
-    [ Par.try $ AST.DecimalFractionFactor <$> parseRationalConstant,
-      Par.try $ Log.debugLog "Parsing normal-int" >> AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
+    [ Par.tryParse $ AST.DecimalFractionFactor <$> parseRationalConstant,
+      Par.tryParse $ Log.debugLog "Parsing normal-int" >> AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
     ]
 
-parseRationalConstant :: MonadPrimTokenParse m => m AST.DecimalFraction
+parseRationalConstant :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.DecimalFraction
 parseRationalConstant = do
   Log.debugLog "parseRationalConstant"
   wholeDigits <- PC.many (satisfyCharCatThen Expanding Par.decCharToWord)
@@ -55,7 +55,7 @@ parseRationalConstant = do
   Log.debugLog $ "Successfully parsed rational constant, value: " <> show v
   pure v
 
-parseUnit :: MonadPrimTokenParse m => m AST.Unit
+parseUnit :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Unit
 parseUnit =
   PC.choice
     [ (skipOptionalSpaces Expanding) *> (AST.InternalUnit <$> parseInternalUnit),
@@ -65,7 +65,7 @@ parseUnit =
     -- 'try' because we
     parseInternalUnit =
       (parseInternalUnitLit <* skipOneOptionalSpace Expanding)
-        <|> ( Par.try $
+        <|> ( Par.tryParse $
                 anyPrim
                   >>= choiceFlap
                     [ fmap AST.InternalIntUnit <$> Par.headToParseInternalInt,
@@ -76,7 +76,7 @@ parseUnit =
 
     parseInternalUnitLit =
       PC.choice
-        [ Par.try $ skipKeyword Expanding [Chr_ 'e', Chr_ 'm'] $> AST.Em,
+        [ Par.tryParse $ skipKeyword Expanding [Chr_ 'e', Chr_ 'm'] $> AST.Em,
           skipKeyword Expanding [Chr_ 'e', Chr_ 'x'] $> AST.Ex
         ]
 
@@ -90,13 +90,13 @@ parseUnit =
     -- Leave as later optimisation.
     parsePhysicalUnitLit =
       PC.choice
-        [ Par.try $ skipKeyword Expanding [Chr_ 'p', Chr_ 't'] $> Q.Point,
+        [ Par.tryParse $ skipKeyword Expanding [Chr_ 'p', Chr_ 't'] $> Q.Point,
           skipKeyword Expanding [Chr_ 'p', Chr_ 'c'] $> Q.Pica,
           skipKeyword Expanding [Chr_ 'b', Chr_ 'p'] $> Q.BigPoint,
           skipKeyword Expanding [Chr_ 'd', Chr_ 'd'] $> Q.Didot,
           skipKeyword Expanding [Chr_ 'i', Chr_ 'n'] $> Q.Inch,
           skipKeyword Expanding [Chr_ 'm', Chr_ 'm'] $> Q.Millimetre,
           skipKeyword Expanding [Chr_ 's', Chr_ 'p'] $> Q.ScaledPoint,
-          Par.try $ skipKeyword Expanding [Chr_ 'c', Chr_ 'c'] $> Q.Cicero,
+          Par.tryParse $ skipKeyword Expanding [Chr_ 'c', Chr_ 'c'] $> Q.Cicero,
           skipKeyword Expanding [Chr_ 'c', Chr_ 'm'] $> Q.Centimetre
         ]

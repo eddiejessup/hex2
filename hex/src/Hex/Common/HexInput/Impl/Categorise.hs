@@ -10,6 +10,7 @@ import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack (..))
 import Hex.Common.HexInput.Impl.CharSourceStack qualified as CharSourceStack
 import Hex.Common.HexState.Interface qualified as HSt
 import Hexlude
+import Hex.Common.HexState.Interface (EHexState)
 
 data RawCharCat = RawCharCat
   { rawCCChar :: Code.CharCode,
@@ -24,7 +25,7 @@ fmtRawCharCat =
    in F.parenthesised $ f1 <> F.fconst ", " <> f2
 
 extractCharCatFromHexLinePure ::
-  (HSt.MonadHexState m) => HexLine -> m (Maybe (RawCharCat, HexLine))
+  EHexState :> es => HexLine -> Eff es (Maybe (RawCharCat, HexLine))
 extractCharCatFromHexLinePure (HexLine xs) = runMaybeT $ do
   (n1, rest1) <- MaybeT $ pure $ BS.uncons xs
   -- Next two characters must be identical, and have category
@@ -51,27 +52,21 @@ extractCharCatFromHexLinePure (HexLine xs) = runMaybeT $ do
       pure normal
 
 extractCharCatFromCurrentLine ::
-  ( MonadState st m,
-    HasType CharSourceStack st,
-    HSt.MonadHexState m
-  ) =>
-  m (Maybe RawCharCat)
+  [State CharSourceStack, EHexState] :>> es =>
+  Eff es (Maybe RawCharCat)
 extractCharCatFromCurrentLine = do
-  use (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure >>= \case
+  use @CharSourceStack (CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure >>= \case
     Nothing ->
       pure Nothing
     Just (charCat, restOfLine) -> do
-      assign' (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) restOfLine
+      assign @CharSourceStack (CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) restOfLine
       pure $ Just charCat
 
 peekCharCatOnCurrentLineImpl ::
-  ( MonadState st m,
-    HasType CharSourceStack st,
-    HSt.MonadHexState m
-  ) =>
-  m (Maybe RawCharCat)
+  [State CharSourceStack, EHexState] :>> es =>
+  Eff es (Maybe RawCharCat)
 peekCharCatOnCurrentLineImpl =
-  use (typed @CharSourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure <&> \case
+  use @CharSourceStack (CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure <&> \case
     Nothing ->
       Nothing
     Just (charCat, _restOfLine) ->

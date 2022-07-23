@@ -132,7 +132,7 @@ data AssignmentBody
   | SetFamilyMember HSt.Font.FamilyMember DVI.FontNumber
   | SetParShape Uneval.HexInt [Uneval.Length]
   | SetBoxRegister HSt.Register.RegisterLocation Box
-  | -- Global assignments.
+  | -- GlobalScope assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
   | SetFontSpecialChar E.FontSpecialCharRef Q.HexInt
   | SetHyphenation HSt.TL.InhibitedBalancedText

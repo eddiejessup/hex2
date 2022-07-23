@@ -5,7 +5,7 @@ import Hex.Common.HexInput.Impl.Categorise qualified as Cat
 import Hex.Common.HexInput.Impl.CharSource qualified as HIn
 import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
 import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.Token.Lexed (LexCharCat (..), LexToken (..))
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
@@ -15,11 +15,8 @@ spaceTok = CharCatLexToken $ LexCharCat (Code.Chr_ ' ') Code.Space
 
 -- Take letters until we see end-of-input, or a non-letter. Leave the non-letter in the rest-of-input
 getLetterChars ::
-  ( MonadState st m,
-    HasType CharSourceStack st,
-    HSt.MonadHexState m
-  ) =>
-  m (Seq Code.CharCode)
+  [State CharSourceStack, EHexState] :>> es =>
+  Eff es (Seq Code.CharCode)
 getLetterChars = go Empty
   where
     go acc =
@@ -37,19 +34,13 @@ getLetterChars = go Empty
           pure acc
 
 extractLexTokenFromSourceLine ::
-  forall e st m.
-  ( Monad m,
-    HSt.MonadHexState m,
-    MonadError e m,
-    AsType HIn.LexError e,
-    MonadState st m,
-    HasType CharSourceStack st
-  ) =>
+  forall es.
+  [EHexState, Error HIn.LexError, State CharSourceStack] :>> es =>
   HIn.LineState ->
-  m (Maybe (LexToken, HIn.LineState))
+  Eff es (Maybe (LexToken, HIn.LineState))
 extractLexTokenFromSourceLine = go
   where
-    go :: HIn.LineState -> m (Maybe (LexToken, HIn.LineState))
+    go :: HIn.LineState -> Eff es (Maybe (LexToken, HIn.LineState))
     go _state = do
       Cat.extractCharCatFromCurrentLine >>= \case
         Nothing -> pure Nothing
@@ -59,7 +50,7 @@ extractLexTokenFromSourceLine = go
             (Code.Escape, _) -> do
               Cat.extractCharCatFromCurrentLine >>= \case
                 Nothing ->
-                  throwError $ injectTyped HIn.TerminalEscapeCharacter
+                  throwError HIn.TerminalEscapeCharacter
                 Just (Cat.RawCharCat csChar1 ctrlSeqCat1) -> do
                   ctrlSeqChars <- case ctrlSeqCat1 of
                     Code.CoreCatCode Code.Letter -> do
@@ -105,7 +96,7 @@ extractLexTokenFromSourceLine = go
             --------------
             -- Invalid: TeXbook says to print an error message.
             (Code.Invalid, _) ->
-              throwError $ injectTyped HIn.InvalidCharacter
+              throwError HIn.InvalidCharacter
             -- Simple tokeniser cases.
             --------------------------
             (Code.CoreCatCode cc, _) ->

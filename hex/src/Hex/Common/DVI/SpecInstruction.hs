@@ -1,6 +1,5 @@
 module Hex.Common.DVI.SpecInstruction where
 
-import Control.Monad.Writer qualified as Writer
 import Data.ByteString qualified as BS
 import Data.ByteString.Char8 qualified as BS.Char8
 import Data.List qualified as List
@@ -22,12 +21,12 @@ data DVIError
 fmtDVIError :: Fmt DVIError
 fmtDVIError = F.shown
 
-noteOutOfBounds :: (MonadError e m, AsType DVIError e) => Text -> (Int -> Maybe w) -> Int -> m w
+noteOutOfBounds :: (Error DVIError :> es) => Text -> (Int -> Maybe w) -> Int -> Eff es w
 noteOutOfBounds ctx f n = case f n of
-  Nothing -> throwError $ injectTyped $ OutOfBoundsValue ctx n
+  Nothing -> throwError $ OutOfBoundsValue ctx n
   Just v -> pure v
 
-docAsBodySpecInstruction :: (MonadError e m, AsType DVIError e) => BytePointer -> DocInstruction -> m BodySpecInstruction
+docAsBodySpecInstruction :: (Error DVIError :> es) => BytePointer -> DocInstruction -> Eff es BodySpecInstruction
 docAsBodySpecInstruction lastBeginPagePointer = \case
   BeginNewPage ->
     pure $
@@ -99,11 +98,16 @@ docAsBodySpecInstruction lastBeginPagePointer = \case
         then ""
         else x
 
-renderDocInstructions :: AsType DVIError e => Magnification Q.HexInt -> [DocInstruction] -> (Maybe e, SpecInstructionWriterState, [SpecInstruction])
+renderDocInstructions :: Magnification Q.HexInt -> [DocInstruction] -> (Maybe DVIError, SpecInstructionWriterState, [SpecInstruction])
 renderDocInstructions mag docInstrs =
-  let ranErr = runExceptT $ unDocInstructionWriterT (addAllInstructions mag docInstrs)
-      ranState = runStateT ranErr SpecInstructionWriterState {currentBytePointer = BytePointer 0, beginPagePointers = [], curFontNr = Nothing, stackDepth = 0, maxStackDepth = 0}
-      ranWriter = Writer.runWriter ranState
+  let ranErr :: Eff [State SpecInstructionWriterState, Writer [SpecInstruction]] (Either DVIError ())
+      ranErr = runErrorNoCallStack (addAllInstructions mag docInstrs)
+
+      ranState :: Eff '[Writer [SpecInstruction]] (Either DVIError (), SpecInstructionWriterState)
+      ranState = runStateLocal (SpecInstructionWriterState {currentBytePointer = BytePointer 0, beginPagePointers = [], curFontNr = Nothing, stackDepth = 0, maxStackDepth = 0}) ranErr
+
+      ranWriter :: ((Either DVIError (), SpecInstructionWriterState), [SpecInstruction])
+      ranWriter = runPureEff $ runWriterLocal ranState
    in ranWriter & \((errOrUnit, finalState), specInstrs) ->
         let mayErr = case errOrUnit of
               Left err -> Just err
@@ -118,17 +122,6 @@ data SpecInstructionWriterState = SpecInstructionWriterState
     maxStackDepth :: Word16
   }
   deriving stock (Show, Generic)
-
-newtype SpecInstructionWriterT e a = SpecInstructionWriterT {unDocInstructionWriterT :: ExceptT e (StateT SpecInstructionWriterState (Writer.Writer [SpecInstruction])) a}
-  deriving stock (Generic)
-  deriving newtype
-    ( Functor,
-      Applicative,
-      Monad,
-      Writer.MonadWriter [SpecInstruction],
-      MonadState SpecInstructionWriterState,
-      MonadError e
-    )
 
 ambleArgs :: Magnification Int32 -> AmbleArgs
 ambleArgs mag =
@@ -152,10 +145,10 @@ preambleOpArgs mag =
       uselessString = ""
     }
 
-getPostambleOpArgs :: (Writer.MonadWriter [SpecInstruction] m, MonadState SpecInstructionWriterState m, MonadError e m, AsType DVIError e) => Magnification Int32 -> m PostambleOpArgs
+getPostambleOpArgs :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => Magnification Int32 -> Eff es PostambleOpArgs
 getPostambleOpArgs mag = do
   lastPointer <- getPrevBeginPagePointer
-  maxStackDepth <- use #maxStackDepth
+  maxStackDepth <- use @SpecInstructionWriterState #maxStackDepth
   numberOfPages <- getNrBeginPagePointers
   pure
     PostambleOpArgs
@@ -175,25 +168,25 @@ postPostambleArgs postamblePointer =
       signatureBytes = replicate 4 223
     }
 
-emitSpecInstruction :: (Writer.MonadWriter [SpecInstruction] m, MonadState SpecInstructionWriterState m, MonadError e m, AsType DVIError e) => SpecInstruction -> m ()
+emitSpecInstruction :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => SpecInstruction -> Eff es ()
 emitSpecInstruction specI = do
   -- Compute the number of bytes in the spec-instruction.
 
   nBytesInt32 <- noteOutOfBounds "Instruction length" Dec.intToInt32 (Enc.specInstructionLength specI)
   -- Emit the spec-instruction.
-  Writer.tell [specI]
+  tell @[SpecInstruction] [specI]
   -- Update the current byte-pointer to reflect the instruction.
-  modifying' #currentBytePointer (<> (BytePointer nBytesInt32))
+  modifying @SpecInstructionWriterState #currentBytePointer (<> (BytePointer nBytesInt32))
 
-getPrevBeginPagePointer :: (MonadState SpecInstructionWriterState m) => m BytePointer
-getPrevBeginPagePointer = use $ #beginPagePointers % to (fromMaybe (BytePointer (-1)) . lastMay)
+getPrevBeginPagePointer :: (State SpecInstructionWriterState :> es) => Eff es BytePointer
+getPrevBeginPagePointer = use @SpecInstructionWriterState $ #beginPagePointers % to (fromMaybe (BytePointer (-1)) . lastMay)
 
-getNrBeginPagePointers :: (MonadState SpecInstructionWriterState m, MonadError e m, AsType DVIError e) => m Word16
+getNrBeginPagePointers :: ([State SpecInstructionWriterState, Error DVIError] :>> es) => Eff es Word16
 getNrBeginPagePointers = do
-  nInt <- use (#beginPagePointers % to List.length)
+  nInt <- use @SpecInstructionWriterState (#beginPagePointers % to List.length)
   noteOutOfBounds "nrBeginPagePointers" Dec.intToWord16 nInt
 
-emitDocInstruction :: (Writer.MonadWriter [SpecInstruction] m, MonadState SpecInstructionWriterState m, MonadError e m, AsType DVIError e) => DocInstruction -> m ()
+emitDocInstruction :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => DocInstruction -> Eff es ()
 emitDocInstruction i = do
   -- Get the most recent begin-page pointer.
   prevBeginPagePointer <- getPrevBeginPagePointer
@@ -201,19 +194,19 @@ emitDocInstruction i = do
   specI <- BodySpecInstruction <$> docAsBodySpecInstruction prevBeginPagePointer i
   emitSpecInstruction specI
 
-interpretDocInstruction :: (Writer.MonadWriter [SpecInstruction] m, MonadState SpecInstructionWriterState m, MonadError e m, AsType DVIError e) => DocInstruction -> m ()
+interpretDocInstruction :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => DocInstruction -> Eff es ()
 interpretDocInstruction i = do
   case i of
     BeginNewPage -> do
       -- Add a pointer for the new begin-page instruction.
-      newBeginPageBytePointer <- use #currentBytePointer
-      modifying' (#beginPagePointers) (newBeginPageBytePointer :)
+      newBeginPageBytePointer <- use @SpecInstructionWriterState #currentBytePointer
+      modifying @SpecInstructionWriterState (#beginPagePointers) (newBeginPageBytePointer :)
     PushStack -> do
-      newStackDepth <- use (#stackDepth % to succ)
-      assign' #stackDepth newStackDepth
-      modifying' (#maxStackDepth) (max newStackDepth)
+      newStackDepth <- use @SpecInstructionWriterState (#stackDepth % to succ)
+      assign @SpecInstructionWriterState #stackDepth newStackDepth
+      modifying @SpecInstructionWriterState (#maxStackDepth) (max newStackDepth)
     SelectFont n -> do
-      assign' #curFontNr (Just n)
+      assign @SpecInstructionWriterState #curFontNr (Just n)
     _ ->
       pure ()
 
@@ -223,7 +216,7 @@ interpretDocInstruction i = do
   -- new page.
   case i of
     BeginNewPage -> do
-      use #curFontNr >>= \case
+      use @SpecInstructionWriterState #curFontNr >>= \case
         Nothing -> pure ()
         Just n -> do
           emitDocInstruction (SelectFont n)
@@ -233,7 +226,7 @@ interpretDocInstruction i = do
 newtype Magnification a = Magnification {unMagnification :: a}
   deriving stock (Show, Generic)
 
-addAllInstructions :: (AsType DVIError e) => Magnification Q.HexInt -> [DocInstruction] -> SpecInstructionWriterT e ()
+addAllInstructions :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => Magnification Q.HexInt -> [DocInstruction] -> Eff es ()
 addAllInstructions mag docInstrs = do
   magInt32 <- Magnification <$> noteOutOfBounds "mag" Dec.intToInt32 (mag.unMagnification.unHexInt)
 
@@ -244,7 +237,7 @@ addAllInstructions mag docInstrs = do
   for_ docInstrs $ \docInstr ->
     interpretDocInstruction docInstr
 
-  postamblePointer <- use #currentBytePointer
+  postamblePointer <- use @SpecInstructionWriterState #currentBytePointer
   -- Emit postamble instruction.
   postambleArgs <- getPostambleOpArgs magInt32
   emitSpecInstruction (PostambleOp postambleArgs)

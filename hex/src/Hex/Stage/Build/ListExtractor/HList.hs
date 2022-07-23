@@ -3,90 +3,80 @@
 
 module Hex.Stage.Build.ListExtractor.HList where
 
-import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Capability.Log.Interface (HexLog (..))
 import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexState.Interface (MonadHexState)
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Stage.Build.ListBuilder.Horizontal qualified as Build.H
-import Hex.Stage.Build.ListElem qualified as ListElem
-import Hex.Stage.Build.ListExtractor.Interface (MonadHexListExtractor)
+import Hex.Stage.Build.ListBuilder.Horizontal (runHListBuilder, runHexListBuilderHMode)
+import Hex.Stage.Build.ListBuilder.Interface qualified as Build
+import Hex.Stage.Build.ListElem (HList (..))
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
-import Hex.Stage.Evaluate.Interface (MonadEvaluate (..))
 import Hex.Stage.Evaluate.Interface qualified as Eval
-import Hex.Stage.Interpret.AllMode (InterpretError)
 import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hex.Stage.Interpret.HMode qualified as Command.H
 import Hex.Stage.Interpret.HMode qualified as HMode
-import Hex.Stage.Parse.Interface (MonadCommandSource (..))
+import Hex.Stage.Parse.Interface (CommandSource (..))
 import Hexlude
 
-instance
-  ( Monad m,
-    MonadEvaluate m,
-    MonadCommandSource m,
-    MonadHexState m,
-    HIn.MonadHexInput m,
-    MonadError e m,
-    AsType InterpretError e,
-    MonadHexLog m
-  ) =>
-  MonadHexListExtractor m
-  where
-  extractHBoxList = extractHBoxListImpl
-
-  extractParagraphList = extractParagraphListImpl
+runListExtractor :: [Eval.HexEvaluate, CommandSource, HSt.EHexState, HIn.HexInput, Error AllMode.InterpretError, HexLog] :>> es => Eff (ListExtractor.HexListExtractor : es) a -> Eff es a
+runListExtractor = interpret $ \_ -> \case
+  ListExtractor.ExtractHBoxList -> snd <$> extractHBoxListImpl
+  ListExtractor.ExtractParagraphList indentFlag -> extractParagraphListImpl indentFlag
 
 extractHBoxListImpl ::
-  forall m e.
-  ( Eval.MonadEvaluate m,
-    MonadCommandSource m,
-    HSt.MonadHexState m,
-    HIn.MonadHexInput m,
-    MonadError e m,
-    AsType AllMode.InterpretError e,
-    MonadHexLog m
+  forall es.
+  ( Eval.HexEvaluate :> es,
+    CommandSource :> es,
+    HSt.EHexState :> es,
+    HIn.HexInput :> es,
+    Error AllMode.InterpretError :> es,
+    HexLog :> es
   ) =>
-  m ListElem.HList
+  Eff es (ListExtractor.EndHListReason, HList)
 extractHBoxListImpl =
-  snd <$> buildHList ListExtractor.InnerModeContext (ListElem.HList mempty)
+  runStateLocal mempty $
+    runHListBuilder $
+      runHexListBuilderHMode $
+        buildHListImpl ListExtractor.InnerModeContext
 
 extractParagraphListImpl ::
-  forall m e.
-  ( Eval.MonadEvaluate m,
-    MonadCommandSource m,
-    HSt.MonadHexState m,
-    HIn.MonadHexInput m,
-    MonadError e m,
-    AsType AllMode.InterpretError e,
-    MonadHexLog m
+  forall es.
+  ( Eval.HexEvaluate :> es,
+    CommandSource :> es,
+    HSt.EHexState :> es,
+    HIn.HexInput :> es,
+    Error AllMode.InterpretError :> es,
+    HexLog :> es
   ) =>
   ListExtractor.IndentFlag ->
-  m (ListExtractor.EndHListReason, ListElem.HList)
+  Eff es (ListExtractor.EndHListReason, HList)
 extractParagraphListImpl indentFlag = do
-  initList <- case indentFlag of
-    ListExtractor.Indent ->
-      singleton <$> HSt.getParIndentBox
-    ListExtractor.DoNotIndent ->
-      pure mempty
-  buildHList ListExtractor.OuterModeContext (ListElem.HList initList)
+  initList <-
+    HList <$> case indentFlag of
+      ListExtractor.Indent ->
+        singleton <$> HSt.getParIndentBox
+      ListExtractor.DoNotIndent ->
+        pure mempty
+  runStateLocal initList $
+    runHListBuilder $
+      runHexListBuilderHMode $
+        buildHListImpl ListExtractor.OuterModeContext
 
-buildHList ::
-  forall m e.
-  ( Eval.MonadEvaluate m,
-    MonadCommandSource m,
-    HSt.MonadHexState m,
-    HIn.MonadHexInput m,
-    MonadError e m,
-    AsType AllMode.InterpretError e,
-    MonadHexLog m
+buildHListImpl ::
+  forall es.
+  ( Eval.HexEvaluate :> es,
+    CommandSource :> es,
+    HSt.EHexState :> es,
+    HIn.HexInput :> es,
+    Build.HListBuilder :> es,
+    Build.HexListBuilder :> es,
+    Error AllMode.InterpretError :> es,
+    HexLog :> es
   ) =>
   ListExtractor.ModeContext ->
-  ListElem.HList ->
-  m (ListExtractor.EndHListReason, ListElem.HList)
-buildHList modeCtx initList = do
-  Build.H.runHListBuilderT initList go
+  Eff es ListExtractor.EndHListReason
+buildHListImpl modeCtx = go
   where
-    go :: Build.H.HListBuilderT m ListExtractor.EndHListReason
+    go :: Eff es ListExtractor.EndHListReason
     go = do
       -- Get the state before reading the command,
       -- in case we need to revert to before the command.
@@ -94,6 +84,6 @@ buildHList modeCtx initList = do
       -- Read the next command.
       command <- AllMode.getNextCommandLogged
       -- Handle the next command, passing the old state in case we need to revert.
-      HMode.handleCommandInHMode sPreParse modeCtx command >>= \case
+      runListExtractor (HMode.handleCommandInHMode sPreParse modeCtx command) >>= \case
         Command.H.EndHList endReason -> pure endReason
         Command.H.ContinueHMode -> go

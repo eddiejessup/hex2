@@ -78,11 +78,11 @@ data PageBreakJudgment
   deriving stock (Show, Generic)
 
 pageBreakCost ::
-  Log.MonadHexLog m =>
+  Log.HexLog :> es =>
   CurrentPage ->
   Breaking.BreakItem ->
   Q.Length ->
-  m PageCost
+  Eff es PageCost
 pageBreakCost currentPage breakItem desiredHeight = do
   let flexSpec = Eval.listFlexSpec currentPage.items desiredHeight
       b = Eval.glueFlexSpecBadness flexSpec
@@ -108,15 +108,15 @@ costImpliesBreakHere = \case
   FiniteCost finiteCost -> finiteCost <= FiniteCostValue (-Q.tenK)
 
 runPageBuilder ::
-  forall m.
-  Log.MonadHexLog m =>
+  forall es.
+  Log.HexLog :> es =>
   Q.Length ->
   VList ->
-  m (Seq Page.Page)
+  Eff es (Seq Page.Page)
 runPageBuilder desiredHeight vList =
   go newCurrentPage vList
   where
-    go :: CurrentPage -> VList -> m (Seq Page.Page)
+    go :: CurrentPage -> VList -> Eff es (Seq Page.Page)
     go currentPage@(CurrentPage curPageElems _bestPointAndCost) toAddElems@(VList toAddElemSeq) =
       case toAddElemSeq of
         Empty ->

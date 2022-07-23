@@ -1,3 +1,6 @@
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
+
 module Hex.Common.HexInput.Interface where
 
 import Formatting qualified as F
@@ -17,32 +20,32 @@ data LexError
 fmtLexError :: Fmt LexError
 fmtLexError = F.shown
 
-class Monad m => MonadHexInput m where
-  endCurrentLine :: m ()
+data HexInput :: Effect where
+  EndCurrentLine :: HexInput m ()
+  InputIsFinished :: HexInput m Bool
+  GetInput :: HexInput m CharSourceStack
+  PutInput :: CharSourceStack -> HexInput m ()
+  InsertLexToken :: LT.LexToken -> HexInput m ()
+  InsertLexTokens :: Seq LT.LexToken -> HexInput m ()
+  GetNextLexToken :: HexInput m (Maybe LT.LexToken)
+  OpenInputFile :: HexFilePath -> HexInput m ()
 
-  inputIsFinished :: m Bool
-
-  getInput :: m CharSourceStack
-
-  putInput :: CharSourceStack -> m ()
-
-  insertLexToken :: LT.LexToken -> m ()
-
-  insertLexTokens :: Seq LT.LexToken -> m ()
-
-  getNextLexToken :: m (Maybe LT.LexToken)
-
-  openInputFile :: HexFilePath -> m ()
+makeEffect ''HexInput
 
 -- If we can resolve lex-tokens, and we have a source of lex-tokens, we can
 -- provide a stream of resolved-tokens.
-getMayResolvedToken :: (HSt.MonadHexState m, MonadHexInput m) => m (Maybe (LT.LexToken, Either HSt.ResolutionError RT.ResolvedToken))
-getMayResolvedToken =
-  -- Get a lex token.
+getResolvedToken ::
+  ( Error HSt.ResolutionError :> es,
+    HexInput :> es,
+    HSt.EHexState :> es
+  ) =>
+  Eff es (Maybe (LT.LexToken, RT.ResolvedToken))
+getResolvedToken =
   getNextLexToken >>= \case
-    -- If no lex token, return nothing.
+    -- If nothing left in the input, return nothing.
     Nothing -> pure Nothing
-    -- If there is a lex token, try to resolve it.
+    -- If we get a token, we only care about the resolved version.
+    -- Check if resolution succeeded.
     Just lt -> do
-      errOrRT <- HSt.resolveLexToken lt
-      pure $ Just (lt, errOrRT)
+      rt <- HSt.resolveLexToken lt
+      pure $ Just (lt, rt)

@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Hex.Capability.Log.Interface where
 
 import Hexlude
@@ -22,18 +23,14 @@ showLevelEqualWidth = \case
   Error -> "ERROR"
   Fatal -> "FATAL"
 
-class Monad m => MonadHexLog m where
-  log :: LogLevel -> Text -> m ()
+data HexLog :: Effect where
+  Log :: LogLevel -> Text -> HexLog m ()
+  LogInternalState :: HexLog m ()
 
-  logInternalState :: m ()
+makeEffect ''HexLog
 
-debugLog :: MonadHexLog m => Text -> m ()
+debugLog :: (HexLog :> es) => Text -> Eff es ()
 debugLog = log Debug
 
-infoLog :: MonadHexLog m => Text -> m ()
+infoLog :: (HexLog :> es) => Text -> Eff es ()
 infoLog = log Info
-
-instance MonadHexLog m => MonadHexLog (StateT s m) where
-  log x y = lift $ log x y
-
-  logInternalState = lift logInternalState

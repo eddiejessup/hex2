@@ -1,8 +1,10 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE UndecidableInstances #-}
 
 module Hex.Common.HexEnv.Impl where
 
 import Data.ByteString qualified as BS
+import Effectful.Reader.Dynamic qualified as R
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexEnv.Interface
 import Hexlude
@@ -39,7 +41,7 @@ withHexEnv extraSearchDirs logLevel k = do
   withFile "log.txt" WriteMode $ \hexLogHandle -> do
     k $ newHexEnv hexLogHandle logLevel searchDirs
 
-findFilePathImpl :: MonadIO m => FindFilePolicy -> [FilePath] -> FilePath -> m (Maybe FilePath)
+findFilePathImpl :: IOE :> es => FindFilePolicy -> [FilePath] -> FilePath -> Eff es (Maybe FilePath)
 findFilePathImpl findPolicy dirs tgtFile = do
   let tgtFileName = case findPolicy of
         NoImplicitExtension ->
@@ -48,21 +50,10 @@ findFilePathImpl findPolicy dirs tgtFile = do
           Path.replaceExtension tgtFile (toS ext)
   liftIO $ Dir.findFile dirs tgtFileName
 
-newtype HexEnvT m a = HexEnvT {unMonadHexInputImplT :: m a}
-  deriving newtype
-    ( Functor,
-      Applicative,
-      Monad,
-      MonadIO,
-      MonadState st,
-      MonadReader r,
-      MonadError e,
-      Log.MonadHexLog
-    )
-
-instance (Monad (HexEnvT m), MonadIO (HexEnvT m), MonadReader e (HexEnvT m), HasType HexEnv e) => MonadHexEnv (HexEnvT m) where
-  findAndReadFile findPolicy tgtFile = do
-    searchDirs <- know (typed @HexEnv % typed @[FilePath])
+runHexEnv :: (IOE :> es, R.Reader HexEnv :> es) => Eff (EHexEnv : es) a -> Eff es a
+runHexEnv = interpret $ \_ -> \case
+  FindAndReadFile findPolicy tgtFile -> do
+    searchDirs <- know @HexEnv (typed @[FilePath])
     findFilePathImpl findPolicy searchDirs tgtFile >>= \case
       Nothing -> pure Nothing
       Just absPath -> Just <$> liftIO (BS.readFile absPath)

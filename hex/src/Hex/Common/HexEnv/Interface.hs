@@ -1,4 +1,5 @@
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Hex.Common.HexEnv.Interface where
 
@@ -8,5 +9,7 @@ data FindFilePolicy
   = NoImplicitExtension
   | WithImplicitExtension Text
 
-class Monad m => MonadHexEnv m where
-  findAndReadFile :: FindFilePolicy -> FilePath -> m (Maybe ByteString)
+data EHexEnv :: Effect where
+  FindAndReadFile :: FindFilePolicy -> FilePath -> EHexEnv m (Maybe ByteString)
+
+makeEffect ''EHexEnv

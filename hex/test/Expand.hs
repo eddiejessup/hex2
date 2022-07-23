@@ -17,7 +17,7 @@ import Hexlude
 import Test.Tasty
 import Test.Tasty.HUnit
 
-deriving via (PrimTokenSourceT T.TestApp) instance (MonadPrimTokenSource T.TestApp)
+deriving via (PrimTokenSourceT T.TestApp) instance (PrimTokenSource T.TestApp)
 
 expandAllToPTs :: T.TestApp [PT.PrimitiveToken]
 expandAllToPTs = do

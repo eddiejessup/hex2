@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Hex.Stage.Expand.Interface where
 
 import Formatting qualified as F
@@ -44,20 +45,12 @@ newtype ConditionStates = ConditionStates {unConditionStates :: [ConditionState]
 newConditionStates :: ConditionStates
 newConditionStates = ConditionStates []
 
-class Monad m => MonadPrimTokenSource m where
-  getTokenInhibited :: m (Maybe LT.LexToken)
+data PrimTokenSource :: Effect where
+  GetTokenInhibited :: PrimTokenSource m (Maybe LT.LexToken)
+  GetResolvedToken :: PrimTokenSource m (Maybe (LT.LexToken, RT.ResolvedToken))
+  GetPrimitiveToken :: PrimTokenSource m (Maybe (LT.LexToken, PT.PrimitiveToken))
+  PushConditionState :: ConditionState -> PrimTokenSource m ()
+  PopConditionState :: PrimTokenSource m (Maybe ConditionState)
+  PeekConditionState :: PrimTokenSource m (Maybe ConditionState)
 
-  getResolvedToken :: m (Maybe (LT.LexToken, RT.ResolvedToken))
-
-  getPrimitiveToken :: m (Maybe (LT.LexToken, PT.PrimitiveToken))
-
-  pushConditionState :: ConditionState -> m ()
-
-  popConditionState :: m (Maybe ConditionState)
-
-  peekConditionState :: m (Maybe ConditionState)
-
-getResolvedTokenErrorEOF :: (MonadPrimTokenSource m, MonadError e m) => e -> m RT.ResolvedToken
-getResolvedTokenErrorEOF e = do
-  (_lt, rt) <- nothingToError getResolvedToken e
-  pure rt
+makeEffect ''PrimTokenSource

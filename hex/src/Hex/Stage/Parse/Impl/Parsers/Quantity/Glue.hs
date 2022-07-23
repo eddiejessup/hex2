@@ -5,7 +5,7 @@ import Data.List qualified as List
 import Formatting qualified as F
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (PrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Resolved.Primitive qualified as T
@@ -14,8 +14,9 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
 
-headToParseModedAddGlue :: MonadPrimTokenParse m => Axis -> T.PrimitiveToken -> m AST.Glue
+headToParseModedAddGlue :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Axis -> T.PrimitiveToken -> Eff es AST.Glue
 headToParseModedAddGlue axis = \case
   T.ModedCommand tokenAxis modedTok | tokenAxis == axis ->
     case modedTok of
@@ -38,27 +39,27 @@ headToParseModedAddGlue axis = \case
             T.FilNeg ->
               noLengthGlueSpec (Just AST.minusOneFilFlex) Nothing
       _ ->
-        Par.parseFailure "headToParseModedAddGlue, ModedCommand"
+        Par.parseFail "headToParseModedAddGlue, ModedCommand"
   _ ->
-    Par.parseFailure "headToParseModedAddGlue, no-ModedCommand"
+    Par.parseFail "headToParseModedAddGlue, no-ModedCommand"
   where
     noLengthGlueSpec = AST.ExplicitGlueSpec AST.zeroLength
 
-parseGlue :: MonadPrimTokenParse m => m AST.Glue
+parseGlue :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Glue
 parseGlue =
   PC.choice
     [ AST.ExplicitGlue <$> parseExplicitGlueSpec,
-      Par.try $ AST.InternalGlue <$> Par.parseSigned (anyPrim >>= Par.headToParseInternalGlue)
+      Par.tryParse $ AST.InternalGlue <$> Par.parseSigned (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
-parseExplicitGlueSpec :: MonadPrimTokenParse m => m AST.ExplicitGlueSpec
+parseExplicitGlueSpec :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.ExplicitGlueSpec
 parseExplicitGlueSpec = do
   len <- Par.parseLength
   stretch <- parsePureFlex [Chr_ 'p', Chr_ 'l', Chr_ 'u', Chr_ 's']
   shrink <- parsePureFlex [Chr_ 'm', Chr_ 'i', Chr_ 'n', Chr_ 'u', Chr_ 's']
   pure $ AST.ExplicitGlueSpec len stretch shrink
 
-parsePureFlex :: MonadPrimTokenParse m => [Code.CharCode] -> m (Maybe AST.PureFlex)
+parsePureFlex :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => [Code.CharCode] -> Eff es (Maybe AST.PureFlex)
 parsePureFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
@@ -68,11 +69,11 @@ parsePureFlex s =
     parsePresentFlex = do
       skipKeyword Expanding s
       PC.choice
-        [ Par.try $ AST.FinitePureFlex <$> Par.parseLength,
+        [ Par.tryParse $ AST.FinitePureFlex <$> Par.parseLength,
           AST.InfPureFlex <$> parseInfFlexOfOrder
         ]
 
-parseInfFlexOfOrder :: MonadPrimTokenParse m => m AST.InfFlexOfOrder
+parseInfFlexOfOrder :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.InfFlexOfOrder
 parseInfFlexOfOrder = do
   factor <- Par.parseSigned Par.parseFactor
   skipKeyword Expanding [Chr_ 'f', Chr_ 'i']
@@ -82,7 +83,7 @@ parseInfFlexOfOrder = do
       1 -> pure Q.Fil1
       2 -> pure Q.Fil2
       3 -> pure Q.Fil3
-      n -> Par.parseFailure $ "parseInfFlexOfOrder " <> F.sformat F.int n
+      n -> Par.parseFail $ "parseInfFlexOfOrder " <> F.sformat F.int n
   skipOptionalSpaces Expanding
   pure $ AST.InfFlexOfOrder factor order
   where

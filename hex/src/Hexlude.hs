@@ -3,7 +3,6 @@
 module Hexlude
   ( module Protolude,
     module Optics.Core,
-    module Optics.State,
     module Data.Generics.Product,
     module Data.Generics.Sum,
     module Data.Sequence,
@@ -11,6 +10,8 @@ module Hexlude
     module Data.Sequence.Optics,
     module Formatting,
     module Hexlude.Concept,
+    module Hexlude.Alternative,
+    module Effectful,
     traceShowIdM,
     traceResultM,
     notImplemented,
@@ -22,11 +23,23 @@ module Hexlude
     fmtViewed,
     flap,
     foldMapM,
-    nothingToError,
     know,
+    use,
+    modifying,
+    assign,
     seqHeadMay,
     seqLastMay,
     indexed,
+    makeEffect,
+    send,
+    interpret,
+    reinterpret,
+    note,
+    nothingToError,
+    module Effectful.Reader.Dynamic,
+    module Effectful.Error.Dynamic,
+    module Effectful.Writer.Dynamic,
+    module Effectful.State.Dynamic,
   )
 where
 
@@ -41,13 +54,21 @@ import Data.Map.Strict qualified as Map
 import Data.Sequence (Seq (Empty, (:<|), (:|>)), singleton, (><))
 import Data.Sequence.Optics (seqOf)
 import Data.Text.Lazy.Builder qualified as Text.Lazy
+import Effectful
+import Effectful.Dispatch.Dynamic (interpret, reinterpret, send)
+import Effectful.Error.Dynamic
+import Effectful.Reader.Dynamic
+import Effectful.State.Dynamic
+import Effectful.TH (makeEffect)
+import Effectful.Writer.Dynamic
 import Formatting (Format, bformat, later, sformat)
 import Formatting qualified as F
+import Hexlude.Alternative
 import Hexlude.Concept
 import Optics.At ()
 import Optics.Core hiding (Empty)
-import Optics.State (assign', modifying', use)
-import Protolude hiding (U1, isDigit, isLower, isSpace, isUpper, length, log, notImplemented, to, uncons, unsnoc, words, (%))
+-- import Optics.State (assign, modifying, use)
+import Protolude hiding (Except, ExceptT, MonadError (..), MonadReader (..), MonadState (..), Reader, ReaderT, State, U1, asks, gets, isDigit, isLower, isSpace, isUpper, length, log, modify, notImplemented, note, runReader, runReaderT, runState, to, uncons, unsnoc, words, (%))
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a
@@ -58,12 +79,6 @@ traceResultM prefix prog = prog >>= traceShowIdM prefix
 notImplemented :: Text -> a
 notImplemented msg =
   panic $ "Not implemented: " <> msg
-
-nothingToError :: MonadError e m => m (Maybe a) -> e -> m a
-nothingToError prog eofError = do
-  prog >>= \case
-    Nothing -> throwError eofError
-    Just v -> pure v
 
 -- Formatting.
 
@@ -114,12 +129,32 @@ foldMapM f xs = foldr step return xs mempty
     step x r z = f x >>= \y -> r $! z `mappend` y
 {-# INLINE foldMapM #-}
 
--- Optic for MonadReader context, by analogy with 'use' in Optics.Extra.
+-- Optic for Reader context, by analogy with 'use' in Optics.Extra.
 know ::
-  (Is k A_Getter, MonadReader e m) =>
-  Optic' k is e a ->
-  m a
+  (Reader r :> es, Is k A_Getter) =>
+  Optic' k is r a ->
+  Eff es a
 know o = asks (view o)
+
+use ::
+  (State s :> es, Is k A_Getter) =>
+  Optic' k is s a ->
+  Eff es a
+use o = gets (view o)
+
+modifying ::
+  (State s :> es, Is k A_Setter) =>
+  Optic k is s s a b ->
+  (a -> b) ->
+  Eff es ()
+modifying o = modify . over' o
+
+assign ::
+  (State s :> es, Is k A_Setter) =>
+  Optic k is s s a b ->
+  b ->
+  Eff es ()
+assign o = modifying o . const
 
 seqLastMay :: Seq a -> Maybe a
 seqLastMay = \case
@@ -137,3 +172,9 @@ indexed xs = go 0 xs
   where
     go i (a : as) = (i, a) : go (i + 1) as
     go _ _ = []
+
+note :: Error e :> es => e -> Maybe a -> Eff es a
+note err = maybe (throwError err) pure
+
+nothingToError :: Error e :> es => e -> Eff es (Maybe a) -> Eff es a
+nothingToError e prog = prog >>= note e

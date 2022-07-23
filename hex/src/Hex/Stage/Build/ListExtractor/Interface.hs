@@ -1,6 +1,8 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Hex.Stage.Build.ListExtractor.Interface where
 
-import Hex.Stage.Build.ListElem qualified as B
+import Hex.Stage.Build.ListElem (HList)
 import Hexlude
 
 data IndentFlag
@@ -16,7 +18,8 @@ data EndHListReason
 data ModeContext = InnerModeContext | OuterModeContext
   deriving stock (Show, Generic)
 
-class Monad m => MonadHexListExtractor m where
-  extractHBoxList :: m B.HList
+data HexListExtractor :: Effect where
+  ExtractHBoxList :: HexListExtractor m HList
+  ExtractParagraphList :: IndentFlag -> HexListExtractor m (EndHListReason, HList)
 
-  extractParagraphList :: IndentFlag -> m (EndHListReason, B.HList)
+makeEffect ''HexListExtractor

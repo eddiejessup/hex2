@@ -16,7 +16,7 @@ import Hexlude
 data HexState = HexState
   { fontInfos :: Map DVI.FontNumber HSt.Font.FontInfo,
     outFileStreams :: Map Q.FourBitInt Handle,
-    -- Global parameters.
+    -- GlobalScope parameters.
     specialInts :: Map Param.SpecialIntParameter Q.HexInt,
     specialLengths :: Map Param.SpecialLengthParameter Q.Length,
     afterAssignmentToken :: Maybe LT.LexToken,
@@ -65,23 +65,19 @@ fmtSpecialLengths :: Fmt (Map Param.SpecialLengthParameter Q.Length)
 fmtSpecialLengths = F.shown
 
 getGroupScopesProperty ::
-  (MonadState st m, HasType HexState st) => (GroupScopes -> a) -> m a
+  State HexState :> es => (GroupScopes -> a) -> Eff es a
 getGroupScopesProperty groupScopesGetter =
-  use $ typed @HexState % #groupScopes % to groupScopesGetter
+  use @HexState $ #groupScopes % to groupScopesGetter
 
 currentFontInfoImpl ::
-  ( MonadState st m,
-    HasType HexState st
-  ) =>
-  m (Maybe HSt.Font.FontInfo)
+  State HexState :> es =>
+  Eff es (Maybe HSt.Font.FontInfo)
 currentFontInfoImpl = do
   fNr <- currentFontNumberImpl
-  use (typed @HexState % stateFontInfoLens fNr)
+  use @HexState (stateFontInfoLens fNr)
 
 currentFontNumberImpl ::
-  ( MonadState st m,
-    HasType HexState st
-  ) =>
-  m DVI.FontNumber
+  State HexState :> es =>
+  Eff es DVI.FontNumber
 currentFontNumberImpl =
   getGroupScopesProperty Sc.Font.localCurrentFontNr

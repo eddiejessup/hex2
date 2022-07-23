@@ -7,21 +7,21 @@ import Hex.Common.TFM.Types
 import Hexlude
 
 character ::
-  forall e m.
-  (MonadError e m, AsType TFMError e) =>
+  forall es.
+  Error TFMError :> es =>
   [Recipe] ->
   [LengthDesignSize] -> -- Width
   [LengthDesignSize] -> -- Height
   [LengthDesignSize] -> -- Depth
   [LengthDesignSize] -> -- ItalicCorrection
   TFM.Get.CharInfo.CharInfo ->
-  m Character
+  Eff es Character
 character recipes widths heights depths italicCorrs charInfo =
   do
-    width <- note (injectTyped $ TFMError "Bad width index") $ dimAtEith widths $ TFM.Get.CharInfo.widthIdx charInfo
-    height <- note (injectTyped $ TFMError "Bad height index") $ dimAtEith heights $ TFM.Get.CharInfo.heightIdx charInfo
-    depth <- note (injectTyped $ TFMError "Bad depth index") $ dimAtEith depths $ TFM.Get.CharInfo.depthIdx charInfo
-    italicCorrection <- note (injectTyped $ TFMError "Bad italic correction index") $ dimAtEith italicCorrs $ TFM.Get.CharInfo.italicCorrectionIdx charInfo
+    width <- note (TFMError "Bad width index") $ dimAtEith widths $ TFM.Get.CharInfo.widthIdx charInfo
+    height <- note (TFMError "Bad height index") $ dimAtEith heights $ TFM.Get.CharInfo.heightIdx charInfo
+    depth <- note (TFMError "Bad depth index") $ dimAtEith depths $ TFM.Get.CharInfo.depthIdx charInfo
+    italicCorrection <- note (TFMError "Bad italic correction index") $ dimAtEith italicCorrs $ TFM.Get.CharInfo.italicCorrectionIdx charInfo
     let remainder = TFM.Get.CharInfo.charRemainder charInfo
     -- If the character is special, get its particular extra attributes.
     special <- case TFM.Get.CharInfo.tag charInfo of
@@ -29,7 +29,7 @@ character recipes widths heights depths italicCorrs charInfo =
       Internal.LigKern -> pure $ Just $ LigKernIndex remainder
       Internal.Chain -> pure $ Just $ NextLargerChar remainder
       Internal.Extensible -> do
-        recipe <- note (injectTyped $ TFMError "Bad recipe index") $ atMay recipes (fromIntegral @Word8 @Int remainder)
+        recipe <- note (TFMError "Bad recipe index") $ atMay recipes (fromIntegral @Word8 @Int remainder)
         pure $ Just $ ExtensibleRecipeSpecial recipe
     pure
       Character
@@ -51,7 +51,7 @@ character recipes widths heights depths italicCorrs charInfo =
       | otherwise = atMay xs (fromIntegral @Word8 @Int i)
 
 characters ::
-  (MonadError e m, AsType TFMError e) =>
+  Error TFMError :> es =>
   Word16 ->
   [TFM.Get.CharInfo.CharInfo] ->
   [Recipe] ->
@@ -59,7 +59,7 @@ characters ::
   [LengthDesignSize] -> -- Height
   [LengthDesignSize] -> -- Depth
   [LengthDesignSize] -> -- ItalicCorrection
-  m (IntMap Character)
+  Eff es (IntMap Character)
 characters minCode charInfos recipes widths heights depths italicCorrs =
   do
     charList <- mapM (character recipes widths heights depths italicCorrs) charInfos

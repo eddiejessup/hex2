@@ -1,6 +1,6 @@
 module Hex.Stage.Interpret.VMode where
 
-import Hex.Capability.Log.Interface (MonadHexLog)
+import Hex.Capability.Log.Interface (HexLog)
 import Hex.Common.Box qualified as Box
 import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexInput.Interface.CharSourceStack (CharSourceStack)
@@ -22,18 +22,17 @@ data VModeCommandResult
   | EndMainVMode
 
 handleCommandInMainVMode ::
-  forall m e.
-  ( MonadHexLog m,
-    HSt.MonadHexState m,
-    HIn.MonadHexInput m,
-    MonadError e m,
-    AsType AllMode.InterpretError e,
-    Build.MonadHexListBuilder m,
-    ListExtractor.MonadHexListExtractor m
+  forall es.
+  ( HexLog :> es,
+    HSt.EHexState :> es,
+    HIn.HexInput :> es,
+    Error AllMode.InterpretError :> es,
+    Build.HexListBuilder :> es,
+    ListExtractor.HexListExtractor :> es
   ) =>
   CharSourceStack ->
   Eval.Command ->
-  m VModeCommandResult
+  Eff es VModeCommandResult
 handleCommandInMainVMode oldSrc = \case
   Eval.VModeCommand vModeCommand -> case vModeCommand of
     Uneval.End ->
@@ -69,7 +68,7 @@ handleCommandInMainVMode oldSrc = \case
   Eval.ModeIndependentCommand modeIndependentCommand ->
     AllMode.handleModeIndependentCommand modeIndependentCommand >>= \case
       AllMode.SawEndBox ->
-        throwError $ injectTyped AllMode.SawEndBoxInMainVMode
+        throwError AllMode.SawEndBoxInMainVMode
       AllMode.DidNotSeeEndBox ->
         pure ContinueMainVMode
   Eval.ShowToken _lexToken -> notImplemented "HMode: ShowToken"
@@ -82,7 +81,7 @@ handleCommandInMainVMode oldSrc = \case
   -- Eval.AddAdjustment _vModeMaterial -> notImplemented "HMode: AddAdjustment"
   -- Eval.AddAlignedMaterial _desiredLength _alignMaterial _hModeCommand1 _hModeCommand2 -> notImplemented "HMode: AddAlignedMaterial"
   where
-    addPara :: ListExtractor.IndentFlag -> m VModeCommandResult
+    addPara :: ListExtractor.IndentFlag -> Eff es VModeCommandResult
     addPara indentFlag = do
       -- Just before switching to horizontal mode to begin scanning a paragraph,
       -- TEX inserts the glue specified by \parskip into the vertical list that
@@ -99,24 +98,24 @@ handleCommandInMainVMode oldSrc = \case
         ListExtractor.EndHListSawEndParaCommand ->
           pure ContinueMainVMode
         ListExtractor.EndHListSawLeaveBox ->
-          throwError $ injectTyped AllMode.SawEndBoxInMainVModePara
+          throwError AllMode.SawEndBoxInMainVModePara
 
 extendVListWithParagraphStateT ::
-  ( HSt.MonadHexState m,
-    Build.MonadHexListBuilder m
+  ( HSt.EHexState :> es,
+    Build.HexListBuilder :> es
   ) =>
   List.HList ->
-  m ()
+  Eff es ()
 extendVListWithParagraphStateT paraHList = do
   lineBoxes <- setAndBreakHListToHBoxes paraHList
   for_ lineBoxes $ \b ->
     Build.addVListElement $ List.VListBaseElem $ Box.ElemBox $ Box.BaseBox (Box.HBoxContents <$> b)
 
 setAndBreakHListToHBoxes ::
-  ( HSt.MonadHexState m
+  ( HSt.EHexState :> es
   ) =>
   List.HList ->
-  m (Seq (Box.Box Box.HBoxElemSeq))
+  Eff es (Seq (Box.Box Box.HBoxElemSeq))
 setAndBreakHListToHBoxes hList = do
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
   lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)

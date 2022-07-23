@@ -1,9 +1,10 @@
+{-# LANGUAGE TemplateHaskell #-}
+
 module Hex.Common.Parse.Interface where
 
 -- Interface for parsing primitive-token streams.
 
 import Formatting qualified as F
-import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hexlude
@@ -25,16 +26,14 @@ data UnexpectedPrimitiveToken = UnexpectedPrimitiveToken {saw :: PT.PrimitiveTok
 data UnexpectedLexToken = UnexpectedLexToken {saw :: LT.LexToken, expected :: Text}
   deriving stock (Show, Eq, Generic)
 
-class (Monad m, Alternative m, MonadPlus m, Log.MonadHexLog m) => MonadPrimTokenParse m where
-  parseError :: ParseUnexpectedError -> m a
+data PrimTokenParse :: Effect where
+  SatisfyThenExpanding :: ((LT.LexToken, PT.PrimitiveToken) -> Maybe a) -> PrimTokenParse m a
+  SatisfyThenInhibited :: (LT.LexToken -> Maybe a) -> PrimTokenParse m a
+  TryParse :: m a -> PrimTokenParse m a
+  FailParse :: ParseUnexpectedError -> PrimTokenParse m a
 
-  satisfyThenExpanding :: ((LT.LexToken, PT.PrimitiveToken) -> Maybe a) -> m a
+makeEffect ''PrimTokenParse
 
-  satisfyThenInhibited :: (LT.LexToken -> Maybe a) -> m a
-
-  try :: m a -> m a
-
-parseFailure :: MonadPrimTokenParse m => Text -> m a
-parseFailure msg = do
-  Log.debugLog $ "Parse failure: " <> msg
-  parseError $ ParseExplicitFailure msg
+-- parseFail :: Text -> PrimTokenParse m a
+parseFail :: PrimTokenParse :> es => Text -> Eff es a
+parseFail = failParse . ParseExplicitFailure

@@ -20,6 +20,6 @@ data ChangeGroupTrigger
   deriving stock (Show, Eq, Generic)
 
 data ScopeFlag
-  = Global
-  | Local
+  = GlobalScope
+  | LocalScope
   deriving stock (Show, Eq, Generic)

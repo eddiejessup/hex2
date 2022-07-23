@@ -2,7 +2,7 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Assignment where
 
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (PrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Impl.Parsers.Combinators
@@ -11,7 +11,7 @@ import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-headToParseAssignment :: MonadPrimTokenParse m => PT.PrimitiveToken -> m AST.Assignment
+headToParseAssignment :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.Assignment
 headToParseAssignment = go mempty
   where
     go prefixes = \case
@@ -23,9 +23,9 @@ headToParseAssignment = go mempty
           AST.Assignment
             { body,
               scope =
-                if defGlobalType == HSt.Grouped.Global || PT.GlobalTok `elem` prefixes
-                  then HSt.Grouped.Global
-                  else HSt.Grouped.Local
+                if defGlobalType == HSt.Grouped.GlobalScope || PT.GlobalTok `elem` prefixes
+                  then HSt.Grouped.GlobalScope
+                  else HSt.Grouped.LocalScope
             }
       t -> do
         Log.debugLog "Parsing assignment, did not see prefix"
@@ -35,15 +35,15 @@ headToParseAssignment = go mempty
             { body,
               scope =
                 if PT.GlobalTok `elem` prefixes
-                  then HSt.Grouped.Global
-                  else HSt.Grouped.Local
+                  then HSt.Grouped.GlobalScope
+                  else HSt.Grouped.LocalScope
             }
 
 -- ⟨optional assignments⟩ stands for zero or more ⟨assignment⟩ commands
 -- other than \setbox.
-parseNonSetBoxAssignment :: MonadPrimTokenParse m => m AST.Assignment
+parseNonSetBoxAssignment :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Assignment
 parseNonSetBoxAssignment =
   anyPrim >>= headToParseAssignment >>= \case
     AST.Assignment (AST.SetBoxRegister _ _) _ ->
-      Par.parseFailure "parseNonSetBoxAssignment, SetBoxRegister"
+      Par.parseFail "parseNonSetBoxAssignment, SetBoxRegister"
     a -> pure a

@@ -15,15 +15,15 @@ import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as Uneval
 import Hexlude
+import qualified Hex.Common.HexState.Interface as HSt
+import qualified Hex.Common.HexInput.Interface as HIn
 
 substituteArgsIntoMacroBody ::
-  forall m e.
-  ( MonadError e m,
-    AsType ExpansionError e
-  ) =>
+  forall es.
+  Error ExpansionError :> es =>
   ST.MacroReplacementText ->
   Uneval.MacroArgumentList ->
-  m (Seq LT.LexToken)
+  Eff es (Seq LT.LexToken)
 substituteArgsIntoMacroBody replacementText argsList =
   case replacementText of
     ST.ExpandedMacroReplacementText -> notImplemented "substituteArgsIntoMacroBody: ExpandedReplacementText"
@@ -41,13 +41,13 @@ substituteArgsIntoMacroBody replacementText argsList =
     --   relevant argument in the argument-list, and that is our output.
     --   If the macro refers to a parameter that isn't present in our argument
     --   list, then the user didn't provide enough arguments.
-    renderToken :: ST.MacroTextToken -> m (Seq LT.LexToken)
+    renderToken :: ST.MacroTextToken -> Eff es (Seq LT.LexToken)
     renderToken = \case
       ST.MacroTextLexToken x ->
         pure (Seq.singleton x)
       ST.MacroTextParamToken argIx -> case Uneval.lookupArg argIx argsList of
         Nothing ->
-          throwError $ injectTyped $ Expand.MacroArgumentSubstitutionError argIx argsList
+          throwError $ Expand.MacroArgumentSubstitutionError argIx argsList
         Just arg ->
           pure $ arg.unMacroArgument.unInhibitedBalancedText.unBalancedText
 
@@ -68,13 +68,16 @@ substituteArgsIntoMacroBody replacementText argsList =
 --     We are done skipping tokens, done with this 'if'-condition, nothing more
 --     to be done.
 applyConditionOutcome ::
-  forall m e.
-  ( MonadError e m,
-    AsType ExpansionError e,
-    Expand.MonadPrimTokenSource m
+  forall es.
+  ( Error ExpansionError :> es,
+    Error HSt.ResolutionError :> es,
+    HIn.HexInput :> es,
+    HSt.EHexState :> es,
+    State Expand.ConditionStates :> es
+    -- Expand.PrimTokenSource :> es
   ) =>
   AST.ConditionOutcome ->
-  m ()
+  Eff es ()
 applyConditionOutcome = \case
   AST.IfConditionOutcome AST.SkipPreElseBlock ->
     skipUntilElseOrEndif ElseOrEndif getPresentResolvedToken >>= \case
@@ -82,20 +85,43 @@ applyConditionOutcome = \case
         pure ()
       Just newState ->
         -- Push a state to prepare for the later 'end-if'.
-        Expand.pushConditionState (Expand.IfConditionState newState)
+        pushConditionStateImpl (Expand.IfConditionState newState)
   AST.IfConditionOutcome AST.SkipElseBlock ->
-    Expand.pushConditionState (Expand.IfConditionState Expand.InSelectedPreElseIfBlock)
+    pushConditionStateImpl (Expand.IfConditionState Expand.InSelectedPreElseIfBlock)
   AST.CaseConditionOutcome tgtBlock ->
     skipUpToCaseBlock tgtBlock getPresentResolvedToken >>= \case
       Nothing -> pure ()
       Just newState ->
-        Expand.pushConditionState (Expand.CaseConditionState newState)
+        pushConditionStateImpl (Expand.CaseConditionState newState)
+
+pushConditionStateImpl ::
+  State Expand.ConditionStates :> es =>
+  Expand.ConditionState ->
+  Eff es ()
+pushConditionStateImpl condState = modifying @Expand.ConditionStates conditionStatesLens (cons condState)
+
+peekConditionStateImpl ::
+  State Expand.ConditionStates :> es =>
+  Eff es (Maybe Expand.ConditionState)
+peekConditionStateImpl = use @Expand.ConditionStates (conditionStatesLens % to headMay)
+
+popConditionStateImpl ::
+  State Expand.ConditionStates :> es =>
+  Eff es (Maybe Expand.ConditionState)
+popConditionStateImpl = use @Expand.ConditionStates (conditionStatesLens % to uncons) >>= \case
+      Nothing -> pure Nothing
+      Just (condState, rest) -> do
+        assign conditionStatesLens rest
+        pure (Just condState)
+
+conditionStatesLens :: Lens' Expand.ConditionStates [Expand.ConditionState]
+conditionStatesLens = #unConditionStates
 
 skipUpToCaseBlock ::
   forall m.
   Monad m =>
   Q.HexInt ->
-  (m RT.ResolvedToken) ->
+  m RT.ResolvedToken ->
   m (Maybe Expand.CaseState)
 skipUpToCaseBlock tgtBlock getNextToken = go Q.zeroInt 1
   where
@@ -124,21 +150,18 @@ skipUpToCaseBlock tgtBlock getNextToken = go Q.zeroInt 1
               go currentCaseBlock depth
 
 applyConditionBody ::
-  forall m e.
-  ( MonadError e m,
-    AsType ExpansionError e,
-    Expand.MonadPrimTokenSource m
-  ) =>
+  forall es.
+  [Error ExpansionError, Error HSt.ResolutionError, HIn.HexInput, HSt.EHexState, State Expand.ConditionStates] :>> es =>
   ST.ConditionBodyTok ->
-  m ()
+  Eff es ()
 applyConditionBody bodyToken = do
-  conditionState <- Expand.peekConditionState
+  conditionState <- peekConditionStateImpl
   condState <- case conditionState of
-    Nothing -> throwError $ injectTyped $ Expand.UnexpectedConditionBodyToken bodyToken
+    Nothing -> throwError $ Expand.UnexpectedConditionBodyToken bodyToken
     Just condState -> pure condState
   case bodyToken of
     ST.EndIf ->
-      void $ Expand.popConditionState
+      void $ popConditionStateImpl
     ST.Else ->
       case condState of
         Expand.IfConditionState Expand.InSelectedPreElseIfBlock ->
@@ -158,7 +181,7 @@ applyConditionBody bodyToken = do
         Expand.CaseConditionState Expand.InSelectedElseCaseBlock ->
           err
   where
-    err = throwError $ injectTyped $ Expand.UnexpectedConditionBodyToken bodyToken
+    err = throwError $ Expand.UnexpectedConditionBodyToken bodyToken
 
     skipUntilEndOfCondition =
       skipUntilElseOrEndif OnlyEndIf getPresentResolvedToken >>= \case
@@ -170,11 +193,11 @@ data SkipStopCondition
   | OnlyEndIf
 
 getPresentResolvedToken ::
-  forall m e.
-  (Expand.MonadPrimTokenSource m, MonadError e m, AsType ExpansionError e) =>
-  m RT.ResolvedToken
-getPresentResolvedToken =
-  Expand.getResolvedTokenErrorEOF (injectTyped Expand.EndOfInputWhileSkipping)
+  forall es.
+  [Error ExpansionError, Error HSt.ResolutionError, HIn.HexInput, HSt.EHexState] :>> es =>
+  Eff es RT.ResolvedToken
+getPresentResolvedToken = do
+  snd <$> nothingToError Expand.EndOfInputWhileSkipping HIn.getResolvedToken
 
 skipUntilElseOrEndif ::
   forall m.

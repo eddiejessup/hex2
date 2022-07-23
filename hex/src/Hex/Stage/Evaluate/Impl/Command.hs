@@ -1,7 +1,7 @@
 module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.BoxElem qualified as BoxElem
@@ -14,7 +14,7 @@ import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
 
-evalCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Command -> m E.Command
+evalCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.Command -> Eff es E.Command
 evalCommand = \case
   P.ShowToken lt -> pure $ E.ShowToken lt
   P.ShowBox n -> E.ShowBox <$> Eval.evalInt n
@@ -29,10 +29,10 @@ evalCommand = \case
   P.StartParagraph indentFlag -> pure $ E.StartParagraph indentFlag
   P.EndParagraph -> pure E.EndParagraph
 
-evalVModeCommand :: Monad m => P.VModeCommand -> m P.VModeCommand
+evalVModeCommand :: P.VModeCommand -> Eff es P.VModeCommand
 evalVModeCommand = pure
 
-evalHModeCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.HModeCommand -> m E.HModeCommand
+evalHModeCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.HModeCommand -> Eff es E.HModeCommand
 evalHModeCommand = \case
   P.AddControlSpace -> pure E.AddControlSpace
   P.AddCharacter charCodeRef -> E.AddCharacter <$> evalCharCodeRef charCodeRef
@@ -50,7 +50,7 @@ evalHModeCommand = \case
   P.AddHRule rule -> E.AddHRule <$> Eval.evalHModeRule rule
   P.AddUnwrappedFetchedHBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedHBox fetchedBoxRef
 
-evalModeIndepCmd :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ModeIndependentCommand -> m E.ModeIndependentCommand
+evalModeIndepCmd :: [Error Eval.EvaluationError, EHexState] :>> es => P.ModeIndependentCommand -> Eff es E.ModeIndependentCommand
 evalModeIndepCmd = \case
   P.Assign assignment -> E.Assign <$> evalAssignment assignment
   P.Relax -> pure E.Relax
@@ -69,28 +69,28 @@ evalModeIndepCmd = \case
   P.ChangeScope sign localStructureTrigger -> pure $ E.ChangeScope sign localStructureTrigger
   P.DebugShowState -> pure E.DebugShowState
 
-evalCharCodeRef :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.CharCodeRef -> m Code.CharCode
+evalCharCodeRef :: [Error Eval.EvaluationError, EHexState] :>> es => P.CharCodeRef -> Eff es Code.CharCode
 evalCharCodeRef = \case
   P.CharRef charCode -> pure charCode
   P.CharTokenRef n -> Eval.noteRange @Code.CharCode n
   P.CharCodeNrRef charCodeInt -> Eval.evalCharCodeInt charCodeInt
 
-evalAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Assignment -> m E.Assignment
+evalAssignment :: [Error Eval.EvaluationError, EHexState] :>> es => P.Assignment -> Eff es E.Assignment
 evalAssignment P.Assignment {body, scope} =
   E.Assignment <$> (evalAssignmentBody body) <*> pure scope
 
-evalStreamWriteCommand :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.StreamWriteCommand -> m E.StreamWriteCommand
+evalStreamWriteCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.StreamWriteCommand -> Eff es E.StreamWriteCommand
 evalStreamWriteCommand (P.StreamWriteCommand n writeText) =
   E.StreamWriteCommand <$> Eval.evalInt n <*> evalWriteText writeText
 
-evalWriteText :: (MonadError e m, AsType Eval.EvaluationError e) => P.WriteText -> m E.WriteText
+evalWriteText :: Error Eval.EvaluationError :> es => P.WriteText -> Eff es E.WriteText
 evalWriteText = \case
   P.ImmediateWriteText expandedBalancedText ->
     E.ImmediateWriteText <$> Eval.evalExpandedBalancedTextToText expandedBalancedText
   P.DeferredWriteText inhibitedBalancedText ->
     pure $ E.DeferredWriteText inhibitedBalancedText
 
-evalAssignmentBody :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.AssignmentBody -> m E.AssignmentBody
+evalAssignmentBody :: [Error Eval.EvaluationError, EHexState] :>> es => P.AssignmentBody -> Eff es E.AssignmentBody
 evalAssignmentBody = \case
   P.DefineControlSequence controlSymbol controlSequenceTarget ->
     E.DefineControlSequence controlSymbol <$> evalControlSequenceTarget controlSequenceTarget
@@ -109,23 +109,23 @@ evalAssignmentBody = \case
   P.SetBoxDimension boxDimensionRef length -> pure $ E.SetBoxDimension boxDimensionRef length
   P.SetInteractionMode interactionMode -> pure $ E.SetInteractionMode interactionMode
 
-evalFontSpecialCharRef :: HSt.MonadHexState m => P.FontSpecialCharRef -> m E.FontSpecialCharRef
+evalFontSpecialCharRef :: EHexState :> es => P.FontSpecialCharRef -> Eff es E.FontSpecialCharRef
 evalFontSpecialCharRef (P.FontSpecialCharRef fontSpecialChar fontNr) = E.FontSpecialCharRef fontSpecialChar <$> Eval.evalFontRef fontNr
 
-evalBox :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.Box -> m E.Box
+evalBox :: [Error Eval.EvaluationError, EHexState] :>> es => P.Box -> Eff es E.Box
 evalBox = \case
   P.FetchedRegisterBox boxFetchMode loc -> E.FetchedRegisterBox boxFetchMode <$> Eval.evalExplicitRegisterLocation loc
   P.LastBox -> pure E.LastBox
   P.VSplitBox n length -> E.VSplitBox <$> Eval.evalInt n <*> Eval.evalLength length
   P.ExplicitBox boxSpecification explicitBoxType -> E.ExplicitBox <$> evalBoxSpecification boxSpecification <*> pure explicitBoxType
 
-evalBoxSpecification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.BoxSpecification -> m E.BoxSpecification
+evalBoxSpecification :: [Error Eval.EvaluationError, EHexState] :>> es => P.BoxSpecification -> Eff es E.BoxSpecification
 evalBoxSpecification = \case
   P.Natural -> pure E.Natural
   P.To length -> E.To <$> Eval.evalLength length
   P.Spread length -> E.Spread <$> Eval.evalLength length
 
-evalVariableAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableAssignment -> m E.VariableAssignment
+evalVariableAssignment :: [Error Eval.EvaluationError, EHexState] :>> es => P.VariableAssignment -> Eff es E.VariableAssignment
 evalVariableAssignment = \case
   P.IntVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
     quantVariableEval <- Eval.evalQuantVariableAsVariable qVar
@@ -152,7 +152,7 @@ evalVariableAssignment = \case
   P.SpecialLengthParameterVariableAssignment specialLengthParameter length ->
     E.SpecialLengthParameterVariableAssignment specialLengthParameter <$> Eval.evalLength length
 
-evalVariableModification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.VariableModification -> m E.VariableModification
+evalVariableModification :: [Error Eval.EvaluationError, EHexState] :>> es => P.VariableModification -> Eff es E.VariableModification
 evalVariableModification = \case
   P.AdvanceIntVariable var arg -> do
     eVar <- Eval.evalQuantVariableAsVariable var
@@ -175,14 +175,14 @@ evalVariableModification = \case
     eArg <- Eval.evalInt arg
     pure $ E.ScaleVariable scaleDirection eVar eArg
 
-evalNumericVariable :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.NumericVariable -> m E.NumericVariable
+evalNumericVariable :: [Error Eval.EvaluationError, EHexState] :>> es => P.NumericVariable -> Eff es E.NumericVariable
 evalNumericVariable = \case
   P.IntNumericVariable var -> E.IntNumericVariable <$> Eval.evalQuantVariableAsVariable var
   P.LengthNumericVariable var -> E.LengthNumericVariable <$> Eval.evalQuantVariableAsVariable var
   P.GlueNumericVariable var -> E.GlueNumericVariable <$> Eval.evalQuantVariableAsVariable var
   P.MathGlueNumericVariable var -> E.MathGlueNumericVariable <$> Eval.evalQuantVariableAsVariable var
 
-evalControlSequenceTarget :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ControlSequenceTarget -> m E.ControlSequenceTarget
+evalControlSequenceTarget :: [Error Eval.EvaluationError, EHexState] :>> es => P.ControlSequenceTarget -> Eff es E.ControlSequenceTarget
 evalControlSequenceTarget = \case
   P.MacroTarget macroDefinition ->
     pure $ E.MacroTarget macroDefinition
@@ -201,17 +201,17 @@ evalControlSequenceTarget = \case
         <*> pure pFontFileSpec.fontPath
     pure $ E.FontTarget eFontFileSpec
 
-evalShortDefineTargetValue :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.ShortDefTargetValue -> m PT.ShortDefTargetValue
+evalShortDefineTargetValue :: [Error Eval.EvaluationError, EHexState] :>> es => P.ShortDefTargetValue -> Eff es PT.ShortDefTargetValue
 evalShortDefineTargetValue (P.ShortDefTargetValue charryQuantityType tgtValInt) =
   PT.ShortDefTargetValue charryQuantityType <$> Eval.evalInt tgtValInt
 
-evalFontSpecification :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.FontSpecification -> m TFM.FontSpecification
+evalFontSpecification :: [Error Eval.EvaluationError, EHexState] :>> es => P.FontSpecification -> Eff es TFM.FontSpecification
 evalFontSpecification = \case
   P.NaturalFont -> pure TFM.NaturalFont
   P.FontAt len -> TFM.FontAt <$> Eval.evalLength len
   P.FontScaled n -> TFM.FontScaled <$> Eval.evalInt n
 
-evalCodeAssignment :: (MonadError e m, AsType Eval.EvaluationError e, HSt.MonadHexState m) => P.CodeAssignment -> m E.CodeAssignment
+evalCodeAssignment :: [Error Eval.EvaluationError, EHexState] :>> es => P.CodeAssignment -> Eff es E.CodeAssignment
 evalCodeAssignment codeAssignment = do
   -- Evaluate the index in the code-table, i.e. which char-code's property to set.
   codeIx <- Eval.evalCharCodeInt codeAssignment.codeTableRef.codeIndex
@@ -240,9 +240,9 @@ evalCodeAssignment codeAssignment = do
   pure $ E.CodeAssignment codeIx codeValue
 
 evalMessageWriteCommand ::
-  (MonadError e m, AsType Eval.EvaluationError e) =>
+  Error Eval.EvaluationError :> es =>
   P.MessageWriteCommand ->
-  m E.MessageWriteCommand
+  Eff es E.MessageWriteCommand
 evalMessageWriteCommand cmd = do
   messageContents <- Eval.evalExpandedBalancedTextToText cmd.messageContents
   pure $ E.MessageWriteCommand {messageDest = cmd.messageDest, messageContents}

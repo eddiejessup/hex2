@@ -1,12 +1,12 @@
 module Hex.Run.Evaluate where
 
 import Formatting qualified as F
-import Hex.Run.App (App)
-import Hex.Stage.Evaluate.Interface (getEvalCommand)
+import Hex.Stage.Evaluate.Interface (HexEvaluate, getEvalCommand)
 import Hex.Stage.Evaluate.Interface.AST.Command (Command)
+import Hex.Stage.Parse.Interface (CommandSource)
 import Hexlude
 
-evaluateAll :: App [Command]
+evaluateAll :: [CommandSource, HexEvaluate] :>> es => Eff es [Command]
 evaluateAll = go
   where
     go =

@@ -15,7 +15,7 @@ import Hex.Common.TFM.Get.TableParams qualified as TFM.Get.TableParams
 import Hex.Common.TFM.Types
 import Hexlude
 
-parseTFMBytes :: forall e m. (MonadError e m, AsType TFMError e) => ByteString -> m Font
+parseTFMBytes :: forall es. Error TFMError :> es => ByteString -> Eff es Font
 parseTFMBytes bs = do
   tableParams <- runGetText TFM.Get.TableParams.getTableParams bs
 
@@ -44,7 +44,7 @@ parseTFMBytes bs = do
         characters = chars
       }
   where
-    runGetText :: Ser.Get d -> ByteString -> m d
+    runGetText :: Ser.Get d -> ByteString -> Eff es d
     runGetText m b = case Ser.runGet m b of
-      Left e -> throwError $ injectTyped (TFMError $ Tx.pack e)
+      Left e -> throwError (TFMError $ Tx.pack e)
       Right v -> pure v

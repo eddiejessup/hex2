@@ -2,32 +2,32 @@ module Hex.Stage.Parse.Impl.Parsers.BalancedText where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (PrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hexlude
 
-parseGeneralText :: MonadPrimTokenParse m => m a -> m a
+parseGeneralText :: [PrimTokenParse, EAlternative] :>> es => Eff es a -> Eff es a
 parseGeneralText parseBalancedText = do
   skipFillerExpanding
   parseBalancedText
 
-parseExpandedGeneralText :: MonadPrimTokenParse m => BalancedTextContext -> m HSt.TL.ExpandedBalancedText
+parseExpandedGeneralText :: [PrimTokenParse, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.ExpandedBalancedText
 parseExpandedGeneralText ctx = parseGeneralText (parseExpandedBalancedText ctx)
 
-parseInhibitedGeneralText :: MonadPrimTokenParse m => BalancedTextContext -> m HSt.TL.InhibitedBalancedText
+parseInhibitedGeneralText :: [PrimTokenParse, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.InhibitedBalancedText
 parseInhibitedGeneralText ctx = parseGeneralText (parseInhibitedBalancedText ctx)
 
 data BalancedTextContext = AlreadySeenBeginGroup | ExpectingBeginGroup
 
-skipBeginGroupIfNeeded :: MonadPrimTokenParse m => BalancedTextContext -> m ()
+skipBeginGroupIfNeeded :: [PrimTokenParse, EAlternative] :>> es => BalancedTextContext -> Eff es ()
 skipBeginGroupIfNeeded = \case
   AlreadySeenBeginGroup -> pure ()
   ExpectingBeginGroup -> skipSatisfied (Par.satisfyCharCatThen Expanding) $ charCatHasCategory Code.BeginGroup
 
-parseExpandedBalancedText :: MonadPrimTokenParse m => BalancedTextContext -> m HSt.TL.ExpandedBalancedText
+parseExpandedBalancedText :: [PrimTokenParse, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.ExpandedBalancedText
 parseExpandedBalancedText ctx = do
   skipBeginGroupIfNeeded ctx
   HSt.TL.ExpandedBalancedText . HSt.TL.BalancedText . fst <$> parseNestedExprExpanded
@@ -38,7 +38,7 @@ parseExpandedBalancedText ctx = do
       -- expression depth unchanged.
       pure (lt, lexTokenToGroupDepthChange lt)
 
-parseInhibitedBalancedText :: MonadPrimTokenParse m => BalancedTextContext -> m HSt.TL.InhibitedBalancedText
+parseInhibitedBalancedText :: [PrimTokenParse, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.InhibitedBalancedText
 parseInhibitedBalancedText ctx = do
   skipBeginGroupIfNeeded ctx
   HSt.TL.InhibitedBalancedText . HSt.TL.BalancedText . fst <$> parseNestedExprInhibited

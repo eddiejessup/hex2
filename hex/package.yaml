@@ -28,7 +28,6 @@ library:
     - formatting
     - generic-optics
     - groups
-    - mtl
     - optics-core
     - optics-extra
     - parser-combinators
@@ -36,6 +35,8 @@ library:
     - text
     - transformers
     - time
+    - effectful
+    - effectful-th
 
 ghc-options:
   - -Wall

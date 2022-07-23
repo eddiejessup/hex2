@@ -1,6 +1,6 @@
 module Hex.Stage.Evaluate.Impl.ExpansionCommand where
 
-import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface (EHexState)
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.ExpansionCommand.Condition qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
@@ -9,12 +9,9 @@ import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as P
 import Hexlude
 
 evalExpansionCommand ::
-  ( MonadError e m,
-    AsType Eval.EvaluationError e,
-    HSt.MonadHexState m
-  ) =>
+  [Error Eval.EvaluationError, EHexState] :>> es =>
   P.ExpansionCommand ->
-  m E.ExpansionCommand
+  Eff es E.ExpansionCommand
 evalExpansionCommand = \case
   P.CallMacro macroDefinition macroArgumentList ->
     pure $ E.CallMacro macroDefinition macroArgumentList

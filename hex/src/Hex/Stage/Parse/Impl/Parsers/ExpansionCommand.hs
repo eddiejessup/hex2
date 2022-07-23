@@ -1,7 +1,8 @@
 module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand where
 
 import Control.Monad.Combinators qualified as PC
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.Parse.Interface (PrimTokenParse (..))
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Common.Token.Resolved.Primitive qualified as PT
@@ -15,7 +16,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
-headToParseExpansionCommand :: MonadPrimTokenParse m => ST.ExpansionCommandHeadToken -> m AST.ExpansionCommand
+headToParseExpansionCommand :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => ST.ExpansionCommandHeadToken -> Eff es AST.ExpansionCommand
 headToParseExpansionCommand = \case
   ST.MacroTok macroDefinition -> do
     args <- Par.parseMacroArguments macroDefinition.parameterSpecification
@@ -54,7 +55,7 @@ headToParseExpansionCommand = \case
   ST.ChangeCaseTok vDirection ->
     AST.ChangeCase vDirection <$> (Par.parseInhibitedGeneralText Par.ExpectingBeginGroup)
 
-parseControlSymbolBody :: MonadPrimTokenParse m => m LT.ControlSequence
+parseControlSymbolBody :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es LT.ControlSequence
 parseControlSymbolBody = do
   controlSequenceCodes <- PC.manyTill getCharCode (satisfyPrimEquals PT.EndCSNameTok)
   pure $ LT.mkControlSequence controlSequenceCodes

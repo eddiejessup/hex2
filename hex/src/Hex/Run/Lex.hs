@@ -5,7 +5,7 @@ import Hex.Common.HexInput.Interface
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
 
-lexAll :: MonadHexInput m => m [LT.LexToken]
+lexAll :: HexInput :> es => Eff es [LT.LexToken]
 lexAll = go
   where
     go =

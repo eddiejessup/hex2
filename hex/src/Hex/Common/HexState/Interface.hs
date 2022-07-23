@@ -1,4 +1,5 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Hex.Common.HexState.Interface where
 
@@ -32,85 +33,60 @@ fmtResolutionError = F.later $ \case
   UnknownSymbolError cSym ->
     "Got unknown control-symbol: " <> F.bformat HSt.Res.fmtControlSymbol cSym
 
-class Monad m => MonadHexState m where
-  getParameterValue :: Param.QuantParam q -> m (Var.QuantVariableTarget q)
+data EHexState :: Effect where
+  GetParameterValue :: Param.QuantParam q -> EHexState m (Var.QuantVariableTarget q)
 
-  setParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> m ()
+  SetParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> EHexState m ()
 
-  getRegisterValue :: Reg.QuantRegisterLocation q -> m (Var.QuantVariableTarget q)
+  GetRegisterValue :: Reg.QuantRegisterLocation q -> EHexState m (Var.QuantVariableTarget q)
 
-  setQuantRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> m ()
+  SetQuantRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> EHexState m ()
 
-  fetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> m (Maybe BoxElem.BaseBox)
+  FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe BoxElem.BaseBox)
 
-  setBoxRegisterValue :: Reg.RegisterLocation -> Maybe BoxElem.BaseBox -> HSt.Grouped.ScopeFlag -> m ()
+  SetBoxRegisterValue :: Reg.RegisterLocation -> Maybe BoxElem.BaseBox -> HSt.Grouped.ScopeFlag -> EHexState m ()
 
-  getSpecialIntParameter :: Param.SpecialIntParameter -> m Q.HexInt
+  GetSpecialIntParameter :: Param.SpecialIntParameter -> EHexState m Q.HexInt
 
-  getSpecialLengthParameter :: Param.SpecialLengthParameter -> m Q.Length
+  GetSpecialLengthParameter :: Param.SpecialLengthParameter -> EHexState m Q.Length
 
-  setSpecialIntParameter :: Param.SpecialIntParameter -> Q.HexInt -> m ()
+  SetSpecialIntParameter :: Param.SpecialIntParameter -> Q.HexInt -> EHexState m ()
 
-  setSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> m ()
+  SetSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> EHexState m ()
 
-  getHexCode :: Code.CCodeType c -> Code.CharCode -> m (HSt.Code.CodeTableTarget c)
+  GetHexCode :: Code.CCodeType c -> Code.CharCode -> EHexState m (HSt.Code.CodeTableTarget c)
 
-  setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> m ()
+  SetHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> EHexState m ()
 
-  resolveSymbol :: HSt.Res.ControlSymbol -> m (Maybe ResolvedToken)
+  ResolveSymbol :: HSt.Res.ControlSymbol -> EHexState m (Maybe ResolvedToken)
 
-  setSymbol :: HSt.Res.ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> m ()
+  SetSymbol :: HSt.Res.ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> EHexState m ()
 
-  loadFont :: HexFilePath -> TFM.FontSpecification -> m DVI.FontDefinition
+  LoadFont :: HexFilePath -> TFM.FontSpecification -> EHexState m DVI.FontDefinition
 
-  selectFont :: DVI.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
+  SelectFont :: DVI.FontNumber -> HSt.Grouped.ScopeFlag -> EHexState m ()
 
-  setFamilyMemberFont :: Font.FamilyMember -> DVI.FontNumber -> HSt.Grouped.ScopeFlag -> m ()
+  SetFamilyMemberFont :: Font.FamilyMember -> DVI.FontNumber -> HSt.Grouped.ScopeFlag -> EHexState m ()
 
-  currentFontNumber :: m DVI.FontNumber
+  CurrentFontNumber :: EHexState m DVI.FontNumber
 
-  setFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> m ()
+  SetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> EHexState m ()
 
-  currentFontCharacter :: Code.CharCode -> m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
+  CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
 
-  currentFontSpaceGlue :: m (Maybe Q.Glue)
+  CurrentFontSpaceGlue :: EHexState m (Maybe Q.Glue)
 
-  popAfterAssignmentToken :: m (Maybe LT.LexToken)
+  PopAfterAssignmentToken :: EHexState m (Maybe LT.LexToken)
 
-  setAfterAssignmentToken :: LT.LexToken -> m ()
+  SetAfterAssignmentToken :: LT.LexToken -> EHexState m ()
 
-  pushGroup :: Maybe Grouped.ScopedGroupType -> m ()
+  PushGroup :: Maybe Grouped.ScopedGroupType -> EHexState m ()
 
-  popGroup :: Grouped.ChangeGroupTrigger -> m HSt.Grouped.HexGroupType
+  PopGroup :: Grouped.ChangeGroupTrigger -> EHexState m HSt.Grouped.HexGroupType
 
-instance MonadHexState m => MonadHexState (StateT a m) where
-  getParameterValue x = lift $ getParameterValue x
-  setParameterValue x y z = lift $ setParameterValue x y z
-  getRegisterValue x = lift $ getRegisterValue x
-  setQuantRegisterValue x y z = lift $ setQuantRegisterValue x y z
-  fetchBoxRegisterValue x y = lift $ fetchBoxRegisterValue x y
-  setBoxRegisterValue x y z = lift $ setBoxRegisterValue x y z
-  getSpecialIntParameter x = lift $ getSpecialIntParameter x
-  getSpecialLengthParameter x = lift $ getSpecialLengthParameter x
-  setSpecialIntParameter x y = lift $ setSpecialIntParameter x y
-  setSpecialLengthParameter x y = lift $ setSpecialLengthParameter x y
-  getHexCode x y = lift $ getHexCode x y
-  setHexCode w x y z = lift $ setHexCode w x y z
-  resolveSymbol x = lift $ resolveSymbol x
-  loadFont x y = lift $ loadFont x y
-  selectFont x y = lift $ selectFont x y
-  setFamilyMemberFont x y z = lift $ setFamilyMemberFont x y z
-  setFontSpecialCharacter x y z = lift $ setFontSpecialCharacter x y z
-  currentFontNumber = lift currentFontNumber
-  currentFontCharacter x = lift $ currentFontCharacter x
-  currentFontSpaceGlue = lift currentFontSpaceGlue
-  popAfterAssignmentToken = lift popAfterAssignmentToken
-  setAfterAssignmentToken x = lift $ setAfterAssignmentToken x
-  setSymbol x y z = lift $ setSymbol x y z
-  pushGroup x = lift $ pushGroup x
-  popGroup x = lift $ popGroup x
+makeEffect ''EHexState
 
-getParIndentBox :: MonadHexState m => m ListElem.HListElem
+getParIndentBox :: EHexState :> es => Eff es ListElem.HListElem
 getParIndentBox = do
   boxWidth <- getParameterValue (Param.LengthQuantParam Param.ParIndent)
   pure $
@@ -126,83 +102,83 @@ getParIndentBox = do
               }
 
 modifyParameterValue ::
-  forall (q :: Q.QuantityType) m.
-  MonadHexState m =>
+  forall (q :: Q.QuantityType) es.
+  EHexState :> es =>
   Param.QuantParam q ->
   ( Var.QuantVariableTarget q ->
     Var.QuantVariableTarget q
   ) ->
   HSt.Grouped.ScopeFlag ->
-  m ()
+  Eff es ()
 modifyParameterValue p f scopeFlag = do
-  currentVal <- getParameterValue @_ @q p
+  currentVal <- getParameterValue p
   setParameterValue p (f currentVal) scopeFlag
 
 modifyRegisterValue ::
-  MonadHexState m =>
+  EHexState :> es =>
   Reg.QuantRegisterLocation q ->
   ( Var.QuantVariableTarget q ->
     Var.QuantVariableTarget q
   ) ->
   HSt.Grouped.ScopeFlag ->
-  m ()
+  Eff es ()
 modifyRegisterValue loc f scopeFlag = do
   currentVal <- getRegisterValue loc
   setQuantRegisterValue loc (f currentVal) scopeFlag
 
 advanceParameterValue ::
-  forall q m.
-  (MonadHexState m, Semigroup (Var.QuantVariableTarget q)) =>
+  forall q es.
+  (EHexState :> es, Semigroup (Var.QuantVariableTarget q)) =>
   Param.QuantParam q ->
   Var.QuantVariableTarget q ->
   HSt.Grouped.ScopeFlag ->
-  m ()
+  Eff es ()
 advanceParameterValue p plusVal =
   modifyParameterValue @q p (\v -> v <> plusVal)
 
 scaleParameterValue ::
-  forall q m.
-  (MonadHexState m, Q.Scalable (Var.QuantVariableTarget q)) =>
+  forall q es.
+  (EHexState :> es, Q.Scalable (Var.QuantVariableTarget q)) =>
   Param.QuantParam q ->
   VDirection ->
   Q.HexInt ->
   HSt.Grouped.ScopeFlag ->
-  m ()
+  Eff es ()
 scaleParameterValue p scaleDirection arg scopeFlag =
   modifyParameterValue @q p (Q.scaleInDirection scaleDirection arg) scopeFlag
 
 advanceRegisterValue ::
-  (MonadHexState m, Semigroup (Var.QuantVariableTarget q)) =>
+  (EHexState :> es, Semigroup (Var.QuantVariableTarget q)) =>
   Reg.QuantRegisterLocation q ->
   Var.QuantVariableTarget q ->
   HSt.Grouped.ScopeFlag ->
-  m ()
+  Eff es ()
 advanceRegisterValue loc plusVal =
   modifyRegisterValue loc (\v -> v <> plusVal)
 
 scaleRegisterValue ::
-  (MonadHexState m, Q.Scalable (Var.QuantVariableTarget q)) =>
+  (EHexState :> es, Q.Scalable (Var.QuantVariableTarget q)) =>
   Reg.QuantRegisterLocation q ->
   VDirection ->
   Q.HexInt ->
   HSt.Grouped.ScopeFlag ->
-  m ()
+  Eff es ()
 scaleRegisterValue qLoc scaleDirection arg scopeFlag =
   modifyRegisterValue qLoc (Q.scaleInDirection scaleDirection arg) scopeFlag
 
 resolveLexToken ::
-  MonadHexState m =>
+  [Error ResolutionError, EHexState] :>> es =>
   LT.LexToken ->
-  m (Either ResolutionError RT.ResolvedToken)
+  Eff es RT.ResolvedToken
 resolveLexToken = \case
   LT.ControlSequenceLexToken cs -> do
     resolveSymbolWithError (HSt.Res.ControlSequenceSymbol cs)
   LT.CharCatLexToken (LT.LexCharCat c Code.Active) ->
     resolveSymbolWithError $ HSt.Res.ActiveCharacterSymbol c
   LT.CharCatLexToken lexCharCat ->
-    pure $ Right $ RT.PrimitiveToken $ PT.CharCatPair lexCharCat
+    pure $ RT.PrimitiveToken $ PT.CharCatPair lexCharCat
   where
     resolveSymbolWithError cSym =
       resolveSymbol cSym >>= \case
-        Nothing -> pure $ Left $ UnknownSymbolError cSym
-        Just rt -> pure $ Right rt
+        Nothing -> throwError $ UnknownSymbolError cSym
+        Just rt -> pure rt

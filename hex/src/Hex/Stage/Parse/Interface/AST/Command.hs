@@ -133,7 +133,7 @@ data AssignmentBody
   | SetFamilyMember FamilyMember FontRef
   | SetParShape HexInt [Length]
   | SetBoxRegister ExplicitRegisterLocation Box
-  | -- Global assignments.
+  | -- GlobalScope assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontSpecialChar FontSpecialCharRef HexInt
   | SetHyphenation HSt.TL.InhibitedBalancedText

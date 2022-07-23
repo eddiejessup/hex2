@@ -5,7 +5,7 @@ import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (MonadPrimTokenParse (..))
+import Hex.Common.Parse.Interface (PrimTokenParse (..))
 import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
@@ -14,15 +14,16 @@ import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
 
-parseMacroBody :: MonadPrimTokenParse m => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> m AST.AssignmentBody
+parseMacroBody :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> Eff es AST.AssignmentBody
 parseMacroBody defExpandType prefixes = do
   cs <- Par.parseControlSymbol
   tgt <- parseMacroDefinition defExpandType prefixes
   pure $ AST.DefineControlSequence cs (AST.MacroTarget tgt)
 
 -- Parse a parameter specification, and also the begin-group that surround the macro's replacement text.
-parseMacroParameterSpecificationAndLeftBrace :: forall m. MonadPrimTokenParse m => m ST.MacroParameterSpecification
+parseMacroParameterSpecificationAndLeftBrace :: forall es. [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es ST.MacroParameterSpecification
 parseMacroParameterSpecificationAndLeftBrace = do
   -- Pre-parameter text tokens.
   preParameterText <- parseMacroParameterDelimiterText
@@ -30,7 +31,7 @@ parseMacroParameterSpecificationAndLeftBrace = do
   parameterDelimiterTexts <- Par.anyLexInhibited >>= headToParseParameterDelimiterTextsFrom ASCII.Digit1
   pure $ ST.MacroParameterSpecification {preParameterText, parameterDelimiterTexts}
   where
-    headToParseParameterDelimiterTextsFrom :: ASCII.Digit -> LT.LexToken -> m (Seq ST.ParameterText)
+    headToParseParameterDelimiterTextsFrom :: ASCII.Digit -> LT.LexToken -> Eff es (Seq ST.ParameterText)
     headToParseParameterDelimiterTextsFrom paramNum headToken
       -- Parse the left-brace that indicates the end of parameters.
       | lexTokenEndsParameters headToken =
@@ -40,7 +41,7 @@ parseMacroParameterSpecificationAndLeftBrace = do
       | Par.lexTokenHasCategory Code.Parameter headToken = do
           -- First, we require that we see a parameter number that matches
           -- the current parameter number.
-          Par.skipSatisfied satisfyThenInhibited $ \case
+          Par.skipSatisfied Par.satisfyThenInhibited $ \case
             LT.CharCatLexToken lexCC -> case lexCC.lexCCCat of
               -- If we saw a 'letter' or 'other', precisely if it is a digit
               -- corresponding to the next expected parameter number.
@@ -59,14 +60,14 @@ parseMacroParameterSpecificationAndLeftBrace = do
             -- If we are parsing parameter nine, there can't be any more, so we
             -- only expect to end the parameters.
             ASCII.Digit9 -> do
-              Par.skipSatisfied satisfyThenInhibited lexTokenEndsParameters
+              Par.skipSatisfied Par.satisfyThenInhibited lexTokenEndsParameters
               pure Seq.empty
             -- Otherwise, we can either end the parameters, or have some more,
             -- starting from the successor of this paramNumit.
             _ -> Par.anyLexInhibited >>= headToParseParameterDelimiterTextsFrom (succ paramNum)
           pure $ currentParameterDelimiters <| laterResult
       | otherwise =
-          Par.parseFailure $ "headToParseParameterDelimiterTextsFrom " <> F.sformat LT.fmtLexToken headToken
+          Par.parseFail $ "headToParseParameterDelimiterTextsFrom " <> F.sformat LT.fmtLexToken headToken
 
     lexTokenEndsParameters :: LT.LexToken -> Bool
     lexTokenEndsParameters = Par.lexTokenHasCategory Code.BeginGroup
@@ -79,7 +80,7 @@ parseMacroParameterSpecificationAndLeftBrace = do
 charCodeToDigit :: Code.CharCode -> Maybe ASCII.Digit
 charCodeToDigit charCode = ASCII.toDigitMaybe (Code.codeAsAsciiChar charCode)
 
-parseMacroParameterDelimiterText :: MonadPrimTokenParse m => m ST.ParameterText
+parseMacroParameterDelimiterText :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es ST.ParameterText
 parseMacroParameterDelimiterText = do
   delimiterTokens <- PC.many $ Par.satisfyIf Par.satisfyThenInhibited isDelimiterToken
   pure $ ST.ParameterText $ Seq.fromList delimiterTokens
@@ -93,7 +94,7 @@ parseMacroParameterDelimiterText = do
       _ ->
         True
 
-parseMacroDefinition :: MonadPrimTokenParse m => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> m ST.MacroDefinition
+parseMacroDefinition :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> Eff es ST.MacroDefinition
 parseMacroDefinition defExpandType prefixes = do
   parameterSpecification <- parseMacroParameterSpecificationAndLeftBrace
   replacementText <- parseMacroReplacementText defExpandType
@@ -107,17 +108,17 @@ parseMacroDefinition defExpandType prefixes = do
 
 -- Extract a balanced text but parsing parameter references at definition-time.
 -- Assumes we just parsed the '{' that starts the macro text.
-parseMacroReplacementText :: MonadPrimTokenParse m => PT.ExpandDefFlag -> m ST.MacroReplacementText
+parseMacroReplacementText :: forall es. [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Eff es ST.MacroReplacementText
 parseMacroReplacementText = \case
   PT.ExpandDef ->
     notImplemented "parseMacroReplacementText: ExpandDef"
   PT.InhibitDef -> do
     ST.InhibitedMacroReplacementText <$> parseInhibitedMacroReplacementText
 
-parseInhibitedMacroReplacementText :: forall m. MonadPrimTokenParse m => m ST.InhibitedReplacementText
+parseInhibitedMacroReplacementText :: forall es. [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es ST.InhibitedReplacementText
 parseInhibitedMacroReplacementText = ST.InhibitedReplacementText . fst <$> Par.parseNestedExpr parseNext
   where
-    parseNext :: Int -> m (ST.MacroTextToken, Ordering)
+    parseNext :: Int -> Eff es (ST.MacroTextToken, Ordering)
     parseNext _depth =
       Par.anyLexInhibited >>= \case
         -- If we see a '#', parse the parameter number and return a token

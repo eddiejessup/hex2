@@ -11,7 +11,6 @@ import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListElem qualified as ListElem
-import Hex.Stage.Build.ListExtractor.Interface (MonadHexListExtractor)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.AllMode qualified as AllMode
@@ -23,18 +22,18 @@ data HModeCommandResult
   deriving stock (Show, Generic)
 
 handleCommandInHMode ::
-  ( HSt.MonadHexState m,
-    HIn.MonadHexInput m,
-    MonadError e m,
-    AsType AllMode.InterpretError e,
-    Log.MonadHexLog m,
-    Build.MonadHListBuilder m,
-    MonadHexListExtractor m
+  ( HSt.EHexState :> es,
+    HIn.HexInput :> es,
+    Error AllMode.InterpretError :> es,
+    Log.HexLog :> es,
+    Build.HListBuilder :> es,
+    Build.HexListBuilder :> es,
+    ListExtractor.HexListExtractor :> es
   ) =>
   CharSourceStack ->
   ListExtractor.ModeContext ->
   Eval.Command ->
-  m HModeCommandResult
+  Eff es HModeCommandResult
 handleCommandInHMode oldSrc modeCtx = \case
   Eval.VModeCommand _ -> case modeCtx of
     ListExtractor.OuterModeContext -> do
@@ -45,7 +44,7 @@ handleCommandInHMode oldSrc modeCtx = \case
       HIn.insertLexToken LT.parToken
       pure ContinueHMode
     ListExtractor.InnerModeContext -> do
-      throwError $ injectTyped $ AllMode.VModeCommandInInnerHMode
+      throwError $ AllMode.VModeCommandInInnerHMode
   Eval.HModeCommand hModeCommand -> case hModeCommand of
     Eval.AddHGlue g -> do
       Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue g
@@ -74,7 +73,7 @@ handleCommandInHMode oldSrc modeCtx = \case
     Eval.AddUnwrappedFetchedHBox _fetchedBoxRef ->
       notImplemented "AddUnwrappedFetchedHBox"
   Eval.AddSpace -> do
-    spaceGlue <- HSt.currentFontSpaceGlue >>= note (injectTyped AllMode.NoFontSelected)
+    spaceGlue <- HSt.currentFontSpaceGlue >>= note (AllMode.NoFontSelected)
     Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue spaceGlue
     pure ContinueHMode
   Eval.StartParagraph indentFlag -> do
@@ -104,14 +103,13 @@ handleCommandInHMode oldSrc modeCtx = \case
 -- Eval.AddAlignedMaterial _desiredLength _alignMaterial _hModeCommand1 _hModeCommand2 -> notImplemented "HMode: AddAlignedMaterial"
 
 charAsBox ::
-  ( HSt.MonadHexState m,
-    MonadError e m,
-    AsType AllMode.InterpretError e
+  ( HSt.EHexState :> es,
+    Error AllMode.InterpretError :> es
   ) =>
   Codes.CharCode ->
-  m Box.CharBox
+  Eff es Box.CharBox
 charAsBox char = do
-  (width, height, depth, _) <- HSt.currentFontCharacter char >>= note (injectTyped AllMode.NoFontSelected)
+  (width, height, depth, _) <- HSt.currentFontCharacter char >>= note (AllMode.NoFontSelected)
   pure $
     Box.CharBox
       Box.Box
@@ -122,11 +120,11 @@ charAsBox char = do
         }
 
 hModeStartParagraph ::
-  ( HSt.MonadHexState m,
-    Build.MonadHListBuilder m
+  ( HSt.EHexState :> es,
+    Build.HListBuilder :> es
   ) =>
   ListExtractor.IndentFlag ->
-  m ()
+  Eff es ()
 hModeStartParagraph = \case
   ListExtractor.DoNotIndent ->
     pure ()

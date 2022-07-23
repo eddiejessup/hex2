@@ -1,36 +1,31 @@
 module Hex.Run.App where
 
-import Formatting qualified as F
-import Hex.Capability.Log.Interface (MonadHexLog (..))
+import Hex.Capability.Log.Interface (HexLog (..))
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.SpecInstruction qualified as DVIS
+import Hex.Common.HexEnv.Impl (HexEnv, runHexEnv)
 import Hex.Common.HexEnv.Impl qualified as HEnv
-import Hex.Common.HexEnv.Interface qualified as HEnv
-import Hex.Common.HexInput.Impl qualified as HIn
+import Hex.Common.HexEnv.Interface (EHexEnv)
+import Hex.Common.HexInput.Impl (runHexInput)
 import Hex.Common.HexInput.Impl.CharSourceStack qualified as HIn
+import Hex.Common.HexInput.Interface (HexInput, LexError)
 import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexState.Impl (HexStateT (..))
+import Hex.Common.HexState.Impl (HexStateError, runHexState)
 import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as HSt.GroupScopes
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as HSt.Scope
+import Hex.Common.HexState.Impl.Type (HexState)
 import Hex.Common.HexState.Impl.Type qualified as HSt
-import Hex.Common.HexState.Interface (MonadHexState)
-import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface (EHexState, ResolutionError)
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Common.Parse.Impl qualified as Parse
+import Hex.Common.TFM.Types (TFMError)
 import Hex.Common.TFM.Types qualified as TFM
-import Hex.Stage.Evaluate.Impl (EvaluateT (..))
-import Hex.Stage.Evaluate.Impl.Common qualified as Eval
-import Hex.Stage.Evaluate.Interface (MonadEvaluate)
-import Hex.Stage.Expand.Impl (PrimTokenSourceT (..))
-import Hex.Stage.Expand.Interface (MonadPrimTokenSource)
 import Hex.Stage.Expand.Interface qualified as Expand
-import Hex.Stage.Interpret.AllMode qualified as Interpret
-import Hex.Stage.Parse.Impl (CommandSourceT (..))
-import Hex.Stage.Parse.Interface (MonadCommandSource)
 import Hexlude
 import System.IO (hFlush)
+import Hex.Stage.Expand.Impl (runPrimTokenSource)
+import Hex.Common.Parse.Impl (runAlt, ParsingError)
+import Hex.Stage.Evaluate.Impl.Common (EvaluationError)
 
 data AppState = AppState
   { appHexState :: HSt.HexState,
@@ -39,7 +34,55 @@ data AppState = AppState
   }
   deriving stock (Generic)
 
-newAppStateWithChars :: MonadIO m => ByteString -> m AppState
+type App a = Eff [HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE] a
+
+runInputAppRaw ::
+  HexEnv ->
+  AppState ->
+  Eff ([HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE]) a ->
+  IO (Either TFMError (Either HexStateError (Either LexError a)))
+runInputAppRaw hexEnv appState app = do
+  app
+    & runHexInput
+    & runHexState
+    & runHexEnv
+    & runLog
+    & evalStateLocal appState.appCharSourceStack
+    & evalStateLocal appState.appConditionStates
+    & evalStateLocal appState.appHexState
+    & runReader hexEnv
+    & runErrorNoCallStack @LexError
+    & runErrorNoCallStack @HSt.HexStateError
+    & runErrorNoCallStack @TFM.TFMError
+    & runEff
+
+runInputApp ::
+  HexEnv ->
+  AppState ->
+  Eff [HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE] a ->
+  IO (Either AppError a)
+runInputApp hexEnv appState app = do
+  runInputAppRaw hexEnv appState app <&> \case
+    Left err -> Left $ AppTFMError err
+    Right (Left err) -> Left $ AppHexStateError err
+    Right (Right (Left err)) -> Left $ AppLexError err
+    Right (Right (Right v)) -> Right v
+
+runPTSource ::
+  Eff '[Expand.PrimTokenSource, EHexState, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, IOE] a ->
+  IO (Either ParsingError a)
+runPTSource app = do
+  app
+    & runPrimTokenSource
+    & runHexState
+    & runAlt
+    & runErrorNoCallStack @ParsingError
+    & runErrorNoCallStack @Expand.ExpansionError
+    & runErrorNoCallStack @ResolutionError
+    & runErrorNoCallStack @EvaluationError
+    & runEff
+
+newAppStateWithChars :: ByteString -> IO AppState
 newAppStateWithChars inputBytes = do
   appHexState <- HSt.newHexState
   let endLineCharInt = appHexState ^. #groupScopes % #globalScope % #intParameters % at' HSt.Param.EndLineChar
@@ -51,92 +94,74 @@ newAppStateWithChars inputBytes = do
         appConditionStates = Expand.newConditionStates
       }
 
-newtype App a = App {unApp :: ReaderT HEnv.HexEnv (StateT AppState (ExceptT AppError IO)) a}
-  deriving newtype
-    ( Functor,
-      Applicative,
-      Monad,
-      MonadIO,
-      MonadError AppError,
-      MonadState AppState,
-      MonadReader HEnv.HexEnv
-    )
-  deriving (HEnv.MonadHexEnv) via (HEnv.HexEnvT App)
-  deriving (MonadHexState) via (HexStateT App)
-  deriving (MonadEvaluate) via (EvaluateT App)
-  deriving (HIn.MonadHexInput) via (HIn.HexInputT App)
-  deriving (MonadPrimTokenSource) via (PrimTokenSourceT App)
-  deriving (MonadCommandSource) via (CommandSourceT App)
-
 data AppError
   = AppLexError HIn.LexError
-  | AppParseError Parse.ParsingErrorWithContext
-  | AppExpansionError Expand.ExpansionError
-  | AppInterpretError Interpret.InterpretError
-  | AppResolutionError HSt.ResolutionError
-  | AppEvaluationError Eval.EvaluationError
   | AppHexStateError HSt.HexStateError
   | AppTFMError TFM.TFMError
-  | AppDVIError DVIS.DVIError
+  --   | AppParseError Parse.ParsingErrorWithContext
+  --   | AppExpansionError Expand.ExpansionError
+  --   | AppInterpretError Interpret.InterpretError
+  --   | AppResolutionError HSt.ResolutionError
+  --   | AppEvaluationError Eval.EvaluationError
+  --   | AppDVIError DVIS.DVIError
   deriving stock (Show, Generic)
 
-fmtAppError :: Format r (AppError -> r)
-fmtAppError = F.later $ \case
-  AppLexError lexError -> F.bformat HIn.fmtLexError lexError
-  AppParseError parseError -> F.bformat Parse.fmtParsingErrorWithContext parseError
-  AppExpansionError expansionError -> F.bformat Expand.fmtExpansionError expansionError
-  AppInterpretError interpretError -> F.bformat Interpret.fmtInterpretError interpretError
-  AppResolutionError resolutionError -> F.bformat HSt.fmtResolutionError resolutionError
-  AppEvaluationError evaluationError -> F.bformat Eval.fmtEvaluationError evaluationError
-  AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
-  AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
-  AppDVIError dviError -> F.bformat DVIS.fmtDVIError dviError
+-- fmtAppError :: Format r (AppError -> r)
+-- fmtAppError = F.later $ \case
+--   AppLexError lexError -> F.bformat HIn.fmtLexError lexError
+--   AppParseError parseError -> F.bformat Parse.fmtParsingErrorWithContext parseError
+--   AppExpansionError expansionError -> F.bformat Expand.fmtExpansionError expansionError
+--   AppInterpretError interpretError -> F.bformat Interpret.fmtInterpretError interpretError
+--   AppResolutionError resolutionError -> F.bformat HSt.fmtResolutionError resolutionError
+--   AppEvaluationError evaluationError -> F.bformat Eval.fmtEvaluationError evaluationError
+--   AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
+--   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
+--   AppDVIError dviError -> F.bformat DVIS.fmtDVIError dviError
 
-instance MonadHexLog App where
-  log lvl msg = do
-    logFileHandle <- know $ typed @Handle
-    logLevel <- know $ typed @Log.LogLevel
-    when (lvl >= logLevel) $ liftIO $ hPutStrLn logFileHandle $ Log.showLevelEqualWidth logLevel <> msg
+runLog :: [IOE, Reader HexEnv, State HexState] :>> es => Eff (HexLog : es) a -> Eff es a
+runLog = interpret $ \_ -> \case
+  Log.Log lvl msg -> logImpl lvl msg
+  Log.LogInternalState -> do
+    hexState <- get @HexState
+    logImpl Log.Info $ sformat HSt.fmtHexState hexState
 
-  logInternalState = do
-    hexState <- use $ typed @HSt.HexState
-    log Log.Info $ sformat HSt.fmtHexState hexState
+logImpl :: [IOE, Reader HexEnv, State HexState] :>> es => Log.LogLevel -> Text -> Eff es ()
+logImpl lvl msg = do
+  logFileHandle <- know @HexEnv $ typed @Handle
+  logLevel <- know @HexEnv $ typed @Log.LogLevel
+  when (lvl >= logLevel) $ liftIO $ hPutStrLn logFileHandle $ Log.showLevelEqualWidth logLevel <> msg
 
-runAppGivenState ::
+evalAppGivenState ::
   AppState ->
   App a ->
   HEnv.HexEnv ->
-  IO (Either AppError (a, AppState))
-runAppGivenState appState app appEnv =
-  let x = runReaderT app.unApp appEnv
-   in runExceptT $ runStateT x appState
+  IO (Either AppError a)
+evalAppGivenState appState app appEnv = do
+  runInputApp appEnv appState app
 
-runAppGivenEnv ::
+evalAppGivenEnv ::
   ByteString ->
   App a ->
   HEnv.HexEnv ->
-  IO (Either AppError (a, AppState))
-runAppGivenEnv bs app appEnv = do
+  IO (Either AppError a)
+evalAppGivenEnv bs app appEnv = do
   appState <- newAppStateWithChars bs
-  runAppGivenState appState app appEnv
+  evalAppGivenState appState app appEnv
 
-runApp ::
+evalApp ::
   [FilePath] ->
   Log.LogLevel ->
   ByteString ->
   App a ->
-  IO (Either AppError (a, AppState))
-runApp extraSearchDirs logLevel bs app =
+  IO (Either AppError a)
+evalApp extraSearchDirs logLevel bs app =
   HEnv.withHexEnv extraSearchDirs logLevel $ \appEnv -> do
-    a <- runAppGivenEnv bs app appEnv
+    a <- evalAppGivenEnv bs app appEnv
     hFlush appEnv.logHandle
     pure a
 
-evalApp :: [FilePath] -> Log.LogLevel -> ByteString -> App a -> IO (Either AppError a)
-evalApp extraSearchDirs logLevel chrs = fmap (fmap fst) <$> runApp extraSearchDirs logLevel chrs
-
 unsafeEvalApp :: [FilePath] -> Log.LogLevel -> ByteString -> App a -> IO a
-unsafeEvalApp extraSearchDirs logLevel chrs app = do
+unsafeEvalApp extraSearchDirs logLevel chrs app =
   evalApp extraSearchDirs logLevel chrs app >>= \case
-    Left e -> panic $ sformat ("got error: " |%| fmtAppError) e
+    Left err -> panic $ "unsafeEvalApp: " <> show err
     Right v -> pure v
