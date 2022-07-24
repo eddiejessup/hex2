@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Hex.Common.HexInput.Impl.CharSource where
+module Hex.Stage.Read.Impl.CharSource where
 
 import Data.ByteString qualified as BS
 import Data.Sequence qualified as Seq

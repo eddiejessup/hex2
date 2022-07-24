@@ -5,12 +5,12 @@ module Common where
 import Data.ByteString qualified as BS
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexEnv.Interface
-import Hex.Common.HexInput.Impl
-import Hex.Common.HexInput.Interface
 import Hex.Common.HexState.Impl
 import Hex.Common.HexState.Interface
 import Hex.Run.App
 import Hex.Run.App qualified as App
+import Hex.Stage.Read.Impl
+import Hex.Stage.Read.Interface
 import Hexlude
 
 newtype TestApp a = TestApp {unTestApp :: StateT AppState (ExceptT AppError IO) a}

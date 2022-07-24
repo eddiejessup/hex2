@@ -1,6 +1,6 @@
 {-# LANGUAGE UndecidableInstances #-}
 
-module Hex.Common.HexInput.Impl where
+module Hex.Stage.Read.Impl where
 
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
@@ -9,16 +9,16 @@ import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Interface (EHexEnv)
 import Hex.Common.HexEnv.Interface qualified as Env
-import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
-import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
-import Hex.Common.HexInput.Impl.CharSourceStack qualified as CharSourceStack
-import Hex.Common.HexInput.Impl.Lex qualified as HIn
-import Hex.Common.HexInput.Interface (HexInput (..))
-import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Token.Lexed qualified as LT
+import Hex.Stage.Read.Impl.CharSource qualified as CharSource
+import Hex.Stage.Read.Impl.CharSourceStack (CharSourceStack)
+import Hex.Stage.Read.Impl.CharSourceStack qualified as CharSourceStack
+import Hex.Stage.Read.Impl.Lex qualified as HIn
+import Hex.Stage.Read.Interface (HexInput (..))
+import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 runHexInput :: ([IOE, EHexEnv, Error HIn.LexError, State CharSourceStack, HexLog, EHexState] :>> es) => Eff (HexInput : es) a -> Eff es a

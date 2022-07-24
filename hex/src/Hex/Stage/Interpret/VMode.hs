@@ -2,8 +2,6 @@ module Hex.Stage.Interpret.VMode where
 
 import Hex.Capability.Log.Interface (HexLog)
 import Hex.Common.Box qualified as Box
-import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexInput.Interface.CharSourceStack (CharSourceStack)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Stage.Build.BoxElem qualified as Box
@@ -15,6 +13,8 @@ import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
+import Hex.Stage.Read.Interface qualified as HIn
+import Hex.Stage.Read.Interface.CharSourceStack (CharSourceStack)
 import Hexlude
 
 data VModeCommandResult

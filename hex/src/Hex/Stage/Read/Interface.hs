@@ -1,13 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# OPTIONS_GHC -Wno-unticked-promoted-constructors #-}
 
-module Hex.Common.HexInput.Interface where
+module Hex.Stage.Read.Interface where
 
 import Formatting qualified as F
-import Hex.Common.HexInput.Interface.CharSourceStack
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved qualified as RT
+import Hex.Stage.Read.Interface.CharSourceStack
 import Hexlude
 
 data LexError

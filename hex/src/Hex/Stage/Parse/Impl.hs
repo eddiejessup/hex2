@@ -3,7 +3,6 @@
 module Hex.Stage.Parse.Impl where
 
 import Hex.Capability.Log.Interface qualified as Log
-import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Expand.Impl (runAltPrimTokenSourceMaybe)
@@ -12,6 +11,7 @@ import Hex.Stage.Expand.Interface qualified as Exp
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
 import Hex.Stage.Parse.Interface
 import Hex.Stage.Parse.Interface.AST.Command qualified as Par
+import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 runCommandSource ::

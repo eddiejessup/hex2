@@ -1,8 +1,8 @@
 module Hex.Run.Lex where
 
 import Formatting qualified as F
-import Hex.Common.HexInput.Interface
 import Hex.Common.Token.Lexed qualified as LT
+import Hex.Stage.Read.Interface
 import Hexlude
 
 lexAll :: HexInput :> es => Eff es [LT.LexToken]

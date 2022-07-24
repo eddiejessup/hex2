@@ -1,13 +1,13 @@
-module Hex.Common.HexInput.Impl.Lex where
+module Hex.Stage.Read.Impl.Lex where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexInput.Impl.Categorise qualified as Cat
-import Hex.Common.HexInput.Impl.CharSource qualified as HIn
-import Hex.Common.HexInput.Impl.CharSourceStack (CharSourceStack)
-import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.Token.Lexed (LexCharCat (..), LexToken (..))
 import Hex.Common.Token.Lexed qualified as LT
+import Hex.Stage.Read.Impl.Categorise qualified as Cat
+import Hex.Stage.Read.Impl.CharSource qualified as HIn
+import Hex.Stage.Read.Impl.CharSourceStack (CharSourceStack)
+import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 spaceTok :: LexToken

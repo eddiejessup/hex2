@@ -1,8 +1,8 @@
-module Hex.Common.HexInput.Impl.CharSourceStack where
+module Hex.Stage.Read.Impl.CharSourceStack where
 
 import Data.List.NonEmpty qualified as L.NE
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexInput.Impl.CharSource qualified as CharSource
+import Hex.Stage.Read.Impl.CharSource qualified as CharSource
 import Hexlude
 
 -- The input to Tex is a sequence of “lines.”

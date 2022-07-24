@@ -4,7 +4,6 @@
 module Hex.Stage.Build.ListExtractor.HList where
 
 import Hex.Capability.Log.Interface (HexLog (..))
-import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Build.ListBuilder.Horizontal (runHListBuilder, runHexListBuilderHMode)
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
@@ -15,6 +14,7 @@ import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hex.Stage.Interpret.HMode qualified as Command.H
 import Hex.Stage.Interpret.HMode qualified as HMode
 import Hex.Stage.Parse.Interface (CommandSource (..))
+import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 runListExtractor :: [Eval.HexEvaluate, CommandSource, HSt.EHexState, HIn.HexInput, Error AllMode.InterpretError, HexLog] :>> es => Eff (ListExtractor.ExtractHList : es) a -> Eff es a

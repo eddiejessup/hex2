@@ -3,8 +3,6 @@ module Hex.Stage.Interpret.HMode where
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Codes
-import Hex.Common.HexInput.Interface qualified as HIn
-import Hex.Common.HexInput.Interface.CharSourceStack (CharSourceStack)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
@@ -14,6 +12,8 @@ import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.AllMode qualified as AllMode
+import Hex.Stage.Read.Interface qualified as HIn
+import Hex.Stage.Read.Interface.CharSourceStack (CharSourceStack)
 import Hexlude
 
 data HModeCommandResult

@@ -7,7 +7,6 @@ import Effectful.Dispatch.Dynamic (localSeqUnlift)
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -25,6 +24,7 @@ import Hex.Stage.Expand.Impl.Expand qualified as Expand
 import Hex.Stage.Expand.Interface (ExpansionError (..), ParseUnexpectedError (..), ParsingError (..), PrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
+import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 runPrimTokenSource ::

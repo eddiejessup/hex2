@@ -8,10 +8,6 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Impl (HexEnv, runHexEnv)
 import Hex.Common.HexEnv.Impl qualified as HEnv
 import Hex.Common.HexEnv.Interface (EHexEnv)
-import Hex.Common.HexInput.Impl (runHexInput)
-import Hex.Common.HexInput.Impl.CharSourceStack qualified as HIn
-import Hex.Common.HexInput.Interface (HexInput, LexError)
-import Hex.Common.HexInput.Interface qualified as HIn
 import Hex.Common.HexState.Impl (HexStateError, runHexState)
 import Hex.Common.HexState.Impl qualified as HSt
 import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as HSt.GroupScopes
@@ -34,6 +30,10 @@ import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Interpret.AllMode qualified as Interpret
 import Hex.Stage.Parse.Impl (runCommandSource)
 import Hex.Stage.Parse.Interface (CommandSource)
+import Hex.Stage.Read.Impl (runHexInput)
+import Hex.Stage.Read.Impl.CharSourceStack qualified as HIn
+import Hex.Stage.Read.Interface (HexInput, LexError)
+import Hex.Stage.Read.Interface qualified as HIn
 import Hex.Stage.Render.Interface.SpecInstruction qualified as Render.Spec
 import Hexlude
 import System.IO (hFlush)
