@@ -4,25 +4,25 @@ import Control.Monad.Combinators qualified as PC
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (PrimTokenParse (..))
-import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Expand.Interface (PrimTokenSource (..))
+import Hex.Stage.Expand.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
 
-parseLength :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Length
+parseLength :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.Length
 parseLength = AST.Length <$> Par.parseSigned parseUnsignedLength
 
-parseUnsignedLength :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.UnsignedLength
+parseUnsignedLength :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.UnsignedLength
 parseUnsignedLength =
   PC.choice
     [ AST.NormalLengthAsULength <$> parseNormalLength,
       Par.tryParse $ AST.CoercedLength . AST.InternalGlueAsLength <$> (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
-parseNormalLength :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.NormalLength
+parseNormalLength :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.NormalLength
 parseNormalLength =
   PC.choice
     [ AST.LengthSemiConstant <$> parseFactor <*> parseUnit,
@@ -36,14 +36,14 @@ parseNormalLength =
 -- the next digits before it fails when it doesn't see a ',' or '.'.
 -- NOTE: Also we put a 'try' on the normal-int case, just because we start with
 -- an 'any-prim' so it's likely to over-consume.
-parseFactor :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Factor
+parseFactor :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.Factor
 parseFactor =
   PC.choice
     [ Par.tryParse $ AST.DecimalFractionFactor <$> parseRationalConstant,
       Par.tryParse $ Log.debugLog "Parsing normal-int" >> AST.NormalIntFactor <$> (anyPrim >>= Par.headToParseNormalInt)
     ]
 
-parseRationalConstant :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.DecimalFraction
+parseRationalConstant :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.DecimalFraction
 parseRationalConstant = do
   Log.debugLog "parseRationalConstant"
   wholeDigits <- PC.many (satisfyCharCatThen Expanding Par.decCharToWord)
@@ -55,7 +55,7 @@ parseRationalConstant = do
   Log.debugLog $ "Successfully parsed rational constant, value: " <> show v
   pure v
 
-parseUnit :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Unit
+parseUnit :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.Unit
 parseUnit =
   PC.choice
     [ (skipOptionalSpaces Expanding) *> (AST.InternalUnit <$> parseInternalUnit),

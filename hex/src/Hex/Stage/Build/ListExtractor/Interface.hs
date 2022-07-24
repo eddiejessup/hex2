@@ -18,8 +18,8 @@ data EndHListReason
 data ModeContext = InnerModeContext | OuterModeContext
   deriving stock (Show, Generic)
 
-data HexListExtractor :: Effect where
-  ExtractHBoxList :: HexListExtractor m HList
-  ExtractParagraphList :: IndentFlag -> HexListExtractor m (EndHListReason, HList)
+data ExtractHList :: Effect where
+  ExtractHBoxList :: ExtractHList m HList
+  ExtractParagraphList :: IndentFlag -> ExtractHList m (EndHListReason, HList)
 
-makeEffect ''HexListExtractor
+makeEffect ''ExtractHList

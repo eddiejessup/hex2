@@ -17,7 +17,7 @@ import Hex.Stage.Interpret.HMode qualified as HMode
 import Hex.Stage.Parse.Interface (CommandSource (..))
 import Hexlude
 
-runListExtractor :: [Eval.HexEvaluate, CommandSource, HSt.EHexState, HIn.HexInput, Error AllMode.InterpretError, HexLog] :>> es => Eff (ListExtractor.HexListExtractor : es) a -> Eff es a
+runListExtractor :: [Eval.HexEvaluate, CommandSource, HSt.EHexState, HIn.HexInput, Error AllMode.InterpretError, HexLog] :>> es => Eff (ListExtractor.ExtractHList : es) a -> Eff es a
 runListExtractor = interpret $ \_ -> \case
   ListExtractor.ExtractHBoxList -> snd <$> extractHBoxListImpl
   ListExtractor.ExtractParagraphList indentFlag -> extractParagraphListImpl indentFlag

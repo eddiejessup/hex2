@@ -1,9 +1,9 @@
 {-# LANGUAGE TemplateHaskell #-}
+
 module Hex.Stage.Expand.Interface where
 
 import Formatting qualified as F
 import Hex.Common.Token.Lexed qualified as LT
-import Hex.Common.Token.Resolved qualified as RT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
@@ -45,12 +45,60 @@ newtype ConditionStates = ConditionStates {unConditionStates :: [ConditionState]
 newConditionStates :: ConditionStates
 newConditionStates = ConditionStates []
 
+data ParsingError
+  = EndOfInputParsingError
+  | UnexpectedParsingError ParseUnexpectedError
+  deriving stock (Show, Eq, Generic)
+
+fmtParsingError :: Fmt ParsingError
+fmtParsingError = F.later $ \case
+  EndOfInputParsingError -> "End of input"
+  UnexpectedParsingError e -> F.bformat fmtParseUnexpectedErrorCause e
+
+data ParseUnexpectedError
+  = ParseDefaultFailure
+  | ParseExplicitFailure Text
+  | SawUnexpectedPrimitiveToken UnexpectedPrimitiveToken
+  | SawUnexpectedLexToken UnexpectedLexToken
+  deriving stock (Show, Eq, Generic)
+
+fmtParseUnexpectedErrorCause :: Fmt ParseUnexpectedError
+fmtParseUnexpectedErrorCause =
+  F.shown
+
+data UnexpectedPrimitiveToken = UnexpectedPrimitiveToken {saw :: PT.PrimitiveToken, expected :: Text}
+  deriving stock (Show, Eq, Generic)
+
+data UnexpectedLexToken = UnexpectedLexToken {saw :: LT.LexToken, expected :: Text}
+  deriving stock (Show, Eq, Generic)
+
+-- data ParsingErrorWithContext = ParsingErrorWithContext {parsingError :: ParsingError, parseContext :: ParseLog}
+--   deriving stock (Show, Eq, Generic)
+
+-- newtype ParseLog = ParseLog {unParseLog :: Seq LT.LexToken}
+--   deriving stock (Show, Eq)
+--   deriving newtype (Semigroup, Monoid)
+
+-- fmtParseLog :: Fmt ParseLog
+-- fmtParseLog = F.accessed unParseLog fmtLexTokenSeq
+--   where
+--     fmtLexTokenSeq :: Fmt (Seq LT.LexToken)
+--     fmtLexTokenSeq = F.concatenated LT.fmtLexTokenChar
+
+-- fmtParsingErrorWithContext :: Fmt ParsingErrorWithContext
+-- fmtParsingErrorWithContext = ("Parsing error: " |%| F.accessed (.parsingError) fmtParsingError) <> (", parse context: " |%| F.accessed (.parseContext) fmtParseLog)
+
 data PrimTokenSource :: Effect where
-  GetTokenInhibited :: PrimTokenSource m (Maybe LT.LexToken)
-  GetResolvedToken :: PrimTokenSource m (Maybe (LT.LexToken, RT.ResolvedToken))
   GetPrimitiveToken :: PrimTokenSource m (Maybe (LT.LexToken, PT.PrimitiveToken))
+  SatisfyThenExpanding :: ((LT.LexToken, PT.PrimitiveToken) -> Maybe a) -> PrimTokenSource m a
+  SatisfyThenInhibited :: (LT.LexToken -> Maybe a) -> PrimTokenSource m a
+  TryParse :: m a -> PrimTokenSource m a
+  FailParse :: ParseUnexpectedError -> PrimTokenSource m a
   PushConditionState :: ConditionState -> PrimTokenSource m ()
   PopConditionState :: PrimTokenSource m (Maybe ConditionState)
   PeekConditionState :: PrimTokenSource m (Maybe ConditionState)
 
 makeEffect ''PrimTokenSource
+
+parseFail :: PrimTokenSource :> es => Text -> Eff es a
+parseFail = failParse . ParseExplicitFailure

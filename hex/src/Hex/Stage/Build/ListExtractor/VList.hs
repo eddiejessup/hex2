@@ -10,7 +10,7 @@ import Hex.Stage.Build.ListBuilder.Interface (HexListBuilder)
 import Hex.Stage.Build.ListBuilder.Vertical qualified as Build.V
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.HList ()
-import Hex.Stage.Build.ListExtractor.Interface (HexListExtractor)
+import Hex.Stage.Build.ListExtractor.Interface (ExtractHList)
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hex.Stage.Interpret.VMode qualified as Command.V
@@ -25,7 +25,7 @@ extractMainVListImpl ::
     HSt.EHexState :> es,
     Error AllMode.InterpretError :> es,
     HexLog :> es,
-    HexListExtractor :> es
+    ExtractHList :> es
   ) =>
   Eff es ListElem.VList
 extractMainVListImpl = Build.V.runHexListBuilderVMode (ListElem.VList Empty) go

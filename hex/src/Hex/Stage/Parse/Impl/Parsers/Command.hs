@@ -5,10 +5,10 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
-import Hex.Common.Parse.Interface (PrimTokenParse (..), parseFail)
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Stage.Expand.Interface (PrimTokenSource (..), parseFail)
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment qualified as Par
@@ -21,7 +21,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-parseCommand :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Command
+parseCommand :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.Command
 parseCommand =
   anyPrim >>= \case
     PT.DebugShowState ->
@@ -131,7 +131,7 @@ parseCommand =
           AST.VModeCommand . AST.AddUnwrappedFetchedVBox <$> Par.headToParseFetchedBoxRef Vertical t
         ]
 
-headToParseInternalQuantity :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalQuantity
+headToParseInternalQuantity :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalQuantity
 headToParseInternalQuantity =
   choiceFlap
     [ fmap AST.InternalIntQuantity <$> Par.headToParseInternalInt,
@@ -142,7 +142,7 @@ headToParseInternalQuantity =
       fmap AST.TokenListVariableQuantity <$> Par.headToParseTokenListVariable
     ]
 
-headToParseCharCodeRef :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.CharCodeRef
+headToParseCharCodeRef :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.CharCodeRef
 headToParseCharCodeRef = \case
   PT.CharCatPair (LT.LexCharCat c Code.Letter) ->
     pure $ AST.CharRef c

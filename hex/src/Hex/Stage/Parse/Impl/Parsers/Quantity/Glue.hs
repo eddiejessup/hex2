@@ -3,20 +3,20 @@ module Hex.Stage.Parse.Impl.Parsers.Quantity.Glue where
 import Control.Monad.Combinators qualified as PC
 import Data.List qualified as List
 import Formatting qualified as F
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (PrimTokenParse (..))
-import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Resolved.Primitive qualified as T
+import Hex.Stage.Expand.Interface (PrimTokenSource (..))
+import Hex.Stage.Expand.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
-headToParseModedAddGlue :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Axis -> T.PrimitiveToken -> Eff es AST.Glue
+headToParseModedAddGlue :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Axis -> T.PrimitiveToken -> Eff es AST.Glue
 headToParseModedAddGlue axis = \case
   T.ModedCommand tokenAxis modedTok | tokenAxis == axis ->
     case modedTok of
@@ -45,21 +45,21 @@ headToParseModedAddGlue axis = \case
   where
     noLengthGlueSpec = AST.ExplicitGlueSpec AST.zeroLength
 
-parseGlue :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Glue
+parseGlue :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.Glue
 parseGlue =
   PC.choice
     [ AST.ExplicitGlue <$> parseExplicitGlueSpec,
       Par.tryParse $ AST.InternalGlue <$> Par.parseSigned (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
-parseExplicitGlueSpec :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.ExplicitGlueSpec
+parseExplicitGlueSpec :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.ExplicitGlueSpec
 parseExplicitGlueSpec = do
   len <- Par.parseLength
   stretch <- parsePureFlex [Chr_ 'p', Chr_ 'l', Chr_ 'u', Chr_ 's']
   shrink <- parsePureFlex [Chr_ 'm', Chr_ 'i', Chr_ 'n', Chr_ 'u', Chr_ 's']
   pure $ AST.ExplicitGlueSpec len stretch shrink
 
-parsePureFlex :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => [Code.CharCode] -> Eff es (Maybe AST.PureFlex)
+parsePureFlex :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => [Code.CharCode] -> Eff es (Maybe AST.PureFlex)
 parsePureFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
@@ -73,7 +73,7 @@ parsePureFlex s =
           AST.InfPureFlex <$> parseInfFlexOfOrder
         ]
 
-parseInfFlexOfOrder :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.InfFlexOfOrder
+parseInfFlexOfOrder :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.InfFlexOfOrder
 parseInfFlexOfOrder = do
   factor <- Par.parseSigned Par.parseFactor
   skipKeyword Expanding [Chr_ 'f', Chr_ 'i']

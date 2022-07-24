@@ -28,7 +28,7 @@ handleCommandInMainVMode ::
     HIn.HexInput :> es,
     Error AllMode.InterpretError :> es,
     Build.HexListBuilder :> es,
-    ListExtractor.HexListExtractor :> es
+    ListExtractor.ExtractHList :> es
   ) =>
   CharSourceStack ->
   Eval.Command ->

@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+
 module Hex.Capability.Log.Interface where
 
 import Hexlude

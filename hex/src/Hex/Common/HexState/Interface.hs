@@ -35,53 +35,29 @@ fmtResolutionError = F.later $ \case
 
 data EHexState :: Effect where
   GetParameterValue :: Param.QuantParam q -> EHexState m (Var.QuantVariableTarget q)
-
   SetParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> EHexState m ()
-
   GetRegisterValue :: Reg.QuantRegisterLocation q -> EHexState m (Var.QuantVariableTarget q)
-
   SetQuantRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> EHexState m ()
-
   FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe BoxElem.BaseBox)
-
   SetBoxRegisterValue :: Reg.RegisterLocation -> Maybe BoxElem.BaseBox -> HSt.Grouped.ScopeFlag -> EHexState m ()
-
   GetSpecialIntParameter :: Param.SpecialIntParameter -> EHexState m Q.HexInt
-
   GetSpecialLengthParameter :: Param.SpecialLengthParameter -> EHexState m Q.Length
-
   SetSpecialIntParameter :: Param.SpecialIntParameter -> Q.HexInt -> EHexState m ()
-
   SetSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> EHexState m ()
-
   GetHexCode :: Code.CCodeType c -> Code.CharCode -> EHexState m (HSt.Code.CodeTableTarget c)
-
   SetHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> EHexState m ()
-
   ResolveSymbol :: HSt.Res.ControlSymbol -> EHexState m (Maybe ResolvedToken)
-
   SetSymbol :: HSt.Res.ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> EHexState m ()
-
   LoadFont :: HexFilePath -> TFM.FontSpecification -> EHexState m DVI.FontDefinition
-
   SelectFont :: DVI.FontNumber -> HSt.Grouped.ScopeFlag -> EHexState m ()
-
   SetFamilyMemberFont :: Font.FamilyMember -> DVI.FontNumber -> HSt.Grouped.ScopeFlag -> EHexState m ()
-
   CurrentFontNumber :: EHexState m DVI.FontNumber
-
   SetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> EHexState m ()
-
   CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
-
   CurrentFontSpaceGlue :: EHexState m (Maybe Q.Glue)
-
   PopAfterAssignmentToken :: EHexState m (Maybe LT.LexToken)
-
   SetAfterAssignmentToken :: LT.LexToken -> EHexState m ()
-
   PushGroup :: Maybe Grouped.ScopedGroupType -> EHexState m ()
-
   PopGroup :: Grouped.ChangeGroupTrigger -> EHexState m HSt.Grouped.HexGroupType
 
 makeEffect ''EHexState

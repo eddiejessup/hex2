@@ -2,8 +2,8 @@ module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.Condition where
 
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (PrimTokenParse (..))
 import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Stage.Expand.Interface (PrimTokenSource (..))
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
@@ -11,7 +11,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
-parseRelationExpanding :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es Ordering
+parseRelationExpanding :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es Ordering
 parseRelationExpanding = Par.satisfyCharCatThen Expanding $ \cc ->
   if
       | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '<') cc -> Just LT
@@ -19,7 +19,7 @@ parseRelationExpanding = Par.satisfyCharCatThen Expanding $ \cc ->
       | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '=') cc -> Just EQ
       | otherwise -> Nothing
 
-parseConditionHead :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => ST.ConditionHeadTok -> Eff es AST.ConditionHead
+parseConditionHead :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => ST.ConditionHeadTok -> Eff es AST.ConditionHead
 parseConditionHead = \case
   ST.IfIntPairTestTok ->
     AST.IfConditionHead <$> (AST.IfIntPairTest <$> Par.parseInt <*> parseRelationExpanding <*> Par.parseInt)

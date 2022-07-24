@@ -5,8 +5,8 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (PrimTokenParse (..), parseFail)
 import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Stage.Expand.Interface (PrimTokenSource (..), parseFail)
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
@@ -15,7 +15,7 @@ import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Par
 import Hexlude
 
-parseMathGlue :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es Par.MathGlue
+parseMathGlue :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es Par.MathGlue
 parseMathGlue =
   PC.choice
     [ AST.ExplicitMathGlue
@@ -25,7 +25,7 @@ parseMathGlue =
       AST.InternalMathGlue <$> Par.parseSigned (anyPrim >>= headToParseInternalMathGlue)
     ]
 
-parsePureMathFlex :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => [Code.CharCode] -> Eff es (Maybe AST.PureMathFlex)
+parsePureMathFlex :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => [Code.CharCode] -> Eff es (Maybe AST.PureMathFlex)
 parsePureMathFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
@@ -39,7 +39,7 @@ parsePureMathFlex s =
             AST.InfPureMathFlex <$> Par.parseInfFlexOfOrder
           ]
 
-headToParseInternalMathGlue :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalMathGlue
+headToParseInternalMathGlue :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalMathGlue
 headToParseInternalMathGlue =
   choiceFlap
     [ fmap AST.InternalMathGlueVariable <$> Par.headToParseMathGlueVariable,

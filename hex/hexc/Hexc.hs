@@ -135,36 +135,36 @@ main = do
   let searchDirs = opts.searchDirs <> extraSearchDirs
   case opts.mode of
     LexMode -> do
-      lts <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Lex.lexAll
+      lts <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runInputApp e s (pure <$> Run.Lex.lexAll))
       putText $ sformat Run.Lex.fmtLexResult lts
     ExpandMode -> do
-      resultList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes Run.Expand.expandAll
+      resultList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runPTSourceApp e s (pure <$> Run.Expand.expandAll))
       putText $ sformat Run.Expand.fmtExpandResult resultList
-    -- -- RawCommandMode -> do
-    -- --   commandList <- Run.evalApp searchDirs opts.logLevel inputBytes Run.Parse.parseAll
-    -- --   putText $ sformat Run.Parse.fmtCommandList commandList
-    -- EvalCommandMode -> do
-    --   commandList <- Run.evalApp searchDirs opts.logLevel inputBytes Run.Evaluate.evaluateAll
-    --   putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
-    -- -- ParaListMode -> do
-    --   -- (endReason, paraList) <- Run.evalApp searchDirs opts.logLevel inputBytes Run.Interpret.interpretInParaMode
-    --   -- putText $ "End reason: " <> show endReason
-    --   -- putText $ sformat fmtHListMultiLine paraList
-    -- -- VListMode -> do
-    -- --   vList <- Run.evalApp searchDirs opts.logLevel inputBytes Run.Interpret.interpretInMainVMode
-    -- --   putText $ sformat fmtVList vList
-    -- PageMode -> do
-    --   pages <- Run.evalApp searchDirs opts.logLevel inputBytes Run.Paginate.paginateAll
-    --   putText $ sformat Run.Paginate.fmtPages pages
-    -- DVIDocInstructionMode -> do
-    --   dviDocInstrs <- Run.evalApp searchDirs opts.logLevel inputBytes Run.Render.renderToDocInstructions
-    --   putText $ sformat Run.Render.fmtDocInstructions dviDocInstrs
-    -- DVISpecInstructionMode -> do
-    --   dviSpecInstrs <- Run.evalApp searchDirs opts.logLevel inputBytes Run.Render.renderToSpecInstructions
-    --   putText $ sformat Run.Render.fmtSpecInstructions dviSpecInstrs
-    -- DVIWriteMode dviOptions -> do
-    --   dviBytes <- Run.evalApp searchDirs opts.logLevel inputBytes Run.Render.renderToDVIBytes
-    --   BS.writeFile (dviOptions.dviOutputPath) dviBytes
+    RawCommandMode -> do
+      commandList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runCommandSourceApp e s (pure <$> Run.Parse.parseAll))
+      putText $ sformat Run.Parse.fmtCommandList commandList
+    EvalCommandMode -> do
+      commandList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runEvaluateApp e s (pure <$> Run.Evaluate.evaluateAll))
+      putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
+    ParaListMode -> do
+      (endReason, paraList) <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Interpret.extractParaHList))
+      putText $ "End reason: " <> show endReason
+      putText $ sformat fmtHListMultiLine paraList
+    VListMode -> do
+      vList <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Interpret.extractMainVList))
+      putText $ sformat fmtVList vList
+    PageMode -> do
+      pages <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Paginate.paginateAll))
+      putText $ sformat Run.Paginate.fmtPages pages
+    DVIDocInstructionMode -> do
+      dviDocInstrs <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToDocInstructions))
+      putText $ sformat Run.Render.fmtDocInstructions dviDocInstrs
+    DVISpecInstructionMode -> do
+      dviSpecInstrs <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToSpecInstructions))
+      putText $ sformat Run.Render.fmtSpecInstructions dviSpecInstrs
+    DVIWriteMode dviOptions -> do
+      dviBytes <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToDVIBytes))
+      BS.writeFile (dviOptions.dviOutputPath) dviBytes
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)
   pure ()

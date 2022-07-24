@@ -2,20 +2,20 @@ module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.MacroCall where
 
 import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.LT
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
-import Hex.Common.Parse.Interface (PrimTokenParse (..))
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Stage.Expand.Interface (PrimTokenSource (..))
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
 -- During a macro call, we must parse the provided arguments.
-parseMacroArguments :: forall es. [PrimTokenParse, EAlternative, Log.HexLog] :>> es => ST.MacroParameterSpecification -> Eff es AST.MacroArgumentList
+parseMacroArguments :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => ST.MacroParameterSpecification -> Eff es AST.MacroArgumentList
 parseMacroArguments parameterSpec = do
   skipParameterText parameterSpec.preParameterText
   AST.MacroArgumentList <$> parseArguments parameterSpec.parameterDelimiterTexts
@@ -64,7 +64,7 @@ parseMacroArguments parameterSpec = do
 -- If the parameter is undelimited, the argument is the next non-blank
 -- token, unless that token is ‘{’, when the argument will be the entire
 -- following {...} group.
-parseUndelimitedArgumentTokens :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es HSt.TL.InhibitedBalancedText
+parseUndelimitedArgumentTokens :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es HSt.TL.InhibitedBalancedText
 parseUndelimitedArgumentTokens = do
   -- Skip blank tokens (assumed to mean spaces).
   PC.skipMany $ satisfyIf (satisfyCharCatThen Inhibited) (charCatHasCategory Code.Space)
@@ -78,7 +78,7 @@ parseUndelimitedArgumentTokens = do
 -- Get the shortest, possibly empty, properly nested sequence of tokens,
 -- followed by the delimiter tokens. In the delimiter, category codes,
 -- character codes and control sequence names must match.
-parseDelimitedArgumentTokens :: forall es. [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Seq LT.LexToken -> Eff es HSt.TL.InhibitedBalancedText
+parseDelimitedArgumentTokens :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Seq LT.LexToken -> Eff es HSt.TL.InhibitedBalancedText
 parseDelimitedArgumentTokens delims = go Empty
   where
     -- Get the shortest, possibly empty, properly nested sequence of tokens,
@@ -102,10 +102,10 @@ parseDelimitedArgumentTokens delims = go Empty
 
 -- | Parse a sequence of lex-tokens, asserting that the result matched the
 -- contents of a parameter-text.
-skipParameterText :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => ST.ParameterText -> Eff es ()
+skipParameterText :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => ST.ParameterText -> Eff es ()
 skipParameterText (ST.ParameterText lexTokens) = skipUnexpandedLexTokens lexTokens
 
-skipUnexpandedLexTokens :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Seq LT.LexToken -> Eff es ()
+skipUnexpandedLexTokens :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Seq LT.LexToken -> Eff es ()
 skipUnexpandedLexTokens ts = forM_ ts (satisfyLexEquals Inhibited)
 
 -- For some expression consisting of tokens that might increase or decrease the grouping, such as a parentheses,

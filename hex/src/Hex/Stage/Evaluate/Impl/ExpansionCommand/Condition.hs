@@ -1,5 +1,6 @@
 module Hex.Stage.Evaluate.Impl.ExpansionCommand.Condition where
 
+import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.Quantity qualified as Q
@@ -11,7 +12,6 @@ import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as E
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as P
 import Hexlude
-import Hex.Common.HexState.Interface (EHexState)
 
 evalConditionHead :: [Error Eval.EvaluationError, EHexState] :>> es => P.ConditionHead -> Eff es E.ConditionOutcome
 evalConditionHead = \case

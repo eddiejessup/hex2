@@ -2,16 +2,16 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Assignment where
 
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
-import Hex.Common.Parse.Interface (PrimTokenParse (..))
-import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Stage.Expand.Interface (PrimTokenSource (..))
+import Hex.Stage.Expand.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.Macro qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-headToParseAssignment :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.Assignment
+headToParseAssignment :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.Assignment
 headToParseAssignment = go mempty
   where
     go prefixes = \case
@@ -41,7 +41,7 @@ headToParseAssignment = go mempty
 
 -- ⟨optional assignments⟩ stands for zero or more ⟨assignment⟩ commands
 -- other than \setbox.
-parseNonSetBoxAssignment :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.Assignment
+parseNonSetBoxAssignment :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.Assignment
 parseNonSetBoxAssignment =
   anyPrim >>= headToParseAssignment >>= \case
     AST.Assignment (AST.SetBoxRegister _ _) _ ->

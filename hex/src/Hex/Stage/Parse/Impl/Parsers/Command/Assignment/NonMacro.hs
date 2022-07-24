@@ -6,9 +6,9 @@ import Control.Monad.Combinators qualified as PC
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (PrimTokenParse (..), parseFail)
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Common.Token.Resolved.Primitive qualified as T
+import Hex.Stage.Expand.Interface (PrimTokenSource (..), parseFail)
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par
@@ -21,7 +21,7 @@ import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
 headToParseNonMacroAssignmentBody ::
-  [PrimTokenParse, EAlternative, Log.HexLog] :>> es =>
+  [PrimTokenSource, EAlternative, Log.HexLog] :>> es =>
   T.PrimitiveToken ->
   Eff es AST.AssignmentBody
 headToParseNonMacroAssignmentBody = \case
@@ -82,7 +82,7 @@ headToParseNonMacroAssignmentBody = \case
       ]
       t
 
-parseFontTarget :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.FontFileSpec
+parseFontTarget :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.FontFileSpec
 parseFontTarget = do
   fname <- Par.parseFileName
   fontSpec <-
@@ -99,13 +99,13 @@ parseFontTarget = do
       ]
   pure $ AST.FontFileSpec fontSpec fname
 
-headToParseCodeAssignment :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
+headToParseCodeAssignment :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseCodeAssignment t = do
   Log.debugLog $ "Trying to parse code assignment " <> F.sformat PT.fmtPrimitiveToken t
   (ref, tgt) <- parseXEqualsY Expanding (Par.headToParseCodeTableRef t) Par.parseInt
   pure $ AST.AssignCode $ AST.CodeAssignment ref tgt
 
-headToParseModifyVariable :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.VariableModification
+headToParseModifyVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.VariableModification
 headToParseModifyVariable = \case
   T.AdvanceVarTok ->
     PC.choice
@@ -133,7 +133,7 @@ headToParseModifyVariable = \case
   t ->
     parseFail $ "headToParseModifyVariable " <> F.sformat PT.fmtPrimitiveToken t
 
-parseNumericVariable :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.NumericVariable
+parseNumericVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.NumericVariable
 parseNumericVariable =
   PC.choice
     [ AST.IntNumericVariable <$> (anyPrim >>= Par.headToParseIntVariable),
@@ -142,14 +142,14 @@ parseNumericVariable =
       AST.MathGlueNumericVariable <$> (anyPrim >>= Par.headToParseMathGlueVariable)
     ]
 
-skipOptionalBy :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es ()
+skipOptionalBy :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ()
 skipOptionalBy =
   PC.choice
     [ void $ parseOptionalKeyword Expanding [Code.Chr_ 'b', Code.Chr_ 'y'],
       skipOptionalSpaces Expanding
     ]
 
-headToParseVariableAssignment :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.VariableAssignment
+headToParseVariableAssignment :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.VariableAssignment
 headToParseVariableAssignment t = do
   Log.debugLog $ "Parsing headToParseVariableAssignment with head: " <> F.sformat PT.fmtPrimitiveToken t
   PC.choice
@@ -185,7 +185,7 @@ headToParseVariableAssignment t = do
         pure $ AST.SpecialLengthParameterVariableAssignment var tgt
     ]
 
-parseTokenListTarget :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.TokenListAssignmentTarget
+parseTokenListTarget :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.TokenListAssignmentTarget
 parseTokenListTarget =
   PC.choice
     [ AST.TokenListAssignmentText <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup,
@@ -194,22 +194,22 @@ parseTokenListTarget =
         AST.TokenListAssignmentVar <$> (anyPrim >>= Par.headToParseTokenListVariable)
     ]
 
-headToParseSetFamilyMember :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
+headToParseSetFamilyMember :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseSetFamilyMember t = do
   (var, val) <- parseXEqualsY Expanding (Par.headToParseFamilyMember t) (anyPrim >>= Par.headToParseFontRef)
   pure $ AST.SetFamilyMember var val
 
-headToParseSetFontDimension :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
+headToParseSetFontDimension :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseSetFontDimension t = do
   (var, val) <- parseXEqualsY Expanding (Par.headToParseFontDimensionRef t) Par.parseLength
   pure $ AST.SetFontDimension var val
 
-headToParseSetFontSpecialChar :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
+headToParseSetFontSpecialChar :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseSetFontSpecialChar t = do
   (var, val) <- parseXEqualsY Expanding (Par.headToParseFontSpecialCharRef t) Par.parseInt
   pure $ AST.SetFontSpecialChar var val
 
-headToParseSetBoxDimension :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
+headToParseSetBoxDimension :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseSetBoxDimension t = do
   (var, val) <- parseXEqualsY Expanding (Par.headToParseBoxDimensionRef t) Par.parseLength
   pure $ AST.SetBoxDimension var val

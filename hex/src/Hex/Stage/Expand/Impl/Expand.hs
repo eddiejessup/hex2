@@ -3,6 +3,8 @@ module Hex.Stage.Expand.Impl.Expand where
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexInput.Interface qualified as HIn
+import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
@@ -15,8 +17,6 @@ import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as Uneval
 import Hexlude
-import qualified Hex.Common.HexState.Interface as HSt
-import qualified Hex.Common.HexInput.Interface as HIn
 
 substituteArgsIntoMacroBody ::
   forall es.
@@ -108,11 +108,12 @@ peekConditionStateImpl = use @Expand.ConditionStates (conditionStatesLens % to h
 popConditionStateImpl ::
   State Expand.ConditionStates :> es =>
   Eff es (Maybe Expand.ConditionState)
-popConditionStateImpl = use @Expand.ConditionStates (conditionStatesLens % to uncons) >>= \case
-      Nothing -> pure Nothing
-      Just (condState, rest) -> do
-        assign conditionStatesLens rest
-        pure (Just condState)
+popConditionStateImpl =
+  use @Expand.ConditionStates (conditionStatesLens % to uncons) >>= \case
+    Nothing -> pure Nothing
+    Just (condState, rest) -> do
+      assign conditionStatesLens rest
+      pure (Just condState)
 
 conditionStatesLens :: Lens' Expand.ConditionStates [Expand.ConditionState]
 conditionStatesLens = #unConditionStates

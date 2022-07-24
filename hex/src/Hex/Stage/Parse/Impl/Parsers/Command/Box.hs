@@ -2,28 +2,28 @@ module Hex.Stage.Parse.Impl.Parsers.Command.Box where
 
 import Control.Monad.Combinators qualified as PC
 import Formatting qualified as F
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (PrimTokenParse (..), parseFail)
 import Hex.Common.Token.Resolved.Primitive (PrimitiveToken)
 import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Stage.Expand.Interface (PrimTokenSource (..), parseFail)
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
-headToParseLeadersSpec :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.LeadersSpec
+headToParseLeadersSpec :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.LeadersSpec
 headToParseLeadersSpec axis = \case
   PT.LeadersTok leaders ->
     AST.LeadersSpec leaders <$> parseBoxOrRule <*> (anyPrim >>= Par.headToParseModedAddGlue axis)
   t ->
     parseFail $ "headToParseLeadersSpec " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseBox :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.Box
+headToParseBox :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.Box
 headToParseBox = \case
   PT.FetchedBoxTok fetchMode ->
     AST.FetchedRegisterBox fetchMode <$> Par.parseExplicitRegisterLocation
@@ -50,7 +50,7 @@ headToParseBox = \case
       skipFillerExpanding
       pure spec
 
-parseBoxOrRule :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es AST.BoxOrRule
+parseBoxOrRule :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.BoxOrRule
 parseBoxOrRule =
   PC.choice
     [ AST.BoxOrRuleBox <$> (anyPrim >>= headToParseBox),
@@ -59,7 +59,7 @@ parseBoxOrRule =
     ]
 
 -- \hrule and such.
-headToParseModedRule :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.Rule
+headToParseModedRule :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.Rule
 headToParseModedRule axis = \case
   PT.ModedCommand tokenAxis PT.RuleTok
     | axis == tokenAxis ->
@@ -85,7 +85,7 @@ headToParseModedRule axis = \case
       ln <- Par.parseLength
       pure (dimType, ln)
 
-headToParseFetchedBoxRef :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.FetchedBoxRef
+headToParseFetchedBoxRef :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.FetchedBoxRef
 headToParseFetchedBoxRef tgtAxis = \case
   PT.ModedCommand tokenAxis (PT.UnwrappedFetchedBoxTok fetchMode) | tgtAxis == tokenAxis -> do
     n <- Par.parseInt

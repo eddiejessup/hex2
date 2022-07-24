@@ -1,13 +1,14 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+
 module Hexlude.Alternative where
 
+import Control.Applicative (Alternative (..))
+import Control.Monad (MonadPlus (..))
 import Effectful
 import Effectful.Dispatch.Dynamic
 import Effectful.TH (makeEffect)
-import Control.Applicative (Alternative(..))
-import Control.Monad (MonadPlus(..))
 
 data EAlternative :: Effect where
   AltEmpty :: EAlternative m a
@@ -16,8 +17,8 @@ data EAlternative :: Effect where
 makeEffect ''EAlternative
 
 instance EAlternative :> es => Alternative (Eff es) where
-    empty = send @EAlternative AltEmpty
-    a <|> b = send @EAlternative (AltChoice a b)
+  empty = send @EAlternative AltEmpty
+  a <|> b = send @EAlternative (AltChoice a b)
 
 data EMonadPlus :: Effect where
   MZero :: EMonadPlus m a
@@ -25,4 +26,4 @@ data EMonadPlus :: Effect where
 
 makeEffect ''EMonadPlus
 
-instance EAlternative :> es => MonadPlus (Eff es) where
+instance EAlternative :> es => MonadPlus (Eff es)

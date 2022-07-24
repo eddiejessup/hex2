@@ -20,7 +20,7 @@ import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.Horizontal.Set qualified as Build.H.Set
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListElem qualified as ListElem
-import Hex.Stage.Build.ListExtractor.Interface (HexListExtractor)
+import Hex.Stage.Build.ListExtractor.Interface (ExtractHList)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
@@ -88,7 +88,7 @@ handleModeIndependentCommand ::
     Log.HexLog :> es,
     HIn.HexInput :> es,
     Build.HexListBuilder :> es,
-    ListExtractor.HexListExtractor :> es
+    ListExtractor.ExtractHList :> es
   ) =>
   Eval.ModeIndependentCommand ->
   Eff es AllModeCommandResult
@@ -349,7 +349,7 @@ lengthToSetAtFromSpec spec naturalLength = case spec of
   Eval.To toLength -> toLength
   Eval.Spread spreadLength -> naturalLength <> spreadLength
 
-extractExplicitBox :: HexListExtractor :> es => Eval.BoxSpecification -> PT.ExplicitBoxType -> Eff es BoxElem.BaseBox
+extractExplicitBox :: ExtractHList :> es => Eval.BoxSpecification -> PT.ExplicitBoxType -> Eff es BoxElem.BaseBox
 extractExplicitBox spec = \case
   PT.ExplicitHBoxType -> do
     hList <- ListExtractor.extractHBoxList

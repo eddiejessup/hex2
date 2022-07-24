@@ -4,26 +4,26 @@ import ASCII.Decimal qualified as ASCII
 import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Parse.Interface (PrimTokenParse (..))
-import Hex.Common.Parse.Interface qualified as Par
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Stage.Expand.Interface (PrimTokenSource (..))
+import Hex.Stage.Expand.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
 
-parseMacroBody :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> Eff es AST.AssignmentBody
+parseMacroBody :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> Eff es AST.AssignmentBody
 parseMacroBody defExpandType prefixes = do
   cs <- Par.parseControlSymbol
   tgt <- parseMacroDefinition defExpandType prefixes
   pure $ AST.DefineControlSequence cs (AST.MacroTarget tgt)
 
 -- Parse a parameter specification, and also the begin-group that surround the macro's replacement text.
-parseMacroParameterSpecificationAndLeftBrace :: forall es. [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es ST.MacroParameterSpecification
+parseMacroParameterSpecificationAndLeftBrace :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ST.MacroParameterSpecification
 parseMacroParameterSpecificationAndLeftBrace = do
   -- Pre-parameter text tokens.
   preParameterText <- parseMacroParameterDelimiterText
@@ -80,7 +80,7 @@ parseMacroParameterSpecificationAndLeftBrace = do
 charCodeToDigit :: Code.CharCode -> Maybe ASCII.Digit
 charCodeToDigit charCode = ASCII.toDigitMaybe (Code.codeAsAsciiChar charCode)
 
-parseMacroParameterDelimiterText :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es ST.ParameterText
+parseMacroParameterDelimiterText :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ST.ParameterText
 parseMacroParameterDelimiterText = do
   delimiterTokens <- PC.many $ Par.satisfyIf Par.satisfyThenInhibited isDelimiterToken
   pure $ ST.ParameterText $ Seq.fromList delimiterTokens
@@ -94,7 +94,7 @@ parseMacroParameterDelimiterText = do
       _ ->
         True
 
-parseMacroDefinition :: [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> Eff es ST.MacroDefinition
+parseMacroDefinition :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> Eff es ST.MacroDefinition
 parseMacroDefinition defExpandType prefixes = do
   parameterSpecification <- parseMacroParameterSpecificationAndLeftBrace
   replacementText <- parseMacroReplacementText defExpandType
@@ -108,14 +108,14 @@ parseMacroDefinition defExpandType prefixes = do
 
 -- Extract a balanced text but parsing parameter references at definition-time.
 -- Assumes we just parsed the '{' that starts the macro text.
-parseMacroReplacementText :: forall es. [PrimTokenParse, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Eff es ST.MacroReplacementText
+parseMacroReplacementText :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Eff es ST.MacroReplacementText
 parseMacroReplacementText = \case
   PT.ExpandDef ->
     notImplemented "parseMacroReplacementText: ExpandDef"
   PT.InhibitDef -> do
     ST.InhibitedMacroReplacementText <$> parseInhibitedMacroReplacementText
 
-parseInhibitedMacroReplacementText :: forall es. [PrimTokenParse, EAlternative, Log.HexLog] :>> es => Eff es ST.InhibitedReplacementText
+parseInhibitedMacroReplacementText :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ST.InhibitedReplacementText
 parseInhibitedMacroReplacementText = ST.InhibitedReplacementText . fst <$> Par.parseNestedExpr parseNext
   where
     parseNext :: Int -> Eff es (ST.MacroTextToken, Ordering)

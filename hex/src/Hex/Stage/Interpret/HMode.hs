@@ -28,7 +28,7 @@ handleCommandInHMode ::
     Log.HexLog :> es,
     Build.HListBuilder :> es,
     Build.HexListBuilder :> es,
-    ListExtractor.HexListExtractor :> es
+    ListExtractor.ExtractHList :> es
   ) =>
   CharSourceStack ->
   ListExtractor.ModeContext ->
