@@ -72,22 +72,6 @@ data UnexpectedPrimitiveToken = UnexpectedPrimitiveToken {saw :: PT.PrimitiveTok
 data UnexpectedLexToken = UnexpectedLexToken {saw :: LT.LexToken, expected :: Text}
   deriving stock (Show, Eq, Generic)
 
--- data ParsingErrorWithContext = ParsingErrorWithContext {parsingError :: ParsingError, parseContext :: ParseLog}
---   deriving stock (Show, Eq, Generic)
-
--- newtype ParseLog = ParseLog {unParseLog :: Seq LT.LexToken}
---   deriving stock (Show, Eq)
---   deriving newtype (Semigroup, Monoid)
-
--- fmtParseLog :: Fmt ParseLog
--- fmtParseLog = F.accessed unParseLog fmtLexTokenSeq
---   where
---     fmtLexTokenSeq :: Fmt (Seq LT.LexToken)
---     fmtLexTokenSeq = F.concatenated LT.fmtLexTokenChar
-
--- fmtParsingErrorWithContext :: Fmt ParsingErrorWithContext
--- fmtParsingErrorWithContext = ("Parsing error: " |%| F.accessed (.parsingError) fmtParsingError) <> (", parse context: " |%| F.accessed (.parseContext) fmtParseLog)
-
 data PrimTokenSource :: Effect where
   GetPrimitiveToken :: PrimTokenSource m (Maybe (LT.LexToken, PT.PrimitiveToken))
   SatisfyThenExpanding :: ((LT.LexToken, PT.PrimitiveToken) -> Maybe a) -> PrimTokenSource m a

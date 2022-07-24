@@ -1,12 +1,23 @@
-module Hex.Common.DVI.SpecInstruction.Types where
+module Hex.Stage.Render.Interface.SpecInstruction where
 
 import Formatting qualified as F
-import Hex.Common.DVI.SpecInstruction.Decode qualified as Dec
+import Hex.Stage.Render.Interface.SpecInstruction.Decode qualified as Dec
 import Hexlude
 
-newtype BytePointer = BytePointer {unBytePointer :: Int32}
+newtype Magnification a = Magnification {unMagnification :: a}
   deriving stock (Show, Generic)
-  deriving (Semigroup, Monoid, Group) via (Sum Int32)
+
+data DVIError
+  = OutOfBoundsValue Text Int
+  deriving stock (Show, Generic)
+
+fmtDVIError :: Fmt DVIError
+fmtDVIError = F.shown
+
+noteOutOfBounds :: (Error DVIError :> es) => Text -> (Int -> Maybe w) -> Int -> Eff es w
+noteOutOfBounds ctx f n = case f n of
+  Nothing -> throwError $ OutOfBoundsValue ctx n
+  Just v -> pure v
 
 data SpecInstruction
   = BodySpecInstruction BodySpecInstruction
@@ -17,6 +28,9 @@ data SpecInstruction
 
 fmtSpecInstruction :: Fmt SpecInstruction
 fmtSpecInstruction = F.shown
+
+fmtSpecInstructions :: Fmt [SpecInstruction]
+fmtSpecInstructions = F.unlined fmtSpecInstruction
 
 data BodySpecInstruction
   = AddCharOp CharOpArgs

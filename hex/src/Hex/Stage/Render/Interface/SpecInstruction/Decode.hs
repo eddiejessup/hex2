@@ -1,4 +1,4 @@
-module Hex.Common.DVI.SpecInstruction.Decode where
+module Hex.Stage.Render.Interface.SpecInstruction.Decode where
 
 import Data.ByteString.Builder qualified as BS.Builder
 import Data.Serialize qualified as B
@@ -31,35 +31,23 @@ uLength = \case
   Unsigned2ByteInt _ -> TwoByte
   Unsigned4ByteInt _ -> FourByte
 
-encodeSignedNByteInt :: SignedNByteInt -> ByteString
-encodeSignedNByteInt = \case
-  Signed1ByteInt n -> B.encode n
-  Signed2ByteInt n -> B.encode n
-  Signed4ByteInt n -> B.encode n
-
-encodeUnsignedNByteInt :: UnsignedNByteInt -> ByteString
-encodeUnsignedNByteInt = \case
-  Unsigned1ByteInt n -> B.encode n
-  Unsigned2ByteInt n -> B.encode n
-  Unsigned4ByteInt n -> B.encode n
-
-signedNByteIntBuilder :: SignedNByteInt -> BS.Builder.Builder
-signedNByteIntBuilder = \case
-  Signed1ByteInt i8 -> BS.Builder.int8 i8
-  Signed2ByteInt i16 -> BS.Builder.int16BE i16
-  Signed4ByteInt i32 -> BS.Builder.int32BE i32
-
-unsignedNByteIntBuilder :: UnsignedNByteInt -> BS.Builder.Builder
-unsignedNByteIntBuilder = \case
-  Unsigned1ByteInt w8 -> BS.Builder.word8 w8
-  Unsigned2ByteInt w16 -> BS.Builder.word16BE w16
-  Unsigned4ByteInt w32 -> BS.Builder.word32BE w32
-
 instance B.Serialize SignedNByteInt where
   put = B.putBuilder . signedNByteIntBuilder
+    where
+      signedNByteIntBuilder :: SignedNByteInt -> BS.Builder.Builder
+      signedNByteIntBuilder = \case
+        Signed1ByteInt i8 -> BS.Builder.int8 i8
+        Signed2ByteInt i16 -> BS.Builder.int16BE i16
+        Signed4ByteInt i32 -> BS.Builder.int32BE i32
 
 instance B.Serialize UnsignedNByteInt where
   put = B.putBuilder . unsignedNByteIntBuilder
+    where
+      unsignedNByteIntBuilder :: UnsignedNByteInt -> BS.Builder.Builder
+      unsignedNByteIntBuilder = \case
+        Unsigned1ByteInt w8 -> BS.Builder.word8 w8
+        Unsigned2ByteInt w16 -> BS.Builder.word16BE w16
+        Unsigned4ByteInt w32 -> BS.Builder.word32BE w32
 
 -- >>> intToUnsigned (-1) == Nothing
 -- True

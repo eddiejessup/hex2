@@ -11,6 +11,8 @@ import Hex.Run.Paginate qualified as Run.Paginate
 import Hex.Run.Parse qualified as Run.Parse
 import Hex.Run.Render qualified as Run.Render
 import Hex.Stage.Build.ListElem (fmtHListMultiLine, fmtVList)
+import Hex.Stage.Render.Interface.DocInstruction qualified as Render.Doc
+import Hex.Stage.Render.Interface.SpecInstruction qualified as Render.Spec
 import Hexlude
 import Options.Applicative
 import System.FilePath qualified as Path
@@ -158,10 +160,10 @@ main = do
       putText $ sformat Run.Paginate.fmtPages pages
     DVIDocInstructionMode -> do
       dviDocInstrs <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToDocInstructions))
-      putText $ sformat Run.Render.fmtDocInstructions dviDocInstrs
+      putText $ sformat Render.Doc.fmtDocInstructions dviDocInstrs
     DVISpecInstructionMode -> do
       dviSpecInstrs <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToSpecInstructions))
-      putText $ sformat Run.Render.fmtSpecInstructions dviSpecInstrs
+      putText $ sformat Render.Spec.fmtSpecInstructions dviSpecInstrs
     DVIWriteMode dviOptions -> do
       dviBytes <- Run.unsafeEvalApp searchDirs opts.logLevel inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToDVIBytes))
       BS.writeFile (dviOptions.dviOutputPath) dviBytes

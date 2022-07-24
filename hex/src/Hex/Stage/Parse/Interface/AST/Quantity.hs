@@ -4,11 +4,11 @@ module Hex.Stage.Parse.Interface.AST.Quantity where
 
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 data Signed a = Signed [Q.Sign] a

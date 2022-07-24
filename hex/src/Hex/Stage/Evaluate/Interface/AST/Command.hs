@@ -4,7 +4,6 @@ module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
@@ -24,6 +23,7 @@ import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 -- What's the plan here?

@@ -1,4 +1,4 @@
-module Hex.Common.DVI.DocInstruction where
+module Hex.Stage.Render.Interface.DocInstruction where
 
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
@@ -43,6 +43,9 @@ fmtDocInstruction = F.later $ \case
     "PushStack"
   PopStack ->
     "PopStack"
+
+fmtDocInstructions :: Fmt [DocInstruction]
+fmtDocInstructions = F.unlined fmtDocInstruction
 
 data FontDefinition = FontDefinition
   { fontDefChecksum :: Word32,

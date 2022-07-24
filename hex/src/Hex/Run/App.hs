@@ -1,10 +1,10 @@
 module Hex.Run.App where
 
 import Formatting qualified as F
+import Hex.Capability.Log.Impl (runLog)
 import Hex.Capability.Log.Interface (HexLog (..))
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.SpecInstruction qualified as DVIS
 import Hex.Common.HexEnv.Impl (HexEnv, runHexEnv)
 import Hex.Common.HexEnv.Impl qualified as HEnv
 import Hex.Common.HexEnv.Interface (EHexEnv)
@@ -34,6 +34,7 @@ import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Interpret.AllMode qualified as Interpret
 import Hex.Stage.Parse.Impl (runCommandSource)
 import Hex.Stage.Parse.Interface (CommandSource)
+import Hex.Stage.Render.Interface.SpecInstruction qualified as Render.Spec
 import Hexlude
 import System.IO (hFlush)
 
@@ -143,7 +144,7 @@ data AppError
   | AppInterpretError Interpret.InterpretError
   | AppResolutionError ResolutionError
   | AppEvaluationError Eval.EvaluationError
-  | AppDVIError DVIS.DVIError
+  | AppDVIError Render.Spec.DVIError
   deriving stock (Show, Generic)
 
 fmtAppError :: Format r (AppError -> r)
@@ -156,20 +157,7 @@ fmtAppError = F.later $ \case
   AppEvaluationError evaluationError -> F.bformat Eval.fmtEvaluationError evaluationError
   AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
-  AppDVIError dviError -> F.bformat DVIS.fmtDVIError dviError
-
-runLog :: [IOE, Reader HexEnv, State HexState] :>> es => Eff (HexLog : es) a -> Eff es a
-runLog = interpret $ \_ -> \case
-  Log.Log lvl msg -> logImpl lvl msg
-  Log.LogInternalState -> do
-    hexState <- get @HexState
-    logImpl Log.Info $ sformat HSt.fmtHexState hexState
-
-logImpl :: [IOE, Reader HexEnv, State HexState] :>> es => Log.LogLevel -> Text -> Eff es ()
-logImpl lvl msg = do
-  logFileHandle <- know @HexEnv $ typed @Handle
-  logLevel <- know @HexEnv $ typed @Log.LogLevel
-  when (lvl >= logLevel) $ liftIO $ hPutStrLn logFileHandle $ Log.showLevelEqualWidth logLevel <> msg
+  AppDVIError dviError -> F.bformat Render.Spec.fmtDVIError dviError
 
 evalAppGivenEnv ::
   ByteString ->

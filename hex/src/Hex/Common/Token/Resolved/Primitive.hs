@@ -5,7 +5,6 @@ import ASCII.Char qualified
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -13,6 +12,7 @@ import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 data AssignPrefixTok

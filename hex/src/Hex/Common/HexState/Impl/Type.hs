@@ -2,7 +2,6 @@ module Hex.Common.HexState.Impl.Type where
 
 import Data.Map.Strict qualified as Map
 import Formatting qualified as F
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
@@ -11,6 +10,7 @@ import Hex.Common.HexState.Impl.Scoped.Scope (nullFontNumber)
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 data HexState = HexState

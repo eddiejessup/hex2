@@ -6,7 +6,6 @@ module Hex.Common.HexState.Interface where
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
@@ -23,6 +22,7 @@ import Hex.Common.Token.Resolved qualified as RT
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.ListElem qualified as ListElem
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 data ResolutionError = UnknownSymbolError HSt.Res.ControlSymbol

@@ -1,30 +1,21 @@
-module Hex.Common.DVI.SpecInstruction where
+module Hex.Stage.Render.Impl.SpecInstruction where
 
 import Data.ByteString qualified as BS
 import Data.ByteString.Char8 qualified as BS.Char8
 import Data.List qualified as List
-import Formatting qualified as F
 import Hex.Common.Codes qualified as Codes
-import Hex.Common.DVI.DocInstruction (DocInstruction (..))
-import Hex.Common.DVI.DocInstruction qualified as DocInstruction
-import Hex.Common.DVI.SpecInstruction.Decode qualified as Dec
-import Hex.Common.DVI.SpecInstruction.Encode qualified as Enc
-import Hex.Common.DVI.SpecInstruction.Types
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Render.Impl.SpecInstruction.Encode qualified as Enc
+import Hex.Stage.Render.Interface.DocInstruction (DocInstruction (..))
+import Hex.Stage.Render.Interface.DocInstruction qualified as DocInstruction
+import Hex.Stage.Render.Interface.SpecInstruction
+import Hex.Stage.Render.Interface.SpecInstruction.Decode qualified as Dec
 import Hexlude
 import System.FilePath qualified as FilePath
 
-data DVIError
-  = OutOfBoundsValue Text Int
+newtype BytePointer = BytePointer {unBytePointer :: Int32}
   deriving stock (Show, Generic)
-
-fmtDVIError :: Fmt DVIError
-fmtDVIError = F.shown
-
-noteOutOfBounds :: (Error DVIError :> es) => Text -> (Int -> Maybe w) -> Int -> Eff es w
-noteOutOfBounds ctx f n = case f n of
-  Nothing -> throwError $ OutOfBoundsValue ctx n
-  Just v -> pure v
+  deriving (Semigroup, Monoid, Group) via (Sum Int32)
 
 docAsBodySpecInstruction :: (Error DVIError :> es) => BytePointer -> DocInstruction -> Eff es BodySpecInstruction
 docAsBodySpecInstruction lastBeginPagePointer = \case
@@ -222,9 +213,6 @@ interpretDocInstruction i = do
           emitDocInstruction (SelectFont n)
     _ ->
       pure ()
-
-newtype Magnification a = Magnification {unMagnification :: a}
-  deriving stock (Show, Generic)
 
 addAllInstructions :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => Magnification Q.HexInt -> [DocInstruction] -> Eff es ()
 addAllInstructions mag docInstrs = do

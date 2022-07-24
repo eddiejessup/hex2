@@ -7,7 +7,6 @@ import Data.Text qualified as Tx
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog (..), debugLog)
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexEnv.Interface (EHexEnv)
 import Hex.Common.HexEnv.Interface qualified as Env
 import Hex.Common.HexState.Impl.Font qualified as Sc.Font
@@ -29,6 +28,7 @@ import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Common.TFM.Types qualified as TFM
 import Hex.Stage.Build.BoxElem qualified as BoxElem
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 import System.FilePath qualified as FilePath
 

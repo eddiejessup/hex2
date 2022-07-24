@@ -2,8 +2,8 @@ module Hex.Stage.Build.BoxElem where
 
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 -- Box elements.

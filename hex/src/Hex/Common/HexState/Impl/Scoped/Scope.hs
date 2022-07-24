@@ -5,7 +5,6 @@ module Hex.Common.HexState.Impl.Scoped.Scope where
 import Data.Map.Strict qualified as Map
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Impl.Defaults.Code qualified as Defaults
 import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
 import Hex.Common.HexState.Impl.Defaults.Register qualified as Defaults
@@ -20,6 +19,7 @@ import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Resolved qualified as RT
 import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 type CharCodeMap v = Map Code.CharCode v

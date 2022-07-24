@@ -2,10 +2,6 @@ module Hex.Run.Render where
 
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
-import Hex.Common.DVI.DocInstruction qualified as DVI
-import Hex.Common.DVI.SpecInstruction qualified as DVIS
-import Hex.Common.DVI.SpecInstruction.Encode qualified as DVI.Enc
-import Hex.Common.DVI.SpecInstruction.Types qualified as DVIS
 import Hex.Common.HexInput.Interface (HexInput)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -14,30 +10,28 @@ import Hex.Stage.Build.ListExtractor.Interface (ExtractHList)
 import Hex.Stage.Evaluate.Interface (HexEvaluate)
 import Hex.Stage.Interpret.AllMode (InterpretError)
 import Hex.Stage.Parse.Interface (CommandSource)
-import Hex.Stage.Render.DVI qualified as DVI
+import Hex.Stage.Render.Interface qualified as Render
+import Hex.Stage.Render.Interface.DocInstruction qualified as Render.Doc
+import Hex.Stage.Render.Interface.SpecInstruction qualified as Render.Spec
 import Hexlude
 
-renderToDocInstructions :: '[Error InterpretError, HexEvaluate, HexInput, CommandSource, HSt.EHexState, Log.HexLog, ExtractHList] :>> es => Eff es [DVI.DocInstruction]
+renderToDocInstructions :: '[Error InterpretError, HexEvaluate, HexInput, CommandSource, HSt.EHexState, Log.HexLog, ExtractHList] :>> es => Eff es [Render.Doc.DocInstruction]
 renderToDocInstructions = do
   pages <- Paginate.paginateAll
-  pure $ DVI.pagesToDVI $ toList pages
+  pure $ Render.pagesToDocInstructions $ toList pages
 
-fmtDocInstructions :: Fmt [DVI.DocInstruction]
-fmtDocInstructions = F.unlined DVI.fmtDocInstruction
-
-renderToSpecInstructions :: '[Error InterpretError, HexEvaluate, HexInput, CommandSource, HSt.EHexState, Log.HexLog, ExtractHList] :>> es => Eff es [DVIS.SpecInstruction]
+renderToSpecInstructions :: '[Error InterpretError, HexEvaluate, HexInput, CommandSource, HSt.EHexState, Log.HexLog, ExtractHList] :>> es => Eff es [Render.Spec.SpecInstruction]
 renderToSpecInstructions = do
-  docInstrs <- renderToDocInstructions
+  pages <- Paginate.paginateAll
   mag <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Mag)
-  let (mayErr, _finalState, specInstrs) = DVIS.renderDocInstructions (DVIS.Magnification mag) docInstrs
-  case mayErr of
-    Nothing -> pure specInstrs
-    Just dviError -> panic $ F.sformat DVIS.fmtDVIError dviError
-
-fmtSpecInstructions :: Fmt [DVIS.SpecInstruction]
-fmtSpecInstructions = F.unlined DVIS.fmtSpecInstruction
+  case Render.pagesToSpecInstructions (Render.Spec.Magnification mag) (toList pages) of
+    Left err -> panic $ F.sformat Render.Spec.fmtDVIError err
+    Right specInstrs -> pure specInstrs
 
 renderToDVIBytes :: [Error InterpretError, HexEvaluate, HexInput, CommandSource, HSt.EHexState, Log.HexLog, ExtractHList] :>> es => Eff es ByteString
 renderToDVIBytes = do
-  specInstrs <- renderToSpecInstructions
-  pure $ DVI.Enc.encodeSpecInstructions specInstrs
+  pages <- Paginate.paginateAll
+  mag <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Mag)
+  case Render.pagesToDVIBytes (Render.Spec.Magnification mag) (toList pages) of
+    Left err -> panic $ F.sformat Render.Spec.fmtDVIError err
+    Right specInstrs -> pure specInstrs

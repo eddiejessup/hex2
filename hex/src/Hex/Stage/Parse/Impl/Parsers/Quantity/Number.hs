@@ -6,7 +6,6 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Ascii qualified as H.Ascii
 import Hex.Common.Codes qualified as Code
-import Hex.Common.DVI.DocInstruction qualified as DVI
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.Quantity qualified as Q
@@ -17,6 +16,7 @@ import Hex.Stage.Expand.Interface (ParseUnexpectedError (..), PrimTokenSource (.
 import Hex.Stage.Expand.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
+import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 parseSigned :: forall es a. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es a -> Eff es (AST.Signed a)

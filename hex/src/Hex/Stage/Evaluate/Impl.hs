@@ -1,5 +1,3 @@
-{-# LANGUAGE UndecidableInstances #-}
-
 module Hex.Stage.Evaluate.Impl where
 
 import Hex.Common.HexState.Interface (EHexState)
