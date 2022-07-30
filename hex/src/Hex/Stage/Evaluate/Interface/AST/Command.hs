@@ -60,7 +60,7 @@ data Command
       HModeCommand
       HModeCommand
   | HModeCommand HModeCommand
-  | VModeCommand Uneval.VModeCommand
+  | VModeCommand VModeCommand
   | ModeIndependentCommand ModeIndependentCommand
   deriving stock (Show, Eq, Generic)
 
@@ -110,6 +110,16 @@ data HModeCommand
   | AddHLeaders Uneval.LeadersSpec
   | AddHRule Box.Rule
   | AddUnwrappedFetchedHBox Uneval.FetchedBoxRef -- \unh{box,copy}
+  deriving stock (Show, Eq, Generic)
+
+data VModeCommand
+  = End
+  | Dump
+  | EnterHMode
+  | AddVGlue Q.Glue
+  | AddVLeaders Uneval.LeadersSpec
+  | AddVRule Box.Rule
+  | AddUnwrappedFetchedVBox Uneval.FetchedBoxRef -- \unv{box,copy}
   deriving stock (Show, Eq, Generic)
 
 data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputInput, messageContents :: Text}

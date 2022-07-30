@@ -59,7 +59,16 @@ data SelectFontOpArgs = FastSelectFontOp Word8 | ArgSelectFontOp Dec.UnsignedNBy
   deriving stock (Show, Generic)
 
 data BeginPageOpArgs = BeginPageOpArgs
-  { numbers :: [Int32],
+  { count0 :: Int32,
+    count1 :: Int32,
+    count2 :: Int32,
+    count3 :: Int32,
+    count4 :: Int32,
+    count5 :: Int32,
+    count6 :: Int32,
+    count7 :: Int32,
+    count8 :: Int32,
+    count9 :: Int32,
     lastBeginPagePointer :: Int32
   }
   deriving stock (Show, Generic)
@@ -71,7 +80,7 @@ data DefineFontOpArgs = DefineFontOpArgs
     designSize :: Int32,
     dirPathLength :: Word8,
     fileNameLength :: Word8,
-    fontPath :: ByteString
+    fontPath :: Dec.SpecByteString
   }
   deriving stock (Show, Generic)
 
@@ -85,8 +94,8 @@ data AmbleArgs = AmbleArgs
 data PreambleOpArgs = PreambleOpArgs
   { dviFormatPre :: Word8,
     ambleArgsPre :: AmbleArgs,
-    uselessWord :: Word8,
-    uselessString :: ByteString
+    commentLength :: Word8,
+    comment :: Dec.SpecByteString
   }
   deriving stock (Show, Generic)
 
@@ -103,7 +112,10 @@ data PostambleOpArgs = PostambleOpArgs
 data PostPostambleOpArgs = PostPostambleOpArgs
   { postamblePointer :: Int32,
     dviFormatPost :: Word8,
-    signatureBytes :: [Word32]
+    signatureByte1 :: Word8,
+    signatureByte2 :: Word8,
+    signatureByte3 :: Word8,
+    signatureByte4 :: Word8
   }
   deriving stock (Show, Generic)
 

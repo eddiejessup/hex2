@@ -11,7 +11,7 @@ bLengthToWord :: ByteLength -> Word8
 bLengthToWord = \case
   OneByte -> 0
   TwoByte -> 1
-  FourByte -> 4
+  FourByte -> 3
 
 uOpOffset :: UnsignedNByteInt -> Word8
 uOpOffset = bLengthToWord . uLength
@@ -22,6 +22,19 @@ sOpOffset = bLengthToWord . sLength
 encodeSpecInstruction :: SpecInstruction -> ByteString
 encodeSpecInstruction i =
   Ser.runPut $ specInstructionByteBuilder i
+
+-- >>> BS.unpack $ Ser.runPut (put (mempty :: ByteString))
+-- [0,0,0,0,0,0,0,0]
+-- >>> BS.unpack $ Ser.runPut (put ([] :: [Word8]))
+-- [0,0,0,0,0,0,0,0]
+-- >>> BS.unpack $ Ser.runPut (Ser.putListOf Ser.putWord8 ([] :: [Word8]))
+-- [0,0,0,0,0,0,0,0]
+-- >>> BS.unpack $ Ser.runPut (put (SpecByteString mempty))
+-- []
+-- >>> BS.unpack $ Ser.runPut (put (1 :: Int32))
+-- [0,0,0,1]
+-- >>> BS.unpack $ Ser.runPut (put (-1 :: Int32))
+-- [255,255,255,255]
 
 encodeSpecInstructions :: [SpecInstruction] -> ByteString
 encodeSpecInstructions is =
@@ -49,10 +62,19 @@ specInstructionByteBuilder = \case
       DoNoMove -> 137
     put hSpan
     put vSpan
-  BodySpecInstruction (BeginPageOp BeginPageOpArgs {numbers, lastBeginPagePointer}) -> do
+  BodySpecInstruction (BeginPageOp beginPageOpArgs) -> do
     putOp 139 -- Op
-    put numbers
-    put lastBeginPagePointer
+    put beginPageOpArgs.count0
+    put beginPageOpArgs.count1
+    put beginPageOpArgs.count2
+    put beginPageOpArgs.count3
+    put beginPageOpArgs.count4
+    put beginPageOpArgs.count5
+    put beginPageOpArgs.count6
+    put beginPageOpArgs.count7
+    put beginPageOpArgs.count8
+    put beginPageOpArgs.count9
+    put beginPageOpArgs.lastBeginPagePointer
   BodySpecInstruction EndPageOp ->
     putOp 140 -- Op
   BodySpecInstruction PushOp ->
@@ -84,8 +106,8 @@ specInstructionByteBuilder = \case
     putOp 247
     put args.dviFormatPre
     putAmbleArgs args.ambleArgsPre
-    put args.uselessWord
-    put args.uselessString
+    put args.commentLength
+    put args.comment
   PostambleOp args -> do
     putOp 248
     put args.lastPointer
@@ -98,7 +120,10 @@ specInstructionByteBuilder = \case
     putOp 249
     put args.postamblePointer
     put args.dviFormatPost
-    put args.signatureBytes
+    put args.signatureByte1
+    put args.signatureByte2
+    put args.signatureByte3
+    put args.signatureByte4
   where
     putAmbleArgs :: AmbleArgs -> Put
     putAmbleArgs ambleArgs = do

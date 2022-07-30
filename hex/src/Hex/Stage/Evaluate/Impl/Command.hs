@@ -29,8 +29,15 @@ evalCommand = \case
   P.StartParagraph indentFlag -> pure $ E.StartParagraph indentFlag
   P.EndParagraph -> pure E.EndParagraph
 
-evalVModeCommand :: P.VModeCommand -> Eff es P.VModeCommand
-evalVModeCommand = pure
+evalVModeCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.VModeCommand -> Eff es E.VModeCommand
+evalVModeCommand = \case
+  P.End -> pure E.End
+  P.Dump -> pure E.Dump
+  P.EnterHMode -> pure E.EnterHMode
+  P.AddVGlue glue -> E.AddVGlue <$> Eval.evalGlue glue
+  P.AddVLeaders leadersSpec -> pure $ E.AddVLeaders leadersSpec
+  P.AddVRule rule -> E.AddVRule <$> Eval.evalVModeRule rule
+  P.AddUnwrappedFetchedVBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedVBox fetchedBoxRef
 
 evalHModeCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.HModeCommand -> Eff es E.HModeCommand
 evalHModeCommand = \case

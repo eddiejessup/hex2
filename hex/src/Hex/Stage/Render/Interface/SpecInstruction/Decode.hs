@@ -4,6 +4,14 @@ import Data.ByteString.Builder qualified as BS.Builder
 import Data.Serialize qualified as B
 import Hexlude
 
+-- | A bytestring that is serialized just as its raw contents, not prefixed with its length.
+-- Used for when we are already encoding the length ourselves.
+newtype SpecByteString = SpecByteString {unSpecByteString :: ByteString}
+  deriving stock (Show, Generic)
+
+instance B.Serialize SpecByteString where
+  put (SpecByteString bs) = B.putByteString bs
+
 data SignedNByteInt
   = Signed1ByteInt Int8
   | Signed2ByteInt Int16

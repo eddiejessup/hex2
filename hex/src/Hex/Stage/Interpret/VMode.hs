@@ -8,11 +8,10 @@ import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.Horizontal.Paragraph.Break qualified as List.H.Para
 import Hex.Stage.Build.Horizontal.Set qualified as List.H
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
-import Hex.Stage.Build.ListElem qualified as List
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.AllMode qualified as AllMode
-import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Read.Interface qualified as HIn
 import Hex.Stage.Read.Interface.CharSourceStack (CharSourceStack)
 import Hexlude
@@ -35,25 +34,24 @@ handleCommandInMainVMode ::
   Eff es VModeCommandResult
 handleCommandInMainVMode oldSrc = \case
   Eval.VModeCommand vModeCommand -> case vModeCommand of
-    Uneval.End ->
+    Eval.End ->
       pure EndMainVMode
-    Uneval.AddVGlue _g -> do
-      notImplemented "handleCommandInMainVMode: AddVGlue"
-    -- H.Inter.Eval.evalASTGlue g >>= extendVListStateT . List.ListGlue
-    --   pure ContinueMainVMode
+    Eval.AddVGlue g -> do
+      Build.addVListElement $ ListElem.ListGlue g
+      pure ContinueMainVMode
     --  (Eval.AddVRule astRule) -> do
     --   rule <- H.Inter.Eval.evalASTVModeRule astRule
     --   extendVListStateT $ List.VListBaseElem $ Box.ElemBox $ Box.RuleContents <$ rule ^. #unRule
     --   pure ContinueMainVMode
-    Uneval.Dump ->
+    Eval.Dump ->
       notImplemented "handleCommandInMainVMode: Dump"
-    Uneval.EnterHMode ->
+    Eval.EnterHMode ->
       notImplemented "handleCommandInMainVMode: EnterHMode"
-    Uneval.AddVLeaders _leadersSpec ->
+    Eval.AddVLeaders _leadersSpec ->
       notImplemented "handleCommandInMainVMode: AddVLeaders"
-    Uneval.AddVRule _rule ->
+    Eval.AddVRule _rule ->
       notImplemented "handleCommandInMainVMode: AddVRule"
-    Uneval.AddUnwrappedFetchedVBox _fetchedBoxRef ->
+    Eval.AddUnwrappedFetchedVBox _fetchedBoxRef ->
       notImplemented "handleCommandInMainVMode: AddUnwrappedFetchedVBox"
   Eval.HModeCommand _ ->
     addPara ListExtractor.Indent
@@ -87,7 +85,7 @@ handleCommandInMainVMode oldSrc = \case
       -- TEX inserts the glue specified by \parskip into the vertical list that
       -- will contain the paragraph, unless that vertical list is empty so far.
       parSkipGlue <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.ParSkip)
-      Build.addVListElement $ List.ListGlue parSkipGlue
+      Build.addVListElement $ ListElem.ListGlue parSkipGlue
 
       -- If the command shifts to horizontal mode, run '\indent', and re-read
       -- the stream as if the command hadn't been read.
@@ -104,17 +102,17 @@ extendVListWithParagraphStateT ::
   ( HSt.EHexState :> es,
     Build.HexListBuilder :> es
   ) =>
-  List.HList ->
+  ListElem.HList ->
   Eff es ()
 extendVListWithParagraphStateT paraHList = do
   lineBoxes <- setAndBreakHListToHBoxes paraHList
   for_ lineBoxes $ \b ->
-    Build.addVListElement $ List.VListBaseElem $ Box.ElemBox $ Box.BaseBox (Box.HBoxContents <$> b)
+    Build.addVListElement $ ListElem.VListBaseElem $ Box.ElemBox $ Box.BaseBox (Box.HBoxContents <$> b)
 
 setAndBreakHListToHBoxes ::
   ( HSt.EHexState :> es
   ) =>
-  List.HList ->
+  ListElem.HList ->
   Eff es (Seq (Box.Box Box.HBoxElemSeq))
 setAndBreakHListToHBoxes hList = do
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)

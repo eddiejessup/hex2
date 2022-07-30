@@ -23,7 +23,16 @@ docAsBodySpecInstruction lastBeginPagePointer = \case
     pure $
       BeginPageOp
         BeginPageOpArgs
-          { numbers = [0 .. 9],
+          { count0 = 0,
+            count1 = 0,
+            count2 = 0,
+            count3 = 0,
+            count4 = 0,
+            count5 = 0,
+            count6 = 0,
+            count7 = 0,
+            count8 = 0,
+            count9 = 0,
             lastBeginPagePointer = lastBeginPagePointer.unBytePointer
           }
   EndPage ->
@@ -48,7 +57,7 @@ docAsBodySpecInstruction lastBeginPagePointer = \case
             designSize = designSizeSized,
             dirPathLength,
             fileNameLength,
-            fontPath = dirPath <> fileName
+            fontPath = Dec.SpecByteString $ dirPath <> fileName
           }
   SelectFont fontNumber -> do
     let fontNumberInt = fontNumber.unFontNumber.unHexInt
@@ -132,8 +141,8 @@ preambleOpArgs mag =
   PreambleOpArgs
     { dviFormatPre = dviFormatWord,
       ambleArgsPre = ambleArgs mag,
-      uselessWord = 0,
-      uselessString = ""
+      commentLength = 0,
+      comment = Dec.SpecByteString ""
     }
 
 getPostambleOpArgs :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => Magnification Int32 -> Eff es PostambleOpArgs
@@ -156,7 +165,10 @@ postPostambleArgs postamblePointer =
   PostPostambleOpArgs
     { postamblePointer = postamblePointer.unBytePointer,
       dviFormatPost = dviFormatWord,
-      signatureBytes = replicate 4 223
+      signatureByte1 = 223,
+      signatureByte2 = 223,
+      signatureByte3 = 223,
+      signatureByte4 = 223
     }
 
 emitSpecInstruction :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => SpecInstruction -> Eff es ()
@@ -170,7 +182,10 @@ emitSpecInstruction specI = do
   modifying @SpecInstructionWriterState #currentBytePointer (<> (BytePointer nBytesInt32))
 
 getPrevBeginPagePointer :: (State SpecInstructionWriterState :> es) => Eff es BytePointer
-getPrevBeginPagePointer = use @SpecInstructionWriterState $ #beginPagePointers % to (fromMaybe (BytePointer (-1)) . lastMay)
+getPrevBeginPagePointer = use @SpecInstructionWriterState $ #beginPagePointers % to (fromMaybe (BytePointer (-1)) . headMay)
+
+getCurrentBytePointer :: (State SpecInstructionWriterState :> es) => Eff es BytePointer
+getCurrentBytePointer = use @SpecInstructionWriterState #currentBytePointer
 
 getNrBeginPagePointers :: ([State SpecInstructionWriterState, Error DVIError] :>> es) => Eff es Word16
 getNrBeginPagePointers = do
@@ -188,10 +203,6 @@ emitDocInstruction i = do
 interpretDocInstruction :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => DocInstruction -> Eff es ()
 interpretDocInstruction i = do
   case i of
-    BeginNewPage -> do
-      -- Add a pointer for the new begin-page instruction.
-      newBeginPageBytePointer <- use @SpecInstructionWriterState #currentBytePointer
-      modifying @SpecInstructionWriterState (#beginPagePointers) (newBeginPageBytePointer :)
     PushStack -> do
       newStackDepth <- use @SpecInstructionWriterState (#stackDepth % to succ)
       assign @SpecInstructionWriterState #stackDepth newStackDepth
@@ -201,12 +212,17 @@ interpretDocInstruction i = do
     _ ->
       pure ()
 
+  currentBytePointer <- getCurrentBytePointer
+
   emitDocInstruction i
 
-  -- If a font is selected, add an instruction to select it again on the
-  -- new page.
   case i of
     BeginNewPage -> do
+      -- Add a pointer for the new begin-page instruction.
+      modifying @SpecInstructionWriterState (#beginPagePointers) (currentBytePointer :)
+
+      -- If a font is selected, add an instruction to select it again on the
+      -- new page.
       use @SpecInstructionWriterState #curFontNr >>= \case
         Nothing -> pure ()
         Just n -> do
@@ -225,7 +241,7 @@ addAllInstructions mag docInstrs = do
   for_ docInstrs $ \docInstr ->
     interpretDocInstruction docInstr
 
-  postamblePointer <- use @SpecInstructionWriterState #currentBytePointer
+  postamblePointer <- getCurrentBytePointer
   -- Emit postamble instruction.
   postambleArgs <- getPostambleOpArgs magInt32
   emitSpecInstruction (PostambleOp postambleArgs)
