@@ -8,7 +8,7 @@ import Hexlude
 
 -- Elements.
 
--- Vertical list.
+-- Vertical
 data VListElem
   = VListBaseElem BoxElem.BaseElem
   | ListGlue Q.Glue
@@ -28,7 +28,7 @@ vListElemIsBox = \case
 newtype Penalty = Penalty {unPenalty :: Q.HexInt}
   deriving stock (Show, Eq, Generic)
 
--- Horizontal list.
+-- Horizontal
 -- TODO: WhatsIt, Leaders, Mark, Insertion
 -- TODO: Ligature, DiscretionaryBreak, Math on/off, V-adust
 data HListElem
@@ -143,6 +143,30 @@ newtype VList = VList {unVList :: Seq VListElem}
 
 vListElemTraversal :: Traversal' VList VListElem
 vListElemTraversal = #unVList % traversed
+
+vListNaturalHeight :: VList -> Q.Length
+vListNaturalHeight = foldMapOf vListElemTraversal vListElemNaturalHeight
+
+vListElemNaturalHeight :: VListElem -> Q.Length
+vListElemNaturalHeight = \case
+  ListGlue glue ->
+    glue.gDimen
+  ListPenalty _ ->
+    Q.zeroLength
+  VListBaseElem (BoxElem.ElemBox b) ->
+    b.unBaseBox.boxHeight
+  VListBaseElem (BoxElem.ElemFontDefinition _) ->
+    Q.zeroLength
+  VListBaseElem (BoxElem.ElemFontSelection _) ->
+    Q.zeroLength
+  VListBaseElem (BoxElem.ElemKern kern) ->
+    kern.unKern
+
+vListNetBiFlex :: VList -> Q.BiNetFlex
+vListNetBiFlex = foldOf (vListElemTraversal % vListElemBiFlex)
+  where
+    vListElemBiFlex :: AffineFold VListElem Q.BiNetFlex
+    vListElemBiFlex = _Typed @Q.Glue % to Q.asBiNetFlex
 
 vListContainsBoxes :: VList -> Bool
 vListContainsBoxes = anyOf vListElemTraversal vListElemIsBox

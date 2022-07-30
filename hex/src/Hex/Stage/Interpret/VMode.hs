@@ -15,6 +15,10 @@ import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hex.Stage.Read.Interface qualified as HIn
 import Hex.Stage.Read.Interface.CharSourceStack (CharSourceStack)
 import Hexlude
+import qualified Hex.Capability.Log.Interface as Log
+import qualified Formatting as F
+import qualified Hex.Common.Quantity as Q
+import qualified Hex.Stage.Build.AnyDirection.Evaluate as Eval
 
 data VModeCommandResult
   = ContinueMainVMode
@@ -99,9 +103,7 @@ handleCommandInMainVMode oldSrc = \case
           throwError AllMode.SawEndBoxInMainVModePara
 
 extendVListWithParagraphStateT ::
-  ( HSt.EHexState :> es,
-    Build.HexListBuilder :> es
-  ) =>
+  [HSt.EHexState, Log.HexLog, Build.HexListBuilder] :>> es =>
   ListElem.HList ->
   Eff es ()
 extendVListWithParagraphStateT paraHList = do
@@ -110,7 +112,7 @@ extendVListWithParagraphStateT paraHList = do
     Build.addVListElement $ ListElem.VListBaseElem $ Box.ElemBox $ Box.BaseBox (Box.HBoxContents <$> b)
 
 setAndBreakHListToHBoxes ::
-  ( HSt.EHexState :> es
+  ( [HSt.EHexState, Log.HexLog] :>> es
   ) =>
   ListElem.HList ->
   Eff es (Seq (Box.Box Box.HBoxElemSeq))
@@ -119,13 +121,23 @@ setAndBreakHListToHBoxes hList = do
   lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
   linePen <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
   let lineHLists = List.H.Para.breakGreedy hSize lineTol linePen hList
+  for lineHLists $ \lineHList -> do
+      let
+          listWidth = ListElem.hListNaturalWidth lineHList
+          (hBoxElems, flexSpec) = List.H.setList lineHList hSize
 
-  pure $
-    lineHLists <&> \lineHList ->
-      let (hBoxElems, _) = List.H.setList lineHList hSize
           -- TODO: Implement proper interline glue.
           boxHeight = Box.hBoxNaturalHeight hBoxElems
           boxDepth = Box.hBoxNaturalDepth hBoxElems
           -- TODO: Is this correct?
           boxWidth = hSize
-       in Box.Box {contents = hBoxElems, boxWidth, boxHeight, boxDepth}
+      Log.infoLog $ F.sformat
+        ("setAndBreakHListToHBoxes: setting at page width: "
+            |%| Q.fmtLengthWithUnit
+            |%| ", list natural-width: "
+            |%| Q.fmtLengthWithUnit
+            |%| ", got flex-spec: "
+            |%| Eval.fmtGlueFlexSpec
+        )
+        hSize listWidth flexSpec
+      pure $ Box.Box {contents = hBoxElems, boxWidth, boxHeight, boxDepth}

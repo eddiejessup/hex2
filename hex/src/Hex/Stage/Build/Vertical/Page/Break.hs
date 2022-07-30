@@ -8,7 +8,7 @@ import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Breaking
 import Hex.Stage.Build.AnyDirection.Evaluate qualified as Eval
 import Hex.Stage.Build.ListElem (VList (..))
-import Hex.Stage.Build.ListElem qualified as List
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.HList ()
 import Hex.Stage.Build.Vertical.Evaluate qualified as Eval
 import Hex.Stage.Build.Vertical.Page.Types qualified as Page
@@ -57,7 +57,7 @@ updateWithCost newCost currentPage
 currentPageIndex :: CurrentPage -> Int
 currentPageIndex currentPage = Seq.length currentPage.items.unVList
 
-currentPageLastElem :: CurrentPage -> Maybe List.VListElem
+currentPageLastElem :: CurrentPage -> Maybe ListElem.VListElem
 currentPageLastElem currentPage = seqLastMay (currentPage.items.unVList)
 
 breakPageAtBest :: CurrentPage -> (VList, VList)
@@ -65,10 +65,21 @@ breakPageAtBest currentPage =
   let (pagePart, leftovers) = Seq.splitAt (currentPage.bestPointAndCost.ix) (currentPage.items.unVList)
    in (VList pagePart, VList leftovers)
 
-setPage :: Q.Length -> VList -> Page.Page
-setPage desiredHeight vList =
-  let (vBoxElems, _) = Set.setList vList desiredHeight
-   in Page.Page vBoxElems
+setPage :: Log.HexLog :> es => Q.Length -> VList -> Eff es Page.Page
+setPage desiredHeight vList = do
+  let
+    listHeight = ListElem.vListNaturalHeight vList
+    (vBoxElems, flexSpec) = Set.setList vList desiredHeight
+  Log.infoLog $ F.sformat
+    ("setPage: setting at page height: "
+        |%| Q.fmtLengthWithUnit
+        |%| ", list natural-height: "
+        |%| Q.fmtLengthWithUnit
+        |%| ", got flex-spec: "
+        |%| Eval.fmtGlueFlexSpec
+    )
+    desiredHeight listHeight flexSpec
+  pure $ Page.Page vBoxElems
 
 data PageBreakJudgment
   = DoNotBreak
@@ -120,27 +131,27 @@ runPageBuilder desiredHeight vList =
     go currentPage@(CurrentPage curPageElems _bestPointAndCost) toAddElems@(VList toAddElemSeq) =
       case toAddElemSeq of
         Empty ->
-          pure $ Seq.singleton (setPage desiredHeight curPageElems)
+          Seq.singleton <$> (setPage desiredHeight curPageElems)
         x :<| xs ->
           let continueToNextElem newPage = go newPage (VList xs)
 
               currentPageWithAddedElem = currentPage & #items % #unVList %~ (|> x)
-           in if not (List.vListContainsBoxes curPageElems)
+           in if not (ListElem.vListContainsBoxes curPageElems)
                 then -- If the current vlist has no boxes, we discard a discardable item.
                 -- Otherwise, if a discardable item is a legitimate breakpoint, we compute
                 -- the cost c of breaking at this point.
 
                   if Breaking.vListElemIsDiscardable x
                     then do
-                      Log.infoLog $ "Continuing, cos no boxes, with discardable elem: " <> F.sformat List.fmtVListElem x
+                      Log.infoLog $ "Continuing, cos no boxes, with discardable elem: " <> F.sformat ListElem.fmtVListElem x
                       continueToNextElem currentPage
                     else do
-                      Log.infoLog $ "Continuing, cos no boxes, with non-discardable elem: " <> F.sformat List.fmtVListElem x
+                      Log.infoLog $ "Continuing, cos no boxes, with non-discardable elem: " <> F.sformat ListElem.fmtVListElem x
                       continueToNextElem currentPageWithAddedElem
                 else case Breaking.vListElemToBreakItem (currentPageLastElem currentPage, x, seqHeadMay xs) of
                   -- If we can't break here, just add it to the list and continue.
                   Nothing -> do
-                    Log.infoLog ("Continuing, non-break item: " <> F.sformat List.fmtVListElem x)
+                    Log.infoLog ("Continuing, non-break item: " <> F.sformat ListElem.fmtVListElem x)
                     continueToNextElem currentPageWithAddedElem
                   Just breakItem -> do
                     cost <- pageBreakCost currentPageWithAddedElem breakItem desiredHeight
@@ -155,7 +166,8 @@ runPageBuilder desiredHeight vList =
                             <> ", remaining length: "
                             <> show (Seq.length toAddElems.unVList)
                         rest <- go newCurrentPage (leftoverListElems <> toAddElems)
-                        pure $ setPage desiredHeight newPageElems <| rest
+                        this <- setPage desiredHeight newPageElems
+                        pure $ this <| rest
                       else do
                         -- If the resulting cost <= the smallest cost seen so far, remember
                         -- the current breakpoint as the best so far.

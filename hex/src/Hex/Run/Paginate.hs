@@ -6,6 +6,7 @@ import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface (ExtractHList)
 import Hex.Stage.Build.ListExtractor.VList (extractMainVListImpl)
 import Hex.Stage.Build.Vertical.Page.Break qualified as Page
@@ -20,7 +21,12 @@ paginateAll :: '[Error InterpretError, HexEvaluate, HexInput, CommandSource, EHe
 paginateAll = do
   mainVList <- extractMainVListImpl
   desiredHeight <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.VSize)
-  Log.infoLog $ "desiredHeight: " <> F.sformat Q.fmtLengthWithUnit desiredHeight
+  let naturalHeight = ListElem.vListNaturalHeight mainVList
+  Log.infoLog $
+    F.sformat
+      ("desired height: " |%| Q.fmtLengthWithUnit |%| ", natural height: " |%| Q.fmtLengthWithUnit)
+      desiredHeight
+      naturalHeight
   Page.runPageBuilder desiredHeight mainVList
 
 fmtPages :: Fmt (Seq Page.Page)

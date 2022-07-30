@@ -2,6 +2,8 @@ module Hex.Stage.Build.AnyDirection.Breaking.Badness where
 
 import Hex.Common.Quantity qualified as Q
 import Hexlude
+import qualified Formatting as F
+import Hex.Common.Quantity (fmtLengthWithUnit)
 
 -- If a box has a size specification TEX will stretch or shrink glue in the box.
 -- For glue with only finite stretch or shrink components the badness (see
@@ -44,6 +46,11 @@ data GlueFlexProblem = GlueFlexProblem
     excessLength :: Q.Length
   }
   deriving stock (Show, Generic)
+
+fmtGlueFlexProblem :: Fmt GlueFlexProblem
+fmtGlueFlexProblem =
+  ("GlueFlexProblem(excess=" |%| F.accessed (.excessLength) fmtLengthWithUnit)
+  <> (", flex=" |%| F.accessed (.flexInDirection) Q.fmtFlexInDirection |%| ")")
 
 glueFlexProblemIsOverfull :: GlueFlexProblem -> Bool
 glueFlexProblemIsOverfull glueFlexProblem =

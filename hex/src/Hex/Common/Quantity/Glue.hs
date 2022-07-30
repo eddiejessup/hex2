@@ -233,3 +233,8 @@ data FlexDirection
 
 data FlexInDirection = FlexInDirection {flexDirection :: FlexDirection, flexAmount :: PureFlex}
   deriving stock (Show, Generic)
+
+fmtFlexInDirection :: Fmt FlexInDirection
+fmtFlexInDirection = F.later $ \fid -> case fid.flexDirection of
+  Stretch -> "Stretch[" <> F.bformat fmtPureFlex fid.flexAmount <> "]"
+  Shrink -> "Shrink[" <> F.bformat fmtPureFlex fid.flexAmount <> "]"

@@ -4,11 +4,17 @@ import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hexlude
+import qualified Formatting as F
 
 data GlueFlexSpec
   = DesiredEqualsNatural
   | NeedsToFlex Bad.GlueFlexProblem
   deriving stock (Show, Generic)
+
+fmtGlueFlexSpec :: Fmt GlueFlexSpec
+fmtGlueFlexSpec = F.later $ \case
+  DesiredEqualsNatural -> "DesiredEqualsNatural"
+  NeedsToFlex problem -> "NeedsToFlex(" <> F.bformat Bad.fmtGlueFlexProblem problem <> ")"
 
 flexSpecIsOverfull :: GlueFlexSpec -> Bool
 flexSpecIsOverfull = \case
@@ -49,10 +55,10 @@ applyGlueFlexSpec spec g =
                 _ ->
                   0
             Q.Shrink ->
-              negate $ case (glueFlexProblem.flexInDirection.flexAmount, g.gShrink) of
+              case (glueFlexProblem.flexInDirection.flexAmount, g.gShrink) of
                 -- If we are setting at finite shrink, and this glue itself has finite shrink, then modify.
                 (Q.FinitePureFlex netFiniteShrink, Q.FinitePureFlex thisFiniteGlueShrink) ->
-                  if glueFlexProblem.excessLength >= netFiniteShrink then 1 else Q.lengthRatio thisFiniteGlueShrink netFiniteShrink
+                  Q.lengthRatio thisFiniteGlueShrink (max glueFlexProblem.excessLength netFiniteShrink)
                 -- If we are setting at some infinite shrink, and this glue has finite shrink, then set at the natural width.
                 (Q.InfPureFlex (Q.InfFlexOfOrder netInfShrink setInfOrder), Q.InfPureFlex (Q.InfFlexOfOrder thisInfGlueShrink thisGlueInfOrder))
                   | setInfOrder == thisGlueInfOrder ->
@@ -68,7 +74,7 @@ applyGlueFlexSpec spec g =
                 -- then set at the natural width.
                 _ ->
                   0
-       in Box.SetGlue $ g.gDimen <> Q.scaleLengthByRational setRatio glueFlexProblem.excessLength
+       in Box.SetGlue $ g.gDimen ~~ Q.scaleLengthByRational setRatio glueFlexProblem.excessLength
 
 glueFlexSpecBadness :: GlueFlexSpec -> Bad.Badness
 glueFlexSpecBadness = \case
