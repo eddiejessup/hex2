@@ -1,10 +1,10 @@
 module Hex.Stage.Build.AnyDirection.Evaluate where
 
+import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hexlude
-import qualified Formatting as F
 
 data GlueFlexSpec
   = DesiredEqualsNatural
@@ -32,6 +32,13 @@ glueFlexSpec excessWidth netBiFlex =
             GT -> (Q.Shrink, Q.highestNetFlexOrder netBiFlex.biShrink)
             LT -> (Q.Stretch, Q.highestNetFlexOrder netBiFlex.biStretch)
        in NeedsToFlex $ Bad.GlueFlexProblem (Q.FlexInDirection dir flex) excessWidth
+
+glueFlexSpecBadness :: GlueFlexSpec -> Bad.Badness
+glueFlexSpecBadness = \case
+  DesiredEqualsNatural ->
+    Bad.zeroBadness
+  NeedsToFlex glueFlexProblem ->
+    Bad.glueFlexProblemBadness glueFlexProblem
 
 applyGlueFlexSpec :: GlueFlexSpec -> Q.Glue -> Box.SetGlue
 applyGlueFlexSpec spec g =
@@ -75,10 +82,3 @@ applyGlueFlexSpec spec g =
                 _ ->
                   0
        in Box.SetGlue $ g.gDimen ~~ Q.scaleLengthByRational setRatio glueFlexProblem.excessLength
-
-glueFlexSpecBadness :: GlueFlexSpec -> Bad.Badness
-glueFlexSpecBadness = \case
-  DesiredEqualsNatural ->
-    Bad.zeroBadness
-  NeedsToFlex glueFlexProblem ->
-    Bad.glueFlexProblemBadness glueFlexProblem

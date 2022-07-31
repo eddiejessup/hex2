@@ -5,17 +5,22 @@ import Hex.Stage.Build.AnyDirection.Breaking.Badness
 import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Breaking
 import Hexlude
 
--- Demerit.
-
 newtype Demerit = Demerit {unDemerit :: Int}
   deriving stock (Show, Generic)
+  deriving newtype (Eq, Ord)
 
-demerit :: Int -> Badness -> Breaking.BreakItem -> Demerit
+zeroDemerit :: Demerit
+zeroDemerit = Demerit 0
+
+combineDemerits :: Demerit -> Demerit -> Demerit
+combineDemerits (Demerit a) (Demerit b) = Demerit (a + b)
+
+demerit :: Q.HexInt -> Badness -> Breaking.BreakItem -> Demerit
 demerit linePenalty badness breakItem =
   case badness of
     -- I made this up because it isn't mentioned.
     InfiniteBadness -> Demerit 100_000_000
-    FiniteBadness finiteBadness ->
+    FiniteBadness finiteBadnessVal ->
       let breakItemPenalty = Breaking.breakPenalty breakItem
 
           pSq = breakItemPenalty ^ (2 :: Int)
@@ -27,5 +32,5 @@ demerit linePenalty badness breakItem =
                 | breakItemPenalty <= -Q.tenK -> 0
                 | otherwise -> panic $ show breakItemPenalty
 
-          listDemerit = (linePenalty + finiteBadness ^. typed @Int) ^ (2 :: Int)
+          listDemerit = (linePenalty <> finiteBadnessVal.unFiniteBadnessVal).unHexInt ^ (2 :: Int)
        in Demerit $ breakDemerit + listDemerit

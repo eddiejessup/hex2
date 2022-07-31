@@ -1,4 +1,11 @@
-# TeXBook page references
+# Documentation page references
+
+## DVI
+
+- [Classic spec I've used](https://web.archive.org/web/20070403030353/http://www.math.umd.edu/~asnowden/comp-cont/dvi.html#bop)
+- [Spec 2](https://www.mn.uio.no/ifi/tjenester/it/hjelp/latex/dvi.pdf)
+
+## Texbook
 
 - Expandable token interpretations: §20p211
 - When expansion is inhibited: §20p213
@@ -7,3 +14,7 @@
   - What is discardable: §15p110
   - What is a breakpoint: §15p110
 - Demerits: §19p177
+
+## Tex By Topic
+
+- Line breaking §19p175

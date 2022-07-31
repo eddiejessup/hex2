@@ -1,11 +1,15 @@
 module Hex.Stage.Interpret.VMode where
 
+import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.AnyDirection.Evaluate qualified as Eval
 import Hex.Stage.Build.BoxElem qualified as Box
-import Hex.Stage.Build.Horizontal.Paragraph.Break qualified as List.H.Para
+import Hex.Stage.Build.Horizontal.Paragraph.Break.Optimal qualified as Break
 import Hex.Stage.Build.Horizontal.Set qualified as List.H
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListElem qualified as ListElem
@@ -15,10 +19,6 @@ import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hex.Stage.Read.Interface qualified as HIn
 import Hex.Stage.Read.Interface.CharSourceStack (CharSourceStack)
 import Hexlude
-import qualified Hex.Capability.Log.Interface as Log
-import qualified Formatting as F
-import qualified Hex.Common.Quantity as Q
-import qualified Hex.Stage.Build.AnyDirection.Evaluate as Eval
 
 data VModeCommandResult
   = ContinueMainVMode
@@ -120,24 +120,26 @@ setAndBreakHListToHBoxes hList = do
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
   lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
   linePen <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
-  let lineHLists = List.H.Para.breakGreedy hSize lineTol linePen hList
+  lineHLists <- Break.foo hSize lineTol linePen hList
   for lineHLists $ \lineHList -> do
-      let
-          listWidth = ListElem.hListNaturalWidth lineHList
-          (hBoxElems, flexSpec) = List.H.setList lineHList hSize
+    let listWidth = ListElem.hListNaturalWidth lineHList
+        (hBoxElems, flexSpec) = List.H.setList lineHList hSize
 
-          -- TODO: Implement proper interline glue.
-          boxHeight = Box.hBoxNaturalHeight hBoxElems
-          boxDepth = Box.hBoxNaturalDepth hBoxElems
-          -- TODO: Is this correct?
-          boxWidth = hSize
-      Log.infoLog $ F.sformat
-        ("setAndBreakHListToHBoxes: setting at page width: "
+        -- TODO: Implement proper interline glue.
+        boxHeight = Box.hBoxNaturalHeight hBoxElems
+        boxDepth = Box.hBoxNaturalDepth hBoxElems
+        -- TODO: Is this correct?
+        boxWidth = hSize
+    Log.infoLog $
+      F.sformat
+        ( "setAndBreakHListToHBoxes: setting at page width: "
             |%| Q.fmtLengthWithUnit
             |%| ", list natural-width: "
             |%| Q.fmtLengthWithUnit
             |%| ", got flex-spec: "
             |%| Eval.fmtGlueFlexSpec
         )
-        hSize listWidth flexSpec
-      pure $ Box.Box {contents = hBoxElems, boxWidth, boxHeight, boxDepth}
+        hSize
+        listWidth
+        flexSpec
+    pure $ Box.Box {contents = hBoxElems, boxWidth, boxHeight, boxDepth}

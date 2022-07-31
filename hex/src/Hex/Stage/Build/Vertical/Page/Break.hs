@@ -67,18 +67,20 @@ breakPageAtBest currentPage =
 
 setPage :: Log.HexLog :> es => Q.Length -> VList -> Eff es Page.Page
 setPage desiredHeight vList = do
-  let
-    listHeight = ListElem.vListNaturalHeight vList
-    (vBoxElems, flexSpec) = Set.setList vList desiredHeight
-  Log.infoLog $ F.sformat
-    ("setPage: setting at page height: "
-        |%| Q.fmtLengthWithUnit
-        |%| ", list natural-height: "
-        |%| Q.fmtLengthWithUnit
-        |%| ", got flex-spec: "
-        |%| Eval.fmtGlueFlexSpec
-    )
-    desiredHeight listHeight flexSpec
+  let listHeight = ListElem.vListNaturalHeight vList
+      (vBoxElems, flexSpec) = Set.setList vList desiredHeight
+  Log.infoLog $
+    F.sformat
+      ( "setPage: setting at page height: "
+          |%| Q.fmtLengthWithUnit
+          |%| ", list natural-height: "
+          |%| Q.fmtLengthWithUnit
+          |%| ", got flex-spec: "
+          |%| Eval.fmtGlueFlexSpec
+      )
+      desiredHeight
+      listHeight
+      flexSpec
   pure $ Page.Page vBoxElems
 
 data PageBreakJudgment
@@ -110,7 +112,7 @@ pageBreakCost currentPage breakItem desiredHeight = do
       | q >= Q.tenK -> InfiniteCost
       | p <= -Q.tenK -> FiniteCost $ FiniteCostValue $ p
       | finiteB == Bad.maxFiniteBadness -> FiniteCost $ FiniteCostValue Q.hunK
-      | otherwise -> FiniteCost $ FiniteCostValue (finiteB.unFiniteBadnessVal + p + q)
+      | otherwise -> FiniteCost $ FiniteCostValue (finiteB.unFiniteBadnessVal.unHexInt + p + q)
 
 -- If c = ∞ or if p ≤ −10000, Tex seizes the initiative and breaks the page at the best remembered breakpoint.
 costImpliesBreakHere :: PageCost -> Bool

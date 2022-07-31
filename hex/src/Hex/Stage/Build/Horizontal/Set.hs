@@ -12,7 +12,7 @@ setList hList desiredWidth =
   let flexSpec = listFlexSpec hList desiredWidth
    in (setListElems flexSpec hList, flexSpec)
 
-setListElems ::  Eval.GlueFlexSpec -> ListElem.HList -> BoxElem.HBoxElemSeq
+setListElems :: Eval.GlueFlexSpec -> ListElem.HList -> BoxElem.HBoxElemSeq
 setListElems flexSpec hList = BoxElem.HBoxElemSeq $ seqOf (ListElem.hListElemTraversal % afolding (setElem flexSpec)) hList
 
 setElem :: Eval.GlueFlexSpec -> ListElem.HListElem -> Maybe BoxElem.HBoxElem

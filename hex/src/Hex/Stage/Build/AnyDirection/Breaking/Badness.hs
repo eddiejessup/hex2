@@ -1,9 +1,10 @@
 module Hex.Stage.Build.AnyDirection.Breaking.Badness where
 
-import Hex.Common.Quantity qualified as Q
-import Hexlude
-import qualified Formatting as F
+import Formatting qualified as F
 import Hex.Common.Quantity (fmtLengthWithUnit)
+import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.AnyDirection.Breaking.Types (BreakItem, breakPenalty)
+import Hexlude
 
 -- If a box has a size specification TEX will stretch or shrink glue in the box.
 -- For glue with only finite stretch or shrink components the badness (see
@@ -13,7 +14,7 @@ import Hex.Common.Quantity (fmtLengthWithUnit)
 -- but if the box is overfull it is 1 000 000.
 -- - Tex By Topic, p65.
 
-newtype FiniteBadnessVal = FiniteBadnessVal {unFiniteBadnessVal :: Int}
+newtype FiniteBadnessVal = FiniteBadnessVal {unFiniteBadnessVal :: Q.HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
 
@@ -23,16 +24,30 @@ zeroFiniteBadness = minBound
 maxFiniteBadness :: FiniteBadnessVal
 maxFiniteBadness = maxBound
 
-instance Bounded FiniteBadnessVal where
-  minBound = FiniteBadnessVal 0
+finiteBadness :: Rational -> FiniteBadnessVal
+finiteBadness r = min maxBound (FiniteBadnessVal $ Q.HexInt $ round $ (abs r ^ (3 :: Int)) * 100)
 
-  maxBound = FiniteBadnessVal Q.tenK
+instance Bounded FiniteBadnessVal where
+  minBound = FiniteBadnessVal Q.zeroInt
+
+  maxBound = FiniteBadnessVal $ Q.HexInt Q.tenK
 
 data Badness = FiniteBadness FiniteBadnessVal | InfiniteBadness
   deriving stock (Show, Generic)
 
 zeroBadness :: Badness
 zeroBadness = FiniteBadness zeroFiniteBadness
+
+breakIsAcceptable ::
+  Q.HexInt ->
+  BreakItem ->
+  Badness ->
+  Bool
+breakIsAcceptable tolerance br = \case
+  InfiniteBadness ->
+    False
+  FiniteBadness b ->
+    breakPenalty br < Q.tenK && b.unFiniteBadnessVal <= tolerance
 
 -- >>> finiteFlexBadness (Q.pt 1) (Q.pt 1)
 -- Badness_ {unFiniteBadnessVal = 100}
@@ -50,7 +65,7 @@ data GlueFlexProblem = GlueFlexProblem
 fmtGlueFlexProblem :: Fmt GlueFlexProblem
 fmtGlueFlexProblem =
   ("GlueFlexProblem(excess=" |%| F.accessed (.excessLength) fmtLengthWithUnit)
-  <> (", flex=" |%| F.accessed (.flexInDirection) Q.fmtFlexInDirection |%| ")")
+    <> (", flex=" |%| F.accessed (.flexInDirection) Q.fmtFlexInDirection |%| ")")
 
 glueFlexProblemIsOverfull :: GlueFlexProblem -> Bool
 glueFlexProblemIsOverfull glueFlexProblem =
@@ -71,5 +86,6 @@ glueFlexProblemBadness glueFlexProblem
       Q.FinitePureFlex netFiniteFlex
         | netFiniteFlex == Q.zeroLength -> FiniteBadness maxFiniteBadness
         | otherwise ->
-            let r = Q.lengthRatio glueFlexProblem.excessLength netFiniteFlex
-             in FiniteBadness $ min maxBound (FiniteBadnessVal $ round $ (abs r ^ (3 :: Int)) * 100)
+            FiniteBadness $
+              finiteBadness $
+                Q.lengthRatio glueFlexProblem.excessLength netFiniteFlex

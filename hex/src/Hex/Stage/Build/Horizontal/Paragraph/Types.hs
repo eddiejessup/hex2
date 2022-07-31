@@ -10,7 +10,7 @@ import Hexlude
 hListElemToBreakItem :: (Maybe ListElem.HListElem, ListElem.HListElem, Maybe ListElem.HListElem) -> Maybe Breaking.BreakItem
 hListElemToBreakItem = \case
   (Just x, ListElem.HVListElem (ListElem.ListGlue g), _)
-    | not (hListElemisDiscardable x) ->
+    | not (hListElemIsDiscardable x) ->
         Just $ Breaking.GlueBreak g
   (_, ListElem.HVListElem (ListElem.VListBaseElem (BoxElem.ElemKern k)), Just (ListElem.HVListElem (ListElem.ListGlue _))) ->
     Just $ Breaking.KernBreak k
@@ -18,6 +18,6 @@ hListElemToBreakItem = \case
     Just $ Breaking.PenaltyBreak p
   _ -> Nothing
 
-hListElemisDiscardable :: ListElem.HListElem -> Bool
-hListElemisDiscardable (ListElem.HVListElem e) = Breaking.vListElemIsDiscardable e
-hListElemisDiscardable (ListElem.HListHBaseElem (BoxElem.ElemCharacter _)) = False
+hListElemIsDiscardable :: ListElem.HListElem -> Bool
+hListElemIsDiscardable (ListElem.HVListElem e) = Breaking.vListElemIsDiscardable e
+hListElemIsDiscardable (ListElem.HListHBaseElem (BoxElem.ElemCharacter _)) = False
