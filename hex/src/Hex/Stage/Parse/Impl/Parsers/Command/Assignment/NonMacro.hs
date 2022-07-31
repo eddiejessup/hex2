@@ -19,7 +19,6 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
-import qualified Hex.Stage.Expand.Interface as Par
 
 headToParseNonMacroAssignmentBody ::
   [PrimTokenSource, EAlternative, Log.HexLog] :>> es =>

@@ -121,11 +121,12 @@ runHexState = interpret $ \_ -> \case
         toLen = TFM.lengthFromFontDesignSize fontMetrics
     pure $
       Just
-        ( toLen (tfmChar.width),
-          toLen (tfmChar.height),
-          toLen (tfmChar.depth),
-          toLen (tfmChar.italicCorrection)
-        )
+        CharacterAttrs
+          { width = toLen (tfmChar.width),
+            height = toLen (tfmChar.height),
+            depth = toLen (tfmChar.depth),
+            italicCorrection = toLen (tfmChar.italicCorrection)
+          }
   SelectFont fontNumber scopeFlag ->
     modifyGroupScopes $ Sc.Font.setCurrentFontNr fontNumber scopeFlag
   SetFamilyMemberFont familyMember fontNumber scopeFlag ->

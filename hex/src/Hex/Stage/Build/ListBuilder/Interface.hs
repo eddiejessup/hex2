@@ -12,5 +12,6 @@ makeEffect ''HexListBuilder
 
 data HListBuilder :: Effect where
   AddHListElement :: B.HListElem -> HListBuilder m ()
+  GetLastHListElement :: HListBuilder m (Maybe B.HListElem)
 
 makeEffect ''HListBuilder

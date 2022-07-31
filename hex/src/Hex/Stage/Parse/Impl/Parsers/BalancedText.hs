@@ -3,12 +3,12 @@ module Hex.Stage.Parse.Impl.Parsers.BalancedText where
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Token.Lexed qualified as LT
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Expand.Interface (PrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hexlude
-import qualified Hex.Common.Token.Resolved.Primitive as PT
 
 parseGeneralText :: [PrimTokenSource, EAlternative] :>> es => Eff es a -> Eff es a
 parseGeneralText parseBalancedText = do

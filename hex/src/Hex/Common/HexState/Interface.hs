@@ -34,6 +34,11 @@ fmtResolutionError = F.later $ \case
   UnknownSymbolError cSym ->
     "Got unknown control-symbol: " <> F.bformat HSt.Res.fmtControlSymbol cSym
 
+data CharacterAttrs = CharacterAttrs
+  { width, height, depth, italicCorrection :: Q.Length
+  }
+  deriving stock (Show, Generic)
+
 data EHexState :: Effect where
   GetParameterValue :: Param.QuantParam q -> EHexState m (Var.QuantVariableTarget q)
   SetParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> EHexState m ()
@@ -54,7 +59,7 @@ data EHexState :: Effect where
   SetFamilyMemberFont :: Font.FamilyMember -> DVI.FontNumber -> HSt.Grouped.ScopeFlag -> EHexState m ()
   CurrentFontNumber :: EHexState m DVI.FontNumber
   SetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> EHexState m ()
-  CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe (Q.Length, Q.Length, Q.Length, Q.Length))
+  CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe CharacterAttrs)
   CurrentFontSpaceGlue :: EHexState m (Maybe Q.Glue)
   PopAfterAssignmentToken :: EHexState m (Maybe LT.LexToken)
   SetAfterAssignmentToken :: LT.LexToken -> EHexState m ()

@@ -110,8 +110,8 @@ completeAndPruneUnacceptableLines ::
   Seq IncompleteLine ->
   Seq CompletedLine
 completeAndPruneUnacceptableLines desiredWidth tolerance (breakItem, breakItemElem) =
-  Seq.filter (completedLineIsAcceptable tolerance desiredWidth breakItem) .
-    fmap (completeIncompleteLine breakItemElem)
+  Seq.filter (completedLineIsAcceptable tolerance desiredWidth breakItem)
+    . fmap (completeIncompleteLine breakItemElem)
 
 completedLineBadness :: Q.Length -> CompletedLine -> Bad.Badness
 completedLineBadness desiredWidth line =
@@ -201,7 +201,8 @@ bestLineSequenceBreakingHere ::
   Q.HexInt ->
   BreakItem ->
   BreakpointToBestLineSequenceCache ->
-  Seq CompletedLine -> -- ^ Assumed to be non-empty.
+  -- | Assumed to be non-empty.
+  Seq CompletedLine ->
   CompletedLineSequence
 bestLineSequenceBreakingHere desiredWidth linePenalty breakItem breakToBestLineSequenceCache acceptableCompletedLines =
   -- TODO: Recomputing badness here might not be great. Probably better to cache it when we are finding 'acceptable' lines.
@@ -243,14 +244,12 @@ finaliseBrokenList desiredWidth tolerance linePenalty finalState =
           notImplemented "What to do if there is no way to break within tolerance"
         _ ->
           bestLineSequenceBreakingHere
-          desiredWidth
-          linePenalty
-          finalBreakItem
-          finalState.breakToBestLineSequenceCache
-          acceptableCompletedLines
-  in
-    bestSequence.unCompletedLineSequence <&> \completedLine -> ListElem.HList $ completedLine.lineElements
-
+            desiredWidth
+            linePenalty
+            finalBreakItem
+            finalState.breakToBestLineSequenceCache
+            acceptableCompletedLines
+   in bestSequence.unCompletedLineSequence <&> \completedLine -> ListElem.HList $ completedLine.lineElements
 
 breakHListOptimally ::
   Q.Length -> -- HSize

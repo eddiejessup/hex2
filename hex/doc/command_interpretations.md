@@ -212,3 +212,17 @@ height: *
 depth: 0
 
 ‘*’ means that the actual dimension depends on the context: the rule will extend to the boundary of the smallest box or alignment that encloses it.
+
+## Italic correction
+
+TexByTopic:
+
+>>>
+An italic correction can only be inserted if the previous item processed by TEX was a character or ligature. Thus the following solution for roman text inside an italic passage does not work:
+{\italic Some text {\/\roman not} emphasized}
+The italic correction has no effect here, because the previous item is glue.
+>>>
+
+So if the previous element wasn't a character or ligature, we do nothing. Don't raise an error.
+
+Also tested in tex the program. (eg `\indent\/hello`)

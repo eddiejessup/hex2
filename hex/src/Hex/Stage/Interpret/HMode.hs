@@ -5,7 +5,6 @@ import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
-import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
@@ -61,8 +60,25 @@ handleCommandInHMode oldSrc modeVariant = \case
       notImplemented "AddControlSpace"
     Eval.AddAccentedCharacter _n _assignments _mayCharCodeRef ->
       notImplemented "AddAccentedCharacter"
-    Eval.AddItalicCorrection ->
-      notImplemented "AddItalicCorrection"
+    Eval.AddItalicCorrection -> do
+      Build.getLastHListElement >>= \case
+        Nothing -> pure ()
+        Just e -> case e of
+          ListElem.HVListElem _vListElem ->
+            pure ()
+          ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
+            -- TODO: Handle ligatures too.
+            BoxElem.ElemCharacter charBox -> do
+              let charCode = charBox.unCharacter.contents
+              HSt.currentFontCharacter charCode >>= \case
+                -- No font selected
+                Nothing -> pure ()
+                Just charAttrs ->
+                  Build.addHListElement $
+                    ListElem.HVListElem $
+                      ListElem.VListBaseElem $
+                        BoxElem.ElemKern $ BoxElem.Kern charAttrs.italicCorrection
+      pure ContinueHMode
     Eval.AddDiscretionaryText _discretionaryText ->
       notImplemented "AddDiscretionaryText"
     Eval.AddDiscretionaryHyphen ->
@@ -110,14 +126,14 @@ charAsBox ::
   Codes.CharCode ->
   Eff es Box.CharBox
 charAsBox char = do
-  (width, height, depth, _) <- HSt.currentFontCharacter char >>= note (AllMode.NoFontSelected)
+  HSt.CharacterAttrs {width, height, depth} <- HSt.currentFontCharacter char >>= note (AllMode.NoFontSelected)
   pure $
     Box.CharBox
       Box.Box
         { contents = char,
-          boxWidth = width ^. typed @Q.Length,
-          boxHeight = height ^. typed @Q.Length,
-          boxDepth = depth ^. typed @Q.Length
+          boxWidth = width,
+          boxHeight = height,
+          boxDepth = depth
         }
 
 hModeStartParagraph ::

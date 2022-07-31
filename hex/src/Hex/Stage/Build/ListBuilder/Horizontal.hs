@@ -25,6 +25,8 @@ extendHList e (ListElem.HList accSeq) =
 runHListBuilder :: State ListElem.HList :> es => Eff (HListBuilder : es) a -> Eff es a
 runHListBuilder = interpret $ \_ -> \case
   AddHListElement e -> addHListElementImpl e
+  GetLastHListElement ->
+    lastOf ListElem.hListElemTraversal <$> get
 
 runHexListBuilderHMode :: State ListElem.HList :> es => Eff (HexListBuilder : es) a -> Eff es a
 runHexListBuilderHMode = interpret $ \_ -> \case
