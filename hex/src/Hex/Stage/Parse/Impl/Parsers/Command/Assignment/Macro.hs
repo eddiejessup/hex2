@@ -16,10 +16,10 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-parseMacroBody :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> Eff es AST.AssignmentBody
-parseMacroBody defExpandType prefixes = do
+parseMacroBody :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpansionMode -> Seq PT.AssignPrefixTok -> Eff es AST.AssignmentBody
+parseMacroBody expansionMode prefixes = do
   cs <- Par.parseControlSymbol
-  tgt <- parseMacroDefinition defExpandType prefixes
+  tgt <- parseMacroDefinition expansionMode prefixes
   pure $ AST.DefineControlSequence cs (AST.MacroTarget tgt)
 
 -- Parse a parameter specification, and also the begin-group that surround the macro's replacement text.
@@ -94,10 +94,10 @@ parseMacroParameterDelimiterText = do
       _ ->
         True
 
-parseMacroDefinition :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Seq PT.AssignPrefixTok -> Eff es ST.MacroDefinition
-parseMacroDefinition defExpandType prefixes = do
+parseMacroDefinition :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpansionMode -> Seq PT.AssignPrefixTok -> Eff es ST.MacroDefinition
+parseMacroDefinition expansionMode prefixes = do
   parameterSpecification <- parseMacroParameterSpecificationAndLeftBrace
-  replacementText <- parseMacroReplacementText defExpandType
+  replacementText <- parseMacroReplacementText expansionMode
   pure
     ST.MacroDefinition
       { ST.parameterSpecification,
@@ -108,23 +108,20 @@ parseMacroDefinition defExpandType prefixes = do
 
 -- Extract a balanced text but parsing parameter references at definition-time.
 -- Assumes we just parsed the '{' that starts the macro text.
-parseMacroReplacementText :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpandDefFlag -> Eff es ST.MacroReplacementText
-parseMacroReplacementText = \case
-  PT.ExpandDef ->
-    notImplemented "parseMacroReplacementText: ExpandDef"
-  PT.InhibitDef -> do
-    ST.InhibitedMacroReplacementText <$> parseInhibitedMacroReplacementText
-
-parseInhibitedMacroReplacementText :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ST.InhibitedReplacementText
-parseInhibitedMacroReplacementText = ST.InhibitedReplacementText . fst <$> Par.parseNestedExpr parseNext
+parseMacroReplacementText :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpansionMode -> Eff es ST.MacroReplacementText
+parseMacroReplacementText expansionMode =
+  -- The const is because the 'parse-next' function actually accepts a Int
+  -- parameter representing the current depth. But in this case we don't use
+  -- it.
+  ST.MacroReplacementText . fst <$> Par.parseNestedExpr (const parseNext)
   where
-    parseNext :: Int -> Eff es (ST.MacroTextToken, Ordering)
-    parseNext _depth =
-      Par.anyLexInhibited >>= \case
+    parseNext :: Eff es (ST.MacroTextToken, Ordering)
+    parseNext =
+      Par.anyLexInMode expansionMode >>= \case
         -- If we see a '#', parse the parameter number and return a token
         -- representing the call.
         LT.CharCatLexToken LT.LexCharCat {lexCCCat = Code.Parameter} -> do
-          textToken <- Par.satisfyThenInhibited paramNumOrHash
+          textToken <- Par.satisfyLexThen expansionMode paramNumOrHash
           pure (textToken, EQ)
         -- Otherwise, just return the ordinary lex token.
         lexToken ->

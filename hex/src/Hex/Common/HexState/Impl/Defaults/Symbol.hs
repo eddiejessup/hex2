@@ -157,10 +157,10 @@ initialSymbolMap =
       (_cs "outer", primTok $ AssignPrefixTok OuterTok),
       (_cs "global", primTok $ AssignPrefixTok GlobalTok),
       -- Macro def types.
-      (_cs "def", primTok $ DefineMacroTok LocalScope InhibitDef),
-      (_cs "edef", primTok $ DefineMacroTok LocalScope ExpandDef),
-      (_cs "gdef", primTok $ DefineMacroTok GlobalScope InhibitDef),
-      (_cs "xdef", primTok $ DefineMacroTok GlobalScope ExpandDef),
+      (_cs "def", primTok $ DefineMacroTok LocalScope Inhibited),
+      (_cs "edef", primTok $ DefineMacroTok LocalScope Expanding),
+      (_cs "gdef", primTok $ DefineMacroTok GlobalScope Inhibited),
+      (_cs "xdef", primTok $ DefineMacroTok GlobalScope Expanding),
       -- Int parameters.
       (_cs "pretolerance", primTok $ IntParamVarTok PreTolerance),
       (_cs "tolerance", primTok $ IntParamVarTok Tolerance),

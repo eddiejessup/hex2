@@ -19,6 +19,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
+import qualified Hex.Stage.Expand.Interface as Par
 
 headToParseNonMacroAssignmentBody ::
   [PrimTokenSource, EAlternative, Log.HexLog] :>> es =>
@@ -32,7 +33,7 @@ headToParseNonMacroAssignmentBody = \case
   T.InteractionModeTok mode ->
     pure $ AST.SetInteractionMode mode
   T.LetTok -> do
-    (cs, tgt) <- parseXEqualsY Inhibited parseControlSymbol (skipOneOptionalSpace Inhibited >> anyLexInhibited)
+    (cs, tgt) <- parseXEqualsY PT.Inhibited parseControlSymbol (skipOneOptionalSpace PT.Inhibited >> anyLexInhibited)
     pure $ AST.DefineControlSequence cs $ AST.LetTarget tgt
   T.FutureLetTok -> do
     cs <- parseControlSymbol
@@ -46,10 +47,10 @@ headToParseNonMacroAssignmentBody = \case
               letTargetToken = lt2
             }
   T.ShortDefHeadTok quant -> do
-    (cs, nr) <- parseXEqualsY Expanding parseControlSymbol Par.parseInt
+    (cs, nr) <- parseXEqualsY PT.Expanding parseControlSymbol Par.parseInt
     pure $ AST.DefineControlSequence cs (AST.ShortDefineTarget (AST.ShortDefTargetValue quant nr))
   T.ParagraphShapeTok -> do
-    skipOptionalEquals Expanding
+    skipOptionalEquals PT.Expanding
     -- In a ⟨shape assignment⟩ for which the ⟨number⟩ is n, the ⟨shape
     -- dimensions⟩ are ⟨empty⟩ if n ≤ 0, otherwise they consist of 2n
     -- consecutive occurrences of ⟨dimen⟩
@@ -58,16 +59,16 @@ headToParseNonMacroAssignmentBody = \case
     pure $ AST.SetParShape nrPairs shapeLengths
   T.ReadTok -> do
     nr <- Par.parseInt
-    skipKeyword Expanding [Code.Chr_ 't', Code.Chr_ 'o']
-    skipOptionalSpaces Expanding
+    skipKeyword PT.Expanding [Code.Chr_ 't', Code.Chr_ 'o']
+    skipOptionalSpaces PT.Expanding
     cs <- parseControlSymbol
     pure $ AST.DefineControlSequence cs (AST.ReadTarget nr)
   T.SetBoxRegisterTok -> do
-    (var, box) <- parseXEqualsY Expanding Par.parseExplicitRegisterLocation (skipFillerExpanding >> (anyPrim >>= Par.headToParseBox))
+    (var, box) <- parseXEqualsY PT.Expanding Par.parseExplicitRegisterLocation (skipFillerExpanding >> (anyPrim >>= Par.headToParseBox))
     pure $ AST.SetBoxRegister var box
   -- \font <control-sequence> <equals> <file-name> <at-clause>
   T.FontTok -> do
-    (cs, tgt) <- parseXEqualsY Expanding parseControlSymbol parseFontTarget
+    (cs, tgt) <- parseXEqualsY PT.Expanding parseControlSymbol parseFontTarget
     pure $ AST.DefineControlSequence cs (AST.FontTarget tgt)
   t ->
     choiceFlap
@@ -88,13 +89,13 @@ parseFontTarget = do
   fontSpec <-
     PC.choice
       [ do
-          skipKeyword Expanding [Code.Chr_ 'a', Code.Chr_ 't']
+          skipKeyword PT.Expanding [Code.Chr_ 'a', Code.Chr_ 't']
           AST.FontAt <$> Par.parseLength,
         do
-          skipKeyword Expanding [Code.Chr_ 's', Code.Chr_ 'c', Code.Chr_ 'a', Code.Chr_ 'l', Code.Chr_ 'e', Code.Chr_ 'd']
+          skipKeyword PT.Expanding [Code.Chr_ 's', Code.Chr_ 'c', Code.Chr_ 'a', Code.Chr_ 'l', Code.Chr_ 'e', Code.Chr_ 'd']
           AST.FontScaled <$> Par.parseInt,
         do
-          skipOptionalSpaces Expanding
+          skipOptionalSpaces PT.Expanding
           pure AST.NaturalFont
       ]
   pure $ AST.FontFileSpec fontSpec fname
@@ -102,7 +103,7 @@ parseFontTarget = do
 headToParseCodeAssignment :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseCodeAssignment t = do
   Log.debugLog $ "Trying to parse code assignment " <> F.sformat PT.fmtPrimitiveToken t
-  (ref, tgt) <- parseXEqualsY Expanding (Par.headToParseCodeTableRef t) Par.parseInt
+  (ref, tgt) <- parseXEqualsY PT.Expanding (Par.headToParseCodeTableRef t) Par.parseInt
   pure $ AST.AssignCode $ AST.CodeAssignment ref tgt
 
 headToParseModifyVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.VariableModification
@@ -145,8 +146,8 @@ parseNumericVariable =
 skipOptionalBy :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ()
 skipOptionalBy =
   PC.choice
-    [ void $ parseOptionalKeyword Expanding [Code.Chr_ 'b', Code.Chr_ 'y'],
-      skipOptionalSpaces Expanding
+    [ void $ parseOptionalKeyword PT.Expanding [Code.Chr_ 'b', Code.Chr_ 'y'],
+      skipOptionalSpaces PT.Expanding
     ]
 
 headToParseVariableAssignment :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.VariableAssignment
@@ -155,33 +156,33 @@ headToParseVariableAssignment t = do
   PC.choice
     [ do
         Log.debugLog "Parsing 'IntVariable' assignment"
-        (var, tgt) <- parseXEqualsY Expanding (Par.headToParseIntVariable t) Par.parseInt
+        (var, tgt) <- parseXEqualsY PT.Expanding (Par.headToParseIntVariable t) Par.parseInt
         pure $ AST.IntVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
         Log.debugLog "Parsing 'LengthVariable' assignment"
-        (var, tgt) <- parseXEqualsY Expanding (Par.headToParseLengthVariable t) Par.parseLength
+        (var, tgt) <- parseXEqualsY PT.Expanding (Par.headToParseLengthVariable t) Par.parseLength
         pure $ AST.LengthVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
         Log.debugLog "Parsing 'GlueVariable' assignment"
-        (var, tgt) <- parseXEqualsY Expanding (Par.headToParseGlueVariable t) Par.parseGlue
+        (var, tgt) <- parseXEqualsY PT.Expanding (Par.headToParseGlueVariable t) Par.parseGlue
         pure $ AST.GlueVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
         Log.debugLog "Parsing 'MathGlueVariable' assignment"
-        (var, tgt) <- parseXEqualsY Expanding (Par.headToParseMathGlueVariable t) Par.parseMathGlue
+        (var, tgt) <- parseXEqualsY PT.Expanding (Par.headToParseMathGlueVariable t) Par.parseMathGlue
         pure $ AST.MathGlueVariableAssignment $ AST.QuantVariableAssignment var tgt,
       do
         Log.debugLog "Parsing 'TokenListVariable' assignment"
-        (var, tgt) <- parseXEqualsY Expanding (Par.headToParseTokenListVariable t) parseTokenListTarget
+        (var, tgt) <- parseXEqualsY PT.Expanding (Par.headToParseTokenListVariable t) parseTokenListTarget
         pure $ AST.TokenListVariableAssignment $ AST.QuantVariableAssignment var tgt,
       -- Unofficial variable assignments, separated because of being
       -- global in the TeXbook.
       do
         Log.debugLog "Parsing 'SpecialInt' assignment"
-        (var, tgt) <- parseXEqualsY Expanding (Par.headToParseSpecialInt t) Par.parseInt
+        (var, tgt) <- parseXEqualsY PT.Expanding (Par.headToParseSpecialInt t) Par.parseInt
         pure $ AST.SpecialIntParameterVariableAssignment var tgt,
       do
         Log.debugLog "Parsing 'SpecialLength' assignment"
-        (var, tgt) <- parseXEqualsY Expanding (Par.headToParseSpecialLength t) Par.parseLength
+        (var, tgt) <- parseXEqualsY PT.Expanding (Par.headToParseSpecialLength t) Par.parseLength
         pure $ AST.SpecialLengthParameterVariableAssignment var tgt
     ]
 
@@ -196,20 +197,20 @@ parseTokenListTarget =
 
 headToParseSetFamilyMember :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseSetFamilyMember t = do
-  (var, val) <- parseXEqualsY Expanding (Par.headToParseFamilyMember t) (anyPrim >>= Par.headToParseFontRef)
+  (var, val) <- parseXEqualsY PT.Expanding (Par.headToParseFamilyMember t) (anyPrim >>= Par.headToParseFontRef)
   pure $ AST.SetFamilyMember var val
 
 headToParseSetFontDimension :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseSetFontDimension t = do
-  (var, val) <- parseXEqualsY Expanding (Par.headToParseFontDimensionRef t) Par.parseLength
+  (var, val) <- parseXEqualsY PT.Expanding (Par.headToParseFontDimensionRef t) Par.parseLength
   pure $ AST.SetFontDimension var val
 
 headToParseSetFontSpecialChar :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseSetFontSpecialChar t = do
-  (var, val) <- parseXEqualsY Expanding (Par.headToParseFontSpecialCharRef t) Par.parseInt
+  (var, val) <- parseXEqualsY PT.Expanding (Par.headToParseFontSpecialCharRef t) Par.parseInt
   pure $ AST.SetFontSpecialChar var val
 
 headToParseSetBoxDimension :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.AssignmentBody
 headToParseSetBoxDimension t = do
-  (var, val) <- parseXEqualsY Expanding (Par.headToParseBoxDimensionRef t) Par.parseLength
+  (var, val) <- parseXEqualsY PT.Expanding (Par.headToParseBoxDimensionRef t) Par.parseLength
   pure $ AST.SetBoxDimension var val

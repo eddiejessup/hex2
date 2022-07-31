@@ -7,6 +7,7 @@ import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes (pattern Chr_)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Common.Token.Resolved.Primitive qualified as T
 import Hex.Stage.Expand.Interface (PrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Par
@@ -63,11 +64,11 @@ parsePureFlex :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => [Code.Cha
 parsePureFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
-      skipOptionalSpaces Expanding $> Nothing
+      skipOptionalSpaces PT.Expanding $> Nothing
     ]
   where
     parsePresentFlex = do
-      skipKeyword Expanding s
+      skipKeyword PT.Expanding s
       PC.choice
         [ Par.tryParse $ AST.FinitePureFlex <$> Par.parseLength,
           AST.InfPureFlex <$> parseInfFlexOfOrder
@@ -76,7 +77,7 @@ parsePureFlex s =
 parseInfFlexOfOrder :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.InfFlexOfOrder
 parseInfFlexOfOrder = do
   factor <- Par.parseSigned Par.parseFactor
-  skipKeyword Expanding [Chr_ 'f', Chr_ 'i']
+  skipKeyword PT.Expanding [Chr_ 'f', Chr_ 'i']
   order <-
     parseNrLs >>= \case
       0 -> panic "impossible"
@@ -84,8 +85,8 @@ parseInfFlexOfOrder = do
       2 -> pure Q.Fil2
       3 -> pure Q.Fil3
       n -> Par.parseFail $ "parseInfFlexOfOrder " <> F.sformat F.int n
-  skipOptionalSpaces Expanding
+  skipOptionalSpaces PT.Expanding
   pure $ AST.InfFlexOfOrder factor order
   where
     parseNrLs =
-      List.length <$> PC.some (skipSatisfied (satisfyCharCatThen Expanding) $ matchNonActiveCharacterUncased (Chr_ 'l'))
+      List.length <$> PC.some (skipSatisfied (satisfyCharCatThen PT.Expanding) $ matchNonActiveCharacterUncased (Chr_ 'l'))

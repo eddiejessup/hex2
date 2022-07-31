@@ -25,15 +25,12 @@ substituteArgsIntoMacroBody ::
   Uneval.MacroArgumentList ->
   Eff es (Seq LT.LexToken)
 substituteArgsIntoMacroBody replacementText argsList =
-  case replacementText of
-    ST.ExpandedMacroReplacementText -> notImplemented "substituteArgsIntoMacroBody: ExpandedReplacementText"
-    ST.InhibitedMacroReplacementText inhibitedReplacementText ->
-      -- - Map each 'macro-text-token' into a sequence of lex-tokens, using
-      --   `renderToken`, and looking up parameter values in `argsList`.
-      -- - Flatten the resulting sequence-of-sequences into a sequence of
-      -- - lex-tokens.
-      -- `foldMapM` does the above in one pass.
-      foldMapM renderToken (inhibitedReplacementText.unInhibitedReplacementText)
+  -- - Map each 'macro-text-token' into a sequence of lex-tokens, using
+  --   `renderToken`, and looking up parameter values in `argsList`.
+  -- - Flatten the resulting sequence-of-sequences into a sequence of
+  -- - lex-tokens.
+  -- `foldMapM` does the above in one pass.
+  foldMapM renderToken replacementText.unMacroReplacementText
   where
     -- The contents of a macro replacement text is either:
     -- - An ordinary lex-token. In this case the output is just that lex-token itself.

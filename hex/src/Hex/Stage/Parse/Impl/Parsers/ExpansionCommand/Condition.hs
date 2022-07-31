@@ -3,6 +3,7 @@ module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand.Condition where
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Expand.Interface (PrimTokenSource (..))
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
@@ -12,7 +13,7 @@ import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
 parseRelationExpanding :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es Ordering
-parseRelationExpanding = Par.satisfyCharCatThen Expanding $ \cc ->
+parseRelationExpanding = Par.satisfyCharCatThen PT.Expanding $ \cc ->
   if
       | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '<') cc -> Just LT
       | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '>') cc -> Just GT

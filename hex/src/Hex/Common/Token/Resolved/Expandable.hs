@@ -19,12 +19,7 @@ data MacroParameterSpecification = MacroParameterSpecification
   }
   deriving stock (Show, Eq, Generic)
 
-data MacroReplacementText
-  = ExpandedMacroReplacementText -- Not implemented
-  | InhibitedMacroReplacementText InhibitedReplacementText
-  deriving stock (Show, Eq, Generic)
-
-newtype InhibitedReplacementText = InhibitedReplacementText {unInhibitedReplacementText :: Seq MacroTextToken}
+newtype MacroReplacementText = MacroReplacementText {unMacroReplacementText :: Seq MacroTextToken}
   deriving stock (Show, Eq, Generic)
 
 -- A token in a macro template.

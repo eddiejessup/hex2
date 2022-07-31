@@ -31,11 +31,11 @@ headToParseBox = \case
     pure AST.LastBox
   PT.SplitVBoxTok -> do
     nr <- Par.parseInt
-    skipKeyword Expanding [Code.Chr_ 't', Code.Chr_ 'o']
+    skipKeyword PT.Expanding [Code.Chr_ 't', Code.Chr_ 'o']
     AST.VSplitBox nr <$> Par.parseLength
   PT.ExplicitBoxTok boxType -> do
     boxSpec <- parseBoxSpecification
-    skipSatisfied (satisfyCharCatThen Expanding) (charCatHasCategory Code.BeginGroup)
+    skipSatisfied (satisfyCharCatThen PT.Expanding) (charCatHasCategory Code.BeginGroup)
     pure $ AST.ExplicitBox boxSpec boxType
   t ->
     parseFail $ "headToParseBox " <> F.sformat PT.fmtPrimitiveToken t
@@ -43,8 +43,8 @@ headToParseBox = \case
     parseBoxSpecification = do
       spec <-
         PC.choice
-          [ skipKeyword Expanding [Chr_ 't', Chr_ 'o'] *> (AST.To <$> Par.parseLength),
-            skipKeyword Expanding [Chr_ 's', Chr_ 'p', Chr_ 'r', Chr_ 'e', Chr_ 'a', Chr_ 'd'] *> (AST.Spread <$> Par.parseLength),
+          [ skipKeyword PT.Expanding [Chr_ 't', Chr_ 'o'] *> (AST.To <$> Par.parseLength),
+            skipKeyword PT.Expanding [Chr_ 's', Chr_ 'p', Chr_ 'r', Chr_ 'e', Chr_ 'a', Chr_ 'd'] *> (AST.Spread <$> Par.parseLength),
             pure AST.Natural
           ]
       skipFillerExpanding
@@ -68,7 +68,7 @@ headToParseModedRule axis = \case
     parseFail $ "headToParseModedRule " <> F.sformat PT.fmtPrimitiveToken t
   where
     go dims = do
-      skipOptionalSpaces Expanding
+      skipOptionalSpaces PT.Expanding
       mayDim <-
         PC.optional $
           PC.choice
@@ -81,7 +81,7 @@ headToParseModedRule axis = \case
         Nothing -> pure dims
 
     parseRuleDimen keyword dimType = do
-      skipKeyword Expanding keyword
+      skipKeyword PT.Expanding keyword
       ln <- Par.parseLength
       pure (dimType, ln)
 

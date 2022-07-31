@@ -8,6 +8,7 @@ import Hex.Common.HexState.Interface.TokenList qualified as HSt.LT
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
+import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Expand.Interface (PrimTokenSource (..))
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
@@ -67,7 +68,7 @@ parseMacroArguments parameterSpec = do
 parseUndelimitedArgumentTokens :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es HSt.TL.InhibitedBalancedText
 parseUndelimitedArgumentTokens = do
   -- Skip blank tokens (assumed to mean spaces).
-  PC.skipMany $ satisfyIf (satisfyCharCatThen Inhibited) (charCatHasCategory Code.Space)
+  PC.skipMany $ satisfyIf (satisfyCharCatThen PT.Inhibited) (charCatHasCategory Code.Space)
   anyLexInhibited >>= \case
     -- Note that we are throwing away the surrounding braces of the argument.
     LT.CharCatLexToken LT.LexCharCat {lexCCCat = Code.BeginGroup} ->
@@ -106,7 +107,7 @@ skipParameterText :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => ST.Pa
 skipParameterText (ST.ParameterText lexTokens) = skipUnexpandedLexTokens lexTokens
 
 skipUnexpandedLexTokens :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Seq LT.LexToken -> Eff es ()
-skipUnexpandedLexTokens ts = forM_ ts (satisfyLexEquals Inhibited)
+skipUnexpandedLexTokens ts = forM_ ts (satisfyLexEquals PT.Inhibited)
 
 -- For some expression consisting of tokens that might increase or decrease the grouping, such as a parentheses,
 -- Compute the final depth of the expression, and the number of matched groups we saw.

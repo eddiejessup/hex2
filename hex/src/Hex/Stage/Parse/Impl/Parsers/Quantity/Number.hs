@@ -24,8 +24,8 @@ parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
   where
     parseOptionalSigns :: Eff es [Q.Sign]
     parseOptionalSigns = do
-      skipOptionalSpaces Expanding
-      PC.sepEndBy (satisfyCharCatThen Expanding signToPos) (skipOptionalSpaces Expanding)
+      skipOptionalSpaces PT.Expanding
+      PC.sepEndBy (satisfyCharCatThen PT.Expanding signToPos) (skipOptionalSpaces PT.Expanding)
       where
         signToPos cc
           | isOnly (ccCatChar Code.Other) (Code.Chr_ '+') cc = Just Q.Positive
@@ -47,7 +47,7 @@ headToParseNormalInt :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :
 headToParseNormalInt headToken = do
   Log.debugLog $ "headToParseNormalInt " <> F.sformat PT.fmtPrimitiveToken headToken
   choiceFlap
-    [ \t -> liftLexHead headToParseConstantInt t <* skipOneOptionalSpace Expanding,
+    [ \t -> liftLexHead headToParseConstantInt t <* skipOneOptionalSpace PT.Expanding,
       fmap AST.InternalInt <$> headToParseInternalInt
     ]
     headToken
@@ -55,13 +55,13 @@ headToParseNormalInt headToken = do
     headToParseConstantInt :: LT.LexCharCat -> Eff es AST.NormalInt
     headToParseConstantInt cc
       | Just w1 <- decCharToWord cc = do
-          remainingWs <- PC.many (satisfyCharCatThen Expanding decCharToWord)
+          remainingWs <- PC.many (satisfyCharCatThen PT.Expanding decCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base10 (w1 : remainingWs)
       | isOnly (ccCatChar Code.Other) (Code.Chr_ '"') cc = do
-          hexDigits <- PC.some (satisfyCharCatThen Expanding hexCharToWord)
+          hexDigits <- PC.some (satisfyCharCatThen PT.Expanding hexCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base16 hexDigits
       | isOnly (ccCatChar Code.Other) (Code.Chr_ '\'') cc = do
-          octDigits <- PC.some (satisfyCharCatThen Expanding octCharToWord)
+          octDigits <- PC.some (satisfyCharCatThen PT.Expanding octCharToWord)
           pure $ AST.IntConstant $ AST.IntConstantDigits AST.Base8 octDigits
       | isOnly (ccCatChar Code.Other) (Code.Chr_ '`') cc =
           AST.CharLikeCode <$> Par.satisfyThenInhibited parseCharLikeCodeInt

@@ -29,11 +29,11 @@ parsePureMathFlex :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => [Code
 parsePureMathFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
-      skipOptionalSpaces Expanding $> Nothing
+      skipOptionalSpaces PT.Expanding $> Nothing
     ]
   where
     parsePresentFlex =
-      skipKeyword Expanding s
+      skipKeyword PT.Expanding s
         *> PC.choice
           [ AST.FinitePureMathFlex <$> Par.parseMathLength,
             AST.InfPureMathFlex <$> Par.parseInfFlexOfOrder

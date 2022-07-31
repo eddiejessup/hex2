@@ -21,11 +21,6 @@ data AssignPrefixTok
   | GlobalTok
   deriving stock (Show, Eq, Generic)
 
-data ExpandDefFlag
-  = ExpandDef
-  | InhibitDef
-  deriving stock (Show, Eq, Generic)
-
 data StandardOutputInput
   = StdOut
   | StdErr
@@ -42,13 +37,6 @@ data LeadersType
   = Aligned -- \leaders
   | Centered -- \cleaders
   | Expanded -- \xleaders
-  deriving stock (Show, Eq, Generic)
-
-data ModeAttribute
-  = VerticalMode
-  | HorizontalMode
-  | MathMode
-  | InnerMode
   deriving stock (Show, Eq, Generic)
 
 data BoxRegisterAttribute
@@ -143,6 +131,9 @@ data VBoxAlignType
 data ShortDefTargetValue = ShortDefTargetValue CharryQuantityType Q.HexInt
   deriving stock (Show, Eq, Generic)
 
+data ExpansionMode = Expanding | Inhibited
+  deriving stock (Show, Eq, Generic)
+
 data PrimitiveToken
   = EndCSNameTok -- \endcsname
   | -- Starters of commands.
@@ -190,7 +181,7 @@ data PrimitiveToken
   | AssignPrefixTok AssignPrefixTok
   | -- > > Modifying how to parse the macro.
     --     \def, \gdef, \edef (expanded-def), \xdef (global-expanded-def).
-    DefineMacroTok HSt.Grouped.ScopeFlag ExpandDefFlag
+    DefineMacroTok HSt.Grouped.ScopeFlag ExpansionMode
   | -- > Setting variable values.
     IntParamVarTok HSt.Param.IntParameter
   | LengthParamVarTok HSt.Param.LengthParameter

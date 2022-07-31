@@ -61,4 +61,4 @@ parseControlSymbolBody = do
   pure $ LT.mkControlSequence controlSequenceCodes
   where
     getCharCode =
-      satisfyCharCatThen Expanding $ \lexCharCat -> Just lexCharCat.lexCCChar
+      satisfyCharCatThen PT.Expanding $ \lexCharCat -> Just lexCharCat.lexCCChar

@@ -54,7 +54,7 @@ parseCommand =
     PT.RelaxTok ->
       pure $ AST.ModeIndependentCommand AST.Relax
     PT.IgnoreSpacesTok -> do
-      skipOptionalSpaces Expanding
+      skipOptionalSpaces PT.Expanding
       pure $ AST.ModeIndependentCommand AST.IgnoreSpaces
     PT.PenaltyTok ->
       AST.ModeIndependentCommand . AST.AddPenalty <$> Par.parseInt

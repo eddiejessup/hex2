@@ -8,6 +8,7 @@ import Hex.Stage.Expand.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hexlude
+import qualified Hex.Common.Token.Resolved.Primitive as PT
 
 parseGeneralText :: [PrimTokenSource, EAlternative] :>> es => Eff es a -> Eff es a
 parseGeneralText parseBalancedText = do
@@ -25,7 +26,7 @@ data BalancedTextContext = AlreadySeenBeginGroup | ExpectingBeginGroup
 skipBeginGroupIfNeeded :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es ()
 skipBeginGroupIfNeeded = \case
   AlreadySeenBeginGroup -> pure ()
-  ExpectingBeginGroup -> skipSatisfied (Par.satisfyCharCatThen Expanding) $ charCatHasCategory Code.BeginGroup
+  ExpectingBeginGroup -> skipSatisfied (Par.satisfyCharCatThen PT.Expanding) $ charCatHasCategory Code.BeginGroup
 
 parseExpandedBalancedText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.ExpandedBalancedText
 parseExpandedBalancedText ctx = do

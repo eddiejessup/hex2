@@ -86,3 +86,6 @@ makeEffect ''PrimTokenSource
 
 parseFail :: PrimTokenSource :> es => Text -> Eff es a
 parseFail = failParse . ParseExplicitFailure
+
+data ExpansionMode = Expanding | Inhibited
+  deriving stock (Show, Eq, Generic)

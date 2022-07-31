@@ -20,7 +20,7 @@ import Hexlude
 parseOpenFileStream :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => AST.FileStreamType -> Eff es AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =
   do
-    (n, fileName) <- parseXEqualsY Expanding Par.parseInt parseFileName
+    (n, fileName) <- parseXEqualsY PT.Expanding Par.parseInt parseFileName
     pure $ AST.FileStreamModificationCommand fileStreamType (AST.Open fileName) n
 
 headToParseOpenOutput :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => AST.WritePolicy -> T.PrimitiveToken -> Eff es AST.FileStreamModificationCommand
@@ -52,10 +52,10 @@ headToParseWriteToStream writePolicy = \case
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
 parseFileName :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es HexFilePath
 parseFileName = do
-  skipOptionalSpaces Expanding
+  skipOptionalSpaces PT.Expanding
   fileNameAsciiChars <-
     PC.some $
-      satisfyCharCatThen Expanding $ \cc ->
+      satisfyCharCatThen PT.Expanding $ \cc ->
         Code.codeAsAsciiChar
           <$> ( case cc of
                   -- Check that the char-cat has the right properties.
@@ -67,7 +67,7 @@ parseFileName = do
                   _ ->
                     Nothing
               )
-  skipSatisfied (satisfyCharCatThen Expanding) charCatIsSpace
+  skipSatisfied (satisfyCharCatThen PT.Expanding) charCatIsSpace
   pure $ HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where
     isValidOther = \case
