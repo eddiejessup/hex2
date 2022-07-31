@@ -107,39 +107,33 @@ headToParseCodeAssignment t = do
 
 headToParseModifyVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => T.PrimitiveToken -> Eff es AST.VariableModification
 headToParseModifyVariable = \case
-  T.AdvanceVarTok ->
-    PC.choice
-      [ do
-          var <- anyPrim >>= Par.headToParseIntVariable
-          skipOptionalBy
-          AST.AdvanceIntVariable var <$> Par.parseInt,
-        do
-          var <- anyPrim >>= Par.headToParseLengthVariable
-          skipOptionalBy
-          AST.AdvanceLengthVariable var <$> Par.parseLength,
-        do
-          var <- anyPrim >>= Par.headToParseGlueVariable
-          skipOptionalBy
-          AST.AdvanceGlueVariable var <$> Par.parseGlue,
-        do
-          var <- anyPrim >>= Par.headToParseMathGlueVariable
-          skipOptionalBy
-          AST.AdvanceMathGlueVariable var <$> Par.parseMathGlue
-      ]
-  T.ScaleVarTok d -> do
-    var <- parseNumericVariable
+  T.ModifyVariableTok modTok -> do
+    argVariable <- parseNumericVariable
     skipOptionalBy
-    AST.ScaleVariable d var <$> Par.parseInt
+    case modTok of
+      T.AdvanceVarTok ->
+        case argVariable of
+          AST.IntNumericVariable var ->
+            AST.AdvanceIntVariable var <$> Par.parseInt
+          AST.LengthNumericVariable var ->
+            AST.AdvanceLengthVariable var <$> Par.parseLength
+          AST.GlueNumericVariable var ->
+            AST.AdvanceGlueVariable var <$> Par.parseGlue
+          AST.MathGlueNumericVariable var ->
+            AST.AdvanceMathGlueVariable var <$> Par.parseMathGlue
+      T.ScaleVarTok d -> do
+        AST.ScaleVariable d argVariable <$> Par.parseInt
   t ->
     parseFail $ "headToParseModifyVariable " <> F.sformat PT.fmtPrimitiveToken t
 
 parseNumericVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.NumericVariable
-parseNumericVariable =
+parseNumericVariable = do
+  varHead <- anyPrim
   PC.choice
-    [ AST.IntNumericVariable <$> (anyPrim >>= Par.headToParseIntVariable),
-      AST.LengthNumericVariable <$> (anyPrim >>= Par.headToParseLengthVariable),
-      AST.GlueNumericVariable <$> (anyPrim >>= Par.headToParseGlueVariable),
-      AST.MathGlueNumericVariable <$> (anyPrim >>= Par.headToParseMathGlueVariable)
+    [ AST.IntNumericVariable <$> Par.headToParseIntVariable varHead,
+      AST.LengthNumericVariable <$> Par.headToParseLengthVariable varHead,
+      AST.GlueNumericVariable <$> Par.headToParseGlueVariable varHead,
+      AST.MathGlueNumericVariable <$> Par.headToParseMathGlueVariable varHead
     ]
 
 skipOptionalBy :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ()

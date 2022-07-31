@@ -299,9 +299,9 @@ initialSymbolMap =
       (_cs "muskipdef", primTok $ ShortDefHeadTok $ QuantityType Q.MathGlueQuantity),
       (_cs "toksdef", primTok $ ShortDefHeadTok $ QuantityType Q.TokenListQuantity),
       -- Modify variables.
-      (_cs "advance", primTok AdvanceVarTok),
-      (_cs "multiply", primTok $ ScaleVarTok Upward),
-      (_cs "divide", primTok $ ScaleVarTok Downward),
+      (_cs "advance", primTok $ ModifyVariableTok AdvanceVarTok),
+      (_cs "multiply", primTok $ ModifyVariableTok (ScaleVarTok Upward)),
+      (_cs "divide", primTok $ ModifyVariableTok (ScaleVarTok Downward)),
       -- Code types.
       (_cs "catcode", primTok $ CodeTypeTok Code.CatCodeType),
       (_cs "mathcode", primTok $ CodeTypeTok Code.MathCodeType),

@@ -51,11 +51,12 @@ headToParseBox = \case
       pure spec
 
 parseBoxOrRule :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.BoxOrRule
-parseBoxOrRule =
+parseBoxOrRule = do
+  headTok <- anyPrim
   PC.choice
-    [ AST.BoxOrRuleBox <$> (anyPrim >>= headToParseBox),
-      AST.BoxOrRuleRule Horizontal <$> (anyPrim >>= (headToParseModedRule Horizontal)),
-      AST.BoxOrRuleRule Vertical <$> (anyPrim >>= (headToParseModedRule Vertical))
+    [ AST.BoxOrRuleBox <$> headToParseBox headTok,
+      AST.BoxOrRuleRule Horizontal <$> (headToParseModedRule Horizontal headTok),
+      AST.BoxOrRuleRule Vertical <$> (headToParseModedRule Vertical headTok)
     ]
 
 -- \hrule and such.
@@ -72,18 +73,17 @@ headToParseModedRule axis = \case
       mayDim <-
         PC.optional $
           PC.choice
-            [ parseRuleDimen [Chr_ 'w', Chr_ 'i', Chr_ 'd', Chr_ 't', Chr_ 'h'] Box.BoxWidth,
-              parseRuleDimen [Chr_ 'h', Chr_ 'e', Chr_ 'i', Chr_ 'g', Chr_ 'h', Chr_ 't'] Box.BoxHeight,
-              parseRuleDimen [Chr_ 'd', Chr_ 'e', Chr_ 'p', Chr_ 't', Chr_ 'h'] Box.BoxDepth
+            [ (Box.BoxWidth,) <$> parseRuleDimen [Chr_ 'w', Chr_ 'i', Chr_ 'd', Chr_ 't', Chr_ 'h'],
+              (Box.BoxHeight,) <$> parseRuleDimen [Chr_ 'h', Chr_ 'e', Chr_ 'i', Chr_ 'g', Chr_ 'h', Chr_ 't'],
+              (Box.BoxDepth,) <$> parseRuleDimen [Chr_ 'd', Chr_ 'e', Chr_ 'p', Chr_ 't', Chr_ 'h']
             ]
       case mayDim of
-        Just newDim -> go (dims :|> newDim)
+        Just newDim -> go (dims |> newDim)
         Nothing -> pure dims
 
-    parseRuleDimen keyword dimType = do
+    parseRuleDimen keyword = do
       skipKeyword PT.Expanding keyword
-      ln <- Par.parseLength
-      pure (dimType, ln)
+      Par.parseLength
 
 headToParseFetchedBoxRef :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.FetchedBoxRef
 headToParseFetchedBoxRef tgtAxis = \case

@@ -60,6 +60,11 @@ data CharryQuantityType
   | QuantityType Q.QuantityType
   deriving stock (Show, Eq, Generic)
 
+data ModifyVariableTok
+  = AdvanceVarTok -- \advance
+  | ScaleVarTok VDirection -- \multiply, \divide.
+  deriving stock (Show, Eq, Generic)
+
 data NumericQuantityType
   = IntNumericQuantity
   | LengthNumericQuantity
@@ -205,8 +210,7 @@ data PrimitiveToken
   | -- Heads of int-ref definitions.
     ShortDefHeadTok CharryQuantityType
   | -- > Modifying variable values with arithmetic.
-    AdvanceVarTok -- \advance
-  | ScaleVarTok VDirection -- \multiply, \divide.
+    ModifyVariableTok ModifyVariableTok
   | CodeTypeTok CodeType
   | -- > Aliasing tokens.
     LetTok -- \let
