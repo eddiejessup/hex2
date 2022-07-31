@@ -166,6 +166,7 @@ data PrimitiveToken
   | RemoveItemTok RemovableItem
   | MarkTok -- \mark
   | InsertionTok -- \insert
+  | AdjustmentTok -- \vadjust
   | LeadersTok LeadersType
   | StartParagraphTok ListExtractor.IndentFlag -- \indent, \noindent
   | EndParagraphTok -- \par

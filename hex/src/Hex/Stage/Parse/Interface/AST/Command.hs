@@ -25,15 +25,14 @@ data Command
   | ShowTheInternalQuantity InternalQuantity
   | ShipOut Box
   | AddMark HSt.TL.ExpandedBalancedText
-  | -- -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
-    -- -- then can 'migrate' out.
-    -- \| AddInsertion HexInt VModeMaterial
-    -- \| AddAdjustment VModeMaterial
-    AddSpace
+  | -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
+    -- then can 'migrate' out.
+    AddInsertion HexInt
+  | AddAdjustment
+  | AddSpace
   | StartParagraph ListExtractor.IndentFlag
   | EndParagraph
-  | -- \| AddAlignedMaterial DesiredLength AlignmentMaterial
-    HModeCommand HModeCommand
+  | HModeCommand HModeCommand
   | VModeCommand VModeCommand
   | ModeIndependentCommand ModeIndependentCommand
   deriving stock (Show, Eq, Generic)
@@ -64,6 +63,7 @@ data VModeCommand
   | AddVGlue Glue
   | AddVLeaders LeadersSpec
   | AddVRule Rule
+  | AddHAlignedMaterial BoxSpecification
   | AddUnwrappedFetchedVBox FetchedBoxRef -- \unv{box,copy}
   deriving stock (Show, Eq, Generic)
 
@@ -78,6 +78,7 @@ data HModeCommand
   | AddHGlue Glue
   | AddHLeaders LeadersSpec
   | AddHRule Rule
+  | AddVAlignedMaterial BoxSpecification
   | AddUnwrappedFetchedHBox FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
 

@@ -25,6 +25,8 @@ evalCommand = \case
   P.ShowTheInternalQuantity internalQuantity -> pure $ E.ShowTheInternalQuantity internalQuantity
   P.ShipOut box -> pure $ E.ShipOut box
   P.AddMark expandedBalancedText -> pure $ E.AddMark expandedBalancedText
+  P.AddInsertion n -> E.AddInsertion <$> Eval.evalInt n
+  P.AddAdjustment -> pure $ E.AddAdjustment
   P.AddSpace -> pure E.AddSpace
   P.StartParagraph indentFlag -> pure $ E.StartParagraph indentFlag
   P.EndParagraph -> pure E.EndParagraph
@@ -37,6 +39,7 @@ evalVModeCommand = \case
   P.AddVGlue glue -> E.AddVGlue <$> Eval.evalGlue glue
   P.AddVLeaders leadersSpec -> pure $ E.AddVLeaders leadersSpec
   P.AddVRule rule -> E.AddVRule <$> Eval.evalVModeRule rule
+  P.AddHAlignedMaterial boxSpec -> E.AddHAlignedMaterial <$> evalBoxSpecification boxSpec
   P.AddUnwrappedFetchedVBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedVBox fetchedBoxRef
 
 evalHModeCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.HModeCommand -> Eff es E.HModeCommand
@@ -55,6 +58,7 @@ evalHModeCommand = \case
   P.AddHGlue glue -> E.AddHGlue <$> Eval.evalGlue glue
   P.AddHLeaders leadersSpec -> pure $ E.AddHLeaders leadersSpec
   P.AddHRule rule -> E.AddHRule <$> Eval.evalHModeRule rule
+  P.AddVAlignedMaterial boxSpec -> E.AddVAlignedMaterial <$> evalBoxSpecification boxSpec
   P.AddUnwrappedFetchedHBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedHBox fetchedBoxRef
 
 evalModeIndepCmd :: [Error Eval.EvaluationError, EHexState] :>> es => P.ModeIndependentCommand -> Eff es E.ModeIndependentCommand

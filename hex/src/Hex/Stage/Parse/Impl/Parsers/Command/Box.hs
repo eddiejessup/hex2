@@ -39,16 +39,17 @@ headToParseBox = \case
     pure $ AST.ExplicitBox boxSpec boxType
   t ->
     parseFail $ "headToParseBox " <> F.sformat PT.fmtPrimitiveToken t
-  where
-    parseBoxSpecification = do
-      spec <-
-        PC.choice
-          [ skipKeyword PT.Expanding [Chr_ 't', Chr_ 'o'] *> (AST.To <$> Par.parseLength),
-            skipKeyword PT.Expanding [Chr_ 's', Chr_ 'p', Chr_ 'r', Chr_ 'e', Chr_ 'a', Chr_ 'd'] *> (AST.Spread <$> Par.parseLength),
-            pure AST.Natural
-          ]
-      skipFillerExpanding
-      pure spec
+
+parseBoxSpecification :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.BoxSpecification
+parseBoxSpecification = do
+  spec <-
+    PC.choice
+      [ skipKeyword PT.Expanding [Chr_ 't', Chr_ 'o'] *> (AST.To <$> Par.parseLength),
+        skipKeyword PT.Expanding [Chr_ 's', Chr_ 'p', Chr_ 'r', Chr_ 'e', Chr_ 'a', Chr_ 'd'] *> (AST.Spread <$> Par.parseLength),
+        pure AST.Natural
+      ]
+  skipFillerExpanding
+  pure spec
 
 parseBoxOrRule :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.BoxOrRule
 parseBoxOrRule = do

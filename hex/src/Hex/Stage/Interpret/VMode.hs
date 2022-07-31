@@ -60,6 +60,8 @@ handleCommandInVMode oldSrc modeVariant command =
           pure ContinueMainVMode
         Eval.AddUnwrappedFetchedVBox _fetchedBoxRef ->
           notImplemented "handleCommandInVMode: AddUnwrappedFetchedVBox"
+        Eval.AddHAlignedMaterial _boxSpec ->
+          notImplemented "VMode: AddHAlignedMaterial"
       Eval.HModeCommand _ ->
         addPara ListExtractor.Indent
       Eval.StartParagraph indentFlag ->
@@ -70,15 +72,14 @@ handleCommandInVMode oldSrc modeVariant command =
       -- <space token> has no effect in vertical modes.
       Eval.AddSpace ->
         pure ContinueMainVMode
-      Eval.ShowToken _lexToken -> notImplemented "HMode: ShowToken"
-      Eval.ShowBox _n -> notImplemented "HMode: ShowBox"
-      Eval.ShowLists -> notImplemented "HMode: ShowLists"
-      Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "HMode: ShowTheInternalQuantity"
-      Eval.ShipOut _box -> notImplemented "HMode: ShipOut"
-      Eval.AddMark _text -> notImplemented "HMode: AddMark"
-      -- Eval.AddInsertion _n _vModeMaterial -> notImplemented "HMode: AddInsertion"
-      -- Eval.AddAdjustment _vModeMaterial -> notImplemented "HMode: AddAdjustment"
-      -- Eval.AddAlignedMaterial _desiredLength _alignMaterial _hModeCommand1 _hModeCommand2 -> notImplemented "HMode: AddAlignedMaterial"
+      Eval.ShowToken _lexToken -> notImplemented "VMode: ShowToken"
+      Eval.ShowBox _n -> notImplemented "VMode: ShowBox"
+      Eval.ShowLists -> notImplemented "VMode: ShowLists"
+      Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "VMode: ShowTheInternalQuantity"
+      Eval.ShipOut _box -> notImplemented "VMode: ShipOut"
+      Eval.AddMark _text -> notImplemented "VMode: AddMark"
+      Eval.AddInsertion _n -> notImplemented "VMode: AddInsertion"
+      Eval.AddAdjustment -> notImplemented "VMode: AddAdjustment"
       Eval.ModeIndependentCommand modeIndependentCommand ->
         AllMode.handleModeIndependentCommand modeIndependentCommand >>= \case
           AllMode.SawEndBox ->

@@ -112,6 +112,7 @@ initialSymbolMap =
       (_cs "unskip", primTok $ RemoveItemTok GlueItem),
       (_cs "mark", primTok MarkTok),
       (_cs "insert", primTok InsertionTok),
+      (_cs "vadjust", primTok AdjustmentTok),
       (_cs "leaders", primTok $ LeadersTok Aligned),
       (_cs "cleaders", primTok $ LeadersTok Centered),
       (_cs "xleaders", primTok $ LeadersTok Expanded),
@@ -130,8 +131,8 @@ initialSymbolMap =
       (_cs "vss", vModeTok $ PresetGlueTok StretchOrShrink),
       (_cs "hss", hModeTok $ PresetGlueTok StretchOrShrink),
       -- Other moded.
-      (_cs "halign", hModeTok AlignedMaterialTok),
-      (_cs "valign", vModeTok AlignedMaterialTok),
+      (_cs "halign", vModeTok AlignedMaterialTok),
+      (_cs "valign", hModeTok AlignedMaterialTok),
       (_cs "moveleft", hModeTok $ ShiftedBoxTok Backward),
       (_cs "moveright", hModeTok $ ShiftedBoxTok Forward),
       (_cs "raise", vModeTok $ ShiftedBoxTok Backward),

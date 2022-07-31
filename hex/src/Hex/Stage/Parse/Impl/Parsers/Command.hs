@@ -16,6 +16,7 @@ import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Stream qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
+import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
@@ -113,6 +114,20 @@ parseCommand =
       pure $ AST.VModeCommand AST.End
     PT.DumpTok ->
       pure $ AST.VModeCommand AST.Dump
+    PT.InsertionTok -> do
+      n <- Par.parseInt
+      skipFillerExpanding
+      pure $ AST.AddInsertion n
+    PT.AdjustmentTok -> do
+      skipFillerExpanding
+      pure AST.AddAdjustment
+    PT.ModedCommand axis PT.AlignedMaterialTok -> do
+      boxSpec <- Par.parseBoxSpecification
+      pure $ case axis of
+        Horizontal ->
+          AST.HModeCommand $ AST.AddVAlignedMaterial boxSpec
+        Vertical ->
+          AST.VModeCommand $ AST.AddHAlignedMaterial boxSpec
     t -> do
       PC.choice
         [ AST.ModeIndependentCommand . AST.Assign <$> Par.headToParseAssignment t,
@@ -137,7 +152,7 @@ headToParseInternalQuantity =
     [ fmap AST.InternalIntQuantity <$> Par.headToParseInternalInt,
       fmap AST.InternalLengthQuantity <$> Par.headToParseInternalLength,
       fmap AST.InternalGlueQuantity <$> Par.headToParseInternalGlue,
-      -- , fmap AST.InternalMathGlueQuantity  <$> Par.headToParseInternalMathGlue
+      fmap AST.InternalMathGlueQuantity <$> Par.headToParseInternalMathGlue,
       fmap AST.FontQuantity <$> Par.headToParseFontRef,
       fmap AST.TokenListVariableQuantity <$> Par.headToParseTokenListVariable
     ]

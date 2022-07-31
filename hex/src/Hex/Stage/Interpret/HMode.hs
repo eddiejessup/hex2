@@ -89,6 +89,8 @@ handleCommandInHMode oldSrc modeVariant = \case
       notImplemented "AddHLeaders"
     Eval.AddUnwrappedFetchedHBox _fetchedBoxRef ->
       notImplemented "AddUnwrappedFetchedHBox"
+    Eval.AddVAlignedMaterial _boxSpec ->
+      notImplemented "HMode: AddVAlignedMaterial"
   Eval.AddSpace -> do
     spaceGlue <- HSt.currentFontSpaceGlue >>= note (AllMode.NoFontSelected)
     Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue spaceGlue
@@ -114,10 +116,8 @@ handleCommandInHMode oldSrc modeVariant = \case
   Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "HMode: ShowTheInternalQuantity"
   Eval.ShipOut _box -> notImplemented "HMode: ShipOut"
   Eval.AddMark _text -> notImplemented "HMode: AddMark"
-
--- Eval.AddInsertion _n _vModeMaterial -> notImplemented "HMode: AddInsertion"
--- Eval.AddAdjustment _vModeMaterial -> notImplemented "HMode: AddAdjustment"
--- Eval.AddAlignedMaterial _desiredLength _alignMaterial _hModeCommand1 _hModeCommand2 -> notImplemented "HMode: AddAlignedMaterial"
+  Eval.AddInsertion _n -> notImplemented "HMode: AddInsertion"
+  Eval.AddAdjustment -> notImplemented "HMode: AddAdjustment"
 
 charAsBox ::
   ( HSt.EHexState :> es,

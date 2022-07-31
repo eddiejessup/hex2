@@ -49,31 +49,14 @@ data Command
   | AddMark HSt.TL.ExpandedBalancedText
   | -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- then can 'migrate' out.
-    AddInsertion Q.HexInt VModeMaterial
-  | AddAdjustment VModeMaterial
+    AddInsertion Q.HexInt
+  | AddAdjustment
   | AddSpace
   | StartParagraph ListExtractor.IndentFlag
   | EndParagraph
-  | AddAlignedMaterial
-      DesiredLength
-      AlignmentMaterial
-      HModeCommand
-      HModeCommand
   | HModeCommand HModeCommand
   | VModeCommand VModeCommand
   | ModeIndependentCommand ModeIndependentCommand
-  deriving stock (Show, Eq, Generic)
-
--- Not implemented.
-data VModeMaterial
-  deriving stock (Show, Eq, Generic)
-
--- Not implemented.
-data AlignmentMaterial
-  deriving stock (Show, Eq, Generic)
-
--- Not implemented.
-data DesiredLength
   deriving stock (Show, Eq, Generic)
 
 data Assignment = Assignment {body :: AssignmentBody, scope :: HSt.Grouped.ScopeFlag}
@@ -109,6 +92,7 @@ data HModeCommand
   | AddHGlue Q.Glue
   | AddHLeaders Uneval.LeadersSpec
   | AddHRule Box.Rule
+  | AddVAlignedMaterial BoxSpecification
   | AddUnwrappedFetchedHBox Uneval.FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
 
@@ -119,6 +103,7 @@ data VModeCommand
   | AddVGlue Q.Glue
   | AddVLeaders Uneval.LeadersSpec
   | AddVRule Box.Rule
+  | AddHAlignedMaterial BoxSpecification
   | AddUnwrappedFetchedVBox Uneval.FetchedBoxRef -- \unv{box,copy}
   deriving stock (Show, Eq, Generic)
 
