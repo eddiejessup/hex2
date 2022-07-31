@@ -26,7 +26,7 @@ breakGreedy ::
   ListElem.HList ->
   Seq ListElem.HList
 breakGreedy desiredWidth _tol _lp (ListElem.HList allEs) =
-  let finalisedHList = finaliseHList (ListElem.HList allEs)
+  let finalisedHList = prepareHListForBreaking (ListElem.HList allEs)
 
       eWBs :: Seq (HListElem, Maybe BreakItem)
       eWBs = withBreaks finalisedHList

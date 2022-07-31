@@ -8,10 +8,10 @@ import Hexlude
 data DiscardingState = Discarding | NotDiscarding
   deriving stock (Show, Generic)
 
-finaliseHList :: ListElem.HList -> ListElem.HList
-finaliseHList (ListElem.HList Empty) =
+prepareHListForBreaking :: ListElem.HList -> ListElem.HList
+prepareHListForBreaking (ListElem.HList Empty) =
   ListElem.HList mempty
-finaliseHList (ListElem.HList elems@(elemInit :|> lastElem)) =
+prepareHListForBreaking (ListElem.HList elems@(elemInit :|> lastElem)) =
   let -- Remove the final item if it's glue.
       trimmedElems = case lastElem of
         ListElem.HVListElem (ListElem.ListGlue _) -> elemInit

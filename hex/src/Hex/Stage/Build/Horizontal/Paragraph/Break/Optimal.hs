@@ -103,6 +103,16 @@ completeIncompleteLine x line = case x of
   _ ->
     CompletedLine (line.lineElements |> x) (line.lineStartPoint)
 
+completeAndPruneUnacceptableLines ::
+  Q.Length ->
+  Q.HexInt ->
+  (BreakItem, HListElem) ->
+  Seq IncompleteLine ->
+  Seq CompletedLine
+completeAndPruneUnacceptableLines desiredWidth tolerance (breakItem, breakItemElem) =
+  Seq.filter (completedLineIsAcceptable tolerance desiredWidth breakItem) .
+    fmap (completeIncompleteLine breakItemElem)
+
 completedLineBadness :: Q.Length -> CompletedLine -> Bad.Badness
 completedLineBadness desiredWidth line =
   let completedLineFlexSpec =
@@ -153,10 +163,7 @@ appendBreakListElement desiredWidth tolerance linePenalty item = do
     ChunkedBreakItem breakItemElem breakItem -> do
       acceptableCompletedLines <-
         use @BreakingState
-          ( #incompleteLines
-              % to (fmap ((completeIncompleteLine breakItemElem)))
-              % to (Seq.filter (completedLineIsAcceptable tolerance desiredWidth breakItem))
-          )
+          (#incompleteLines % to (completeAndPruneUnacceptableLines desiredWidth tolerance (breakItem, breakItemElem)))
       case acceptableCompletedLines of
         -- If we can't break at this point acceptably somehow, it's not really a break-point, so just treat
         -- the break item like a non-break item, like the above 'chunk' case.
@@ -188,12 +195,13 @@ appendBreakListElement desiredWidth tolerance linePenalty item = do
   where
     getNextBreakpointId = use @BreakingState (#breakToBestLineSequenceCache % to nextBreakpointId)
 
+-- Assumes
 bestLineSequenceBreakingHere ::
   Q.Length ->
   Q.HexInt ->
   BreakItem ->
   BreakpointToBestLineSequenceCache ->
-  Seq CompletedLine ->
+  Seq CompletedLine -> -- ^ Assumed to be non-empty.
   CompletedLineSequence
 bestLineSequenceBreakingHere desiredWidth linePenalty breakItem breakToBestLineSequenceCache acceptableCompletedLines =
   -- TODO: Recomputing badness here might not be great. Probably better to cache it when we are finding 'acceptable' lines.
@@ -214,18 +222,12 @@ appendAllElements ::
   ListElem.HList ->
   Eff es BreakingState
 appendAllElements desiredWidth tolerance lp (ListElem.HList allEs) =
-  let finalisedHList = finaliseHList (ListElem.HList allEs)
+  let finalisedHList = prepareHListForBreaking (ListElem.HList allEs)
       breakList = asChunkedList finalisedHList
    in execStateLocal initialBreakingState (for_ breakList (appendBreakListElement desiredWidth tolerance lp))
 
-foo ::
-  Q.Length -> -- HSize
-  Q.HexInt -> -- Tolerance
-  Q.HexInt -> -- LinePenalty
-  ListElem.HList ->
-  Eff es (Seq HList)
-foo desiredWidth tolerance linePenalty hList = do
-  finalState <- appendAllElements desiredWidth tolerance linePenalty hList
+finaliseBrokenList :: Q.Length -> Q.HexInt -> Q.HexInt -> BreakingState -> Seq HList
+finaliseBrokenList desiredWidth tolerance linePenalty finalState =
   -- Finish off by 'breaking' at the end of the list.
   -- TODO: Do this properly.
   let finalFakePenalty = ListElem.Penalty $ Q.zeroInt
@@ -233,16 +235,29 @@ foo desiredWidth tolerance linePenalty hList = do
       finalBreakItem = PenaltyBreak finalFakePenalty
       acceptableCompletedLines =
         finalState
-          ^. ( #incompleteLines
-                 % to (fmap ((completeIncompleteLine finalFakeElem)))
-                 % to (Seq.filter (completedLineIsAcceptable tolerance desiredWidth finalBreakItem))
+          ^. ( (#incompleteLines % to (completeAndPruneUnacceptableLines desiredWidth tolerance (finalBreakItem, finalFakeElem)))
              )
-      bestSequence =
-        bestLineSequenceBreakingHere
+
+      bestSequence = case acceptableCompletedLines of
+        Empty ->
+          notImplemented "What to do if there is no way to break within tolerance"
+        _ ->
+          bestLineSequenceBreakingHere
           desiredWidth
           linePenalty
           finalBreakItem
           finalState.breakToBestLineSequenceCache
           acceptableCompletedLines
-  pure $
+  in
     bestSequence.unCompletedLineSequence <&> \completedLine -> ListElem.HList $ completedLine.lineElements
+
+
+breakHListOptimally ::
+  Q.Length -> -- HSize
+  Q.HexInt -> -- Tolerance
+  Q.HexInt -> -- LinePenalty
+  ListElem.HList ->
+  Eff es (Seq HList)
+breakHListOptimally desiredWidth tolerance linePenalty hList = do
+  finalState <- appendAllElements desiredWidth tolerance linePenalty hList
+  pure $ finaliseBrokenList desiredWidth tolerance linePenalty finalState

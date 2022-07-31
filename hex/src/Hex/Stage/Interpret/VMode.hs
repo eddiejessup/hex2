@@ -123,7 +123,7 @@ setAndBreakHListToHBoxes hList = do
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
   lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
   linePen <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
-  lineHLists <- Break.foo hSize lineTol linePen hList
+  lineHLists <- Break.breakHListOptimally hSize lineTol linePen hList
   for lineHLists $ \lineHList -> do
     let listWidth = ListElem.hListNaturalWidth lineHList
         (hBoxElems, flexSpec) = List.H.setList lineHList hSize
