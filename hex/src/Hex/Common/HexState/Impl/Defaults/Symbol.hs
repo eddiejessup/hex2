@@ -5,6 +5,7 @@ import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font
 import Hex.Common.HexState.Interface.Grouped
+import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.Parameter
 import Hex.Common.HexState.Interface.Register
 import Hex.Common.HexState.Interface.Resolve qualified as H.Res
@@ -43,10 +44,10 @@ initialSymbolMap =
     [ (_cs "ifnum", condTok IfIntPairTestTok),
       (_cs "ifdim", condTok IfLengthPairTestTok),
       (_cs "ifodd", condTok IfIntOddTok),
-      (_cs "ifvmode", condTok $ IfInModeTok VerticalMode),
-      (_cs "ifhmode", condTok $ IfInModeTok HorizontalMode),
-      (_cs "ifmmode", condTok $ IfInModeTok MathMode),
-      (_cs "ifinner", condTok $ IfInModeTok InnerMode),
+      (_cs "ifvmode", condTok $ IfInModeTok (HSt.Mode.InMode HSt.Mode.VerticalMode)),
+      (_cs "ifhmode", condTok $ IfInModeTok (HSt.Mode.InMode HSt.Mode.HorizontalMode)),
+      (_cs "ifmmode", condTok $ IfInModeTok (HSt.Mode.InMode HSt.Mode.MathMode)),
+      (_cs "ifinner", condTok $ IfInModeTok HSt.Mode.InInnerMode),
       (_cs "if", condTok $ IfTokenAttributesEqualTok CharCodeAttribute),
       (_cs "ifcat", condTok $ IfTokenAttributesEqualTok CatCodeAttribute),
       (_cs "ifx", condTok IfTokensEqualTok),

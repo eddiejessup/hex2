@@ -39,6 +39,7 @@ data HexStateError
   | CharacterCodeNotFound
   | PoppedEmptyGroups
   | UnmatchedExitGroupTrigger
+  | TriedToLeaveMainVMode
   deriving stock (Show, Generic)
 
 fmtHexStateError :: Fmt HexStateError
@@ -166,6 +167,14 @@ runHexState = interpret $ \_ -> \case
                     throwError (UnmatchedExitGroupTrigger)
           Sc.Group.NonScopeGroup ->
             notImplemented $ "popGroup: NonScopeGroup"
+  EnterMode mode -> do
+    modifying @HexState #modeStack (enterModeImpl mode)
+  LeaveMode -> do
+    use @HexState (#modeStack % to leaveModeImpl) >>= \case
+      Nothing -> throwError TriedToLeaveMainVMode
+      Just newModeStack -> assign @HexState #modeStack newModeStack
+  PeekMode ->
+    use @HexState (#modeStack % to peekModeImpl)
 
 modifyGroupScopes :: State HexState :> es => (GroupScopes -> GroupScopes) -> Eff es ()
 modifyGroupScopes = modifying @HexState (#groupScopes)

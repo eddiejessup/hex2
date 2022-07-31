@@ -4,6 +4,7 @@ import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Build.BoxElem qualified as BoxElem
@@ -28,22 +29,22 @@ handleCommandInHMode ::
     Log.HexLog :> es,
     Build.HListBuilder :> es,
     Build.HexListBuilder :> es,
-    ListExtractor.ExtractHList :> es
+    ListExtractor.ExtractList :> es
   ) =>
   CharSourceStack ->
-  ListExtractor.ModeContext ->
+  HSt.Mode.ModeVariant ->
   Eval.Command ->
   Eff es HModeCommandResult
-handleCommandInHMode oldSrc modeCtx = \case
-  Eval.VModeCommand _ -> case modeCtx of
-    ListExtractor.OuterModeContext -> do
+handleCommandInHMode oldSrc modeVariant = \case
+  Eval.VModeCommand _ -> case modeVariant of
+    HSt.Mode.OuterModeVariant -> do
       -- Insert the control sequence "\par" into the input. The control
       -- sequence's current meaning will be used, which might no longer be the \par
       -- primitive.
       HIn.putInput oldSrc
       HIn.insertLexToken LT.parToken
       pure ContinueHMode
-    ListExtractor.InnerModeContext -> do
+    HSt.Mode.InnerModeVariant -> do
       throwError $ AllMode.VModeCommandInInnerHMode
   Eval.HModeCommand hModeCommand -> case hModeCommand of
     Eval.AddHGlue g -> do
@@ -80,10 +81,10 @@ handleCommandInHMode oldSrc modeCtx = \case
     hModeStartParagraph indentFlag
     pure ContinueHMode
   -- \par: Restricted: does nothing. Unrestricted: ends mode.
-  Eval.EndParagraph -> pure $ case modeCtx of
-    ListExtractor.OuterModeContext ->
+  Eval.EndParagraph -> pure $ case modeVariant of
+    HSt.Mode.OuterModeVariant ->
       EndHList ListExtractor.EndHListSawEndParaCommand
-    ListExtractor.InnerModeContext ->
+    HSt.Mode.InnerModeVariant ->
       ContinueHMode
   Eval.ModeIndependentCommand modeIndependentCommand ->
     AllMode.handleModeIndependentCommand modeIndependentCommand <&> \case

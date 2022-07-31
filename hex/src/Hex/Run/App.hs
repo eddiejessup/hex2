@@ -18,8 +18,8 @@ import Hex.Common.HexState.Interface (EHexState, ResolutionError, fmtResolutionE
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.TFM.Types (TFMError)
 import Hex.Common.TFM.Types qualified as TFM
-import Hex.Stage.Build.ListExtractor.HList (runListExtractor)
-import Hex.Stage.Build.ListExtractor.Interface (ExtractHList)
+import Hex.Stage.Build.ListExtractor.Impl (runListExtractor)
+import Hex.Stage.Build.ListExtractor.Interface (ExtractList)
 import Hex.Stage.Evaluate.Impl (runHexEvaluate)
 import Hex.Stage.Evaluate.Impl.Common (EvaluationError)
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
@@ -103,7 +103,7 @@ runEvaluateApp hexEnv appState app = do
 runExtractorApp ::
   HexEnv ->
   AppState ->
-  Eff '[ExtractHList, Error Interpret.InterpretError, HexEvaluate, CommandSource, Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE] (Either AppError a) ->
+  Eff '[ExtractList, Error Interpret.InterpretError, HexEvaluate, CommandSource, Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE] (Either AppError a) ->
   IO (Either AppError a)
 runExtractorApp hexEnv appState app = do
   app

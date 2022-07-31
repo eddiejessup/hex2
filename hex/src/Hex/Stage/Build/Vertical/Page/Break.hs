@@ -9,7 +9,7 @@ import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Breaking
 import Hex.Stage.Build.AnyDirection.Evaluate qualified as Eval
 import Hex.Stage.Build.ListElem (VList (..))
 import Hex.Stage.Build.ListElem qualified as ListElem
-import Hex.Stage.Build.ListExtractor.HList ()
+import Hex.Stage.Build.ListExtractor.Impl ()
 import Hex.Stage.Build.Vertical.Evaluate qualified as Eval
 import Hex.Stage.Build.Vertical.Page.Types qualified as Page
 import Hex.Stage.Build.Vertical.Set qualified as Set

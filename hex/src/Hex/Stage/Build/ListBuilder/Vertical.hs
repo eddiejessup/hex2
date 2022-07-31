@@ -15,6 +15,7 @@ import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Break
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.ListBuilder.Interface
 import Hex.Stage.Build.ListElem qualified as List
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
 addVListElementImpl :: (HSt.EHexState :> es, Log.HexLog :> es, State List.VList :> es) => List.VListElem -> Eff es ()
@@ -77,6 +78,6 @@ extendVList e vList@(List.VList accSeq) = case e of
         Log.infoLog $ "extendVList: Adding non-box element: " <> F.sformat List.fmtVListElem e
         pure (List.VList (accSeq :|> e))
 
-runHexListBuilderVMode :: [EHexState, HexLog] :>> es => List.VList -> Eff (HexListBuilder : es) a -> Eff es List.VList
-runHexListBuilderVMode initList = reinterpret (execStateLocal initList) $ \_ -> \case
+runHexListBuilderVMode :: [EHexState, HexLog, State ListElem.VList] :>> es => Eff (HexListBuilder : es) a -> Eff es a
+runHexListBuilderVMode = interpret $ \_ -> \case
   AddVListElement e -> addVListElementImpl e

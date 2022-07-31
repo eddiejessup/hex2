@@ -2,7 +2,7 @@
 
 module Hex.Stage.Build.ListExtractor.Interface where
 
-import Hex.Stage.Build.ListElem (HList)
+import Hex.Stage.Build.ListElem (HList, VList)
 import Hexlude
 
 data IndentFlag
@@ -15,11 +15,9 @@ data EndHListReason
   | EndHListSawLeaveBox
   deriving stock (Show, Generic)
 
-data ModeContext = InnerModeContext | OuterModeContext
-  deriving stock (Show, Generic)
+data ExtractList :: Effect where
+  ExtractHBoxList :: ExtractList m HList
+  ExtractVBoxList :: ExtractList m VList
+  ExtractParagraphList :: IndentFlag -> ExtractList m (EndHListReason, HList)
 
-data ExtractHList :: Effect where
-  ExtractHBoxList :: ExtractHList m HList
-  ExtractParagraphList :: IndentFlag -> ExtractHList m (EndHListReason, HList)
-
-makeEffect ''ExtractHList
+makeEffect ''ExtractList

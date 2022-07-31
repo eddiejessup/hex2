@@ -1,5 +1,6 @@
 module Hex.Stage.Evaluate.Interface.AST.ExpansionCommand where
 
+import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
@@ -43,7 +44,7 @@ data IfConditionHead
   = IfIntPairTest Q.HexInt Ordering Q.HexInt -- \ifnum
   | IfLengthPairTest Q.Length Ordering Q.Length -- \ifdim
   | IfIntOdd Q.HexInt -- \ifodd
-  | IfInMode PT.ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
+  | IfInMode HSt.Mode.ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
   | IfTokenAttributesEqual PT.Syn.TokenAttribute LT.LexToken LT.LexToken -- \if, \ifcat
   | IfTokensEqual LT.LexToken LT.LexToken -- \ifx
   | IfBoxRegisterIs PT.BoxRegisterAttribute Q.HexInt -- \ifvoid, \ifhbox, \ifvbox

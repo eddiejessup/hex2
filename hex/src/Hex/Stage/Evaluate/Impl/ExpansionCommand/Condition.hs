@@ -2,6 +2,7 @@ module Hex.Stage.Evaluate.Impl.ExpansionCommand.Condition where
 
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
@@ -52,8 +53,8 @@ evalIfConditionHeadToBool = \case
     pure $ ordToComp ordering lhs rhs
   E.IfIntOdd n ->
     pure $ odd n.unHexInt
-  E.IfInMode _ ->
-    notImplemented "IfInMode"
+  E.IfInMode modeAttribute -> do
+    HSt.Mode.modeAttributeHolds modeAttribute <$> HSt.peekMode
   -- A control sequence token is considered to have character code 256 and
   -- category code 16.
   -- This logic is hard to follow literally, because my category code type

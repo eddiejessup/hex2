@@ -18,7 +18,7 @@ import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.Horizontal.Set qualified as Build.H.Set
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListElem qualified as ListElem
-import Hex.Stage.Build.ListExtractor.Interface (ExtractHList)
+import Hex.Stage.Build.ListExtractor.Interface (ExtractList)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
@@ -89,7 +89,7 @@ handleModeIndependentCommand ::
     Log.HexLog :> es,
     HIn.HexInput :> es,
     Build.HexListBuilder :> es,
-    ListExtractor.ExtractHList :> es
+    ListExtractor.ExtractList :> es
   ) =>
   Eval.ModeIndependentCommand ->
   Eff es AllModeCommandResult
@@ -347,7 +347,7 @@ lengthToSetAtFromSpec spec naturalLength = case spec of
   Eval.To toLength -> toLength
   Eval.Spread spreadLength -> naturalLength <> spreadLength
 
-extractExplicitBox :: ExtractHList :> es => Eval.BoxSpecification -> PT.ExplicitBoxType -> Eff es BoxElem.BaseBox
+extractExplicitBox :: ExtractList :> es => Eval.BoxSpecification -> PT.ExplicitBoxType -> Eff es BoxElem.BaseBox
 extractExplicitBox spec = \case
   PT.ExplicitHBoxType -> do
     hList <- ListExtractor.extractHBoxList
@@ -364,5 +364,6 @@ extractExplicitBox spec = \case
                 boxDepth = naturalDepth
               }
     pure hBox
-  PT.ExplicitVBoxType _vAlignType ->
+  PT.ExplicitVBoxType _vAlignType -> do
+    _vList <- ListExtractor.extractVBoxList
     notImplemented "extractExplicitBox: ExplicitVBoxType"

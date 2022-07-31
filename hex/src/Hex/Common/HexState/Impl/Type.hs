@@ -1,5 +1,6 @@
 module Hex.Common.HexState.Impl.Type where
 
+import Data.List.NonEmpty qualified as L.NE
 import Data.Map.Strict qualified as Map
 import Formatting qualified as F
 import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
@@ -7,6 +8,7 @@ import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, fmtGroupScopes, newGroupScopes)
 import Hex.Common.HexState.Impl.Scoped.Scope (nullFontNumber)
+import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
@@ -20,9 +22,30 @@ data HexState = HexState
     specialInts :: Map Param.SpecialIntParameter Q.HexInt,
     specialLengths :: Map Param.SpecialLengthParameter Q.Length,
     afterAssignmentToken :: Maybe LT.LexToken,
-    groupScopes :: GroupScopes
+    groupScopes :: GroupScopes,
+    modeStack :: ModeStack
   }
   deriving stock (Generic)
+
+data ModeStack
+  = MainVMode
+  | InNonMainVMode (NonEmpty HSt.Mode.NonMainVMode)
+
+enterModeImpl :: HSt.Mode.NonMainVMode -> ModeStack -> ModeStack
+enterModeImpl mode stack = InNonMainVMode $ case stack of
+  MainVMode -> L.NE.singleton mode
+  InNonMainVMode xs -> (L.NE.cons mode xs)
+
+leaveModeImpl :: ModeStack -> Maybe ModeStack
+leaveModeImpl (InNonMainVMode (_x :| xs)) =
+  case L.NE.nonEmpty xs of
+    Nothing -> Just MainVMode
+    Just restNonMVModes -> Just $ InNonMainVMode restNonMVModes
+leaveModeImpl MainVMode = Nothing
+
+peekModeImpl :: ModeStack -> HSt.Mode.ModeWithVariant
+peekModeImpl (InNonMainVMode (x :| _)) = HSt.Mode.asModeWithVariant x
+peekModeImpl MainVMode = HSt.Mode.ModeWithVariant HSt.Mode.VerticalMode HSt.Mode.OuterModeVariant
 
 fmtHexState :: Fmt HexState
 fmtHexState =
@@ -44,7 +67,8 @@ newHexState = do
         specialLengths = Defaults.newSpecialLengthParameters,
         outFileStreams = mempty,
         afterAssignmentToken = Nothing,
-        groupScopes
+        groupScopes,
+        modeStack = MainVMode
       }
   where
     newFontInfos = Map.fromList [(nullFontNumber, HSt.Font.nullFontInfo)]

@@ -2,6 +2,7 @@ module Hex.Common.Token.Resolved.Expandable where
 
 import ASCII qualified
 import Formatting qualified as F
+import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Primitive
 import Hexlude
@@ -64,7 +65,7 @@ data ConditionHeadTok
   = IfIntPairTestTok -- \ifnum
   | IfLengthPairTestTok -- \ifdim
   | IfIntOddTok -- \ifodd
-  | IfInModeTok ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
+  | IfInModeTok HSt.Mode.ModeAttribute -- \ifvmode, \ifhmode, \ifmmode, \ifinner
   | IfTokenAttributesEqualTok TokenAttribute
   | IfTokensEqualTok -- \ifx
   | IfBoxRegisterIsTok BoxRegisterAttribute -- \ifvoid, \ifhbox, \ifvbox
