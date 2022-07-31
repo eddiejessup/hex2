@@ -72,7 +72,7 @@ evalModeIndepCmd = \case
   P.ModifyFileStream fileStreamModificationCommand -> pure $ E.ModifyFileStream fileStreamModificationCommand
   P.WriteToStream streamWriteCommand -> E.WriteToStream <$> evalStreamWriteCommand streamWriteCommand
   P.DoSpecial expandedBalancedText -> pure $ E.DoSpecial expandedBalancedText
-  P.AddBox boxPlacement box -> pure $ E.AddBox boxPlacement box
+  P.AddBox boxPlacement box -> E.AddBox boxPlacement <$> evalBox box
   P.ChangeScope sign localStructureTrigger -> pure $ E.ChangeScope sign localStructureTrigger
   P.DebugShowState -> pure E.DebugShowState
 

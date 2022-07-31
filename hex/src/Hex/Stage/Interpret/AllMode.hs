@@ -24,6 +24,7 @@ import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Parse.Interface qualified as Par
+import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Read.Interface qualified as HIn
 import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
@@ -271,20 +272,8 @@ handleModeIndependentCommand = \case
         HSt.setFamilyMemberFont familyMember fontNumber scope
       -- Start a new level of grouping. Enter inner mode.
       Eval.SetBoxRegister lhsIdx box -> do
-        case box of
-          Eval.FetchedRegisterBox fetchMode rhsIdx -> do
-            fetchedMaybeBox <- HSt.fetchBoxRegisterValue fetchMode rhsIdx
-            HSt.setBoxRegisterValue lhsIdx fetchedMaybeBox scope
-          Eval.LastBox ->
-            notImplemented "SetBoxRegister to LastBox"
-          Eval.VSplitBox _ _ ->
-            notImplemented "SetBoxRegister to VSplitBox"
-          Eval.ExplicitBox spec boxType -> do
-            HSt.pushGroup (Just HSt.Group.ExplicitBoxScopeGroup)
-            Log.debugLog "Extracting explicit box"
-            extractedBox <- extractExplicitBox spec boxType
-            Log.debugLog $ F.sformat ("Extracted explicit box: " |%| BoxElem.fmtBaseBox) extractedBox
-            HSt.setBoxRegisterValue lhsIdx (Just extractedBox) scope
+        mayBox <- fetchBox box
+        HSt.setBoxRegisterValue lhsIdx mayBox scope
       Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
         HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef
       assignment ->
@@ -315,23 +304,15 @@ handleModeIndependentCommand = \case
         pure SawEndBox
       HSt.Grouped.NonScopeGroupType ->
         notImplemented "ChangeScope Negative: NonScopeGroupType"
-  Eval.AddBox _naturalPlacement _boxSource -> do
-    notImplemented "handleModeIndependentCommand: AddBox"
-  -- case boxSource of
-  -- Eval.FetchedRegisterBox fetchMode idx ->
-
-  -- fetchBox fetchMode idx >>= \case
-  --         Nothing ->
-  --           pure ()
-  --         Just b ->
-  --           Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemBox b
-  --     Eval.ExplicitBox spec boxType -> do
-  --       -- Start a new level of grouping. Enter inner mode.
-  --       eSpec <- texEvaluate spec
-  --       modifying (typed @Config) $ pushGroup (ScopeGroup newLocalScope ExplicitBoxGroup)
-  --       b <- extractExplicitBox eSpec boxType
-  --       Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemBox b
-  --   pure DidNotSeeEndBox
+  Eval.AddBox boxPlacement box -> do
+    fetchBox box >>= \case
+      Nothing -> pure ()
+      Just b -> case boxPlacement of
+        P.NaturalPlacement ->
+          Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemBox b
+        P.ShiftedPlacement _axis _direction _distance ->
+          notImplemented $ "AddBox with ShiftedPlacement: " <> show boxPlacement
+    pure DidNotSeeEndBox
   Eval.AddMathKern _mathLength ->
     notImplemented "handleModeIndependentCommand: AddMathKern"
   Eval.RemoveItem _removableItem ->
@@ -342,6 +323,23 @@ handleModeIndependentCommand = \case
     notImplemented "handleModeIndependentCommand: ModifyFileStream"
   Eval.DoSpecial _text ->
     notImplemented "handleModeIndependentCommand: DoSpecial"
+  where
+    fetchBox = \case
+      Eval.FetchedRegisterBox fetchMode rhsIdx -> do
+        HSt.fetchBoxRegisterValue fetchMode rhsIdx
+      Eval.LastBox ->
+        notImplemented "Fetch LastBox"
+      Eval.VSplitBox _ _ ->
+        notImplemented "Fetch VSplitBox"
+      Eval.ExplicitBox spec boxType -> do
+        Just <$> fetchExplicitBox spec boxType
+
+    fetchExplicitBox spec boxType = do
+      HSt.pushGroup (Just HSt.Group.ExplicitBoxScopeGroup)
+      Log.debugLog "Extracting explicit box"
+      extractedBox <- extractExplicitBox spec boxType
+      Log.debugLog $ F.sformat ("Extracted explicit box: " |%| BoxElem.fmtBaseBox) extractedBox
+      pure extractedBox
 
 lengthToSetAtFromSpec :: Eval.BoxSpecification -> Q.Length -> Q.Length
 lengthToSetAtFromSpec spec naturalLength = case spec of

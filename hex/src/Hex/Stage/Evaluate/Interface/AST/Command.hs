@@ -93,7 +93,7 @@ data ModeIndependentCommand
   | ModifyFileStream Uneval.FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial HSt.TL.ExpandedBalancedText
-  | AddBox Uneval.BoxPlacement Uneval.Box
+  | AddBox Uneval.BoxPlacement Box
   | ChangeScope Q.Sign HSt.Group.ChangeGroupTrigger
   | DebugShowState
   deriving stock (Show, Eq, Generic)

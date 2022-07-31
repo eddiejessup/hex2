@@ -193,8 +193,8 @@ evalPhysicalUnitFrame = \case
   P.MagnifiedFrame ->
     pure 1.0
   P.TrueFrame -> do
-    _mag <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Mag)
-    notImplemented "evalPhysicalUnitFrame: MagnifiedFrame"
+    mag <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Mag)
+    pure $ recip $ Q.intRatio mag (Q.HexInt Q.thousand)
 
 evalInternalUnit :: [Error Eval.EvaluationError, EHexState] :>> es => P.InternalUnit -> Eff es Q.Length
 evalInternalUnit = \case

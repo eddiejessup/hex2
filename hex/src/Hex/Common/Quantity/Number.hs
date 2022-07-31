@@ -53,6 +53,9 @@ fmtHexIntSimple = F.accessed (.unHexInt) F.shown
 zeroInt :: HexInt
 zeroInt = mempty
 
+thousand :: Int
+thousand = 1000
+
 tenK :: Int
 tenK = 10000
 
