@@ -8,8 +8,8 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Impl (HexEnv, runHexEnv)
 import Hex.Common.HexEnv.Impl qualified as HEnv
 import Hex.Common.HexEnv.Interface (EHexEnv)
-import Hex.Common.HexState.Impl (HexStateError, runHexState)
-import Hex.Common.HexState.Impl qualified as HSt
+import Hex.Common.HexState.Impl (runHexState)
+import Hex.Common.HexState.Impl.Error qualified as HSt.Err
 import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as HSt.GroupScopes
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as HSt.Scope
 import Hex.Common.HexState.Impl.Type (HexState)
@@ -48,7 +48,7 @@ data AppState = AppState
 runInputApp ::
   HexEnv ->
   AppState ->
-  Eff ([HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE]) (Either AppError a) ->
+  Eff ([HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HSt.Err.HexStateError, Error TFMError, IOE]) (Either AppError a) ->
   IO (Either AppError a)
 runInputApp hexEnv appState app = do
   app
@@ -68,7 +68,7 @@ runInputApp hexEnv appState app = do
 runPTSourceApp ::
   HexEnv ->
   AppState ->
-  Eff '[Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE] (Either AppError a) ->
+  Eff '[Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HSt.Err.HexStateError, Error TFMError, IOE] (Either AppError a) ->
   IO (Either AppError a)
 runPTSourceApp hexEnv appState app = do
   app
@@ -83,7 +83,7 @@ runPTSourceApp hexEnv appState app = do
 runCommandSourceApp ::
   HexEnv ->
   AppState ->
-  Eff '[CommandSource, Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE] (Either AppError a) ->
+  Eff '[CommandSource, Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HSt.Err.HexStateError, Error TFMError, IOE] (Either AppError a) ->
   IO (Either AppError a)
 runCommandSourceApp hexEnv appState app = do
   app
@@ -93,7 +93,7 @@ runCommandSourceApp hexEnv appState app = do
 runEvaluateApp ::
   HexEnv ->
   AppState ->
-  Eff '[HexEvaluate, CommandSource, Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE] (Either AppError a) ->
+  Eff '[HexEvaluate, CommandSource, Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HSt.Err.HexStateError, Error TFMError, IOE] (Either AppError a) ->
   IO (Either AppError a)
 runEvaluateApp hexEnv appState app = do
   app
@@ -103,7 +103,7 @@ runEvaluateApp hexEnv appState app = do
 runExtractorApp ::
   HexEnv ->
   AppState ->
-  Eff '[ExtractList, Error Interpret.InterpretError, HexEvaluate, CommandSource, Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HexStateError, Error TFMError, IOE] (Either AppError a) ->
+  Eff '[ExtractList, Error Interpret.InterpretError, HexEvaluate, CommandSource, Expand.PrimTokenSource, EAlternative, Error ParsingError, Error Expand.ExpansionError, Error ResolutionError, Error EvaluationError, HexInput, EHexState, EHexEnv, HexLog, State HIn.CharSourceStack, State Expand.ConditionStates, State HexState, Reader HexEnv, Error LexError, Error HSt.Err.HexStateError, Error TFMError, IOE] (Either AppError a) ->
   IO (Either AppError a)
 runExtractorApp hexEnv appState app = do
   app
@@ -137,7 +137,7 @@ newAppStateWithChars inputBytes = do
 
 data AppError
   = AppLexError HIn.LexError
-  | AppHexStateError HSt.HexStateError
+  | AppHexStateError HSt.Err.HexStateError
   | AppTFMError TFM.TFMError
   | AppParseError ParsingError
   | AppExpansionError Expand.ExpansionError
@@ -155,7 +155,7 @@ fmtAppError = F.later $ \case
   AppInterpretError interpretError -> F.bformat Interpret.fmtInterpretError interpretError
   AppResolutionError resolutionError -> F.bformat fmtResolutionError resolutionError
   AppEvaluationError evaluationError -> F.bformat Eval.fmtEvaluationError evaluationError
-  AppHexStateError hexStateError -> F.bformat HSt.fmtHexStateError hexStateError
+  AppHexStateError hexStateError -> F.bformat HSt.Err.fmtHexStateError hexStateError
   AppTFMError tfmError -> F.bformat TFM.fmtTfmError tfmError
   AppDVIError dviError -> F.bformat Render.Spec.fmtDVIError dviError
 

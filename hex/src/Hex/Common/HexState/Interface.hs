@@ -60,7 +60,7 @@ data EHexState :: Effect where
   PopAfterAssignmentToken :: EHexState m (Maybe LT.LexToken)
   SetAfterAssignmentToken :: LT.LexToken -> EHexState m ()
   PushGroup :: Maybe Grouped.ScopedGroupType -> EHexState m ()
-  PopGroup :: Grouped.ChangeGroupTrigger -> EHexState m HSt.Grouped.HexGroupType
+  PopGroup :: Grouped.ChangeGroupTrigger -> EHexState m (HSt.Grouped.HexGroupType, Maybe DVI.FontNumber)
   EnterMode :: HSt.Mode.NonMainVMode -> EHexState m ()
   PeekMode :: EHexState m HSt.Mode.ModeWithVariant
   LeaveMode :: EHexState m ()

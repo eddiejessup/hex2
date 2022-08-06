@@ -266,8 +266,7 @@ handleModeIndependentCommand = \case
                   HSt.Var.RegisterVar registerLoc ->
                     HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
       Eval.SelectFont fNr -> do
-        HSt.selectFont fNr scope
-        Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemFontSelection fNr
+        selectFontInternallyAndDVI fNr scope
       Eval.SetFamilyMember familyMember fontNumber ->
         HSt.setFamilyMemberFont familyMember fontNumber scope
       -- Start a new level of grouping. Enter inner mode.
@@ -293,11 +292,7 @@ handleModeIndependentCommand = \case
   -- effects of non-global assignments, and leave the
   -- group. Maybe leave the current mode.
   Eval.ChangeScope Q.Negative exitTrigger ->
-    --   prePopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
-    --   postPopCurrentFontNr <- uses (typed @Config) lookupCurrentFontNr
-    --   when (prePopCurrentFontNr /= postPopCurrentFontNr) $ do
-    --     Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemFontSelection $ BoxElem.FontSelection (fromMaybe 0 postPopCurrentFontNr)
-    HSt.popGroup exitTrigger >>= \case
+    popGroupWithElems exitTrigger >>= \case
       HSt.Grouped.LocalStructureGroupType ->
         pure DidNotSeeEndBox
       HSt.Grouped.ExplicitBoxGroupType ->
@@ -340,6 +335,21 @@ handleModeIndependentCommand = \case
       extractedBox <- extractExplicitBox spec boxType
       Log.debugLog $ F.sformat ("Extracted explicit box: " |%| BoxElem.fmtBaseBox) extractedBox
       pure extractedBox
+
+    selectFontNrDVI fNr = do
+      Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemFontSelection fNr
+
+    selectFontInternallyAndDVI fNr scope = do
+      HSt.selectFont fNr scope
+      selectFontNrDVI fNr
+
+    popGroupWithElems exitTrigger = do
+      (groupType, mayFontNrToSet) <- HSt.popGroup exitTrigger
+      case mayFontNrToSet of
+        Just fontNrToSet ->
+          selectFontNrDVI fontNrToSet
+        Nothing -> pure ()
+      pure groupType
 
 lengthToSetAtFromSpec :: Eval.BoxSpecification -> Q.Length -> Q.Length
 lengthToSetAtFromSpec spec naturalLength = case spec of
