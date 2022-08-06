@@ -1,7 +1,7 @@
 module Hex.Common.HexState.Impl.Error where
 
+import Formatting qualified as F
 import Hexlude
-import qualified Formatting as F
 
 data HexStateError
   = FontNotFound HexFilePath

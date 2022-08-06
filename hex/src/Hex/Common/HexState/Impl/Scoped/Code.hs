@@ -1,20 +1,19 @@
 module Hex.Common.HexState.Impl.Scoped.Code where
 
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, localCompleteProperty, setScopedMapValue)
+import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, localCompleteProperty, scopedMapValueLens)
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope (..))
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
-import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hexlude
 
-setHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
-setHexCode = \case
-  Code.CCatCodeType -> setScopedMapValue #catCodes
-  Code.CMathCodeType -> setScopedMapValue #mathCodes
-  Code.CUpperCaseCodeType -> setScopedMapValue #upperCaseCodes
-  Code.CLowerCaseCodeType -> setScopedMapValue #lowerCaseCodes
-  Code.CSpaceFactorCodeType -> setScopedMapValue #spaceFactorCodes
-  Code.CDelimiterCodeType -> setScopedMapValue #delimiterCodes
+hexCodeLens :: Code.CCodeType c -> Code.CharCode -> Lens' Scope (Maybe (HSt.Code.CodeTableTarget c))
+hexCodeLens = \case
+  Code.CCatCodeType -> scopedMapValueLens #catCodes
+  Code.CMathCodeType -> scopedMapValueLens #mathCodes
+  Code.CUpperCaseCodeType -> scopedMapValueLens #upperCaseCodes
+  Code.CLowerCaseCodeType -> scopedMapValueLens #lowerCaseCodes
+  Code.CSpaceFactorCodeType -> scopedMapValueLens #spaceFactorCodes
+  Code.CDelimiterCodeType -> scopedMapValueLens #delimiterCodes
 
 localHexCode :: Code.CCodeType c -> Code.CharCode -> GroupScopes -> HSt.Code.CodeTableTarget c
 localHexCode ccodeType p = case ccodeType of

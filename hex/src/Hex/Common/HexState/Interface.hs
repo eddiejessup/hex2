@@ -35,25 +35,30 @@ fmtResolutionError = F.later $ \case
   UnknownSymbolError cSym ->
     "Got unknown control-symbol: " <> F.bformat HSt.Res.fmtControlSymbol cSym
 
+data ScopedValue
+  = forall (q :: Q.QuantityType). QuantRegisterValue (Reg.QuantRegisterLocation q) (Var.QuantVariableTarget q)
+  | forall (q :: Q.QuantityType). ParameterValue (Param.QuantParam q) (Var.QuantVariableTarget q)
+  | forall (c :: Code.CodeType). HexCodeValue (Code.CCodeType c) Code.CharCode (HSt.Code.CodeTableTarget c)
+  | SymbolValue HSt.Res.ControlSymbol ResolvedToken
+  | FontValue DVI.FontNumber
+  | FamilyMemberFontValue Font.FamilyMember DVI.FontNumber
+  | BoxRegisterValue Reg.RegisterLocation (Maybe BoxElem.BaseBox)
+
 data EHexState :: Effect where
-  GetParameterValue :: Param.QuantParam q -> EHexState m (Var.QuantVariableTarget q)
-  SetParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> EHexState m ()
+  -- Get scoped values.
   GetRegisterValue :: Reg.QuantRegisterLocation q -> EHexState m (Var.QuantVariableTarget q)
-  SetQuantRegisterValue :: Reg.QuantRegisterLocation q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> EHexState m ()
+  GetParameterValue :: Param.QuantParam q -> EHexState m (Var.QuantVariableTarget q)
+  GetHexCode :: Code.CCodeType c -> Code.CharCode -> EHexState m (HSt.Code.CodeTableTarget c)
+  ResolveSymbol :: HSt.Res.ControlSymbol -> EHexState m (Maybe ResolvedToken)
+  CurrentFontNumber :: EHexState m DVI.FontNumber
   FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe BoxElem.BaseBox)
-  SetBoxRegisterValue :: Reg.RegisterLocation -> Maybe BoxElem.BaseBox -> HSt.Grouped.ScopeFlag -> EHexState m ()
+  -- End of scoped-value getters.
+  SetScopedValue :: ScopedValue -> HSt.Grouped.ScopeFlag -> EHexState m ()
   GetSpecialIntParameter :: Param.SpecialIntParameter -> EHexState m Q.HexInt
   GetSpecialLengthParameter :: Param.SpecialLengthParameter -> EHexState m Q.Length
   SetSpecialIntParameter :: Param.SpecialIntParameter -> Q.HexInt -> EHexState m ()
   SetSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> EHexState m ()
-  GetHexCode :: Code.CCodeType c -> Code.CharCode -> EHexState m (HSt.Code.CodeTableTarget c)
-  SetHexCode :: Code.CCodeType c -> Code.CharCode -> HSt.Code.CodeTableTarget c -> HSt.Grouped.ScopeFlag -> EHexState m ()
-  ResolveSymbol :: HSt.Res.ControlSymbol -> EHexState m (Maybe ResolvedToken)
-  SetSymbol :: HSt.Res.ControlSymbol -> ResolvedToken -> HSt.Grouped.ScopeFlag -> EHexState m ()
   LoadFont :: HexFilePath -> TFM.FontSpecification -> EHexState m DVI.FontDefinition
-  SelectFont :: DVI.FontNumber -> HSt.Grouped.ScopeFlag -> EHexState m ()
-  SetFamilyMemberFont :: Font.FamilyMember -> DVI.FontNumber -> HSt.Grouped.ScopeFlag -> EHexState m ()
-  CurrentFontNumber :: EHexState m DVI.FontNumber
   SetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> EHexState m ()
   CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe HSt.Font.CharacterAttrs)
   CurrentFontSpaceGlue :: EHexState m Q.Glue
@@ -93,7 +98,7 @@ modifyParameterValue ::
   Eff es ()
 modifyParameterValue p f scopeFlag = do
   currentVal <- getParameterValue p
-  setParameterValue p (f currentVal) scopeFlag
+  setScopedValue (ParameterValue p (f currentVal)) scopeFlag
 
 modifyRegisterValue ::
   EHexState :> es =>
@@ -105,7 +110,7 @@ modifyRegisterValue ::
   Eff es ()
 modifyRegisterValue loc f scopeFlag = do
   currentVal <- getRegisterValue loc
-  setQuantRegisterValue loc (f currentVal) scopeFlag
+  setScopedValue (QuantRegisterValue loc (f currentVal)) scopeFlag
 
 advanceParameterValue ::
   forall q es.

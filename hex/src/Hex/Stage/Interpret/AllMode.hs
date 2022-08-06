@@ -162,53 +162,34 @@ handleModeIndependentCommand = \case
           Nothing ->
             pure ()
           Just symbolTarget ->
-            HSt.setSymbol cs symbolTarget scope
+            HSt.setScopedValue (HSt.SymbolValue cs symbolTarget) scope
       Eval.AssignCode (Eval.CodeAssignment idxChar codeVal) ->
-        case codeVal of
-          Eval.CatCodeValue catCode ->
-            HSt.setHexCode Code.CCatCodeType idxChar catCode scope
-          Eval.MathCodeValue mathCode ->
-            HSt.setHexCode Code.CMathCodeType idxChar mathCode scope
-          Eval.UpperCaseCodeValue upperCaseCode ->
-            HSt.setHexCode Code.CUpperCaseCodeType idxChar upperCaseCode scope
-          Eval.LowerCaseCodeValue lowerCaseCode ->
-            HSt.setHexCode Code.CLowerCaseCodeType idxChar lowerCaseCode scope
-          Eval.SpaceFactorCodeValue spaceFactorCode ->
-            HSt.setHexCode Code.CSpaceFactorCodeType idxChar spaceFactorCode scope
-          Eval.DelimiterCodeValue delimiterCode ->
-            HSt.setHexCode Code.CDelimiterCodeType idxChar delimiterCode scope
+        let scopedVal = case codeVal of
+              Eval.CatCodeValue catCode ->
+                HSt.HexCodeValue Code.CCatCodeType idxChar catCode
+              Eval.MathCodeValue mathCode ->
+                HSt.HexCodeValue Code.CMathCodeType idxChar mathCode
+              Eval.UpperCaseCodeValue upperCaseCode ->
+                HSt.HexCodeValue Code.CUpperCaseCodeType idxChar upperCaseCode
+              Eval.LowerCaseCodeValue lowerCaseCode ->
+                HSt.HexCodeValue Code.CLowerCaseCodeType idxChar lowerCaseCode
+              Eval.SpaceFactorCodeValue spaceFactorCode ->
+                HSt.HexCodeValue Code.CSpaceFactorCodeType idxChar spaceFactorCode
+              Eval.DelimiterCodeValue delimiterCode ->
+                HSt.HexCodeValue Code.CDelimiterCodeType idxChar delimiterCode
+         in HSt.setScopedValue scopedVal scope
       Eval.SetVariable ass ->
         case ass of
-          Eval.IntVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
-            case var of
-              HSt.Var.ParamVar intParam ->
-                HSt.setParameterValue intParam tgt scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.setQuantRegisterValue registerLoc tgt scope
-          Eval.LengthVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
-            case var of
-              HSt.Var.ParamVar lengthParam ->
-                HSt.setParameterValue lengthParam tgt scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.setQuantRegisterValue registerLoc tgt scope
-          Eval.GlueVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
-            case var of
-              HSt.Var.ParamVar glueParam ->
-                HSt.setParameterValue glueParam tgt scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.setQuantRegisterValue registerLoc tgt scope
-          Eval.MathGlueVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
-            case var of
-              HSt.Var.ParamVar mathGlueParam ->
-                HSt.setParameterValue mathGlueParam tgt scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.setQuantRegisterValue registerLoc tgt scope
-          Eval.TokenListVariableAssignment (Eval.QuantVariableAssignment var tgt) ->
-            case var of
-              HSt.Var.ParamVar tokenListParam ->
-                HSt.setParameterValue tokenListParam tgt scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.setQuantRegisterValue registerLoc tgt scope
+          Eval.IntVariableAssignment varAssignment ->
+            setQuantVariable varAssignment scope
+          Eval.LengthVariableAssignment varAssignment ->
+            setQuantVariable varAssignment scope
+          Eval.GlueVariableAssignment varAssignment ->
+            setQuantVariable varAssignment scope
+          Eval.MathGlueVariableAssignment varAssignment ->
+            setQuantVariable varAssignment scope
+          Eval.TokenListVariableAssignment varAssignment ->
+            setQuantVariable varAssignment scope
           Eval.SpecialIntParameterVariableAssignment param tgt ->
             HSt.setSpecialIntParameter param tgt
           Eval.SpecialLengthParameterVariableAssignment param tgt ->
@@ -216,63 +197,31 @@ handleModeIndependentCommand = \case
       Eval.ModifyVariable modCommand ->
         case modCommand of
           Eval.AdvanceIntVariable var plusVal ->
-            case var of
-              HSt.Var.ParamVar param ->
-                HSt.advanceParameterValue param plusVal scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.advanceRegisterValue registerLoc plusVal scope
+            advanceQuantVariable var plusVal scope
           Eval.AdvanceLengthVariable var plusVal ->
-            case var of
-              HSt.Var.ParamVar param ->
-                HSt.advanceParameterValue param plusVal scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.advanceRegisterValue registerLoc plusVal scope
+            advanceQuantVariable var plusVal scope
           Eval.AdvanceGlueVariable var plusVal ->
-            case var of
-              HSt.Var.ParamVar param ->
-                HSt.advanceParameterValue param plusVal scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.advanceRegisterValue registerLoc plusVal scope
+            advanceQuantVariable var plusVal scope
           Eval.AdvanceMathGlueVariable var plusVal ->
-            case var of
-              HSt.Var.ParamVar param ->
-                HSt.advanceParameterValue param plusVal scope
-              HSt.Var.RegisterVar registerLoc ->
-                HSt.advanceRegisterValue registerLoc plusVal scope
+            advanceQuantVariable var plusVal scope
           Eval.ScaleVariable scaleDirection numVar scaleVal ->
             case numVar of
               Eval.IntNumericVariable var ->
-                case var of
-                  HSt.Var.ParamVar param ->
-                    HSt.scaleParameterValue param scaleDirection scaleVal scope
-                  HSt.Var.RegisterVar registerLoc ->
-                    HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
+                scaleQuantVariable var scaleDirection scaleVal scope
               Eval.LengthNumericVariable var ->
-                case var of
-                  HSt.Var.ParamVar param ->
-                    HSt.scaleParameterValue param scaleDirection scaleVal scope
-                  HSt.Var.RegisterVar registerLoc ->
-                    HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
+                scaleQuantVariable var scaleDirection scaleVal scope
               Eval.GlueNumericVariable var ->
-                case var of
-                  HSt.Var.ParamVar param ->
-                    HSt.scaleParameterValue param scaleDirection scaleVal scope
-                  HSt.Var.RegisterVar registerLoc ->
-                    HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
+                scaleQuantVariable var scaleDirection scaleVal scope
               Eval.MathGlueNumericVariable var ->
-                case var of
-                  HSt.Var.ParamVar param ->
-                    HSt.scaleParameterValue param scaleDirection scaleVal scope
-                  HSt.Var.RegisterVar registerLoc ->
-                    HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
+                scaleQuantVariable var scaleDirection scaleVal scope
       Eval.SelectFont fNr -> do
         selectFontInternallyAndDVI fNr scope
       Eval.SetFamilyMember familyMember fontNumber ->
-        HSt.setFamilyMemberFont familyMember fontNumber scope
+        HSt.setScopedValue (HSt.FamilyMemberFontValue familyMember fontNumber) scope
       -- Start a new level of grouping. Enter inner mode.
       Eval.SetBoxRegister lhsIdx box -> do
         mayBox <- fetchBox box
-        HSt.setBoxRegisterValue lhsIdx mayBox scope
+        HSt.setScopedValue (HSt.BoxRegisterValue lhsIdx mayBox) scope
       Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
         HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef
       assignment ->
@@ -319,6 +268,25 @@ handleModeIndependentCommand = \case
   Eval.DoSpecial _text ->
     notImplemented "handleModeIndependentCommand: DoSpecial"
   where
+    advanceQuantVariable var plusVal scope = case var of
+      HSt.Var.ParamVar param ->
+        HSt.advanceParameterValue param plusVal scope
+      HSt.Var.RegisterVar registerLoc ->
+        HSt.advanceRegisterValue registerLoc plusVal scope
+
+    scaleQuantVariable var scaleDirection scaleVal scope = case var of
+      HSt.Var.ParamVar param ->
+        HSt.scaleParameterValue param scaleDirection scaleVal scope
+      HSt.Var.RegisterVar registerLoc ->
+        HSt.scaleRegisterValue registerLoc scaleDirection scaleVal scope
+
+    setQuantVariable (Eval.QuantVariableAssignment var tgt) scope =
+      case var of
+        HSt.Var.ParamVar param ->
+          HSt.setScopedValue (HSt.ParameterValue param tgt) scope
+        HSt.Var.RegisterVar registerLoc ->
+          HSt.setScopedValue (HSt.QuantRegisterValue registerLoc tgt) scope
+
     fetchBox = \case
       Eval.FetchedRegisterBox fetchMode rhsIdx -> do
         HSt.fetchBoxRegisterValue fetchMode rhsIdx
@@ -340,7 +308,7 @@ handleModeIndependentCommand = \case
       Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemFontSelection fNr
 
     selectFontInternallyAndDVI fNr scope = do
-      HSt.selectFont fNr scope
+      HSt.setScopedValue (HSt.FontValue fNr) scope
       selectFontNrDVI fNr
 
     popGroupWithElems exitTrigger = do

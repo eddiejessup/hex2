@@ -211,7 +211,7 @@ expandExpansionCommand = \case
     let controlSymbol = HSt.Res.ControlSequenceSymbol cs
     HSt.resolveSymbol controlSymbol >>= \case
       Just _ -> pure ()
-      Nothing -> HSt.setSymbol controlSymbol (RT.PrimitiveToken PT.RelaxTok) HSt.Grouped.LocalScope
+      Nothing -> HSt.setScopedValue (HSt.SymbolValue controlSymbol (RT.PrimitiveToken PT.RelaxTok)) HSt.Grouped.LocalScope
     pure $ Seq.singleton $ LT.ControlSequenceLexToken cs
   E.ExpandAfter noExpandLexToken toExpandLexToken -> do
     expandedLexTokens <-
