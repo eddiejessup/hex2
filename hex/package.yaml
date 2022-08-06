@@ -43,7 +43,6 @@ ghc-options:
   - -Wcompat
   - -Widentities
   - -Wincomplete-record-updates
-  - -Wincomplete-uni-patterns
   - -Wpartial-fields
   - -Wredundant-constraints
   - -Wmissing-deriving-strategies

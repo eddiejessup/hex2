@@ -4,6 +4,7 @@ import Hex.Common.Box qualified as Box
 import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.Vertical.Page.Types qualified as Page
 import Hex.Stage.Render.Interface.DocInstruction (DocInstruction (..), RuleSpan (..))
+import Hex.Stage.Render.Interface.DocInstruction qualified as DocInstruction
 import Hexlude
 
 hBoxElemToDocInstructions :: BoxElem.HBoxElem -> [DocInstruction]
@@ -43,4 +44,11 @@ pageToDocInstructions (Page.Page vBoxElems) =
 
 pagesToDocInstructions :: [Page.Page] -> [DocInstruction]
 pagesToDocInstructions pages =
-  foldMap pageToDocInstructions pages
+  let rawInstrs = foldMap pageToDocInstructions pages
+
+      usedFontNrs = flip mapMaybe rawInstrs $ \case
+        SelectFont fNr -> Just fNr
+        _ -> Nothing
+   in flip filter rawInstrs $ \case
+        DefineFont fontDef -> fontDef.fontNr `elem` usedFontNrs
+        _ -> True

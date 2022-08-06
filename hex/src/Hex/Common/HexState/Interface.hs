@@ -6,6 +6,7 @@ module Hex.Common.HexState.Interface where
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
@@ -34,11 +35,6 @@ fmtResolutionError = F.later $ \case
   UnknownSymbolError cSym ->
     "Got unknown control-symbol: " <> F.bformat HSt.Res.fmtControlSymbol cSym
 
-data CharacterAttrs = CharacterAttrs
-  { width, height, depth, italicCorrection :: Q.Length
-  }
-  deriving stock (Show, Generic)
-
 data EHexState :: Effect where
   GetParameterValue :: Param.QuantParam q -> EHexState m (Var.QuantVariableTarget q)
   SetParameterValue :: Param.QuantParam q -> Var.QuantVariableTarget q -> HSt.Grouped.ScopeFlag -> EHexState m ()
@@ -59,8 +55,8 @@ data EHexState :: Effect where
   SetFamilyMemberFont :: Font.FamilyMember -> DVI.FontNumber -> HSt.Grouped.ScopeFlag -> EHexState m ()
   CurrentFontNumber :: EHexState m DVI.FontNumber
   SetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> EHexState m ()
-  CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe CharacterAttrs)
-  CurrentFontSpaceGlue :: EHexState m (Maybe Q.Glue)
+  CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe HSt.Font.CharacterAttrs)
+  CurrentFontSpaceGlue :: EHexState m Q.Glue
   PopAfterAssignmentToken :: EHexState m (Maybe LT.LexToken)
   SetAfterAssignmentToken :: LT.LexToken -> EHexState m ()
   PushGroup :: Maybe Grouped.ScopedGroupType -> EHexState m ()

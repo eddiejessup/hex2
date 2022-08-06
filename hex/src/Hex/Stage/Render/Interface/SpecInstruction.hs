@@ -27,7 +27,11 @@ data SpecInstruction
   deriving stock (Show, Generic)
 
 fmtSpecInstruction :: Fmt SpecInstruction
-fmtSpecInstruction = F.shown
+fmtSpecInstruction = F.later $ \case
+  BodySpecInstruction bodySpecInstruction -> F.bformat fmtBodySpecInstruction bodySpecInstruction
+  PreambleOp preambleOpArgs -> F.bformat F.text $ "Preamble: " <> show preambleOpArgs
+  PostambleOp postambleOpArgs -> F.bformat F.text $ "Postamble: " <> show postambleOpArgs
+  PostPostambleOp postPostambleOpArgs -> F.bformat F.text $ "PostPostamble: " <> show postPostambleOpArgs
 
 fmtSpecInstructions :: Fmt [SpecInstruction]
 fmtSpecInstructions = F.unlined fmtSpecInstruction
@@ -41,9 +45,23 @@ data BodySpecInstruction
   | PopOp
   | MoveOp Axis Dec.SignedNByteInt
   | SelectFontOp SelectFontOpArgs
-  | -- | DoSpecial ByteLength
-    DefineFontOp DefineFontOpArgs
+  | DoSpecialOp Dec.ByteLength
+  | DefineFontOp DefineFontOpArgs
   deriving stock (Show, Generic)
+
+fmtBodySpecInstruction :: Fmt BodySpecInstruction
+fmtBodySpecInstruction = F.later $ \case
+  AddCharOp charOpArgs -> F.bformat F.text $ "Add char: " <> show charOpArgs
+  AddRuleOp addRuleOpArgs -> F.bformat F.text $ "Add rule: " <> show addRuleOpArgs
+  BeginPageOp beginPageOpArgs -> F.bformat F.text $ "Begin Page: " <> show beginPageOpArgs
+  EndPageOp -> F.bformat F.text $ "End Page"
+  PushOp -> F.bformat F.text $ "Push"
+  PopOp -> F.bformat F.text $ "Pop"
+  MoveOp Vertical signedNByteInt -> F.bformat F.text $ "Move down: " <> show signedNByteInt
+  MoveOp Horizontal signedNByteInt -> F.bformat F.text $ "Move right: " <> show signedNByteInt
+  SelectFontOp selectFontOpArgs -> F.bformat F.text $ "Select Font: " <> show selectFontOpArgs
+  DoSpecialOp byteLength -> F.bformat F.text $ "Do Special: " <> show byteLength
+  DefineFontOp defineFontOpArgs -> F.bformat F.text $ "Define Font: " <> show defineFontOpArgs
 
 data AddRuleOpArgs = AddRuleOpArgs
   { moveMode :: MoveMode,

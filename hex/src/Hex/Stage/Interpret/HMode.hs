@@ -3,6 +3,7 @@ module Hex.Stage.Interpret.HMode where
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Codes
+import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.Token.Lexed qualified as LT
@@ -92,7 +93,7 @@ handleCommandInHMode oldSrc modeVariant = \case
     Eval.AddVAlignedMaterial _boxSpec ->
       notImplemented "HMode: AddVAlignedMaterial"
   Eval.AddSpace -> do
-    spaceGlue <- HSt.currentFontSpaceGlue >>= note (AllMode.NoFontSelected)
+    spaceGlue <- HSt.currentFontSpaceGlue
     Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue spaceGlue
     pure ContinueHMode
   Eval.StartParagraph indentFlag -> do
@@ -126,7 +127,9 @@ charAsBox ::
   Codes.CharCode ->
   Eff es Box.CharBox
 charAsBox char = do
-  HSt.CharacterAttrs {width, height, depth} <- HSt.currentFontCharacter char >>= note (AllMode.NoFontSelected)
+  HSt.Font.CharacterAttrs {width, height, depth} <-
+    HSt.currentFontCharacter char
+      >>= note (AllMode.NoFontSelected)
   pure $
     Box.CharBox
       Box.Box

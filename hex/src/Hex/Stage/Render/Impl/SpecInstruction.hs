@@ -230,16 +230,19 @@ interpretDocInstruction i = do
     _ ->
       pure ()
 
-addAllInstructions :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => Magnification Q.HexInt -> [DocInstruction] -> Eff es ()
+addAllInstructions ::
+  ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) =>
+  Magnification Q.HexInt ->
+  [DocInstruction] ->
+  Eff es ()
 addAllInstructions mag docInstrs = do
   magInt32 <- Magnification <$> noteOutOfBounds "mag" Dec.intToInt32 (mag.unMagnification.unHexInt)
 
-  -- Emit preamble instructions.
+  -- Emit preamble instruction.
   emitSpecInstruction $ PreambleOp (preambleOpArgs magInt32)
-  -- Emit instructions for all the 'doc' instructions.
 
-  for_ docInstrs $ \docInstr ->
-    interpretDocInstruction docInstr
+  -- Emit instructions for all the 'doc' instructions.
+  for_ docInstrs interpretDocInstruction
 
   postamblePointer <- getCurrentBytePointer
   -- Emit postamble instruction.

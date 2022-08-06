@@ -16,7 +16,6 @@ import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Command.Stream qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Glue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Length qualified as Par
-import Hex.Stage.Parse.Impl.Parsers.Quantity.MathGlue qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.MathLength qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST

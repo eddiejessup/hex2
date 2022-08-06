@@ -64,15 +64,8 @@ fmtFont =
   where
     fmtChecksum = F.int
 
-lengthFromFontDesignSize :: Font -> LengthDesignSize -> Q.Length
-lengthFromFontDesignSize font lengthInDS =
-  lengthFromDesignSize lengthInDS (designFontSize font)
-
 lengthFromDesignSize :: LengthDesignSize -> Q.Length -> Q.Length
 lengthFromDesignSize (LengthDesignSize d) = Q.scaleLengthByRational d
-
-fontLengthParamLength :: Font -> (Font -> LengthDesignSize) -> Q.Length
-fontLengthParamLength font getLengthInDS = lengthFromFontDesignSize font (getLengthInDS font)
 
 data FontSpecification
   = NaturalFont

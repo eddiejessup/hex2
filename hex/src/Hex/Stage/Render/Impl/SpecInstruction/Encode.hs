@@ -102,6 +102,8 @@ specInstructionByteBuilder = \case
     put args.dirPathLength
     put args.fileNameLength
     put args.fontPath
+  BodySpecInstruction (DoSpecialOp _byteLength) ->
+    notImplemented "encode DoSpecialOp"
   PreambleOp args -> do
     putOp 247
     put args.dviFormatPre

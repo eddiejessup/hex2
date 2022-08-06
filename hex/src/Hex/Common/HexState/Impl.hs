@@ -9,7 +9,7 @@ import Hex.Capability.Log.Interface (HexLog (..), debugLog)
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Interface (EHexEnv)
 import Hex.Common.HexEnv.Interface qualified as Env
-import Hex.Common.HexState.Impl.Font qualified as Sc.Font
+import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.Code
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.Group qualified as Sc.Group
@@ -24,6 +24,7 @@ import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
+import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Common.TFM.Types qualified as TFM
@@ -56,7 +57,7 @@ fmtHexStateError = F.shown
 
 runHexState :: [IOE, HexLog, State HexState, EHexEnv, Error HexStateError, Error TFM.TFMError] :>> es => Eff (EHexState : es) a -> Eff es a
 runHexState = interpret $ \_ -> \case
-  GetParameterValue p -> getGroupScopesProperty (Sc.P.localParameterValue p)
+  GetParameterValue p -> getParameterValueImpl p
   SetParameterValue param value scopeFlag ->
     modifyGroupScopes $ Sc.P.setParameterValue param value scopeFlag
   GetRegisterValue r -> getGroupScopesProperty (Sc.R.localQuantRegisterValue r)
@@ -80,7 +81,7 @@ runHexState = interpret $ \_ -> \case
         (fontPath ^. typed @FilePath)
         >>= note ((FontNotFound fontPath))
 
-    fontInfo <- runHexState $ readFontInfo fontBytes
+    fontInfo <- readFontInfo fontBytes spec
 
     let designScale = TFM.fontSpecToDesignScale fontInfo.fontMetrics.designFontSize spec
 
@@ -105,28 +106,9 @@ runHexState = interpret $ \_ -> \case
     pure fontDef
   CurrentFontNumber -> currentFontNumberImpl
   CurrentFontSpaceGlue -> do
-    fInfo <- currentFontInfo
-    let fontMetrics = fInfo.fontMetrics
-    let spacing = TFM.fontLengthParamLength fontMetrics (TFM.spacing . TFM.params)
-    let gStretch = Q.FinitePureFlex $ TFM.fontLengthParamLength fontMetrics (TFM.spaceStretch . TFM.params)
-    let gShrink = Q.FinitePureFlex $ TFM.fontLengthParamLength fontMetrics (TFM.spaceShrink . TFM.params)
-    pure $ Just $ Q.Glue {Q.gDimen = spacing, Q.gStretch, Q.gShrink}
-  CurrentFontCharacter chrCode -> do
-    fInfo <- currentFontInfo
-    let fontMetrics = fInfo.fontMetrics
-    tfmChar <-
-      note (CharacterCodeNotFound) $
-        fontMetrics ^. #characters % at' (Code.codeInt chrCode)
-    let toLen :: TFM.LengthDesignSize -> Q.Length
-        toLen = TFM.lengthFromFontDesignSize fontMetrics
-    pure $
-      Just
-        CharacterAttrs
-          { width = toLen (tfmChar.width),
-            height = toLen (tfmChar.height),
-            depth = toLen (tfmChar.depth),
-            italicCorrection = toLen (tfmChar.italicCorrection)
-          }
+    fontInfo <- currentFontInfo
+    pure $ HSt.Font.fontSpaceGlue fontInfo
+  CurrentFontCharacter chrCode -> currentFontCharacterImpl chrCode
   SelectFont fontNumber scopeFlag ->
     modifyGroupScopes $ Sc.Font.setCurrentFontNr fontNumber scopeFlag
   SetFamilyMemberFont familyMember fontNumber scopeFlag ->
@@ -177,25 +159,41 @@ runHexState = interpret $ \_ -> \case
   PeekMode ->
     use @HexState (#modeStack % to peekModeImpl)
 
+getParameterValueImpl ::
+  State HexState :> es =>
+  HSt.Param.QuantParam q ->
+  Eff es (HSt.Var.QuantVariableTarget q)
+getParameterValueImpl p = getGroupScopesProperty (Sc.P.localParameterValue p)
+
 modifyGroupScopes :: State HexState :> es => (GroupScopes -> GroupScopes) -> Eff es ()
 modifyGroupScopes = modifying @HexState (#groupScopes)
 
 currentFontInfo ::
   [State HexState, Error HexStateError] :>> es =>
-  Eff es Sc.Font.FontInfo
+  Eff es HSt.Font.FontInfo
 currentFontInfo =
   currentFontInfoImpl
     >>= note (MissingFontNumber)
 
+currentFontCharacterImpl ::
+  (State HexState :> es, Error HexStateError :> es) =>
+  Code.CharCode ->
+  Eff es (Maybe HSt.Font.CharacterAttrs)
+currentFontCharacterImpl chrCode = do
+  fInfo <- currentFontInfo
+  pure $ HSt.Font.characterAttrs fInfo chrCode
+
 readFontInfo ::
-  [IOE, Error TFM.TFMError, EHexState] :>> es =>
+  ([IOE, Error TFM.TFMError, State HexState] :>> es) =>
   ByteString ->
-  Eff es Sc.Font.FontInfo
-readFontInfo fontBytes = do
+  TFM.FontSpecification ->
+  Eff es HSt.Font.FontInfo
+readFontInfo fontBytes spec = do
   fontMetrics <- TFM.parseTFMBytes fontBytes
-  hyphenChar <- getParameterValue (HSt.Param.IntQuantParam HSt.Param.DefaultHyphenChar)
-  skewChar <- getParameterValue (HSt.Param.IntQuantParam HSt.Param.DefaultSkewChar)
-  pure Sc.Font.FontInfo {fontMetrics, hyphenChar, skewChar}
+  hyphenChar <- getParameterValueImpl (HSt.Param.IntQuantParam HSt.Param.DefaultHyphenChar)
+  skewChar <- getParameterValueImpl (HSt.Param.IntQuantParam HSt.Param.DefaultSkewChar)
+  let designScale = TFM.fontSpecToDesignScale fontMetrics.designFontSize spec
+  pure HSt.Font.FontInfo {fontMetrics, designScale, hyphenChar, skewChar}
 
 fetchBoxRegisterValueImpl ::
   State HexState :> es =>
