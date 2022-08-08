@@ -329,7 +329,9 @@ extractExplicitBox :: ExtractList :> es => Eval.BoxSpecification -> PT.ExplicitB
 extractExplicitBox spec = \case
   PT.ExplicitHBoxType -> do
     hList <- ListExtractor.extractHBoxList
-    let (naturalWidth, naturalDepth, naturalHeight) = ListElem.hListNaturalDimens hList
+    let naturalWidth = ListElem.hListNaturalWidth hList
+        naturalHeight = ListElem.hListNaturalHeight hList
+        naturalDepth = ListElem.hListNaturalDepth hList
         widthToSetAt = lengthToSetAtFromSpec spec naturalWidth
         (hBoxElems, _) = Build.H.Set.setList hList widthToSetAt
         hBoxContents = BoxElem.HBoxContents hBoxElems

@@ -46,29 +46,37 @@ extendVList e vList@(List.VList accSeq) = case e of
     blineGlue <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.BaselineSkip)
     skipLimit <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.LineSkipLimit)
     skip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.LineSkip)
-    HSt.setSpecialLengthParameter HSt.Param.PrevDepth (b.unBaseBox.boxDepth)
-    if prevDepth <= (invert Q.oneKPt)
-      then do
-        Log.infoLog $ "extendVList: Adding box element without interline glue because prevDepth is " <> F.sformat Q.fmtLengthWithUnit prevDepth
-        pure $ List.VList $ accSeq :|> e
-      else do
-        let proposedBaselineLength = blineGlue.gDimen ~~ prevDepth ~~ b.unBaseBox.boxHeight
-        Log.infoLog $ "extendVList: Proposed baseline length: " <> F.sformat Q.fmtLengthWithUnit proposedBaselineLength <> ", skip limit: " <> F.sformat Q.fmtLengthWithUnit skipLimit
-        -- Intuition: set the distance between baselines to \baselineskip, but no
-        -- closer than \lineskiplimit [theBaselineLengthMin], in which case
-        -- \lineskip [theMinBaselineGlue] is used.
-        glue <-
-          if proposedBaselineLength >= skipLimit
-            then do
-              let res = blineGlue & #gDimen !~ proposedBaselineLength
-              Log.infoLog $ "extendVList: proposedBaselineLength >= skipLimit, so using BaselineSkip with length set to proposedBaselineLength, ie: " <> F.sformat Q.fmtGlue res
-              pure res
-            else do
-              Log.infoLog $ "extendVList: proposedBaselineLength < skipLimit, so using LineSkip ie: " <> F.sformat Q.fmtGlue skip
-              pure skip
-        Log.infoLog $ "extendVList: Adding interline glue: " <> F.sformat Q.fmtGlue glue
-        let glueElem = List.ListGlue glue
-        pure $ List.VList $ accSeq |> glueElem |> e
+    newElems <-
+      if prevDepth <= (invert Q.oneKPt)
+        then do
+          Log.infoLog $ "extendVList: Adding box element without interline glue because prevDepth is " <> F.sformat Q.fmtLengthWithUnit prevDepth
+          pure $ Empty |> e
+        else do
+          Log.infoLog $ "extendVList: \\glue(\\baselineskip): " <> F.sformat Q.fmtGlue blineGlue
+          Log.infoLog $ "extendVList: \\sdimen(\\prevDepth): " <> F.sformat Q.fmtLengthWithUnit prevDepth
+          Log.infoLog $ "extendVList: boxHeight:  " <> F.sformat Q.fmtLengthWithUnit b.unBaseBox.boxHeight
+          let proposedBaselineLength = blineGlue.gDimen ~~ prevDepth ~~ b.unBaseBox.boxHeight
+          Log.infoLog $ "extendVList: Proposed baseline length: " <> F.sformat Q.fmtLengthWithUnit proposedBaselineLength <> ", skip limit: " <> F.sformat Q.fmtLengthWithUnit skipLimit
+          Log.infoLog $ "extendVList: \\dimen(\\lineskiplimit): " <> F.sformat Q.fmtLengthWithUnit skipLimit
+          -- Intuition: set the distance between baselines to \baselineskip, but no
+          -- closer than \lineskiplimit [theBaselineLengthMin], in which case
+          -- \lineskip [theMinBaselineGlue] is used.
+          glue <-
+            if proposedBaselineLength >= skipLimit
+              then do
+                let res = blineGlue & #gDimen !~ proposedBaselineLength
+                Log.infoLog $ "extendVList: proposedBaselineLength >= skipLimit, so using BaselineSkip with length set to proposedBaselineLength, ie: " <> F.sformat Q.fmtGlue res
+                pure res
+              else do
+                Log.infoLog $ "extendVList: proposedBaselineLength < skipLimit, so using LineSkip ie: " <> F.sformat Q.fmtGlue skip
+                pure skip
+          Log.infoLog $ "extendVList: Adding interline glue: " <> F.sformat Q.fmtGlue glue
+          let glueElem = List.ListGlue glue
+          pure $ Empty |> glueElem |> e
+    let boxDepth = b.unBaseBox.boxDepth
+    Log.infoLog $ "extendVList: \\sdimen(\\prevDepth) := " <> F.sformat Q.fmtLengthWithUnit boxDepth
+    HSt.setSpecialLengthParameter HSt.Param.PrevDepth boxDepth
+    pure $ List.VList $ accSeq <> newElems
   _ -> do
     if not (List.vListContainsBoxes vList) && (Break.vListElemIsDiscardable e)
       then do

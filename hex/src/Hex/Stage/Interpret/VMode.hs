@@ -93,6 +93,8 @@ handleCommandInVMode oldSrc modeVariant command =
       -- TEX inserts the glue specified by \parskip into the vertical list that
       -- will contain the paragraph, unless that vertical list is empty so far.
       parSkipGlue <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.ParSkip)
+      Log.infoLog $ "addPara: Adding \\glue(\\parSkip): " <> F.sformat Q.fmtGlue parSkipGlue
+
       Build.addVListElement $ ListElem.ListGlue parSkipGlue
 
       -- If the command shifts to horizontal mode, run '\indent', and re-read

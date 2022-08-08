@@ -42,7 +42,7 @@ fmtCharBox :: Fmt CharBox
 fmtCharBox = fmtViewed (to charBoxChar) (F.squoted F.char)
 
 fmtCharBoxWithDimens :: Fmt CharBox
-fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> F.prefixed "\\c" fmtCharBox
+fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> fmtCharBox
 
 charBoxChar :: CharBox -> Char
 charBoxChar = view $ #unCharacter % #contents % to Codes.unsafeCodeAsChar

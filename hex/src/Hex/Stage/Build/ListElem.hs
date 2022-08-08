@@ -104,9 +104,6 @@ newtype HList = HList {unHList :: Seq HListElem}
 hListElemTraversal :: Traversal' HList HListElem
 hListElemTraversal = #unHList % traversed
 
-hListNaturalDimens :: HList -> (Q.Length, Q.Length, Q.Length)
-hListNaturalDimens hList = (hListNaturalWidth hList, hListNaturalHeight hList, hListNaturalDepth hList)
-
 hListNaturalDepth :: HList -> Q.Length
 hListNaturalDepth hList =
   -- The empty HList has zero depth.

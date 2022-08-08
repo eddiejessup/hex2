@@ -138,7 +138,7 @@ inScaledPoint u = case u of
 
 fmtRational :: Fmt Rational
 fmtRational = F.later $ \r ->
-  F.bformat F.shortest (fromRational @Fixed.Centi $ r)
+  F.bformat F.shortest (fromRational @Fixed.Deci $ r)
 
 fmtLengthMagnitude :: Fmt Length
 fmtLengthMagnitude = F.accessed lengthInPoints fmtRational
