@@ -109,6 +109,11 @@ fmtPureFlex = F.later $ \case
   FinitePureFlex ln -> F.bformat fmtLengthWithUnit ln
   InfPureFlex ln -> F.bformat fmtInfFlexOfOrder ln
 
+scalePureFlexByRational :: Rational -> PureFlex -> PureFlex
+scalePureFlexByRational d = \case
+  FinitePureFlex len -> FinitePureFlex $ scaleLengthByRational d len
+  InfPureFlex infFlexOfOrder -> InfPureFlex $ scaleInfFlexOfOrderByRational d infFlexOfOrder
+
 -- Net Flex.
 
 data NetFlex = NetFlex {finiteFlex :: Length, fil1Flex, fil2Flex, fil3Flex :: InfLength}
@@ -223,6 +228,10 @@ shrinkInfFlexOfOrder i (InfFlexOfOrder infLen order) =
 
 fmtInfFlexOfOrder :: Fmt InfFlexOfOrder
 fmtInfFlexOfOrder = fmtViewed (typed @InfLength) fmtInfLengthMagnitude <> F.fconst " " <> fmtViewed (typed @InfFlexOrder) fmtInfFlexOrder
+
+scaleInfFlexOfOrderByRational :: Rational -> InfFlexOfOrder -> InfFlexOfOrder
+scaleInfFlexOfOrderByRational d (InfFlexOfOrder infLength infFlexOrder) =
+  InfFlexOfOrder (scaleInfLengthByRational d infLength) infFlexOrder
 
 -- Directed flex (stretch or shrink indicated.)
 

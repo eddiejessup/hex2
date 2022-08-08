@@ -53,12 +53,6 @@ lengthFromFontDesignScale :: FontInfo -> TFM.LengthDesignSize -> Q.Length
 lengthFromFontDesignScale font lengthInDS =
   TFM.lengthFromDesignSize lengthInDS font.designScale
 
-fontLengthParamLength :: FontInfo -> (TFM.Font -> TFM.LengthDesignSize) -> Q.Length
-fontLengthParamLength font getLengthInDS = lengthFromFontDesignScale font (getLengthInDS font.fontMetrics)
-
-fontSpaceGlue :: FontInfo -> Q.Glue
-fontSpaceGlue fontInfo =
-  let spacing = fontLengthParamLength fontInfo (.params.spacing)
-      gStretch = Q.FinitePureFlex $ fontLengthParamLength fontInfo (.params.spaceStretch)
-      gShrink = Q.FinitePureFlex $ fontLengthParamLength fontInfo (.params.spaceShrink)
-   in Q.Glue {Q.gDimen = spacing, Q.gStretch, Q.gShrink}
+fontLengthParamLength :: FontInfo -> (TFM.FontParams -> TFM.LengthDesignSize) -> Q.Length
+fontLengthParamLength font getParam =
+  lengthFromFontDesignScale font (getParam font.fontMetrics.params)

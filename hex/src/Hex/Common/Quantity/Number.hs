@@ -44,6 +44,9 @@ intRatio a b =
   let intToInteger = view (typed @Int % to (fromIntegral @Int @Integer))
    in intToInteger a Ratio.% intToInteger b
 
+inThousands :: HexInt -> Rational
+inThousands a = intRatio a thousandInt
+
 fmtHexInt :: Fmt HexInt
 fmtHexInt = "H." |%| fmtHexIntSimple
 
@@ -52,6 +55,9 @@ fmtHexIntSimple = F.accessed (.unHexInt) F.shown
 
 zeroInt :: HexInt
 zeroInt = mempty
+
+thousandInt :: HexInt
+thousandInt = HexInt thousand
 
 thousand :: Int
 thousand = 1000

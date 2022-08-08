@@ -4,7 +4,9 @@ module Hex.Common.HexState.Impl where
 
 import Data.Map.Strict qualified as Map
 import Data.Text qualified as Tx
+import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog (..), debugLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexEnv.Interface (EHexEnv)
 import Hex.Common.HexEnv.Interface qualified as Env
@@ -56,24 +58,26 @@ runHexState = interpret $ \_ -> \case
     getParameterValueImpl p
   GetRegisterValue r -> getGroupScopesProperty (Sc.R.localQuantRegisterValue r)
   FetchBoxRegisterValue fetchMode rLoc -> fetchBoxRegisterValueImpl fetchMode rLoc
-  GetSpecialIntParameter p -> use $ stateSpecialIntParamLens p
-  GetSpecialLengthParameter p -> use $ stateSpecialLengthParamLens p
-  SetSpecialIntParameter p v -> assign (stateSpecialIntParamLens p) v
-  SetSpecialLengthParameter p v -> assign (stateSpecialLengthParamLens p) v
+  GetSpecialIntParameter p -> getSpecialIntParameterImpl p
+  GetSpecialLengthParameter p -> getSpecialLengthParameterImpl p
+  SetSpecialIntParameter p v -> setSpecialIntParameterImpl p v
+  SetSpecialLengthParameter p v -> setSpecialLengthParameterImpl p v
   GetHexCode t p -> getGroupScopesProperty (Sc.Code.localHexCode t p)
   ResolveSymbol p -> getGroupScopesProperty (Sc.Sym.localResolvedToken p)
   LoadFont fontPath spec -> loadFontImpl fontPath spec
   CurrentFontNumber -> currentFontNumberImpl
-  CurrentFontSpaceGlue ->
-    HSt.Font.fontSpaceGlue <$> currentFontInfo
+  CurrentSpaceGlue -> do
+    sf <- getSpecialIntParameterImpl HSt.Param.SpaceFactor
+    currentSpaceGlueFromSpaceFactor sf
+  CurrentControlSpaceGlue ->
+    currentSpaceGlueFromSpaceFactor (Q.thousandInt)
   CurrentFontCharacter chrCode -> currentFontCharacterImpl chrCode
   SetFontSpecialCharacter fontSpecialChar fontNumber value -> do
     let fontSpecialCharLens = case fontSpecialChar of
           HSt.Font.HyphenChar -> #hyphenChar
           HSt.Font.SkewChar -> #skewChar
-    use @HexState (#fontInfos % at' fontNumber) >>= \case
-      Nothing -> throwError Err.MissingFontNumber
-      Just _ -> pure ()
+    -- (Assert that the font number is valid, just to check for correctness.)
+    _ <- currentFontInfoImpl
     assign @HexState (#fontInfos % at' fontNumber %? fontSpecialCharLens) value
   SetAfterAssignmentToken t -> assign @HexState #afterAssignmentToken (Just t)
   PopAfterAssignmentToken -> do
@@ -99,25 +103,42 @@ getParameterValueImpl ::
   Eff es (HSt.Var.QuantVariableTarget q)
 getParameterValueImpl p = getGroupScopesProperty (Sc.P.localParameterValue p)
 
+getSpecialIntParameterImpl :: (State HexState :> es) => HSt.Param.SpecialIntParameter -> Eff es Q.HexInt
+getSpecialIntParameterImpl p = use $ stateSpecialIntParamLens p
+
+getSpecialLengthParameterImpl :: (State HexState :> es) => HSt.Param.SpecialLengthParameter -> Eff es Q.Length
+getSpecialLengthParameterImpl p = use $ stateSpecialLengthParamLens p
+
+setSpecialIntParameterImpl ::
+  (State HexState :> es, HexLog :> es) =>
+  HSt.Param.SpecialIntParameter ->
+  Q.HexInt ->
+  Eff es ()
+setSpecialIntParameterImpl p v = do
+  assign (stateSpecialIntParamLens p) v
+  Log.debugLog $ F.sformat (HSt.Param.fmtSpecialIntParameter |%| " := " |%| Q.fmtHexInt) p v
+
+setSpecialLengthParameterImpl ::
+  (State HexState :> es, HexLog :> es) =>
+  HSt.Param.SpecialLengthParameter ->
+  Q.Length ->
+  Eff es ()
+setSpecialLengthParameterImpl p v = do
+  assign (stateSpecialLengthParamLens p) v
+  Log.debugLog $ F.sformat (HSt.Param.fmtSpecialLengthParameter |%| " := " |%| Q.fmtLengthWithUnit) p v
+
 setScopedPropertyImpl :: State HexState :> es => (Lens' Scope (Maybe a)) -> Maybe a -> HSt.Grouped.ScopeFlag -> Eff es ()
 setScopedPropertyImpl scopeValueLens a scopeFlag =
   modifying @HexState
     #groupScopes
     (Sc.GroupScopes.setScopedProperty scopeValueLens a scopeFlag)
 
-currentFontInfo ::
-  [State HexState, Error Err.HexStateError] :>> es =>
-  Eff es HSt.Font.FontInfo
-currentFontInfo =
-  currentFontInfoImpl
-    >>= note Err.MissingFontNumber
-
 currentFontCharacterImpl ::
-  (State HexState :> es, Error Err.HexStateError :> es) =>
+  State HexState :> es =>
   Code.CharCode ->
   Eff es (Maybe HSt.Font.CharacterAttrs)
 currentFontCharacterImpl chrCode = do
-  fInfo <- currentFontInfo
+  fInfo <- currentFontInfoImpl
   pure $ HSt.Font.characterAttrs fInfo chrCode
 
 readFontInfo ::
@@ -213,3 +234,41 @@ popGroupImpl exitTrigger = do
           pure (poppedGroupType, fontNrToSet)
         Sc.Group.NonScopeGroup ->
           notImplemented $ "popGroup: NonScopeGroup"
+
+currentSpaceGlueFromSpaceFactor ::
+  State HexState :> es =>
+  Q.HexInt ->
+  Eff es Q.Glue
+currentSpaceGlueFromSpaceFactor sf = do
+  -- TODO: Note that, if \spaceskip and \xspaceskip are defined in terms of em, they change with the font.
+  let sfAbove2k = sf >= Q.HexInt 2000
+  xSpaceSkip <- getParameterValueImpl (HSt.Param.GlueQuantParam HSt.Param.XSpaceSkip)
+  if (xSpaceSkip /= Q.zeroGlue && sfAbove2k)
+    then pure xSpaceSkip
+    else do
+      -- "If \spaceskip is non-zero, it is taken instead of the normal interword
+      -- space"
+      spaceSkip <- getParameterValueImpl (HSt.Param.GlueQuantParam HSt.Param.SpaceSkip)
+      if spaceSkip /= Q.zeroGlue
+        then pure $ scaleSpaceFlex spaceSkip
+        else do
+          fontInfo <- currentFontInfoImpl
+          let baseSpacing = HSt.Font.fontLengthParamLength fontInfo (.spacing)
+              baseStretch = Q.FinitePureFlex $ HSt.Font.fontLengthParamLength fontInfo (.spaceStretch)
+              baseShrink = Q.FinitePureFlex $ HSt.Font.fontLengthParamLength fontInfo (.spaceShrink)
+              extraSpace = HSt.Font.fontLengthParamLength fontInfo (.extraSpace)
+
+              adjustedSpacing =
+                if sfAbove2k
+                  then baseSpacing <> extraSpace
+                  else baseSpacing
+
+              baseGlue = Q.Glue {gDimen = adjustedSpacing, gStretch = baseStretch, gShrink = baseShrink}
+          pure $ scaleSpaceFlex baseGlue
+  where
+    scaleSpaceFlex g =
+      let sfRatio = Q.inThousands sf
+       in g
+            { Q.gStretch = Q.scalePureFlexByRational sfRatio g.gStretch,
+              Q.gShrink = Q.scalePureFlexByRational (recip sfRatio) g.gShrink
+            }

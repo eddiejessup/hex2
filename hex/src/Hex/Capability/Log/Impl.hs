@@ -17,4 +17,7 @@ logImpl :: [IOE, Reader HexEnv, State HexState] :>> es => LogLevel -> Text -> Ef
 logImpl lvl msg = do
   logFileHandle <- know @HexEnv $ typed @Handle
   logLevel <- know @HexEnv $ typed @LogLevel
-  when (lvl >= logLevel) $ liftIO $ hPutStrLn logFileHandle $ showLevelEqualWidth logLevel <> msg
+  when (lvl >= logLevel) $
+    liftIO $
+      hPutStrLn logFileHandle $
+        showLevelEqualWidth logLevel <> " " <> msg

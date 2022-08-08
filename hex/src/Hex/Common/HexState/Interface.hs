@@ -61,7 +61,8 @@ data EHexState :: Effect where
   LoadFont :: HexFilePath -> TFM.FontSpecification -> EHexState m DVI.FontDefinition
   SetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> EHexState m ()
   CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe HSt.Font.CharacterAttrs)
-  CurrentFontSpaceGlue :: EHexState m Q.Glue
+  CurrentSpaceGlue :: EHexState m Q.Glue
+  CurrentControlSpaceGlue :: EHexState m Q.Glue
   PopAfterAssignmentToken :: EHexState m (Maybe LT.LexToken)
   SetAfterAssignmentToken :: LT.LexToken -> EHexState m ()
   PushGroup :: Maybe Grouped.ScopedGroupType -> EHexState m ()

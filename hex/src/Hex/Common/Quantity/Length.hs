@@ -38,6 +38,11 @@ scaleLengthByRational :: Rational -> Length -> Length
 scaleLengthByRational d p =
   Length $ scaleIntByRational d p.unLength
 
+-- | Shrink a length by a rational number, rounding the result to the nearest
+-- integer.
+shrinkLengthByRational :: Rational -> Length -> Length
+shrinkLengthByRational d = scaleLengthByRational (recip d)
+
 -- | Scale a length by a HexInt.
 scaleLength :: HexInt -> Length -> Length
 scaleLength = scale

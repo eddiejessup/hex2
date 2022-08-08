@@ -6,6 +6,8 @@ module Hex.Stage.Build.ListExtractor.Impl where
 import Hex.Capability.Log.Interface (HexLog (..))
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.ListBuilder.Horizontal (runHListBuilder, runHexListBuilderHMode)
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListBuilder.Vertical (runHexListBuilderVMode)
@@ -81,6 +83,8 @@ buildHListImpl ::
   Eff es ListExtractor.EndHListReason
 buildHListImpl modeVariant = do
   HSt.enterMode $ HSt.Mode.hModeFromVariant modeVariant
+  -- The space factor f is 1000 at the beginning of a horizontal list
+  HSt.setSpecialIntParameter HSt.Param.SpaceFactor Q.thousandInt
   go
   where
     go :: Eff es ListExtractor.EndHListReason

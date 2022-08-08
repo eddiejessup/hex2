@@ -2,10 +2,13 @@ module Hex.Stage.Interpret.HMode where
 
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
+import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
+import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
@@ -48,17 +51,19 @@ handleCommandInHMode oldSrc modeVariant = \case
       throwError $ AllMode.VModeCommandInInnerHMode
   Eval.HModeCommand hModeCommand -> case hModeCommand of
     Eval.AddHGlue g -> do
-      Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue g
+      addGlue g
       pure ContinueHMode
     Eval.AddCharacter c -> do
       charBox <- charAsBox c
       Build.addHListElement $ ListElem.HListHBaseElem $ BoxElem.ElemCharacter charBox
+      updateSpaceFactor c
       pure ContinueHMode
     Eval.AddHRule rule -> do
       Build.addHListElement $ ListElem.HVListElem $ ListElem.VListBaseElem $ BoxElem.ElemBox $ BoxElem.ruleAsBaseBox rule
       pure ContinueHMode
-    Eval.AddControlSpace ->
-      notImplemented "AddControlSpace"
+    Eval.AddControlSpace -> do
+      HSt.currentControlSpaceGlue >>= addGlue
+      pure ContinueHMode
     Eval.AddAccentedCharacter _n _assignments _mayCharCodeRef ->
       notImplemented "AddAccentedCharacter"
     Eval.AddItalicCorrection -> do
@@ -93,8 +98,7 @@ handleCommandInHMode oldSrc modeVariant = \case
     Eval.AddVAlignedMaterial _boxSpec ->
       notImplemented "HMode: AddVAlignedMaterial"
   Eval.AddSpace -> do
-    spaceGlue <- HSt.currentFontSpaceGlue
-    Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue spaceGlue
+    HSt.currentSpaceGlue >>= addGlue
     pure ContinueHMode
   Eval.StartParagraph indentFlag -> do
     hModeStartParagraph indentFlag
@@ -119,6 +123,19 @@ handleCommandInHMode oldSrc modeVariant = \case
   Eval.AddMark _text -> notImplemented "HMode: AddMark"
   Eval.AddInsertion _n -> notImplemented "HMode: AddInsertion"
   Eval.AddAdjustment -> notImplemented "HMode: AddAdjustment"
+  where
+    -- Tex by topic, §20.2, p186.
+    updateSpaceFactor c = do
+      lastCharSpaceFactorInt <- (.unSpaceFactorCode) <$> HSt.getHexCode Code.CSpaceFactorCodeType c
+      unless (lastCharSpaceFactorInt == Q.zeroInt) $ do
+        currentSpaceFactorInt <- HSt.getSpecialIntParameter HSt.Param.SpaceFactor
+        let newSpaceFactor =
+              if (lastCharSpaceFactorInt > Q.thousandInt && currentSpaceFactorInt < Q.thousandInt)
+                then Q.thousandInt
+                else lastCharSpaceFactorInt
+        HSt.setSpecialIntParameter HSt.Param.SpaceFactor newSpaceFactor
+
+    addGlue g = Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue g
 
 charAsBox ::
   ( HSt.EHexState :> es,

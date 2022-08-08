@@ -95,10 +95,12 @@ getGroupScopesProperty groupScopesGetter =
 
 currentFontInfoImpl ::
   State HexState :> es =>
-  Eff es (Maybe HSt.Font.FontInfo)
+  Eff es HSt.Font.FontInfo
 currentFontInfoImpl = do
   fNr <- currentFontNumberImpl
-  use @HexState (stateFontInfoLens fNr)
+  use @HexState (stateFontInfoLens fNr) >>= \case
+    Nothing -> panic "Impossible!"
+    Just v -> pure v
 
 currentFontNumberImpl ::
   State HexState :> es =>
