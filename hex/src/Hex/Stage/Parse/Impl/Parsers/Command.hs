@@ -102,13 +102,13 @@ parseCommand =
       assignments <- PC.many Par.parseNonSetBoxAssignment
       chrTok <- PC.optional (anyPrim >>= headToParseCharCodeRef)
       pure $ AST.HModeCommand $ AST.AddAccentedCharacter nr assignments chrTok
-    PT.DiscretionaryTextTok -> do
-      dText <-
-        AST.DiscretionaryText
-          <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
-          <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
-          <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
-      pure $ AST.HModeCommand $ AST.AddDiscretionaryText dText
+    PT.DiscretionaryTextTok ->
+      (AST.HModeCommand . AST.AddDiscretionaryText)
+        <$> ( AST.DiscretionaryText
+                <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
+                <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
+                <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
+            )
     PT.EndTok ->
       pure $ AST.VModeCommand AST.End
     PT.DumpTok ->

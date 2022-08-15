@@ -4,8 +4,8 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.BoxElem qualified as BoxElem
-import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
@@ -66,7 +66,7 @@ evalModeIndepCmd = \case
   P.Assign assignment -> E.Assign <$> evalAssignment assignment
   P.Relax -> pure E.Relax
   P.IgnoreSpaces -> pure E.IgnoreSpaces
-  P.AddPenalty hexInt -> E.AddPenalty . ListElem.Penalty <$> Eval.evalInt hexInt
+  P.AddPenalty hexInt -> E.AddPenalty . Bad.FiniteBadnessVal <$> Eval.evalInt hexInt
   P.AddKern length -> E.AddKern . BoxElem.Kern <$> Eval.evalLength length
   P.AddMathKern mathLength -> E.AddMathKern <$> Eval.evalMathLength mathLength
   P.RemoveItem removableItem -> pure $ E.RemoveItem removableItem

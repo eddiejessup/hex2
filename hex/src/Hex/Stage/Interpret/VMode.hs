@@ -130,16 +130,22 @@ setAndBreakHListToHBoxes hList = do
   emergencyStretch <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.EmergencyStretch)
   hyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.HyphenPenalty)
   exHyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.ExHyphenPenalty)
+  leftSkip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.LeftSkip)
+  rightSkip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.RightSkip)
+
   lineHLists <-
     Break.breakHListMultiPass
       hSize
-      (ListElem.Penalty hyphenPenalty)
-      (ListElem.Penalty exHyphenPenalty)
+      hyphenPenalty
+      exHyphenPenalty
       preTolerance
       tolerance
       linePenalty
       emergencyStretch
+      leftSkip
+      rightSkip
       hList
+
   for lineHLists $ \lineHList -> do
     let listWidth = ListElem.hListNaturalWidth lineHList
         (hBoxElems, flexSpec) = List.H.setList lineHList hSize

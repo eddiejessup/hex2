@@ -3,6 +3,7 @@ module Hex.Stage.Build.ListElem where
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.AnyDirection.Breaking.Badness (FiniteBadnessVal)
 import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hexlude
 
@@ -12,7 +13,7 @@ import Hexlude
 data VListElem
   = VListBaseElem BoxElem.BaseElem
   | ListGlue Q.Glue
-  | ListPenalty Penalty
+  | ListPenalty FiniteBadnessVal
   deriving stock (Show, Generic)
 
 vListElemIsBox :: VListElem -> Bool
@@ -129,7 +130,7 @@ discretionaryHyphenItem c =
     mempty
     mempty
 
-discretionaryItemPenalty :: Penalty -> Penalty -> DiscretionaryItem -> Penalty
+discretionaryItemPenalty :: FiniteBadnessVal -> FiniteBadnessVal -> DiscretionaryItem -> FiniteBadnessVal
 discretionaryItemPenalty hyphenPenalty explicitHyphenPenalty item = case item.preBreakText of
   BoxElem.HBoxElemSeq Empty -> explicitHyphenPenalty
   _ -> hyphenPenalty

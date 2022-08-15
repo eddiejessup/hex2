@@ -3,8 +3,10 @@ module Hex.Stage.Build.Horizontal.Paragraph.Types where
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.AnyDirection.Breaking.Badness (FiniteBadnessVal)
 import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.BoxElem qualified as BoxElem
+import Hex.Stage.Build.Horizontal.Paragraph.Break.Common
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.Vertical.Page.Break (VBreakItem (..))
 import Hex.Stage.Build.Vertical.Page.Break qualified as V
@@ -19,7 +21,7 @@ fmtHBreakItem :: Fmt HBreakItem
 fmtHBreakItem = F.later $ \case
   HVBreakItem (GlueBreak glue) -> "Glue-break{" <> F.bformat Q.fmtGlue glue <> "}"
   HVBreakItem (KernBreak kern) -> "Kern-break{" <> F.bformat BoxElem.fmtKern kern <> "}"
-  HVBreakItem (PenaltyBreak penalty) -> "Penalty-break{" <> F.bformat ListElem.fmtPenalty penalty <> "}"
+  HVBreakItem (PenaltyBreak penalty) -> "Penalty-break{" <> F.bformat Bad.fmtFiniteBadnessVal penalty <> "}"
   DiscretionaryBreak discrItem -> "Discretionary-break{" <> F.bformat ListElem.fmtDiscretionaryItem discrItem <> "}"
 
 -- TODO: Add math formula conditions.
@@ -44,7 +46,7 @@ hListElemIsDiscardable = \case
   ListElem.HListHBaseElem (BoxElem.ElemCharacter _) -> False
   ListElem.DiscretionaryItemElem _ -> False
 
-hBreakPenalty :: ListElem.Penalty -> ListElem.Penalty -> HBreakItem -> ListElem.Penalty
+hBreakPenalty :: FiniteBadnessVal -> FiniteBadnessVal -> HBreakItem -> FiniteBadnessVal
 hBreakPenalty _ _ (HVBreakItem b) = V.vBreakPenalty b
 hBreakPenalty hyphenPenalty explicitHyphenPenalty (DiscretionaryBreak discrItem) =
   (ListElem.discretionaryItemPenalty hyphenPenalty explicitHyphenPenalty discrItem)
@@ -92,15 +94,17 @@ hBreakItemAsListElemsPostBreak = \case
     ListElem.hBoxElemSeqAsHListElems discrItem.postBreakText
 
 hBreakIsAcceptable ::
-  ListElem.Penalty ->
-  ListElem.Penalty ->
-  Q.HexInt ->
+  Reader LineBreakingEnv :> es =>
   HBreakItem ->
   Bad.Badness ->
-  Bool
-hBreakIsAcceptable hyphenPenalty explicitHyphenPenalty tolerance breakItem = \case
+  Eff es Bool
+hBreakIsAcceptable breakItem = \case
   Bad.InfiniteBadness ->
-    False
-  Bad.FiniteBadness b ->
-    hBreakPenalty hyphenPenalty explicitHyphenPenalty breakItem < ListElem.Penalty Q.tenKInt
-      && b.unFiniteBadnessVal <= tolerance
+    pure False
+  Bad.FiniteBadness b -> do
+    hyphenPenalty <- know @LineBreakingEnv #hyphenPenalty
+    explicitHyphenPenalty <- know @LineBreakingEnv #exHyphenPenalty
+    activeTolerance <- know @LineBreakingEnv #tolerance
+    pure $
+      hBreakPenalty hyphenPenalty explicitHyphenPenalty breakItem < Bad.FiniteBadnessVal Q.tenKInt
+        && b <= activeTolerance

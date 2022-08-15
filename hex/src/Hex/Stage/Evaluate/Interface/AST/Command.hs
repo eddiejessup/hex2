@@ -17,8 +17,8 @@ import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Common.Token.Resolved.Primitive qualified as PT
+import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.BoxElem qualified as BoxElem
-import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
@@ -66,7 +66,7 @@ data ModeIndependentCommand
   = Assign Assignment
   | Relax
   | IgnoreSpaces
-  | AddPenalty ListElem.Penalty
+  | AddPenalty Bad.FiniteBadnessVal
   | AddKern BoxElem.Kern
   | AddMathKern Q.MathLength
   | RemoveItem PT.RemovableItem

@@ -16,7 +16,10 @@ import Hexlude
 
 newtype FiniteBadnessVal = FiniteBadnessVal {unFiniteBadnessVal :: Q.HexInt}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord)
+  deriving newtype (Eq, Ord, Semigroup, Monoid, Group)
+
+fmtFiniteBadnessVal :: Fmt FiniteBadnessVal
+fmtFiniteBadnessVal = "Bad{" |%| F.accessed (.unFiniteBadnessVal) Q.fmtHexIntSimple
 
 zeroFiniteBadness :: FiniteBadnessVal
 zeroFiniteBadness = minBound

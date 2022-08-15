@@ -4,6 +4,7 @@ import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Quantity qualified as Q
+import Hex.Stage.Build.AnyDirection.Breaking.Badness (FiniteBadnessVal (FiniteBadnessVal))
 import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.AnyDirection.Evaluate qualified as Eval
 import Hex.Stage.Build.BoxElem qualified as BoxElem
@@ -17,7 +18,7 @@ import Hexlude
 data VBreakItem
   = GlueBreak Q.Glue
   | KernBreak BoxElem.Kern
-  | PenaltyBreak ListElem.Penalty
+  | PenaltyBreak Bad.FiniteBadnessVal
   deriving stock (Show, Generic)
 
 vListElemToBreakItem :: (Maybe ListElem.VListElem, ListElem.VListElem, Maybe ListElem.VListElem) -> Maybe VBreakItem
@@ -41,10 +42,10 @@ vListElemIsDiscardable = \case
   ListElem.VListBaseElem (BoxElem.ElemFontDefinition _) -> False
   ListElem.VListBaseElem (BoxElem.ElemFontSelection _) -> False
 
-vBreakPenalty :: VBreakItem -> ListElem.Penalty
+vBreakPenalty :: VBreakItem -> Bad.FiniteBadnessVal
 vBreakPenalty (PenaltyBreak p) = p
-vBreakPenalty (GlueBreak _) = ListElem.zeroPenalty
-vBreakPenalty (KernBreak _) = ListElem.zeroPenalty
+vBreakPenalty (GlueBreak _) = Bad.zeroFiniteBadness
+vBreakPenalty (KernBreak _) = Bad.zeroFiniteBadness
 
 data CurrentPage = CurrentPage
   { items :: VList,
@@ -69,12 +70,12 @@ instance Ord PageCost where
   FiniteCost _ `compare` InfiniteCost = LT
   FiniteCost fA `compare` FiniteCost fB = fA `compare` fB
 
-newtype FiniteCostValue = FiniteCostValue {unFiniteCostValue :: ListElem.Penalty}
+newtype FiniteCostValue = FiniteCostValue {unFiniteCostValue :: FiniteBadnessVal}
   deriving stock (Show, Eq, Ord, Generic)
 
 -- | Initialise a page with the largest finite cost, because an infinite cost signals 'stop and break here', which we don't want.
 newCurrentPage :: CurrentPage
-newCurrentPage = CurrentPage mempty (BestPointAndCost 0 (FiniteCost (FiniteCostValue $ ListElem.Penalty Q.hunKInt)))
+newCurrentPage = CurrentPage mempty (BestPointAndCost 0 (FiniteCost (FiniteCostValue $ FiniteBadnessVal Q.hunKInt)))
 
 currentPageBestCost :: CurrentPage -> PageCost
 currentPageBestCost currentPage = currentPage.bestPointAndCost.cost
@@ -133,24 +134,24 @@ pageBreakCost currentPage breakItem desiredHeight = do
       p = vBreakPenalty breakItem
       -- TODO: q is ‘\insertpenalties’, the sum of all penalties for split
       -- insertions on the page, as explained below.
-      q = ListElem.Penalty Q.zeroInt
+      q = Bad.zeroFiniteBadness
   Log.infoLog $ "Flex spec: " <> show flexSpec <> ", desiredHeight" <> show desiredHeight
   Log.infoLog $ "Badness: " <> show b <> ", penalty: " <> show p
   pure $ case b of
     Bad.InfiniteBadness ->
       InfiniteCost
     Bad.FiniteBadness finiteB
-      | q >= ListElem.Penalty Q.tenKInt -> InfiniteCost
-      | p <= (ListElem.Penalty (invert Q.tenKInt)) -> FiniteCost $ FiniteCostValue p
-      | finiteB == Bad.maxFiniteBadness -> FiniteCost $ FiniteCostValue $ ListElem.Penalty Q.hunKInt
-      | otherwise -> FiniteCost $ FiniteCostValue (ListElem.Penalty (finiteB.unFiniteBadnessVal) <> p <> q)
+      | q >= FiniteBadnessVal Q.tenKInt -> InfiniteCost
+      | p <= (FiniteBadnessVal (invert Q.tenKInt)) -> FiniteCost $ FiniteCostValue p
+      | finiteB == Bad.maxFiniteBadness -> FiniteCost $ FiniteCostValue $ FiniteBadnessVal Q.hunKInt
+      | otherwise -> FiniteCost $ FiniteCostValue (finiteB <> p <> q)
 
 -- If c = ∞ or if p ≤ −10000, Tex seizes the initiative and breaks the page at the best remembered breakpoint.
 costImpliesBreakHere :: PageCost -> Bool
 costImpliesBreakHere = \case
   InfiniteCost -> True
   FiniteCost finiteCost ->
-    finiteCost <= FiniteCostValue (ListElem.Penalty (invert Q.tenKInt))
+    finiteCost <= FiniteCostValue (FiniteBadnessVal (invert Q.tenKInt))
 
 runPageBuilder ::
   forall es.

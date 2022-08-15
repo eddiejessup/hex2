@@ -194,7 +194,7 @@ instance HexCode DelimiterCode where
       delimiterVarFromInt :: Int -> Maybe DelimiterVar
       delimiterVarFromInt i
         | i == 0 = Just NullDelimiterVar
-        | otherwise = PresentDelimiterVar <$> familyCharRefFromInt n
+        | otherwise = PresentDelimiterVar <$> familyCharRefFromInt i
 
 data DelimiterSpec = DelimiterSpec {smallVar, largeVar :: DelimiterVar}
   deriving stock (Show, Eq)

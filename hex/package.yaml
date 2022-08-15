@@ -37,6 +37,7 @@ library:
     - time
     - effectful
     - effectful-th
+    - witherable
 
 ghc-options:
   - -Wall
