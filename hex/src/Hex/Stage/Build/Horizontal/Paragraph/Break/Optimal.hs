@@ -112,9 +112,14 @@ data CompletedLine = CompletedLine
   }
   deriving stock (Show, Generic)
 
-completeIncompleteLine :: HBreakItem -> IncompleteLine -> CompletedLine
-completeIncompleteLine br line =
-  let completedLineElements = line.lineElements <> H.Break.hBreakItemAsListElemsPreBreak br
+completeIncompleteLine :: HBreakItem -> Q.Glue -> Q.Glue -> IncompleteLine -> CompletedLine
+completeIncompleteLine br leftSkip rightSkip line =
+  let completedLineElements =
+        ( (ListElem.HVListElem (ListElem.ListGlue leftSkip))
+            <| line.lineElements
+            <> H.Break.hBreakItemAsListElemsPreBreak br
+        )
+          |> (ListElem.HVListElem (ListElem.ListGlue rightSkip))
    in CompletedLine completedLineElements line.lineStartPoint
 
 completeAndPruneUnacceptableLines ::
@@ -123,7 +128,9 @@ completeAndPruneUnacceptableLines ::
   Seq IncompleteLine ->
   Eff es (Seq CompletedLine)
 completeAndPruneUnacceptableLines breakItem incompleteds = do
-  let completeds = completeIncompleteLine breakItem <$> incompleteds
+  leftSkip <- know @LineBreakingEnv #leftSkip
+  rightSkip <- know @LineBreakingEnv #rightSkip
+  let completeds = completeIncompleteLine breakItem leftSkip rightSkip <$> incompleteds
   Wither.filterA (completedLineIsAcceptable breakItem) completeds
 
 completedLineBadness :: Reader LineBreakingEnv :> es => CompletedLine -> Eff es Bad.Badness
