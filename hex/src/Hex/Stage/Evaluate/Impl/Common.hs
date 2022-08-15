@@ -34,9 +34,3 @@ evalBalancedTextToText bt = do
         pure $ Code.codeAsAsciiChar $ lexCharCat.lexCCChar
   -- Build a text from the list of ASCII-characters.
   pure $ ASCII.charListToText $ toList msgAsciiChars
-
-evalExpandedBalancedTextToText ::
-  Error EvaluationError :> es =>
-  HSt.TL.ExpandedBalancedText ->
-  Eff es Text
-evalExpandedBalancedTextToText ebt = evalBalancedTextToText (ebt.unExpandedBalancedText)

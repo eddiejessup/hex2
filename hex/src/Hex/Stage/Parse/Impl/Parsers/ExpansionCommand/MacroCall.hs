@@ -4,7 +4,6 @@ import Control.Monad.Combinators qualified as PC
 import Data.Sequence qualified as Seq
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Interface.TokenList qualified as HSt.LT
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Expandable qualified as ST
@@ -48,8 +47,8 @@ parseMacroArguments parameterSpec = do
     -- Check if an argument has an outer '{}' pair that should be stripped, and
     -- do this if so.
     -- If we got an empty argument, can consider this to 'strip' to itself.
-    stripOuterBracePairIfPresent :: HSt.TL.InhibitedBalancedText -> HSt.TL.InhibitedBalancedText
-    stripOuterBracePairIfPresent original@(HSt.TL.InhibitedBalancedText (HSt.LT.BalancedText outer)) = case outer of
+    stripOuterBracePairIfPresent :: HSt.TL.BalancedText -> HSt.TL.BalancedText
+    stripOuterBracePairIfPresent original@(HSt.TL.BalancedText outer) = case outer of
       -- Must have at least 2 tokens.
       -- First token must be a '{'.
       -- The last token must be a '}'.
@@ -58,14 +57,14 @@ parseMacroArguments parameterSpec = do
         | lexTokenHasCategory Code.BeginGroup a
             && lexTokenHasCategory Code.EndGroup z
             && hasValidGrouping inner ->
-            HSt.TL.InhibitedBalancedText $ HSt.LT.BalancedText inner
+            HSt.TL.BalancedText inner
       _ ->
         original
 
 -- If the parameter is undelimited, the argument is the next non-blank
 -- token, unless that token is ‘{’, when the argument will be the entire
 -- following {...} group.
-parseUndelimitedArgumentTokens :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es HSt.TL.InhibitedBalancedText
+parseUndelimitedArgumentTokens :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es HSt.TL.BalancedText
 parseUndelimitedArgumentTokens = do
   -- Skip blank tokens (assumed to mean spaces).
   PC.skipMany $ satisfyIf (satisfyCharCatThen PT.Inhibited) (charCatHasCategory Code.Space)
@@ -74,18 +73,18 @@ parseUndelimitedArgumentTokens = do
     LT.CharCatLexToken LT.LexCharCat {lexCCCat = Code.BeginGroup} ->
       Par.parseInhibitedBalancedText Par.AlreadySeenBeginGroup
     t ->
-      pure $ HSt.TL.InhibitedBalancedText $ HSt.LT.BalancedText (singleton t)
+      pure $ HSt.TL.BalancedText (singleton t)
 
 -- Get the shortest, possibly empty, properly nested sequence of tokens,
 -- followed by the delimiter tokens. In the delimiter, category codes,
 -- character codes and control sequence names must match.
-parseDelimitedArgumentTokens :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Seq LT.LexToken -> Eff es HSt.TL.InhibitedBalancedText
+parseDelimitedArgumentTokens :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Seq LT.LexToken -> Eff es HSt.TL.BalancedText
 parseDelimitedArgumentTokens delims = go Empty
   where
     -- Get the shortest, possibly empty, properly nested sequence of tokens,
     -- followed by the delimiter tokens. In the delimiter, category codes,
     -- character codes and control sequence names must match.
-    go :: Seq LT.LexToken -> Eff es HSt.TL.InhibitedBalancedText
+    go :: Seq LT.LexToken -> Eff es HSt.TL.BalancedText
     go argTokensAccum = do
       -- Parse tokens until we see the delimiter tokens, then add what we grab
       -- to our accumulating argument.
@@ -96,7 +95,7 @@ parseDelimitedArgumentTokens delims = go Empty
       if hasValidGrouping argTokensNew
         then -- If the argument has valid grouping, then we are done, that is the
         -- argument.
-          pure $ HSt.TL.InhibitedBalancedText $ HSt.LT.BalancedText argTokensNew
+          pure $ HSt.TL.BalancedText argTokensNew
         else -- Otherwise, add the 'red herring' delimiters we just parsed and
         -- continue extending the argument token-sequence.
           go (argTokensNew <> delims)

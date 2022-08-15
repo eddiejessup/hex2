@@ -1,6 +1,7 @@
 module Hex.Common.Quantity.MathLength where
 
 import Formatting qualified as F
+import Hex.Common.Quantity.Common qualified as Q
 import Hex.Common.Quantity.Length (scaleIntByRational)
 import Hex.Common.Quantity.Number
 import Hexlude
@@ -14,7 +15,7 @@ newtype MathLength = MathLength {unMathLength :: HexInt}
 -- Verified empirically, by observing that the smallest usable 'muskip' is
 -- ~2^-16 mu.
 muLength :: MathLength
-muLength = MathLength $ HexInt (2 ^ (16 :: Int))
+muLength = MathLength $ HexInt Q.fixedPointGrain
 
 scaleMathLengthByRational :: Rational -> MathLength -> MathLength
 scaleMathLengthByRational d p =

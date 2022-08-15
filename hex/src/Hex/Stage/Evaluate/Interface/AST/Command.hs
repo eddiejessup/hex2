@@ -46,7 +46,7 @@ data Command
   | ShowLists
   | ShowTheInternalQuantity Uneval.InternalQuantity
   | ShipOut Uneval.Box
-  | AddMark HSt.TL.ExpandedBalancedText
+  | AddMark HSt.TL.BalancedText
   | -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- then can 'migrate' out.
     AddInsertion Q.HexInt
@@ -75,7 +75,7 @@ data ModeIndependentCommand
   | WriteMessage MessageWriteCommand
   | ModifyFileStream Uneval.FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
-  | DoSpecial HSt.TL.ExpandedBalancedText
+  | DoSpecial HSt.TL.BalancedText
   | AddBox Uneval.BoxPlacement Box
   | ChangeScope Q.Sign HSt.Group.ChangeGroupTrigger
   | DebugShowState
@@ -115,7 +115,7 @@ data StreamWriteCommand = StreamWriteCommand {streamNumber :: Q.HexInt, writeTex
 
 data WriteText
   = ImmediateWriteText Text
-  | DeferredWriteText HSt.TL.InhibitedBalancedText
+  | DeferredWriteText HSt.TL.BalancedText
   deriving stock (Show, Eq, Generic)
 
 data AssignmentBody
@@ -130,8 +130,8 @@ data AssignmentBody
   | -- GlobalScope assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
   | SetFontSpecialChar E.FontSpecialCharRef Q.HexInt
-  | SetHyphenation HSt.TL.InhibitedBalancedText
-  | SetHyphenationPatterns HSt.TL.InhibitedBalancedText
+  | SetHyphenation HSt.TL.BalancedText
+  | SetHyphenationPatterns HSt.TL.BalancedText
   | SetBoxDimension Uneval.BoxDimensionRef Uneval.Length
   | SetInteractionMode PT.InteractionMode
   deriving stock (Show, Eq, Generic)

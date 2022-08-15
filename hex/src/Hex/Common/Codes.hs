@@ -6,6 +6,7 @@ import ASCII qualified
 import Data.ByteString qualified as BS
 import Data.Char qualified as Char
 import Formatting qualified as F
+import GHC.Num
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -16,7 +17,7 @@ class HexCode a where
 
 newtype CharCode = CharCode {unCharCode :: Word8}
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord, Enum, Bounded, Hashable)
+  deriving newtype (Eq, Ord, Bounded, Hashable)
 
 pattern Chr_ :: Char -> CharCode
 pattern Chr_ c <-
@@ -172,18 +173,28 @@ fmtDelimiterCode = F.later $ \case
 instance HexCode DelimiterCode where
   toHexInt (NotADelimiter n) = n
   toHexInt (DelimiterSpecCode DelimiterSpec {smallVar, largeVar}) =
-    let (Q.HexInt largeVarN) = toHexInt largeVar
-        (Q.HexInt smallVarN) = toHexInt smallVar
+    let largeVarN = delimiterVarAsInt largeVar
+        smallVarN = delimiterVarAsInt smallVar
      in Q.HexInt $ largeVarN `shiftL` 12 + smallVarN
+    where
+      delimiterVarAsInt :: DelimiterVar -> Int
+      delimiterVarAsInt = \case
+        NullDelimiterVar -> 0
+        (PresentDelimiterVar f) -> familyCharRefAsInt f
 
   fromHexInt (Q.HexInt n)
     | n < 0 = Just $ NotADelimiter $ Q.HexInt n
     | n > 0xFFFFFF = Nothing
     | otherwise =
         do
-          smallVar <- fromHexInt $ Q.HexInt $ n `shiftR` 12
-          largeVar <- fromHexInt $ Q.HexInt $ n .&. 0xFFF
+          smallVar <- delimiterVarFromInt $ n `shiftR` 12
+          largeVar <- delimiterVarFromInt $ n .&. 0xFFF
           Just $ DelimiterSpecCode $ DelimiterSpec smallVar largeVar
+    where
+      delimiterVarFromInt :: Int -> Maybe DelimiterVar
+      delimiterVarFromInt i
+        | i == 0 = Just NullDelimiterVar
+        | otherwise = PresentDelimiterVar <$> familyCharRefFromInt n
 
 data DelimiterSpec = DelimiterSpec {smallVar, largeVar :: DelimiterVar}
   deriving stock (Show, Eq)
@@ -201,26 +212,21 @@ fmtDelimiterVar = F.later $ \case
   PresentDelimiterVar familyCharRef -> "Present-delimiter " <> F.bformat F.shown familyCharRef
   NullDelimiterVar -> "Null-delimiter-variant"
 
-instance HexCode DelimiterVar where
-  toHexInt NullDelimiterVar = Q.HexInt 0
-  toHexInt (PresentDelimiterVar f) = toHexInt f
-
-  fromHexInt h@(Q.HexInt n)
-    | n == 0 = Just NullDelimiterVar
-    | otherwise = PresentDelimiterVar <$> fromHexInt h
-
 data FamilyCharRef = FamilyCharRef {family :: Q.HexInt, position :: CharCode}
   deriving stock (Show, Eq, Generic)
 
-instance HexCode FamilyCharRef where
-  toHexInt (FamilyCharRef (Q.HexInt famN) pos) = Q.HexInt $ (famN `shiftL` 8) + (toHexInt pos ^. typed @Int)
+familyCharRefAsInt :: FamilyCharRef -> Int
+familyCharRefAsInt
+  (FamilyCharRef (Q.HexInt famN) pos) =
+    (famN `shiftL` 8) + (toHexInt pos).unHexInt
 
-  fromHexInt (Q.HexInt n)
-    | n < 0 = Nothing
-    | n > 0xFFF = Nothing
-    | otherwise = do
-        pos <- fromHexInt (Q.HexInt (n .&. 0xFF))
-        pure $ FamilyCharRef (Q.HexInt $ n `shiftR` 8) pos
+familyCharRefFromInt :: Int -> Maybe FamilyCharRef
+familyCharRefFromInt n
+  | n < 0 = Nothing
+  | n > 0xFFF = Nothing
+  | otherwise = do
+      pos <- fromHexInt (Q.HexInt (n .&. 0xFF))
+      pure $ FamilyCharRef (Q.HexInt $ n `shiftR` 8) pos
 
 -- Math code.
 -- ----------
@@ -238,23 +244,6 @@ data MathCode = NormalMathCode MathClass FamilyCharRef | ActiveMathCode
 fmtMathCode :: Fmt MathCode
 fmtMathCode = F.shown
 
-instance HexCode MathCode where
-  toHexInt ActiveMathCode =
-    Q.HexInt 0x8000
-  toHexInt (NormalMathCode cls famRef) =
-    let (Q.HexInt famRefN) = toHexInt famRef
-        (Q.HexInt clsN) = toHexInt cls
-     in Q.HexInt $ famRefN + (clsN `shiftL` 12)
-
-  fromHexInt (Q.HexInt n)
-    | n < 0 = Nothing
-    | n > 0x8000 = Nothing
-    | n == 0x8000 = Just ActiveMathCode
-    | otherwise = do
-        cls <- fromHexInt (Q.HexInt $ n `shiftR` 12)
-        famRef <- fromHexInt (Q.HexInt $ n .&. 0xFFF)
-        pure $ NormalMathCode cls famRef
-
 data MathClass
   = Ordinary -- 0
   | LargeOperator -- 1
@@ -264,12 +253,47 @@ data MathClass
   | Closing -- 5
   | Punctuation -- 6
   | VariableFamily -- 7
-  deriving stock (Show, Eq, Enum, Bounded)
+  deriving stock (Show, Eq, Bounded)
 
-instance HexCode MathClass where
-  toHexInt = Q.HexInt . fromEnum
+instance HexCode MathCode where
+  toHexInt ActiveMathCode =
+    Q.HexInt 0x8000
+  toHexInt (NormalMathCode cls famRef) =
+    let famRefN = familyCharRefAsInt famRef
+        clsN = mathClassAsInt cls
+     in Q.HexInt $ famRefN + (clsN `shiftL` 12)
+    where
+      mathClassAsInt :: MathClass -> Int
+      mathClassAsInt c = case c of
+        Ordinary -> 0
+        LargeOperator -> 1
+        BinaryRelation -> 2
+        Relation -> 3
+        Opening -> 4
+        Closing -> 5
+        Punctuation -> 6
+        VariableFamily -> 7
 
-  fromHexInt = Just . toEnum . Q.unHexInt
+  fromHexInt (Q.HexInt n)
+    | n < 0 = Nothing
+    | n > 0x8000 = Nothing
+    | n == 0x8000 = Just ActiveMathCode
+    | otherwise = do
+        cls <- mathClassFromHexInt (n `shiftR` 12)
+        famRef <- familyCharRefFromInt (n .&. 0xFFF)
+        pure $ NormalMathCode cls famRef
+    where
+      mathClassFromHexInt :: Int -> Maybe MathClass
+      mathClassFromHexInt v = case v of
+        0 -> Just Ordinary
+        1 -> Just LargeOperator
+        2 -> Just BinaryRelation
+        3 -> Just Relation
+        4 -> Just Opening
+        5 -> Just Closing
+        6 -> Just Punctuation
+        7 -> Just VariableFamily
+        _ -> Nothing
 
 -- Change case code.
 -- -----------------

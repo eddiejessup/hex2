@@ -116,7 +116,7 @@ mkHexLine :: Maybe Code.CharCode -> ByteString -> HexLine
 mkHexLine mayEndLineChar bs =
   let spaceStripped = case BS.findIndexEnd ((/= 32)) bs of
         Nothing -> ""
-        Just i -> BS.take (i + 1) bs
+        Just i -> BS.take (succ i) bs
       withEndLine = case mayEndLineChar of
         Nothing -> spaceStripped
         Just endLineChar -> spaceStripped <> BS.singleton (endLineChar.unCharCode)

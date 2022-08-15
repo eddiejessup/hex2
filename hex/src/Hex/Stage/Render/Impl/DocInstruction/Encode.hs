@@ -24,8 +24,6 @@ vBoxElemToDocInstructions ax = \case
     boxContentsToDocInstructions baseBox <> [Move ax $ Box.boxSpanAlongAxis ax baseBox.unBaseBox]
   BoxElem.VBoxBaseElem (BoxElem.ElemKern kern) ->
     pure (Move ax $ kern.unKern)
-  BoxElem.BoxGlue g ->
-    pure (Move ax $ g.sgDimen)
 
 boxContentsToDocInstructions :: BoxElem.BaseBox -> [DocInstruction]
 boxContentsToDocInstructions baseBox =

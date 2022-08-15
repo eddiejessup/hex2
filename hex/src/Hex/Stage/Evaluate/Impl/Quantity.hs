@@ -3,6 +3,7 @@ module Hex.Stage.Evaluate.Impl.Quantity where
 import Data.List qualified as List
 import Data.Ratio qualified as Ratio
 import Data.Sequence qualified as Seq
+import GHC.Num qualified as Num
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (EHexState)
@@ -137,7 +138,7 @@ evalFontSpecialCharRef = notImplemented "evalFontSpecialCharRef"
 -- that base.
 digitsToInt :: Int -> [Int] -> Int
 digitsToInt base digs =
-  foldl' (\a b -> a * base + b) 0 digs
+  foldl' (\a b -> a Num.* base Num.+ b) 0 digs
 
 evalLength :: [Error Eval.EvaluationError, EHexState] :>> es => P.Length -> Eff es Q.Length
 evalLength len =
@@ -174,7 +175,7 @@ evalDecimalFraction v =
           Ratio.% (10 ^ List.length v.fracDigits)
    in -- Convert the whole number to a rational, and add it to the fraction.
 
-      (fromIntegral @Integer @Rational wholeNr) + fraction
+      (fromIntegral @Integer @Rational wholeNr) Num.+ fraction
   where
     decDigitsToInt words =
       fromIntegral @Int @Integer $ digitsToInt 10 $ word8ToInt <$> words
@@ -348,8 +349,8 @@ evalTokenListAssignmentTarget :: [Error Eval.EvaluationError, EHexState] :>> es 
 evalTokenListAssignmentTarget = \case
   P.TokenListAssignmentVar var ->
     evalQuantVariableAsTarget var
-  P.TokenListAssignmentText inhibitedBalancedText ->
-    pure inhibitedBalancedText.unInhibitedBalancedText
+  P.TokenListAssignmentText balancedText ->
+    pure balancedText
 
 evalInternalQuantity ::
   [Error EvaluationError, EHexState] :>> es =>

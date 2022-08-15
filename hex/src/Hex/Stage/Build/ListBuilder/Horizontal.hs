@@ -28,6 +28,8 @@ addHListElementImpl e = do
       HSt.setSpecialIntParameter HSt.Param.SpaceFactor Q.thousandInt
     ListElem.HVListElem (ListElem.VListBaseElem _) ->
       pure ()
+    ListElem.DiscretionaryItemElem _ ->
+      pure ()
 
 -- | This doesn't need to be monadic, but it probably will be at some point, and
 -- this keeps things symmetric with the 'vlist' case.

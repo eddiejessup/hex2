@@ -2,6 +2,7 @@ module Hex.Common.TFM.Get.TableParams where
 
 import Control.Monad.Fail (fail)
 import Data.Serialize.Get qualified as Ser
+import GHC.Num
 import Hexlude
 
 data TableParams = TableParams

@@ -11,11 +11,11 @@ import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Break
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.ListBuilder.Interface
 import Hex.Stage.Build.ListElem qualified as List
 import Hex.Stage.Build.ListElem qualified as ListElem
+import Hex.Stage.Build.Vertical.Page.Break qualified as V.Break
 import Hexlude
 
 addVListElementImpl :: (HSt.EHexState :> es, Log.HexLog :> es, State List.VList :> es) => List.VListElem -> Eff es ()
@@ -78,7 +78,7 @@ extendVList e vList@(List.VList accSeq) = case e of
     HSt.setSpecialLengthParameter HSt.Param.PrevDepth boxDepth
     pure $ List.VList $ accSeq <> newElems
   _ -> do
-    if not (List.vListContainsBoxes vList) && (Break.vListElemIsDiscardable e)
+    if not (List.vListContainsBoxes vList) && (V.Break.vListElemIsDiscardable e)
       then do
         Log.infoLog $ "extendVList: Skipping adding element: " <> F.sformat List.fmtVListElem e <> ", to vertical list without boxes, length " <> show (Seq.length accSeq)
         pure (List.VList (accSeq))

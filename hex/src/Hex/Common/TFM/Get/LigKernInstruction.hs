@@ -1,5 +1,6 @@
 module Hex.Common.TFM.Get.LigKernInstruction where
 
+import GHC.Num
 import Hex.Common.TFM.Get.LigKernCommand (LigKernCommand (..))
 import Hex.Common.TFM.Types
 import Hexlude

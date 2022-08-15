@@ -4,6 +4,7 @@ import ASCII qualified
 import Control.Monad.Fail (fail)
 import Data.Ratio qualified as Ratio
 import Data.Serialize.Get qualified as Ser
+import GHC.Num
 import Hexlude
 
 -- Read a string that's encoded as an integer, followed by that number of

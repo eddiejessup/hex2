@@ -72,13 +72,8 @@ runHexState = interpret $ \_ -> \case
   CurrentControlSpaceGlue ->
     currentSpaceGlueFromSpaceFactor (Q.thousandInt)
   CurrentFontCharacter chrCode -> currentFontCharacterImpl chrCode
-  SetFontSpecialCharacter fontSpecialChar fontNumber value -> do
-    let fontSpecialCharLens = case fontSpecialChar of
-          HSt.Font.HyphenChar -> #hyphenChar
-          HSt.Font.SkewChar -> #skewChar
-    -- (Assert that the font number is valid, just to check for correctness.)
-    _ <- currentFontInfoImpl
-    assign @HexState (#fontInfos % at' fontNumber %? fontSpecialCharLens) value
+  SetFontSpecialCharacter fontSpecialChar fontNumber value -> setFontSpecialCharacterImpl fontSpecialChar fontNumber value
+  GetFontSpecialCharacter fontSpecialChar fontNumber -> getFontSpecialCharacterImpl fontSpecialChar fontNumber
   SetAfterAssignmentToken t -> assign @HexState #afterAssignmentToken (Just t)
   PopAfterAssignmentToken -> do
     v <- use @HexState #afterAssignmentToken
@@ -140,6 +135,31 @@ currentFontCharacterImpl ::
 currentFontCharacterImpl chrCode = do
   fInfo <- currentFontInfoImpl
   pure $ HSt.Font.characterAttrs fInfo chrCode
+
+setFontSpecialCharacterImpl ::
+  (State HexState :> es) =>
+  HSt.Font.FontSpecialChar ->
+  DVI.FontNumber ->
+  Q.HexInt ->
+  Eff es ()
+setFontSpecialCharacterImpl fontSpecialChar fontNumber value = do
+  let fontSpecialCharLens = case fontSpecialChar of
+        HSt.Font.HyphenChar -> #hyphenChar
+        HSt.Font.SkewChar -> #skewChar
+  -- (Assert that the font number is valid, just to check for correctness.)
+  _ <- currentFontInfoImpl
+  assign @HexState (#fontInfos % at' fontNumber %? fontSpecialCharLens) value
+
+getFontSpecialCharacterImpl ::
+  (State HexState :> es) =>
+  HSt.Font.FontSpecialChar ->
+  DVI.FontNumber ->
+  Eff es Q.HexInt
+getFontSpecialCharacterImpl fontSpecialChar fontNumber = do
+  use @HexState $
+    stateFontInfoLens fontNumber % case fontSpecialChar of
+      HSt.Font.HyphenChar -> #hyphenChar
+      HSt.Font.SkewChar -> #skewChar
 
 readFontInfo ::
   ([Error TFM.TFMError, State HexState] :>> es) =>

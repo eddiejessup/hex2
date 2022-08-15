@@ -46,7 +46,7 @@ substituteArgsIntoMacroBody replacementText argsList =
         Nothing ->
           throwError $ Expand.MacroArgumentSubstitutionError argIx argsList
         Just arg ->
-          pure $ arg.unMacroArgument.unInhibitedBalancedText.unBalancedText
+          pure $ arg.unMacroArgument.unBalancedText
 
 -- If the condition is an 'if':
 -- If true:
@@ -121,12 +121,12 @@ skipUpToCaseBlock ::
   Q.HexInt ->
   m RT.ResolvedToken ->
   m (Maybe Expand.CaseState)
-skipUpToCaseBlock tgtBlock getNextToken = go Q.zeroInt 1
+skipUpToCaseBlock tgtBlock getNextToken = go 0 1
   where
-    go :: Q.HexInt -> Int -> m (Maybe Expand.CaseState)
+    go :: Int -> Int -> m (Maybe Expand.CaseState)
     go currentCaseBlock depth
       | depth == 1,
-        currentCaseBlock == tgtBlock =
+        currentCaseBlock == tgtBlock.unHexInt =
           -- If we are at top condition depth,
           pure $ Just Expand.InSelectedOrCaseBlock
       | otherwise =

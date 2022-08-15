@@ -10,7 +10,7 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.AnyDirection.Evaluate qualified as Eval
 import Hex.Stage.Build.BoxElem qualified as BoxElem
-import Hex.Stage.Build.Horizontal.Paragraph.Break.Optimal qualified as Break
+import Hex.Stage.Build.Horizontal.Paragraph.Break.MultiPass qualified as Break
 import Hex.Stage.Build.Horizontal.Set qualified as List.H
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListElem qualified as ListElem
@@ -124,9 +124,22 @@ setAndBreakHListToHBoxes ::
   Eff es (Seq (Box.Box BoxElem.HBoxElemSeq))
 setAndBreakHListToHBoxes hList = do
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
-  lineTol <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
-  linePen <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
-  lineHLists <- Break.breakHListOptimally hSize lineTol linePen hList
+  preTolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.PreTolerance)
+  tolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
+  linePenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
+  emergencyStretch <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.EmergencyStretch)
+  hyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.HyphenPenalty)
+  exHyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.ExHyphenPenalty)
+  lineHLists <-
+    Break.breakHListMultiPass
+      hSize
+      (ListElem.Penalty hyphenPenalty)
+      (ListElem.Penalty exHyphenPenalty)
+      preTolerance
+      tolerance
+      linePenalty
+      emergencyStretch
+      hList
   for lineHLists $ \lineHList -> do
     let listWidth = ListElem.hListNaturalWidth lineHList
         (hBoxElems, flexSpec) = List.H.setList lineHList hSize

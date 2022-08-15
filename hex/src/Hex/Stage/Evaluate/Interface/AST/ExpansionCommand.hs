@@ -29,7 +29,7 @@ data ExpansionCommand
   | OpenInputFile HexFilePath
   | EndInputFile
   | RenderInternalQuantity Eval.InternalQuantity
-  | ChangeCase VDirection HSt.TL.InhibitedBalancedText
+  | ChangeCase VDirection HSt.TL.BalancedText
   deriving stock (Show, Eq, Generic)
 
 data ConditionOutcome = IfConditionOutcome IfOutcome | CaseConditionOutcome Q.HexInt

@@ -236,7 +236,7 @@ expandExpansionCommand = \case
   E.RenderInternalQuantity internalQuantity -> do
     pure $ Expand.renderInternalQuantity internalQuantity
   E.ChangeCase vDirection inhibText ->
-    forM (inhibText.unInhibitedBalancedText.unBalancedText) $ \lt ->
+    forM (inhibText.unBalancedText) $ \lt ->
       case lt of
         LT.ControlSequenceLexToken _ ->
           pure lt

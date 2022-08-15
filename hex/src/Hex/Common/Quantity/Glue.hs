@@ -2,6 +2,7 @@ module Hex.Common.Quantity.Glue where
 
 import Data.Ratio qualified as Ratio
 import Formatting qualified as F
+import Hex.Common.Quantity.Common qualified as Q
 import Hex.Common.Quantity.Length
 import Hex.Common.Quantity.Number
 import Hexlude
@@ -184,7 +185,7 @@ zeroInfLength = mempty
 -- stick to fewer than 16,384 fil-units. Tex actually does its calculations with
 -- integer multiples of 2^−16 fil (or fill or filll);
 bigFilLength :: InfLength
-bigFilLength = InfLength $ HexInt (2 ^ (16 :: Int))
+bigFilLength = InfLength $ HexInt Q.fixedPointGrain
 
 scaleInfLengthByRational :: Rational -> InfLength -> InfLength
 scaleInfLengthByRational factor infLen =
@@ -240,7 +241,10 @@ data FlexDirection
   | Shrink
   deriving stock (Show, Generic)
 
-data FlexInDirection = FlexInDirection {flexDirection :: FlexDirection, flexAmount :: PureFlex}
+data FlexInDirection = FlexInDirection
+  { flexDirection :: FlexDirection,
+    flexAmount :: PureFlex
+  }
   deriving stock (Show, Generic)
 
 fmtFlexInDirection :: Fmt FlexInDirection

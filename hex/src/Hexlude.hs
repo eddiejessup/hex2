@@ -46,10 +46,6 @@ where
 import Data.Generics.Product (HasType, field, typed)
 import Data.Generics.Sum (AsType, injectTyped, _Ctor, _Typed)
 import Data.Group (Group (..), (~~))
--- Import `Optics.At` for instance:
---   (Eq k, Hashable k) => At (HashMap k a)
--- So we can do `at` on a HashMap, for control sequence map
-
 import Data.Map.Strict qualified as Map
 import Data.Sequence (Seq (Empty, (:<|), (:|>)), singleton, (><))
 import Data.Sequence.Optics (seqOf)
@@ -63,12 +59,15 @@ import Effectful.TH (makeEffect)
 import Effectful.Writer.Dynamic
 import Formatting (Format, bformat, later, sformat)
 import Formatting qualified as F
+import GHC.Num qualified as Num
 import Hexlude.Alternative
 import Hexlude.Concept
+-- Import `Optics.At` for instance:
+--   (Eq k, Hashable k) => At (HashMap k a)
+-- So we can do `at` on a HashMap, for control sequence map
 import Optics.At ()
 import Optics.Core hiding (Empty)
--- import Optics.State (assign, modifying, use)
-import Protolude hiding (Except, ExceptT, MonadError (..), MonadReader (..), MonadState (..), Reader, ReaderT, State, U1, asks, gets, isDigit, isLower, isSpace, isUpper, length, log, modify, notImplemented, note, runReader, runReaderT, runState, to, uncons, unsnoc, words, (%))
+import Protolude hiding (Except, ExceptT, MonadError (..), MonadReader (..), MonadState (..), Num (..), Reader, ReaderT, State, U1, asks, gets, isDigit, isLower, isSpace, isUpper, length, log, modify, notImplemented, note, runReader, runReaderT, runState, to, uncons, unsnoc, words, (%))
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a
@@ -170,7 +169,7 @@ seqHeadMay = \case
 indexed :: [a] -> [(Int, a)]
 indexed xs = go 0 xs
   where
-    go i (a : as) = (i, a) : go (i + 1) as
+    go i (a : as) = (i, a) : go (i Num.+ 1) as
     go _ _ = []
 
 note :: Error e :> es => e -> Maybe a -> Eff es a

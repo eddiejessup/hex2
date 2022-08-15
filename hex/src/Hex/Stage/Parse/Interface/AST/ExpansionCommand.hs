@@ -26,7 +26,7 @@ data IfConditionHead
 data ConditionHead = IfConditionHead IfConditionHead | CaseConditionHead HexInt
   deriving stock (Show, Eq, Generic)
 
-newtype MacroArgument = MacroArgument {unMacroArgument :: HSt.TL.InhibitedBalancedText}
+newtype MacroArgument = MacroArgument {unMacroArgument :: HSt.TL.BalancedText}
   deriving stock (Show, Eq, Generic)
 
 newtype MacroArgumentList = MacroArgumentList {unMacroArgumentList :: Seq MacroArgument}
@@ -34,7 +34,7 @@ newtype MacroArgumentList = MacroArgumentList {unMacroArgumentList :: Seq MacroA
 
 lookupArg :: ST.ParameterNumber -> MacroArgumentList -> Maybe MacroArgument
 lookupArg p argList =
-  let argIx = fromEnum p.unParameterNumber - 1
+  let argIx = pred (fromEnum p.unParameterNumber)
    in (argList.unMacroArgumentList) Seq.!? argIx
 
 data ExpansionCommand
@@ -54,4 +54,4 @@ data ExpansionCommand
   | OpenInputFile HexFilePath
   | EndInputFile
   | RenderInternalQuantity InternalQuantity
-  | ChangeCase VDirection HSt.TL.InhibitedBalancedText
+  | ChangeCase VDirection HSt.TL.BalancedText

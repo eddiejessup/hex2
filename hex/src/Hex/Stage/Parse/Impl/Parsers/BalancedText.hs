@@ -15,10 +15,10 @@ parseGeneralText parseBalancedText = do
   skipFillerExpanding
   parseBalancedText
 
-parseExpandedGeneralText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.ExpandedBalancedText
+parseExpandedGeneralText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.BalancedText
 parseExpandedGeneralText ctx = parseGeneralText (parseExpandedBalancedText ctx)
 
-parseInhibitedGeneralText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.InhibitedBalancedText
+parseInhibitedGeneralText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.BalancedText
 parseInhibitedGeneralText ctx = parseGeneralText (parseInhibitedBalancedText ctx)
 
 data BalancedTextContext = AlreadySeenBeginGroup | ExpectingBeginGroup
@@ -28,10 +28,10 @@ skipBeginGroupIfNeeded = \case
   AlreadySeenBeginGroup -> pure ()
   ExpectingBeginGroup -> skipSatisfied (Par.satisfyCharCatThen PT.Expanding) $ charCatHasCategory Code.BeginGroup
 
-parseExpandedBalancedText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.ExpandedBalancedText
+parseExpandedBalancedText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.BalancedText
 parseExpandedBalancedText ctx = do
   skipBeginGroupIfNeeded ctx
-  HSt.TL.ExpandedBalancedText . HSt.TL.BalancedText . fst <$> parseNestedExprExpanded
+  HSt.TL.BalancedText . fst <$> parseNestedExprExpanded
   where
     parseNestedExprExpanded = parseNestedExpr $ \_depth -> do
       lt <- anyLexExpanding
@@ -39,10 +39,10 @@ parseExpandedBalancedText ctx = do
       -- expression depth unchanged.
       pure (lt, lexTokenToGroupDepthChange lt)
 
-parseInhibitedBalancedText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.InhibitedBalancedText
+parseInhibitedBalancedText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.BalancedText
 parseInhibitedBalancedText ctx = do
   skipBeginGroupIfNeeded ctx
-  HSt.TL.InhibitedBalancedText . HSt.TL.BalancedText . fst <$> parseNestedExprInhibited
+  HSt.TL.BalancedText . fst <$> parseNestedExprInhibited
   where
     -- Note that we get lex-tokens, so we parse without resolving.
     parseNestedExprInhibited = parseNestedExpr $ \_depth -> do
@@ -63,8 +63,8 @@ parseNestedExpr parseNext = go mempty (1 :: Int)
     go acc depth = do
       (a, depthChange) <- parseNext depth
       let newDepth = case depthChange of
-            GT -> depth + 1
-            LT -> depth - 1
+            GT -> succ depth
+            LT -> pred depth
             EQ -> depth
       case newDepth of
         0 -> pure (acc, a)

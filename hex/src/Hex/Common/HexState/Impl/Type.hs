@@ -79,8 +79,17 @@ stateSpecialLengthParamLens p = #specialLengths % at' p % non Q.zeroLength
 stateSpecialIntParamLens :: Param.SpecialIntParameter -> Lens' HexState Q.HexInt
 stateSpecialIntParamLens p = #specialInts % at' p % non Q.zeroInt
 
-stateFontInfoLens :: DVI.FontNumber -> Lens' HexState (Maybe HSt.Font.FontInfo)
-stateFontInfoLens fNr = #fontInfos % at' fNr
+stateFontInfoLens :: DVI.FontNumber -> Lens' HexState HSt.Font.FontInfo
+stateFontInfoLens fontNumber =
+  lens getter setter
+  where
+    getter st =
+      case Map.lookup fontNumber st.fontInfos of
+        Nothing -> panic "Impossible!"
+        Just v -> v
+
+    setter st v =
+      st {fontInfos = Map.insert fontNumber v st.fontInfos}
 
 fmtSpecialInts :: Fmt (Map Param.SpecialIntParameter Q.HexInt)
 fmtSpecialInts = F.shown
@@ -98,9 +107,7 @@ currentFontInfoImpl ::
   Eff es HSt.Font.FontInfo
 currentFontInfoImpl = do
   fNr <- currentFontNumberImpl
-  use @HexState (stateFontInfoLens fNr) >>= \case
-    Nothing -> panic "Impossible!"
-    Just v -> pure v
+  use @HexState (stateFontInfoLens fNr)
 
 currentFontNumberImpl ::
   State HexState :> es =>

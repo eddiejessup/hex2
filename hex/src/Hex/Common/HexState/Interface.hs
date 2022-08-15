@@ -60,6 +60,7 @@ data EHexState :: Effect where
   SetSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> EHexState m ()
   LoadFont :: HexFilePath -> TFM.FontSpecification -> EHexState m DVI.FontDefinition
   SetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> EHexState m ()
+  GetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> EHexState m Q.HexInt
   CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe HSt.Font.CharacterAttrs)
   CurrentSpaceGlue :: EHexState m Q.Glue
   CurrentControlSpaceGlue :: EHexState m Q.Glue

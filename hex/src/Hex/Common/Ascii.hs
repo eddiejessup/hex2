@@ -1,5 +1,6 @@
 module Hex.Common.Ascii where
 
+import GHC.Num
 import Hexlude
 
 ascii :: Char -> Word8

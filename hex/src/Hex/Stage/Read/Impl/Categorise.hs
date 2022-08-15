@@ -3,6 +3,7 @@ module Hex.Stage.Read.Impl.Categorise where
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.ByteString qualified as BS
 import Formatting qualified as F
+import GHC.Num
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt

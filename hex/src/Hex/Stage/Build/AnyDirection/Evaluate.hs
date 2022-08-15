@@ -40,11 +40,11 @@ glueFlexSpecBadness = \case
   NeedsToFlex glueFlexProblem ->
     Bad.glueFlexProblemBadness glueFlexProblem
 
-applyGlueFlexSpec :: GlueFlexSpec -> Q.Glue -> Box.SetGlue
+applyGlueFlexSpec :: GlueFlexSpec -> Q.Glue -> Box.Kern
 applyGlueFlexSpec spec g =
   case spec of
     DesiredEqualsNatural ->
-      Box.SetGlue $ g.gDimen
+      Box.Kern $ g.gDimen
     NeedsToFlex glueFlexProblem ->
       let setRatio = case glueFlexProblem.flexInDirection.flexDirection of
             Q.Stretch ->
@@ -81,4 +81,4 @@ applyGlueFlexSpec spec g =
                 -- then set at the natural width.
                 _ ->
                   0
-       in Box.SetGlue $ g.gDimen ~~ Q.scaleLengthByRational setRatio glueFlexProblem.excessLength
+       in Box.Kern $ g.gDimen ~~ Q.scaleLengthByRational setRatio glueFlexProblem.excessLength

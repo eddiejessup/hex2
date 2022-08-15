@@ -97,9 +97,9 @@ evalStreamWriteCommand (P.StreamWriteCommand n writeText) =
 evalWriteText :: Error Eval.EvaluationError :> es => P.WriteText -> Eff es E.WriteText
 evalWriteText = \case
   P.ImmediateWriteText expandedBalancedText ->
-    E.ImmediateWriteText <$> Eval.evalExpandedBalancedTextToText expandedBalancedText
-  P.DeferredWriteText inhibitedBalancedText ->
-    pure $ E.DeferredWriteText inhibitedBalancedText
+    E.ImmediateWriteText <$> Eval.evalBalancedTextToText expandedBalancedText
+  P.DeferredWriteText balancedText ->
+    pure $ E.DeferredWriteText balancedText
 
 evalAssignmentBody :: [Error Eval.EvaluationError, EHexState] :>> es => P.AssignmentBody -> Eff es E.AssignmentBody
 evalAssignmentBody = \case
@@ -115,8 +115,8 @@ evalAssignmentBody = \case
   P.SetBoxRegister loc box -> E.SetBoxRegister <$> (Eval.evalExplicitRegisterLocation loc) <*> evalBox box
   P.SetFontDimension fontDimensionRef length -> pure $ E.SetFontDimension fontDimensionRef length
   P.SetFontSpecialChar fontSpecialCharRef fontSpecialCharTgt -> E.SetFontSpecialChar <$> (evalFontSpecialCharRef fontSpecialCharRef) <*> Eval.evalInt fontSpecialCharTgt
-  P.SetHyphenation inhibitedBalancedText -> pure $ E.SetHyphenation inhibitedBalancedText
-  P.SetHyphenationPatterns inhibitedBalancedText -> pure $ E.SetHyphenationPatterns inhibitedBalancedText
+  P.SetHyphenation balancedText -> pure $ E.SetHyphenation balancedText
+  P.SetHyphenationPatterns balancedText -> pure $ E.SetHyphenationPatterns balancedText
   P.SetBoxDimension boxDimensionRef length -> pure $ E.SetBoxDimension boxDimensionRef length
   P.SetInteractionMode interactionMode -> pure $ E.SetInteractionMode interactionMode
 
@@ -255,5 +255,5 @@ evalMessageWriteCommand ::
   P.MessageWriteCommand ->
   Eff es E.MessageWriteCommand
 evalMessageWriteCommand cmd = do
-  messageContents <- Eval.evalExpandedBalancedTextToText cmd.messageContents
+  messageContents <- Eval.evalBalancedTextToText cmd.messageContents
   pure $ E.MessageWriteCommand {messageDest = cmd.messageDest, messageContents}

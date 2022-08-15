@@ -1,6 +1,7 @@
 module Hex.Common.TFM.Get.Character where
 
 import Data.IntMap qualified as IntMap
+import GHC.Num
 import Hex.Common.TFM.Get.CharInfo qualified as TFM.Get.CharInfo
 import Hex.Common.TFM.Get.Types qualified as Internal
 import Hex.Common.TFM.Types

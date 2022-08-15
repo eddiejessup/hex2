@@ -18,10 +18,16 @@ setListElems flexSpec hList = BoxElem.HBoxElemSeq $ seqOf (ListElem.hListElemTra
 setElem :: Eval.GlueFlexSpec -> ListElem.HListElem -> Maybe BoxElem.HBoxElem
 setElem flexSpec = \case
   ListElem.HVListElem (ListElem.ListGlue glue) ->
-    Just $ BoxElem.HVBoxElem $ BoxElem.BoxGlue (Eval.applyGlueFlexSpec flexSpec glue)
+    Just $
+      BoxElem.HVBoxElem $
+        BoxElem.VBoxBaseElem $
+          BoxElem.ElemKern $
+            Eval.applyGlueFlexSpec flexSpec glue
   ListElem.HVListElem (ListElem.ListPenalty _) ->
     Nothing
   ListElem.HVListElem (ListElem.VListBaseElem e) ->
     Just $ BoxElem.HVBoxElem $ BoxElem.VBoxBaseElem e
   ListElem.HListHBaseElem hBaseElem ->
     Just $ BoxElem.HBoxHBaseElem hBaseElem
+  ListElem.DiscretionaryItemElem _ ->
+    Nothing

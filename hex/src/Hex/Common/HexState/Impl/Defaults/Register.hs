@@ -8,19 +8,19 @@ import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hexlude
 
 newIntRegister :: Map Reg.RegisterLocation Q.HexInt
-newIntRegister = initialiseFiniteMap (const mempty)
+newIntRegister = initialiseFiniteMap Reg.allRegisterLocations (const mempty)
 
 newLengthRegister :: Map Reg.RegisterLocation Q.Length
-newLengthRegister = initialiseFiniteMap (const mempty)
+newLengthRegister = initialiseFiniteMap Reg.allRegisterLocations (const mempty)
 
 newGlueRegister :: Map Reg.RegisterLocation Q.Glue
-newGlueRegister = initialiseFiniteMap (const mempty)
+newGlueRegister = initialiseFiniteMap Reg.allRegisterLocations (const mempty)
 
 newMathGlueRegister :: Map Reg.RegisterLocation Q.MathGlue
-newMathGlueRegister = initialiseFiniteMap (const mempty)
+newMathGlueRegister = initialiseFiniteMap Reg.allRegisterLocations (const mempty)
 
 newTokenListRegister :: Map Reg.RegisterLocation TL.BalancedText
-newTokenListRegister = initialiseFiniteMap (const mempty)
+newTokenListRegister = initialiseFiniteMap Reg.allRegisterLocations (const mempty)
 
 -- A box register may actually be empty, it isn't a complete property.
 newBoxRegister :: Map Reg.RegisterLocation BoxElem.BaseBox

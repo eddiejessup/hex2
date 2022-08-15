@@ -1,33 +1,11 @@
 module Hex.Stage.Build.Horizontal.Evaluate where
 
-import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.AnyDirection.Evaluate qualified as Eval
-import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
 -- Widths, glue aggregates, box status.
-
-hListNaturalWidth :: ListElem.HList -> Q.Length
-hListNaturalWidth = foldMapOf ListElem.hListElemTraversal hListElemNaturalWidth
-
-hListElemNaturalWidth :: ListElem.HListElem -> Q.Length
-hListElemNaturalWidth = \case
-  ListElem.HVListElem (ListElem.ListGlue glue) ->
-    glue ^. #gDimen
-  ListElem.HVListElem (ListElem.ListPenalty _) ->
-    Q.zeroLength
-  ListElem.HVListElem (ListElem.VListBaseElem (Box.ElemBox b)) ->
-    b.unBaseBox.boxWidth
-  ListElem.HVListElem (ListElem.VListBaseElem (Box.ElemFontDefinition _)) ->
-    Q.zeroLength
-  ListElem.HVListElem (ListElem.VListBaseElem (Box.ElemFontSelection _)) ->
-    Q.zeroLength
-  ListElem.HVListElem (ListElem.VListBaseElem (Box.ElemKern kern)) ->
-    kern ^. typed @Q.Length
-  ListElem.HListHBaseElem (Box.ElemCharacter character) ->
-    character ^. #unCharacter % #boxWidth
 
 hListNetBiFlex :: ListElem.HList -> Q.BiNetFlex
 hListNetBiFlex = foldOf (ListElem.hListElemTraversal % hListElemBiFlex)
@@ -72,4 +50,4 @@ hListNetBiFlex = foldOf (ListElem.hListElemTraversal % hListElemBiFlex)
 
 listFlexSpec :: ListElem.HList -> Q.Length -> Eval.GlueFlexSpec
 listFlexSpec hList desiredWidth =
-  Eval.glueFlexSpec ((hListNaturalWidth hList) ~~ desiredWidth) (hListNetBiFlex hList)
+  Eval.glueFlexSpec ((ListElem.hListNaturalWidth hList) ~~ desiredWidth) (hListNetBiFlex hList)

@@ -25,8 +25,6 @@ hBoxElemNaturalWidth = \case
         Q.zeroLength
       ElemKern kern ->
         kern.unKern
-    BoxGlue setGlue ->
-      setGlue.sgDimen
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     ElemCharacter charBox ->
       charBox.unCharacter.boxWidth
@@ -43,8 +41,6 @@ hBoxElemNaturalDepth = \case
         Q.zeroLength
       ElemKern _kern ->
         Q.zeroLength
-    BoxGlue _setGlue ->
-      Q.zeroLength
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     ElemCharacter charBox ->
       charBox.unCharacter.boxDepth
@@ -61,8 +57,6 @@ hBoxElemNaturalHeight = \case
         Q.zeroLength
       ElemKern _kern ->
         Q.zeroLength
-    BoxGlue _setGlue ->
-      Q.zeroLength
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     ElemCharacter charBox ->
       charBox.unCharacter.boxHeight
@@ -72,7 +66,7 @@ fmtHBoxElem = F.later $ \case
   HVBoxElem vBoxElem -> bformat fmtVBoxElemOneLine vBoxElem
   HBoxHBaseElem e -> bformat fmtHBaseElem e
 
--- TODO: Ligature, DiscretionaryBreak, Math on/off, V-adust
+-- TODO: Ligature, Math on/off, V-adust
 newtype HBaseElem
   = ElemCharacter Box.CharBox
   deriving stock (Show)
@@ -83,13 +77,11 @@ fmtHBaseElem = F.later $ \case
 
 data VBoxElem
   = VBoxBaseElem BaseElem
-  | BoxGlue SetGlue
   deriving stock (Show, Generic)
 
 fmtVBoxElemOneLine :: Fmt VBoxElem
 fmtVBoxElemOneLine = F.later $ \case
   VBoxBaseElem e -> bformat fmtBaseElemOneLine e
-  BoxGlue sg -> bformat fmtSetGlue sg
 
 data BaseElem
   = ElemBox BaseBox
@@ -111,13 +103,10 @@ fmtBaseElemOneLine = F.later $ \case
 newtype Kern = Kern {unKern :: Q.Length}
   deriving stock (Show, Eq, Generic)
 
+fmtKern :: Fmt Kern
+fmtKern = F.accessed (.unKern) ("K" |%| Q.fmtLengthWithUnit)
+
 -- Element constituents.
-
-newtype SetGlue = SetGlue {sgDimen :: Q.Length}
-  deriving stock (Show, Generic)
-
-fmtSetGlue :: Fmt SetGlue
-fmtSetGlue = F.fconst "\\setglue " <> fmtViewed #sgDimen Q.fmtLengthWithUnit
 
 data BaseBoxContents
   = HBoxContents HBoxElemSeq
@@ -142,6 +131,13 @@ ruleAsBaseBox (Box.Rule box) = BaseBox $ box <&> \() -> RuleContents
 
 newtype HBoxElemSeq = HBoxElemSeq {unHBoxElemSeq :: Seq HBoxElem}
   deriving stock (Show, Generic)
+  deriving newtype (Semigroup, Monoid)
+
+singletonHBoxElemSeq :: HBoxElem -> HBoxElemSeq
+singletonHBoxElemSeq = HBoxElemSeq . pure
+
+fmtHBoxElemSeq :: Fmt HBoxElemSeq
+fmtHBoxElemSeq = F.accessed (.unHBoxElemSeq) (F.intercalated "\n" fmtHBoxElem)
 
 hBoxElemTraversal :: Traversal' HBoxElemSeq HBoxElem
 hBoxElemTraversal = #unHBoxElemSeq % traversed

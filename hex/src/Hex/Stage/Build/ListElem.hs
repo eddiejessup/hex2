@@ -26,14 +26,22 @@ vListElemIsBox = \case
   ListPenalty _ -> False
 
 newtype Penalty = Penalty {unPenalty :: Q.HexInt}
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Eq, Ord, Generic)
+  deriving newtype (Semigroup, Monoid, Group)
+
+fmtPenalty :: Fmt Penalty
+fmtPenalty = F.accessed (.unPenalty) ("P" |%| Q.fmtHexIntSimple)
+
+zeroPenalty :: Penalty
+zeroPenalty = Penalty Q.zeroInt
 
 -- Horizontal
 -- TODO: WhatsIt, Leaders, Mark, Insertion
--- TODO: Ligature, DiscretionaryBreak, Math on/off, V-adust
+-- TODO: Ligature, Math on/off, V-adust
 data HListElem
   = HVListElem VListElem
   | HListHBaseElem BoxElem.HBaseElem
+  | DiscretionaryItemElem DiscretionaryItem
   deriving stock (Show, Generic)
 
 hListElemNaturalWidth :: HListElem -> Q.Length
@@ -54,6 +62,8 @@ hListElemNaturalWidth = \case
   HListHBaseElem hBaseElem -> case hBaseElem of
     BoxElem.ElemCharacter charBox ->
       charBox.unCharacter.boxWidth
+  DiscretionaryItemElem discrItem ->
+    BoxElem.hBoxNaturalWidth discrItem.noBreakText
 
 hListElemNaturalDepth :: HListElem -> Q.Length
 hListElemNaturalDepth = \case
@@ -74,6 +84,8 @@ hListElemNaturalDepth = \case
   HListHBaseElem hBaseElem -> case hBaseElem of
     BoxElem.ElemCharacter charBox ->
       charBox.unCharacter.boxDepth
+  DiscretionaryItemElem discrItem ->
+    BoxElem.hBoxNaturalDepth discrItem.noBreakText
 
 hListElemNaturalHeight :: HListElem -> Q.Length
 hListElemNaturalHeight = \case
@@ -94,6 +106,50 @@ hListElemNaturalHeight = \case
   HListHBaseElem hBaseElem -> case hBaseElem of
     BoxElem.ElemCharacter charBox ->
       charBox.unCharacter.boxHeight
+  DiscretionaryItemElem discrItem ->
+    BoxElem.hBoxNaturalHeight discrItem.noBreakText
+
+data DiscretionaryItem = DiscretionaryItem
+  { preBreakText,
+    postBreakText,
+    noBreakText ::
+      BoxElem.HBoxElemSeq
+  }
+  deriving stock (Show, Generic)
+
+data DiscretionaryTextPart
+  = DiscretionaryTextPartCharacter Box.CharBox
+  | DiscretionaryTextBaseELem
+  deriving stock (Show, Generic)
+
+discretionaryHyphenItem :: Box.CharBox -> DiscretionaryItem
+discretionaryHyphenItem c =
+  DiscretionaryItem
+    (BoxElem.singletonHBoxElemSeq $ BoxElem.HBoxHBaseElem $ BoxElem.ElemCharacter c)
+    mempty
+    mempty
+
+discretionaryItemPenalty :: Penalty -> Penalty -> DiscretionaryItem -> Penalty
+discretionaryItemPenalty hyphenPenalty explicitHyphenPenalty item = case item.preBreakText of
+  BoxElem.HBoxElemSeq Empty -> explicitHyphenPenalty
+  _ -> hyphenPenalty
+
+hBoxElemSeqAsHListElems :: BoxElem.HBoxElemSeq -> Seq HListElem
+hBoxElemSeqAsHListElems boxElemSeq =
+  boxElemSeq.unHBoxElemSeq <&> \case
+    BoxElem.HVBoxElem (BoxElem.VBoxBaseElem baseElem) ->
+      HVListElem $ VListBaseElem baseElem
+    BoxElem.HBoxHBaseElem hBaseElem ->
+      HListHBaseElem hBaseElem
+
+fmtDiscretionaryItem :: Fmt DiscretionaryItem
+fmtDiscretionaryItem =
+  "Discretionary{pre="
+    |%| F.accessed (.preBreakText) BoxElem.fmtHBoxElemSeq
+    <> ", post="
+    |%| F.accessed (.postBreakText) BoxElem.fmtHBoxElemSeq
+    <> ", full="
+    |%| F.accessed (.noBreakText) BoxElem.fmtHBoxElemSeq
 
 -- Lists.
 
@@ -133,6 +189,8 @@ fmtHListElem :: Fmt HListElem
 fmtHListElem = F.later $ \case
   HVListElem vEl -> bformat fmtVListElem vEl
   HListHBaseElem e -> bformat BoxElem.fmtHBaseElem e
+  DiscretionaryItemElem discrItem ->
+    bformat fmtDiscretionaryItem discrItem
 
 newtype VList = VList {unVList :: Seq VListElem}
   deriving stock (Show, Generic)

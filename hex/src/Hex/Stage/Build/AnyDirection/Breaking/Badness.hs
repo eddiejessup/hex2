@@ -1,9 +1,9 @@
 module Hex.Stage.Build.AnyDirection.Breaking.Badness where
 
 import Formatting qualified as F
+import GHC.Num qualified as Num
 import Hex.Common.Quantity (fmtLengthWithUnit)
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.AnyDirection.Breaking.Types (BreakItem, breakPenalty)
 import Hexlude
 
 -- If a box has a size specification TEX will stretch or shrink glue in the box.
@@ -25,29 +25,25 @@ maxFiniteBadness :: FiniteBadnessVal
 maxFiniteBadness = maxBound
 
 finiteBadness :: Rational -> FiniteBadnessVal
-finiteBadness r = min maxBound (FiniteBadnessVal $ Q.HexInt $ round $ (abs r ^ (3 :: Int)) * 100)
+finiteBadness r =
+  min
+    maxBound
+    ( FiniteBadnessVal $
+        Q.HexInt $
+          round $
+            (Num.abs r ^ (3 :: Int)) Num.* 100
+    )
 
 instance Bounded FiniteBadnessVal where
   minBound = FiniteBadnessVal Q.zeroInt
 
-  maxBound = FiniteBadnessVal $ Q.HexInt Q.tenK
+  maxBound = FiniteBadnessVal Q.tenKInt
 
 data Badness = FiniteBadness FiniteBadnessVal | InfiniteBadness
   deriving stock (Show, Generic)
 
 zeroBadness :: Badness
 zeroBadness = FiniteBadness zeroFiniteBadness
-
-breakIsAcceptable ::
-  Q.HexInt ->
-  BreakItem ->
-  Badness ->
-  Bool
-breakIsAcceptable tolerance br = \case
-  InfiniteBadness ->
-    False
-  FiniteBadness b ->
-    breakPenalty br < Q.tenK && b.unFiniteBadnessVal <= tolerance
 
 -- >>> finiteFlexBadness (Q.pt 1) (Q.pt 1)
 -- Badness_ {unFiniteBadnessVal = 100}

@@ -1,11 +1,13 @@
 module Hex.Stage.Interpret.HMode where
 
+import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
@@ -72,6 +74,8 @@ handleCommandInHMode oldSrc modeVariant = \case
         Just e -> case e of
           ListElem.HVListElem _vListElem ->
             pure ()
+          ListElem.DiscretionaryItemElem _discrItem ->
+            pure ()
           ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
             -- TODO: Handle ligatures too.
             BoxElem.ElemCharacter charBox -> do
@@ -87,8 +91,17 @@ handleCommandInHMode oldSrc modeVariant = \case
       pure ContinueHMode
     Eval.AddDiscretionaryText _discretionaryText ->
       notImplemented "AddDiscretionaryText"
-    Eval.AddDiscretionaryHyphen ->
-      notImplemented "AddDiscretionaryHyphen"
+    Eval.AddDiscretionaryHyphen -> do
+      fNr <- HSt.currentFontNumber
+      hyphenCodeInt <- HSt.getFontSpecialCharacter HSt.Font.HyphenChar fNr
+      case Code.fromHexInt @Code.CharCode hyphenCodeInt of
+        Nothing -> pure ()
+        Just hyphenCharCode -> do
+          hyphenCharBox <- charAsBox hyphenCharCode
+          Log.debugLog $ F.sformat ("Adding discretionary hyphen: " |%| Box.fmtCharBox) hyphenCharBox
+          let item = ListElem.discretionaryHyphenItem hyphenCharBox
+          Build.addHListElement $ ListElem.DiscretionaryItemElem item
+      pure ContinueHMode
     Eval.EnterMathMode ->
       notImplemented "EnterMathMode"
     Eval.AddHLeaders _leadersSpec ->

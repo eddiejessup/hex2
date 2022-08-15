@@ -10,8 +10,13 @@ import Hexlude
 asciiPred :: (ASCII.Char -> Bool) -> Code.CharCode -> Bool
 asciiPred f (Code.CharCode w) = maybe False f (ASCII.word8ToCharMaybe w)
 
+initialiseCharCodeMap :: (Code.CharCode -> v) -> Map Code.CharCode v
+initialiseCharCodeMap = initialiseFiniteMap allCharCodes
+  where
+    allCharCodes = Code.CharCode <$> [0 .. 255]
+
 newCatCodes :: Map Code.CharCode Code.CatCode
-newCatCodes = initialiseFiniteMap $ \case
+newCatCodes = initialiseCharCodeMap $ \case
   Code.Chr_ '\\' -> Code.Escape
   Code.Chr_ ' ' -> Code.CoreCatCode Code.Space
   Code.Chr_ '%' -> Code.Comment
@@ -23,14 +28,14 @@ newCatCodes = initialiseFiniteMap $ \case
 
 -- All delcodes are −1 until they are changed by a \delcode command.
 newDelimiterCodes :: Map Code.CharCode Code.DelimiterCode
-newDelimiterCodes = initialiseFiniteMap $ const $ Code.NotADelimiter (Q.HexInt (-1))
+newDelimiterCodes = initialiseCharCodeMap $ const $ Code.NotADelimiter (Q.HexInt (-1))
 
 -- The ten digits have \mathcode x = x + "7000.
 -- The 52 letters have \mathcode x = x + "7100.
 -- Otherwise,          \mathcode x = x
 -- Put otherwise: letters are class 7, family 1; digits are class 7, family 0.
 newMathCodes :: Map Code.CharCode Code.MathCode
-newMathCodes = initialiseFiniteMap f
+newMathCodes = initialiseCharCodeMap f
   where
     f c
       | asciiPred ASCII.Pred.isDigit c =
@@ -44,7 +49,7 @@ newMathCodes = initialiseFiniteMap f
 -- letters a to z and A to Z have \uccode values A to Z and \lccode values a to
 -- z.
 newCaseCodes :: ASCII.Case -> Map Code.CharCode Code.ChangeCaseCode
-newCaseCodes destCase = initialiseFiniteMap f
+newCaseCodes destCase = initialiseCharCodeMap f
   where
     f c = case ASCII.word8ToCharMaybe c.unCharCode of
       Just asciiChar
@@ -61,7 +66,7 @@ newUppercaseCodes = Code.UpperCaseCode <$> newCaseCodes ASCII.UpperCase
 -- By default, all characters have a space factor code of 1000, except that the
 -- uppercase letters ‘A’ through ‘Z’ have code 999.
 newSpaceFactorCodes :: Map Code.CharCode Code.SpaceFactorCode
-newSpaceFactorCodes = initialiseFiniteMap $ Code.SpaceFactorCode . f
+newSpaceFactorCodes = initialiseCharCodeMap $ Code.SpaceFactorCode . f
   where
     f c
       | asciiPred ASCII.Pred.isUpper c = Q.HexInt 999

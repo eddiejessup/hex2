@@ -3,6 +3,7 @@ module Hex.Common.Quantity.Length where
 import Data.Fixed qualified as Fixed
 import Data.Ratio qualified as Ratio
 import Formatting qualified as F
+import GHC.Num
 import Hex.Common.Quantity.Number
 import Hexlude
 

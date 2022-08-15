@@ -3,6 +3,7 @@ module Hex.Stage.Render.Impl.SpecInstruction where
 import Data.ByteString qualified as BS
 import Data.ByteString.Char8 qualified as BS.Char8
 import Data.List qualified as List
+import GHC.Num
 import Hex.Common.Codes qualified as Codes
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Render.Impl.SpecInstruction.Encode qualified as Enc

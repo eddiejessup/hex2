@@ -3,6 +3,7 @@ module Hex.Stage.Render.Impl.SpecInstruction.Encode where
 import Data.ByteString qualified as BS
 import Data.Serialize (Put, put)
 import Data.Serialize qualified as Ser
+import GHC.Num
 import Hex.Stage.Render.Interface.SpecInstruction
 import Hex.Stage.Render.Interface.SpecInstruction.Decode
 import Hexlude hiding (put)

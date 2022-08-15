@@ -2,35 +2,36 @@ module Hex.Stage.Build.Horizontal.Paragraph.Demerit where
 
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.AnyDirection.Breaking.Badness
-import Hex.Stage.Build.AnyDirection.Breaking.Types qualified as Breaking
+import Hex.Stage.Build.Horizontal.Paragraph.Types qualified as H.Break
+import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
-newtype Demerit = Demerit {unDemerit :: Int}
+newtype Demerit = Demerit {unDemerit :: Q.HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
 
 zeroDemerit :: Demerit
-zeroDemerit = Demerit 0
+zeroDemerit = Demerit Q.zeroInt
 
 combineDemerits :: Demerit -> Demerit -> Demerit
-combineDemerits (Demerit a) (Demerit b) = Demerit (a + b)
+combineDemerits (Demerit a) (Demerit b) = Demerit (a <> b)
 
-demerit :: Q.HexInt -> Badness -> Breaking.BreakItem -> Demerit
-demerit linePenalty badness breakItem =
+demerit :: Q.HexInt -> ListElem.Penalty -> ListElem.Penalty -> Badness -> H.Break.HBreakItem -> Demerit
+demerit linePenalty hyphenPenalty explicitHyphenPenalty badness breakItem =
   case badness of
     -- I made this up because it isn't mentioned.
-    InfiniteBadness -> Demerit 100_000_000
+    InfiniteBadness -> Demerit Q.maxInt
     FiniteBadness finiteBadnessVal ->
-      let breakItemPenalty = Breaking.breakPenalty breakItem
+      let breakItemPenalty = H.Break.hBreakPenalty hyphenPenalty explicitHyphenPenalty breakItem
 
-          pSq = breakItemPenalty ^ (2 :: Int)
+          pSq = Q.squareHexInt breakItemPenalty.unPenalty
 
           breakDemerit =
             if
-                | (0 <= breakItemPenalty) && (breakItemPenalty < Q.tenK) -> pSq
-                | (-Q.tenK < breakItemPenalty) && (breakItemPenalty < 0) -> -pSq
-                | breakItemPenalty <= -Q.tenK -> 0
+                | (ListElem.Penalty Q.zeroInt <= breakItemPenalty) && (breakItemPenalty < ListElem.Penalty Q.tenKInt) -> pSq
+                | (ListElem.Penalty (invert Q.tenKInt) < breakItemPenalty) && (breakItemPenalty < ListElem.Penalty Q.zeroInt) -> invert pSq
+                | breakItemPenalty <= ListElem.Penalty (invert Q.tenKInt) -> Q.zeroInt
                 | otherwise -> panic $ show breakItemPenalty
 
-          listDemerit = (linePenalty <> finiteBadnessVal.unFiniteBadnessVal).unHexInt ^ (2 :: Int)
-       in Demerit $ breakDemerit + listDemerit
+          listDemerit = Q.HexInt $ (linePenalty <> finiteBadnessVal.unFiniteBadnessVal).unHexInt ^ (2 :: Int)
+       in Demerit $ breakDemerit <> listDemerit

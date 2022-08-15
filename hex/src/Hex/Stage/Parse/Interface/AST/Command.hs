@@ -24,7 +24,7 @@ data Command
   | ShowLists
   | ShowTheInternalQuantity InternalQuantity
   | ShipOut Box
-  | AddMark HSt.TL.ExpandedBalancedText
+  | AddMark HSt.TL.BalancedText
   | -- Note: this *is* an all-modes command. It can happen in non-vertical modes,
     -- then can 'migrate' out.
     AddInsertion HexInt
@@ -50,7 +50,7 @@ data ModeIndependentCommand
   | WriteMessage MessageWriteCommand
   | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
-  | DoSpecial HSt.TL.ExpandedBalancedText
+  | DoSpecial HSt.TL.BalancedText
   | AddBox BoxPlacement Box
   | ChangeScope Q.Sign HSt.Grouped.ChangeGroupTrigger
   | DebugShowState
@@ -87,7 +87,7 @@ data StreamWriteCommand = StreamWriteCommand HexInt WriteText
 
 data MessageWriteCommand = MessageWriteCommand
   { messageDest :: PT.StandardOutputInput,
-    messageContents :: HSt.TL.ExpandedBalancedText
+    messageContents :: HSt.TL.BalancedText
   }
   deriving stock (Show, Eq, Generic)
 
@@ -137,15 +137,15 @@ data AssignmentBody
   | -- GlobalScope assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontSpecialChar FontSpecialCharRef HexInt
-  | SetHyphenation HSt.TL.InhibitedBalancedText
-  | SetHyphenationPatterns HSt.TL.InhibitedBalancedText
+  | SetHyphenation HSt.TL.BalancedText
+  | SetHyphenationPatterns HSt.TL.BalancedText
   | SetBoxDimension BoxDimensionRef Length
   | SetInteractionMode PT.InteractionMode
   deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
   = TokenListAssignmentVar (QuantVariableAST 'Q.TokenListQuantity)
-  | TokenListAssignmentText HSt.TL.InhibitedBalancedText
+  | TokenListAssignmentText HSt.TL.BalancedText
   deriving stock (Show, Eq, Generic)
 
 data QuantVariableAssignment (q :: Q.QuantityType) = QuantVariableAssignment (QuantVariableAST q) (QuantVariableTargetAST q)
@@ -210,7 +210,7 @@ data BoxSpecification
 data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule Axis Rule
   deriving stock (Show, Eq, Generic)
 
-data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: HSt.TL.ExpandedBalancedText}
+data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: HSt.TL.BalancedText}
   deriving stock (Show, Eq, Generic)
 
 data FetchedBoxRef = FetchedBoxRef HexInt HSt.Register.BoxFetchMode
@@ -229,8 +229,8 @@ data InternalQuantity
   deriving stock (Show, Eq, Generic)
 
 data WriteText
-  = ImmediateWriteText HSt.TL.ExpandedBalancedText
-  | DeferredWriteText HSt.TL.InhibitedBalancedText
+  = ImmediateWriteText HSt.TL.BalancedText
+  | DeferredWriteText HSt.TL.BalancedText
   deriving stock (Show, Eq, Generic)
 
 data WritePolicy = Immediate | Deferred

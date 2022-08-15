@@ -2,6 +2,7 @@ module Hex.Common.Quantity.Number where
 
 import Data.Ratio qualified as Ratio
 import Formatting qualified as F
+import GHC.Num
 import Hexlude
 
 class Group a => Scalable a where
@@ -13,6 +14,9 @@ newtype HexInt = HexInt {unHexInt :: Int}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord, Enum)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
+
+maxInt :: HexInt
+maxInt = HexInt $ 2 ^ (31 :: Int) - 1
 
 instance Scalable HexInt where
   scale :: HexInt -> HexInt -> HexInt
@@ -31,6 +35,9 @@ scaleInDirection = \case
 
 scaleHexInt :: HexInt -> HexInt -> HexInt
 scaleHexInt arg v = HexInt (arg.unHexInt * v.unHexInt)
+
+squareHexInt :: HexInt -> HexInt
+squareHexInt x = scaleHexInt x x
 
 -- Division of a positive integer by a positive integer
 -- discards the remainder, and the sign of the result
@@ -65,8 +72,14 @@ thousand = 1000
 tenK :: Int
 tenK = 10000
 
+tenKInt :: HexInt
+tenKInt = HexInt tenK
+
 hunK :: Int
 hunK = 100000
+
+hunKInt :: HexInt
+hunKInt = HexInt hunK
 
 newNBitInt :: Alternative f => (Int -> a) -> Int -> Int -> f a
 newNBitInt f nBits n
@@ -74,20 +87,11 @@ newNBitInt f nBits n
   | n >= (2 ^ nBits) = empty
   | otherwise = pure $ f n
 
--- 8-bit.
-
-newtype EightBitInt = EightBitInt Int
-  deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord, Enum)
-
-newEightBitInt :: Alternative f => Int -> f EightBitInt
-newEightBitInt = newNBitInt EightBitInt 8
-
 -- 4-bit.
 
 newtype FourBitInt = FourBitInt Int
   deriving stock (Show, Generic)
-  deriving newtype (Eq, Ord, Enum, Hashable)
+  deriving newtype (Eq, Ord)
 
 newFourBitInt :: Alternative f => Int -> f FourBitInt
 newFourBitInt = newNBitInt FourBitInt 4
