@@ -8,6 +8,7 @@ import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Font qualified as Sc.Font
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes, fmtGroupScopes, newGroupScopes)
 import Hex.Common.HexState.Impl.Scoped.Scope (nullFontNumber)
+import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.Quantity qualified as Q
@@ -23,7 +24,8 @@ data HexState = HexState
     specialLengths :: Map Param.SpecialLengthParameter Q.Length,
     afterAssignmentToken :: Maybe LT.LexToken,
     groupScopes :: GroupScopes,
-    modeStack :: ModeStack
+    modeStack :: ModeStack,
+    hyphenationPatterns :: [HSt.Hyph.HyphenationPattern]
   }
   deriving stock (Generic)
 
@@ -68,7 +70,8 @@ newHexState = do
         outFileStreams = mempty,
         afterAssignmentToken = Nothing,
         groupScopes,
-        modeStack = MainVMode
+        modeStack = MainVMode,
+        hyphenationPatterns = []
       }
   where
     newFontInfos = Map.fromList [(nullFontNumber, HSt.Font.nullFontInfo)]

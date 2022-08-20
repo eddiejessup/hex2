@@ -55,6 +55,14 @@ skipOptional satisfyThen = void . optional . satisfyIf satisfyThen
 skipSatisfied :: MonadPlus (Eff es) => SatisfyThen (Eff es) t t -> (t -> Bool) -> Eff es ()
 skipSatisfied satisfyThen = void . satisfyIf satisfyThen
 
+skipCharCatWithCategory ::
+  [PrimTokenSource, EAlternative] :>> es =>
+  PT.ExpansionMode ->
+  Code.CoreCatCode ->
+  Eff es ()
+skipCharCatWithCategory mode cat =
+  skipSatisfied (satisfyCharCatThen mode) $ charCatHasCategory cat
+
 satisfyPrimEquals :: [PrimTokenSource, EAlternative] :>> es => PrimitiveToken -> Eff es ()
 satisfyPrimEquals t = skipSatisfied satisfyPrimThenExpanding (== t)
 
@@ -96,6 +104,9 @@ charCatChar cat = filtered (isOnly (typed @Code.CoreCatCode) cat) % typed @Code.
 
 skipOneOptionalSpace :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> Eff es ()
 skipOneOptionalSpace mode = skipOptional (satisfyCharCatThen mode) charCatIsSpace
+
+skipSpace :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> Eff es ()
+skipSpace mode = skipCharCatWithCategory mode Code.Space
 
 -- <space token> = character token of category [space], or a control sequence
 -- or active character \let equal to such.

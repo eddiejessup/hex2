@@ -67,7 +67,7 @@ parseFileName = do
                   _ ->
                     Nothing
               )
-  skipSatisfied (satisfyCharCatThen PT.Expanding) charCatIsSpace
+  skipCharCatWithCategory PT.Expanding Code.Space
   pure $ HexFilePath $ ASCII.charListToUnicodeString fileNameAsciiChars
   where
     isValidOther = \case

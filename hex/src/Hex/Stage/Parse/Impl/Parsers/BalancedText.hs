@@ -26,7 +26,7 @@ data BalancedTextContext = AlreadySeenBeginGroup | ExpectingBeginGroup
 skipBeginGroupIfNeeded :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es ()
 skipBeginGroupIfNeeded = \case
   AlreadySeenBeginGroup -> pure ()
-  ExpectingBeginGroup -> skipSatisfied (Par.satisfyCharCatThen PT.Expanding) $ charCatHasCategory Code.BeginGroup
+  ExpectingBeginGroup -> Par.skipCharCatWithCategory PT.Expanding Code.BeginGroup
 
 parseExpandedBalancedText :: [PrimTokenSource, EAlternative] :>> es => BalancedTextContext -> Eff es HSt.TL.BalancedText
 parseExpandedBalancedText ctx = do

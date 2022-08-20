@@ -35,7 +35,7 @@ headToParseBox = \case
     AST.VSplitBox nr <$> Par.parseLength
   PT.ExplicitBoxTok boxType -> do
     boxSpec <- parseBoxSpecification
-    skipSatisfied (satisfyCharCatThen PT.Expanding) (charCatHasCategory Code.BeginGroup)
+    skipCharCatWithCategory PT.Expanding Code.BeginGroup
     pure $ AST.ExplicitBox boxSpec boxType
   t ->
     parseFail $ "headToParseBox " <> F.sformat PT.fmtPrimitiveToken t

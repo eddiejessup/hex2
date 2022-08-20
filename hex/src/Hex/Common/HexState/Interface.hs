@@ -11,6 +11,7 @@ import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Font qualified as Font
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
+import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.Parameter qualified as Param
 import Hex.Common.HexState.Interface.Register qualified as Reg
@@ -71,6 +72,8 @@ data EHexState :: Effect where
   EnterMode :: HSt.Mode.NonMainVMode -> EHexState m ()
   PeekMode :: EHexState m HSt.Mode.ModeWithVariant
   LeaveMode :: EHexState m ()
+  SetHyphenationPatterns :: [HSt.Hyph.HyphenationPattern] -> EHexState m ()
+  SetHyphenationExceptions :: [HSt.Hyph.HyphenationException] -> EHexState m ()
 
 makeEffect ''EHexState
 

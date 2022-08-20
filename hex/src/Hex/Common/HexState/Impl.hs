@@ -91,6 +91,10 @@ runHexState = interpret $ \_ -> \case
       Just newModeStack -> assign @HexState #modeStack newModeStack
   PeekMode ->
     use @HexState (#modeStack % to peekModeImpl)
+  SetHyphenationPatterns patterns ->
+    assign @HexState #hyphenationPatterns patterns
+  SetHyphenationExceptions hyphExceptions ->
+    modifying @HexState #hyphenationExceptions (mergeHyphExceptions hyphExceptions)
 
 getParameterValueImpl ::
   State HexState :> es =>

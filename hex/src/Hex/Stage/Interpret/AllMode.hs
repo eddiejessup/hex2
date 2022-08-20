@@ -224,8 +224,18 @@ handleModeIndependentCommand = \case
         HSt.setScopedValue (HSt.BoxRegisterValue lhsIdx mayBox) scope
       Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
         HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef
-      assignment ->
-        notImplemented $ "Assignment body: " <> show assignment
+      Eval.SetParShape _int _lengths ->
+        notImplemented $ "Assignment body: SetParShape"
+      Eval.SetFontDimension _fontDimensionRef _length ->
+        notImplemented $ "Assignment body: SetFontDimension"
+      Eval.SetHyphenation hyphenationExceptions ->
+        HSt.setHyphenationExceptions hyphenationExceptions
+      Eval.SetHyphenationPatterns hyphenationPatterns ->
+        HSt.setHyphenationPatterns hyphenationPatterns
+      Eval.SetBoxDimension _boxDimensionRef _length ->
+        notImplemented $ "Assignment body: SetBoxDimension"
+      Eval.SetInteractionMode _interactionMode ->
+        notImplemented $ "Assignment body: SetInteractionMode"
     -- Now that we're done with an assignment, see whether any
     -- 'after-assignment' token was set.
     HSt.popAfterAssignmentToken >>= \case

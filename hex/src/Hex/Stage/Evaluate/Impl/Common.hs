@@ -11,12 +11,14 @@ import Hexlude
 data EvaluationError
   = ValueNotInRange
   | InvalidTokenInBalancedText LT.ControlSequence
+  | InvalidLetterInHyphenationPatterns Code.CharCode
   deriving stock (Show, Generic)
 
 fmtEvaluationError :: Fmt EvaluationError
 fmtEvaluationError = F.later $ \case
   ValueNotInRange -> "Value not in range"
   InvalidTokenInBalancedText pt -> "Invalid token in balanced text: " <> F.bformat LT.fmtControlSequence pt
+  InvalidLetterInHyphenationPatterns c -> "Found letter with zero lowercase-code in hyphenation patterns: " <> F.bformat Code.fmtCharCode c
 
 evalBalancedTextToText ::
   Error EvaluationError :> es =>

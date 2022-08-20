@@ -7,6 +7,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
+import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve qualified as Res
@@ -130,8 +131,8 @@ data AssignmentBody
   | -- GlobalScope assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
   | SetFontSpecialChar E.FontSpecialCharRef Q.HexInt
-  | SetHyphenation HSt.TL.BalancedText
-  | SetHyphenationPatterns HSt.TL.BalancedText
+  | SetHyphenation [HSt.Hyph.HyphenationException]
+  | SetHyphenationPatterns [HSt.Hyph.HyphenationPattern]
   | SetBoxDimension Uneval.BoxDimensionRef Uneval.Length
   | SetInteractionMode PT.InteractionMode
   deriving stock (Show, Eq, Generic)

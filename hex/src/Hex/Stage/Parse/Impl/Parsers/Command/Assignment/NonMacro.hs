@@ -6,9 +6,12 @@ import Control.Monad.Combinators qualified as PC
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
+import Hex.Common.Token.Lexed qualified as LT
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Common.Token.Resolved.Primitive qualified as T
 import Hex.Stage.Expand.Interface (PrimTokenSource (..), parseFail)
+import Hex.Stage.Expand.Interface qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Impl.Parsers.Command.Box qualified as Par
@@ -26,9 +29,9 @@ headToParseNonMacroAssignmentBody ::
   Eff es AST.AssignmentBody
 headToParseNonMacroAssignmentBody = \case
   T.HyphenationTok ->
-    AST.SetHyphenation <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup
+    AST.SetHyphenation <$> parseHyphenationExceptions
   T.HyphenationPatternsTok ->
-    AST.SetHyphenationPatterns <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup
+    AST.SetHyphenationPatterns <$> parseHyphenationPatterns
   T.InteractionModeTok mode ->
     pure $ AST.SetInteractionMode mode
   T.LetTok -> do
@@ -207,3 +210,61 @@ headToParseSetBoxDimension :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es
 headToParseSetBoxDimension t = do
   (var, val) <- parseXEqualsY PT.Expanding (Par.headToParseBoxDimensionRef t) Par.parseLength
   pure $ AST.SetBoxDimension var val
+
+parseHyphenationPatterns :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es [HSt.Hyph.HyphenationPattern]
+parseHyphenationPatterns = do
+  skipCharCatWithCategory PT.Expanding Code.BeginGroup
+  skipOptionalSpaces PT.Expanding
+  patterns <- PC.sepBy parseHyphenationPattern (skipSpace PT.Expanding)
+  skipCharCatWithCategory PT.Expanding Code.EndGroup
+  pure patterns
+  where
+    parseDigit = do
+      PC.optional (satisfyCharCatThen PT.Expanding Par.decCharToWord) <&> \case
+        Nothing -> 0
+        Just v -> v
+
+    parseHyphenationPattern = do
+      digLetPairList <- Par.tryParse $
+        PC.some $ do
+          dig <- parseDigit
+          letter <- satisfyCharCatThen PT.Expanding $ \lexCharCat ->
+            -- Exception: The character ‘.’ is treated as if it were a ⟨letter⟩
+            -- of code 0 when it appears in a pattern. Code 0 (which obviously
+            -- cannot match a nonzero \lccode) is used by TEX to represent the
+            -- left or right edge of a word when it is being hyphenated.
+            if lexCharCat.lexCCChar == Code.Chr_ '.'
+              then Just lexCharCat.lexCCChar
+              else case lexCharCat.lexCCCat of
+                Code.Letter -> Just lexCharCat.lexCCChar
+                Code.Other -> Just lexCharCat.lexCCChar
+                _ -> Nothing
+          pure (dig, letter)
+      let digLetPairListNE = case nonEmpty digLetPairList of
+            Nothing -> panic "Impossible!"
+            Just a -> a
+      lastDigit <- parseDigit
+      pure $ HSt.Hyph.HyphenationPattern digLetPairListNE lastDigit
+
+parseHyphenationExceptions :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es [HSt.Hyph.HyphenationException]
+parseHyphenationExceptions = do
+  skipCharCatWithCategory PT.Expanding Code.BeginGroup
+  skipOptionalSpaces PT.Expanding
+  hyphExceptions <- PC.sepBy parseHyphenationException (skipSpace PT.Expanding)
+  skipCharCatWithCategory PT.Expanding Code.EndGroup
+  pure hyphExceptions
+  where
+    parseHyphenationException = do
+      resList <- PC.some $
+        satisfyCharCatThen PT.Expanding $
+          \lexCharCat ->
+            if lexCharCat == LT.LexCharCat (Code.Chr_ '-') (Code.Other)
+              then Just Nothing
+              else case lexCharCat.lexCCCat of
+                Code.Letter -> Just $ Just lexCharCat.lexCCChar
+                Code.Other -> Just $ Just lexCharCat.lexCCChar
+                _ -> Nothing
+      let resListNE = case nonEmpty resList of
+            Nothing -> panic "Impossible!"
+            Just a -> a
+      pure $ HSt.Hyph.HyphenationException resListNE

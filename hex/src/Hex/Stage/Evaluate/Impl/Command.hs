@@ -2,10 +2,13 @@ module Hex.Stage.Evaluate.Impl.Command where
 
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (EHexState)
+import Hex.Common.HexState.Interface qualified as HSt
+import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
 import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.BoxElem qualified as BoxElem
+import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Impl.Quantity qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as E
@@ -115,10 +118,42 @@ evalAssignmentBody = \case
   P.SetBoxRegister loc box -> E.SetBoxRegister <$> (Eval.evalExplicitRegisterLocation loc) <*> evalBox box
   P.SetFontDimension fontDimensionRef length -> pure $ E.SetFontDimension fontDimensionRef length
   P.SetFontSpecialChar fontSpecialCharRef fontSpecialCharTgt -> E.SetFontSpecialChar <$> (evalFontSpecialCharRef fontSpecialCharRef) <*> Eval.evalInt fontSpecialCharTgt
-  P.SetHyphenation balancedText -> pure $ E.SetHyphenation balancedText
-  P.SetHyphenationPatterns balancedText -> pure $ E.SetHyphenationPatterns balancedText
+  P.SetHyphenation hyphExceptions -> E.SetHyphenation <$> evalHyphenationExceptions hyphExceptions
+  P.SetHyphenationPatterns patterns -> E.SetHyphenationPatterns <$> evalHyphenationPatterns patterns
   P.SetBoxDimension boxDimensionRef length -> pure $ E.SetBoxDimension boxDimensionRef length
   P.SetInteractionMode interactionMode -> pure $ E.SetInteractionMode interactionMode
+
+evalHyphenationPatterns :: [Error Eval.EvaluationError, EHexState] :>> es => [HSt.Hyph.HyphenationPattern] -> Eff es [HSt.Hyph.HyphenationPattern]
+evalHyphenationPatterns patterns = do
+  validatedPatterns <- for patterns $ \(HSt.Hyph.HyphenationPattern preLast lastValue) -> do
+    validatedPreLast <- for preLast $ \(value, letterCharCode) -> do
+      validatedLetterCharCode <-
+        -- Map a '.' into the zero char-code
+        if letterCharCode == Code.Chr_ '.'
+          then pure $ Code.CharCode 0
+          else -- Otherwise, check whether the char-code has a zero lowercase
+          -- code. If so, throw an error. Otherwise, use the lowercase code.
+            toLowerCaseOrError letterCharCode
+      pure (value, validatedLetterCharCode)
+    pure $ HSt.Hyph.HyphenationPattern validatedPreLast lastValue
+  pure $ validatedPatterns
+
+evalHyphenationExceptions :: [Error Eval.EvaluationError, EHexState] :>> es => [HSt.Hyph.HyphenationException] -> Eff es [HSt.Hyph.HyphenationException]
+evalHyphenationExceptions hyphExceptions = do
+  validatedExceptions <- for hyphExceptions $ \(HSt.Hyph.HyphenationException word) -> do
+    validatedWord <- for word $ \case
+      Nothing -> pure Nothing
+      Just letterCharCode -> Just <$> toLowerCaseOrError letterCharCode
+    pure $ HSt.Hyph.HyphenationException validatedWord
+  pure validatedExceptions
+
+toLowerCaseOrError :: [Error Eval.EvaluationError, EHexState] :>> es => Code.CharCode -> Eff es Code.CharCode
+toLowerCaseOrError charCode =
+  HSt.getHexCode Code.CLowerCaseCodeType charCode >>= \case
+    Code.LowerCaseCode Code.NoCaseChange ->
+      throwError $ InvalidLetterInHyphenationPatterns charCode
+    Code.LowerCaseCode (Code.ChangeToCode lcCharCode) ->
+      pure lcCharCode
 
 evalFontSpecialCharRef :: EHexState :> es => P.FontSpecialCharRef -> Eff es E.FontSpecialCharRef
 evalFontSpecialCharRef (P.FontSpecialCharRef fontSpecialChar fontNr) = E.FontSpecialCharRef fontSpecialChar <$> Eval.evalFontRef fontNr

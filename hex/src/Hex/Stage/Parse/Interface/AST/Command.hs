@@ -5,6 +5,7 @@ module Hex.Stage.Parse.Interface.AST.Command where
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
+import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.HexState.Interface.Register qualified as HSt.Register
 import Hex.Common.HexState.Interface.Resolve (ControlSymbol)
@@ -137,8 +138,8 @@ data AssignmentBody
   | -- GlobalScope assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontSpecialChar FontSpecialCharRef HexInt
-  | SetHyphenation HSt.TL.BalancedText
-  | SetHyphenationPatterns HSt.TL.BalancedText
+  | SetHyphenation [HSt.Hyph.HyphenationException]
+  | SetHyphenationPatterns [HSt.Hyph.HyphenationPattern]
   | SetBoxDimension BoxDimensionRef Length
   | SetInteractionMode PT.InteractionMode
   deriving stock (Show, Eq, Generic)

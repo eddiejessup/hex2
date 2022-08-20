@@ -410,8 +410,16 @@
     <fontspecialchar-reference> <equals> <number>
 
 <hyphenation-assignment>
-    \hyphenation <general-text>
+    \hyphenation { <word> <words> }
     \patterns <general-text>
+
+<words>
+  <space-token> <word> <words>
+  <empty>
+
+<word>
+  <char-like> <word>
+  <empty>
 
 <box-size-assignment>
     <box-dimen-reference> <equals> <dimen>
@@ -573,16 +581,25 @@
     \valign <box-specification> { <alignment-material> }
     % Non mode-parametrisable.
     \
-    <letter>
-    <otherchar>
-    \char <8-bit-number>
-    <chardef-token>
+    <char-like>
     \accent <8-bit-number> <optional-assignments>
     \/
     \discretionary <general-text> <general-text> <general-text>
     \-
     $
     <leave-h-mode-command>
+
+<char-like>
+    <letter>
+    <otherchar>
+    \char <8-bit-number>
+    <chardef-token>
+
+<letter>
+  (_11)
+
+<otherchar>
+  (_12)
 
 <horizontal-glue>
     \hskip <glue>
