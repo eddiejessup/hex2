@@ -73,7 +73,7 @@ data EHexState :: Effect where
   PeekMode :: EHexState m HSt.Mode.ModeWithVariant
   LeaveMode :: EHexState m ()
   SetHyphenationPatterns :: [HSt.Hyph.HyphenationPattern] -> EHexState m ()
-  SetHyphenationExceptions :: [HSt.Hyph.HyphenationException] -> EHexState m ()
+  SetHyphenationExceptions :: Map HSt.Hyph.WordCodes HSt.Hyph.WordHyphenationPoints -> EHexState m ()
 
 makeEffect ''EHexState
 

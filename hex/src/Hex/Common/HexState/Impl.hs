@@ -93,8 +93,8 @@ runHexState = interpret $ \_ -> \case
     use @HexState (#modeStack % to peekModeImpl)
   SetHyphenationPatterns patterns ->
     assign @HexState #hyphenationPatterns patterns
-  SetHyphenationExceptions hyphExceptions ->
-    modifying @HexState #hyphenationExceptions (mergeHyphExceptions hyphExceptions)
+  SetHyphenationExceptions hyphExceptions -> do
+    modifying @HexState #hyphenationExceptions (Map.union hyphExceptions)
 
 getParameterValueImpl ::
   State HexState :> es =>

@@ -25,37 +25,22 @@ data HexState = HexState
     afterAssignmentToken :: Maybe LT.LexToken,
     groupScopes :: GroupScopes,
     modeStack :: ModeStack,
-    hyphenationPatterns :: [HSt.Hyph.HyphenationPattern]
+    hyphenationPatterns :: [HSt.Hyph.HyphenationPattern],
+    hyphenationExceptions :: Map HSt.Hyph.WordCodes HSt.Hyph.WordHyphenationPoints
   }
   deriving stock (Generic)
-
-data ModeStack
-  = MainVMode
-  | InNonMainVMode (NonEmpty HSt.Mode.NonMainVMode)
-
-enterModeImpl :: HSt.Mode.NonMainVMode -> ModeStack -> ModeStack
-enterModeImpl mode stack = InNonMainVMode $ case stack of
-  MainVMode -> L.NE.singleton mode
-  InNonMainVMode xs -> (L.NE.cons mode xs)
-
-leaveModeImpl :: ModeStack -> Maybe ModeStack
-leaveModeImpl (InNonMainVMode (_x :| xs)) =
-  case L.NE.nonEmpty xs of
-    Nothing -> Just MainVMode
-    Just restNonMVModes -> Just $ InNonMainVMode restNonMVModes
-leaveModeImpl MainVMode = Nothing
-
-peekModeImpl :: ModeStack -> HSt.Mode.ModeWithVariant
-peekModeImpl (InNonMainVMode (x :| _)) = HSt.Mode.asModeWithVariant x
-peekModeImpl MainVMode = HSt.Mode.ModeWithVariant HSt.Mode.VerticalMode HSt.Mode.OuterModeVariant
 
 fmtHexState :: Fmt HexState
 fmtHexState =
   mconcat
     [ fmtMapWithHeading "FontInfos" (.fontInfos) DVI.fmtFontNumber HSt.Font.fmtFontInfo,
+      fmtMapWithHeading "Output file streams" (.outFileStreams) Q.fmt4BitInt F.shown,
       fmtMapWithHeading "Special integer parameters" (.specialInts) Param.fmtSpecialIntParameter Q.fmtHexInt,
       fmtMapWithHeading "Special length parameters" (.specialLengths) Param.fmtSpecialLengthParameter Q.fmtLengthWithUnit,
       F.prefixed "After-assignnment token: " $ F.accessed (.afterAssignmentToken) (F.maybed "None" LT.fmtLexToken) |%| "\n",
+      F.prefixed "Mode stack: " $ F.accessed (.modeStack) fmtModeStack |%| "\n",
+      fmtListWithHeading "Hyphenation patterns" (\st -> take 20 st.hyphenationPatterns) HSt.Hyph.fmtHyphenationPattern,
+      fmtMapWithHeading "Hyphenanation exceptions" (.hyphenationExceptions) HSt.Hyph.fmtWordCodes HSt.Hyph.fmtWordHyphenationPoints,
       F.accessed (.groupScopes) fmtGroupScopes
     ]
 
@@ -71,7 +56,8 @@ newHexState = do
         afterAssignmentToken = Nothing,
         groupScopes,
         modeStack = MainVMode,
-        hyphenationPatterns = []
+        hyphenationPatterns = [],
+        hyphenationExceptions = mempty
       }
   where
     newFontInfos = Map.fromList [(nullFontNumber, HSt.Font.nullFontInfo)]
@@ -117,3 +103,28 @@ currentFontNumberImpl ::
   Eff es DVI.FontNumber
 currentFontNumberImpl =
   getGroupScopesProperty Sc.Font.localCurrentFontNr
+
+-- Mode stack.
+
+data ModeStack
+  = MainVMode
+  | InNonMainVMode (NonEmpty HSt.Mode.NonMainVMode)
+
+fmtModeStack :: Fmt ModeStack
+fmtModeStack = F.accessed peekModeImpl HSt.Mode.fmtModeWithVariant
+
+enterModeImpl :: HSt.Mode.NonMainVMode -> ModeStack -> ModeStack
+enterModeImpl mode stack = InNonMainVMode $ case stack of
+  MainVMode -> L.NE.singleton mode
+  InNonMainVMode xs -> (L.NE.cons mode xs)
+
+leaveModeImpl :: ModeStack -> Maybe ModeStack
+leaveModeImpl (InNonMainVMode (_x :| xs)) =
+  case L.NE.nonEmpty xs of
+    Nothing -> Just MainVMode
+    Just restNonMVModes -> Just $ InNonMainVMode restNonMVModes
+leaveModeImpl MainVMode = Nothing
+
+peekModeImpl :: ModeStack -> HSt.Mode.ModeWithVariant
+peekModeImpl (InNonMainVMode (x :| _)) = HSt.Mode.asModeWithVariant x
+peekModeImpl MainVMode = HSt.Mode.ModeWithVariant HSt.Mode.VerticalMode HSt.Mode.OuterModeVariant

@@ -81,20 +81,23 @@ hunK = 100000
 hunKInt :: HexInt
 hunKInt = HexInt hunK
 
-newNBitInt :: Alternative f => (Int -> a) -> Int -> Int -> f a
+newNBitInt :: (HexInt -> a) -> Int -> HexInt -> Maybe a
 newNBitInt f nBits n
-  | n < 0 = empty
-  | n >= (2 ^ nBits) = empty
-  | otherwise = pure $ f n
+  | n < zeroInt = Nothing
+  | n.unHexInt >= (2 ^ nBits) = Nothing
+  | otherwise = Just $ f n
 
 -- 4-bit.
 
-newtype FourBitInt = FourBitInt Int
+newtype FourBitInt = FourBitInt {unFourBitInt :: HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
 
-newFourBitInt :: Alternative f => Int -> f FourBitInt
+newFourBitInt :: HexInt -> Maybe FourBitInt
 newFourBitInt = newNBitInt FourBitInt 4
+
+fmt4BitInt :: Fmt FourBitInt
+fmt4BitInt = F.accessed unFourBitInt fmtHexInt
 
 -- Signs.
 

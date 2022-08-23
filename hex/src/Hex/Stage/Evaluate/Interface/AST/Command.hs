@@ -131,7 +131,7 @@ data AssignmentBody
   | -- GlobalScope assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
   | SetFontSpecialChar E.FontSpecialCharRef Q.HexInt
-  | SetHyphenation [HSt.Hyph.HyphenationException]
+  | SetHyphenation (Map HSt.Hyph.WordCodes HSt.Hyph.WordHyphenationPoints)
   | SetHyphenationPatterns [HSt.Hyph.HyphenationPattern]
   | SetBoxDimension Uneval.BoxDimensionRef Uneval.Length
   | SetInteractionMode PT.InteractionMode

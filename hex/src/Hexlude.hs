@@ -19,6 +19,7 @@ module Hexlude
     (|%|),
     fmtMapWithHeading,
     fmtListWithHeading,
+    fmtListOneLine,
     fmtMap,
     fmtViewed,
     flap,
@@ -30,6 +31,7 @@ module Hexlude
     seqHeadMay,
     seqLastMay,
     indexed,
+    indexedNE,
     makeEffect,
     send,
     interpret,
@@ -108,6 +110,11 @@ fmtList fmtValue = F.later $ \case
   [] -> "No entries."
   xs -> F.bformat (F.unlined (F.prefixed "- " fmtValue)) xs
 
+fmtListOneLine :: Fmt v -> Fmt [v]
+fmtListOneLine fmtValue = F.later $ \case
+  [] -> "No entries."
+  xs -> F.bformat (F.commaSpaceSep fmtValue) xs
+
 fmtMap :: forall k v. Fmt k -> Fmt v -> Fmt (Map k v)
 fmtMap fmtKey fmtValue = F.accessed Map.toList (fmtList fmtKVEntry)
   where
@@ -166,11 +173,16 @@ seqHeadMay = \case
   _ -> Nothing
 
 -- Taken from package ilist-0.4.0.1.
+indexedFrom :: Int -> [b] -> [(Int, b)]
+indexedFrom i (a : as) = (i, a) : indexedFrom (i Num.+ 1) as
+indexedFrom _ _ = []
+
 indexed :: [a] -> [(Int, a)]
-indexed xs = go 0 xs
-  where
-    go i (a : as) = (i, a) : go (i Num.+ 1) as
-    go _ _ = []
+indexed xs = indexedFrom 0 xs
+
+indexedNE :: NonEmpty a -> NonEmpty (Int, a)
+indexedNE (a :| as) =
+  (0, a) :| indexedFrom 1 as
 
 note :: Error e :> es => e -> Maybe a -> Eff es a
 note err = maybe (throwError err) pure

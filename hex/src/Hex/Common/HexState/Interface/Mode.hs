@@ -1,11 +1,21 @@
 module Hex.Common.HexState.Interface.Mode where
 
+import Formatting qualified as F
 import Hexlude
 
 data ModeWithVariant = ModeWithVariant
   { mode :: Mode,
     variant :: ModeVariant
   }
+
+fmtModeWithVariant :: Fmt ModeWithVariant
+fmtModeWithVariant = F.later $ \(ModeWithVariant md var) -> case (md, var) of
+  (HorizontalMode, OuterModeVariant) -> "Outer H Mode"
+  (VerticalMode, OuterModeVariant) -> "Outer V Mode"
+  (MathMode, OuterModeVariant) -> "Outer Math Mode"
+  (HorizontalMode, InnerModeVariant) -> "Inner H Mode"
+  (VerticalMode, InnerModeVariant) -> "Inner V Mode"
+  (MathMode, InnerModeVariant) -> "Inner Math Mode"
 
 data Mode = HorizontalMode | VerticalMode | MathMode
   deriving stock (Show, Eq, Generic)

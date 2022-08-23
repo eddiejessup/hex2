@@ -246,7 +246,9 @@ parseHyphenationPatterns = do
       lastDigit <- parseDigit
       pure $ HSt.Hyph.HyphenationPattern digLetPairListNE lastDigit
 
-parseHyphenationExceptions :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es [HSt.Hyph.HyphenationException]
+parseHyphenationExceptions ::
+  [PrimTokenSource, EAlternative, Log.HexLog] :>> es =>
+  Eff es [AST.HyphenationException]
 parseHyphenationExceptions = do
   skipCharCatWithCategory PT.Expanding Code.BeginGroup
   skipOptionalSpaces PT.Expanding
@@ -267,4 +269,4 @@ parseHyphenationExceptions = do
       let resListNE = case nonEmpty resList of
             Nothing -> panic "Impossible!"
             Just a -> a
-      pure $ HSt.Hyph.HyphenationException resListNE
+      pure $ AST.HyphenationException resListNE

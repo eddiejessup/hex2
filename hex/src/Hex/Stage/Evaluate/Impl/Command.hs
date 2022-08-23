@@ -1,5 +1,7 @@
 module Hex.Stage.Evaluate.Impl.Command where
 
+import Data.List.NonEmpty qualified as L.NE
+import Data.Map.Strict qualified as Map
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
@@ -16,6 +18,7 @@ import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
+import Witherable qualified as Wither
 
 evalCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.Command -> Eff es E.Command
 evalCommand = \case
@@ -138,14 +141,30 @@ evalHyphenationPatterns patterns = do
     pure $ HSt.Hyph.HyphenationPattern validatedPreLast lastValue
   pure $ validatedPatterns
 
-evalHyphenationExceptions :: [Error Eval.EvaluationError, EHexState] :>> es => [HSt.Hyph.HyphenationException] -> Eff es [HSt.Hyph.HyphenationException]
-evalHyphenationExceptions hyphExceptions = do
-  validatedExceptions <- for hyphExceptions $ \(HSt.Hyph.HyphenationException word) -> do
-    validatedWord <- for word $ \case
-      Nothing -> pure Nothing
-      Just letterCharCode -> Just <$> toLowerCaseOrError letterCharCode
-    pure $ HSt.Hyph.HyphenationException validatedWord
-  pure validatedExceptions
+evalHyphenationExceptions ::
+  [Error Eval.EvaluationError, EHexState] :>> es =>
+  [P.HyphenationException] ->
+  Eff es (Map HSt.Hyph.WordCodes HSt.Hyph.WordHyphenationPoints)
+evalHyphenationExceptions hyphExceptions =
+  fmap Map.fromList $
+    flip Wither.witherM hyphExceptions $ \(P.HyphenationException word) -> do
+      codeWord <-
+        Wither.catMaybes
+          <$> for
+            (toList word)
+            ( \case
+                Nothing -> pure Nothing
+                Just letterCharCode -> Just <$> toLowerCaseOrError letterCharCode
+            )
+
+      let codePoints = HSt.Hyph.WordHyphenationPoints $
+            flip Wither.mapMaybe (indexed (toList word)) $ \case
+              (_, Just _) -> Nothing
+              (i, Nothing) -> Just i
+
+      pure $
+        L.NE.nonEmpty codeWord <&> \neCodeWord ->
+          (HSt.Hyph.WordCodes neCodeWord, codePoints)
 
 toLowerCaseOrError :: [Error Eval.EvaluationError, EHexState] :>> es => Code.CharCode -> Eff es Code.CharCode
 toLowerCaseOrError charCode =

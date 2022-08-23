@@ -138,10 +138,15 @@ data AssignmentBody
   | -- GlobalScope assignments.
     SetFontDimension FontDimensionRef Length
   | SetFontSpecialChar FontSpecialCharRef HexInt
-  | SetHyphenation [HSt.Hyph.HyphenationException]
+  | SetHyphenation [HyphenationException]
   | SetHyphenationPatterns [HSt.Hyph.HyphenationPattern]
   | SetBoxDimension BoxDimensionRef Length
   | SetInteractionMode PT.InteractionMode
+  deriving stock (Show, Eq, Generic)
+
+-- `Nothing` represents a hyphen.
+newtype HyphenationException
+  = HyphenationException (NonEmpty (Maybe Code.CharCode))
   deriving stock (Show, Eq, Generic)
 
 data TokenListAssignmentTarget
