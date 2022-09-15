@@ -3,7 +3,6 @@ module Hex.Stage.Build.BoxElem where
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 -- Box elements.
@@ -19,15 +18,11 @@ hBoxElemNaturalWidth = \case
     VBoxBaseElem baseElem -> case baseElem of
       ElemBox box ->
         box.unBaseBox.boxWidth
-      ElemFontDefinition _fontDefinition ->
-        Q.zeroLength
-      ElemFontSelection _fontSelection ->
-        Q.zeroLength
       ElemKern kern ->
         kern.unKern
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     ElemCharacter charBox ->
-      charBox.unCharacter.boxWidth
+      charBox.unCharBox.boxWidth
 
 hBoxElemNaturalDepth :: HBoxElem -> Q.Length
 hBoxElemNaturalDepth = \case
@@ -35,15 +30,11 @@ hBoxElemNaturalDepth = \case
     VBoxBaseElem baseElem -> case baseElem of
       ElemBox box ->
         box.unBaseBox.boxDepth
-      ElemFontDefinition _fontDefinition ->
-        Q.zeroLength
-      ElemFontSelection _fontSelection ->
-        Q.zeroLength
       ElemKern _kern ->
         Q.zeroLength
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     ElemCharacter charBox ->
-      charBox.unCharacter.boxDepth
+      charBox.unCharBox.boxDepth
 
 hBoxElemNaturalHeight :: HBoxElem -> Q.Length
 hBoxElemNaturalHeight = \case
@@ -51,15 +42,11 @@ hBoxElemNaturalHeight = \case
     VBoxBaseElem baseElem -> case baseElem of
       ElemBox box ->
         box.unBaseBox.boxHeight
-      ElemFontDefinition _fontDefinition ->
-        Q.zeroLength
-      ElemFontSelection _fontSelection ->
-        Q.zeroLength
       ElemKern _kern ->
         Q.zeroLength
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     ElemCharacter charBox ->
-      charBox.unCharacter.boxHeight
+      charBox.unCharBox.boxHeight
 
 fmtHBoxElem :: Fmt HBoxElem
 fmtHBoxElem = F.later $ \case
@@ -85,18 +72,12 @@ fmtVBoxElemOneLine = F.later $ \case
 
 data BaseElem
   = ElemBox BaseBox
-  | ElemFontDefinition DVI.FontDefinition
-  | ElemFontSelection DVI.FontNumber
   | ElemKern Kern
   deriving stock (Show, Generic)
 
 fmtBaseElemOneLine :: Fmt BaseElem
 fmtBaseElemOneLine = F.later $ \case
   ElemBox b -> bformat fmtBaseBox b
-  ElemFontDefinition _ ->
-    "font-definition"
-  ElemFontSelection _ ->
-    "font-selection"
   ElemKern _ ->
     "kern"
 

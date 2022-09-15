@@ -26,7 +26,6 @@ import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Parse.Interface qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Read.Interface qualified as HIn
-import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 data InterpretError
@@ -35,6 +34,7 @@ data InterpretError
   | NoFontSelected
   | UnexpectedEndOfInput
   | VModeCommandInInnerHMode
+  | CharacterCodeNotFound
   deriving stock (Show, Generic)
 
 fmtInterpretError :: Fmt InterpretError
@@ -155,9 +155,8 @@ handleModeIndependentCommand = \case
           Eval.ReadTarget _readInt -> do
             notImplemented "ReadTarget"
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
-            fontDefinition <- HSt.loadFont fontPath fontSpec
-            Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemFontDefinition fontDefinition
-            pure $ Just $ RT.PrimitiveToken $ PT.FontRefToken fontDefinition.fontNr
+            newFontNr <- HSt.loadFont fontPath fontSpec
+            pure $ Just $ RT.PrimitiveToken $ PT.FontRefToken newFontNr
         case maySymbolTarget of
           Nothing ->
             pure ()
@@ -314,19 +313,11 @@ handleModeIndependentCommand = \case
       Log.debugLog $ F.sformat ("Extracted explicit box: " |%| BoxElem.fmtBaseBox) extractedBox
       pure extractedBox
 
-    selectFontNrDVI fNr = do
-      Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemFontSelection fNr
-
     selectFontInternallyAndDVI fNr scope = do
       HSt.setScopedValue (HSt.FontValue fNr) scope
-      selectFontNrDVI fNr
 
     popGroupWithElems exitTrigger = do
-      (groupType, mayFontNrToSet) <- HSt.popGroup exitTrigger
-      case mayFontNrToSet of
-        Just fontNrToSet ->
-          selectFontNrDVI fontNrToSet
-        Nothing -> pure ()
+      groupType <- HSt.popGroup exitTrigger
       pure groupType
 
 lengthToSetAtFromSpec :: Eval.BoxSpecification -> Q.Length -> Q.Length

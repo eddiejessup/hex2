@@ -10,6 +10,7 @@ module Hexlude
     module Data.Sequence.Optics,
     module Formatting,
     module Hexlude.Concept,
+    module Hexlude.NonEmptySeq,
     module Hexlude.Alternative,
     module Effectful,
     traceShowIdM,
@@ -64,6 +65,7 @@ import Formatting qualified as F
 import GHC.Num qualified as Num
 import Hexlude.Alternative
 import Hexlude.Concept
+import Hexlude.NonEmptySeq (NonEmptySeq)
 -- Import `Optics.At` for instance:
 --   (Eq k, Hashable k) => At (HashMap k a)
 -- So we can do `at` on a HashMap, for control sequence map

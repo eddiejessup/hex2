@@ -6,6 +6,7 @@ import Data.Sequence qualified as Seq
 import GHC.Num qualified as Num
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.Font qualified as Font
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
@@ -20,7 +21,6 @@ import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
-import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 evalSignedValue ::
@@ -407,7 +407,7 @@ evalInternalMathGlue = \case
   P.LastMathGlue ->
     notImplemented "evalInternalGlue: LastMathGlue"
 
-evalFontRef :: EHexState :> es => P.FontRef -> Eff es DVI.FontNumber
+evalFontRef :: EHexState :> es => P.FontRef -> Eff es Font.FontNumber
 evalFontRef = \case
   P.FontTokenRef fontNumber -> pure fontNumber
   P.CurrentFontRef -> HSt.currentFontNumber

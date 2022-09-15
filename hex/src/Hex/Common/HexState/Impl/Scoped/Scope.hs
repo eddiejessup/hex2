@@ -5,6 +5,7 @@ module Hex.Common.HexState.Impl.Scoped.Scope where
 import Data.Map.Strict qualified as Map
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
+import Hex.Common.Font qualified as Font
 import Hex.Common.HexState.Impl.Defaults.Code qualified as Defaults
 import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
 import Hex.Common.HexState.Impl.Defaults.Register qualified as Defaults
@@ -19,7 +20,6 @@ import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Resolved qualified as RT
 import Hex.Stage.Build.BoxElem qualified as Box
-import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 type CharCodeMap v = Map Code.CharCode v
@@ -31,8 +31,8 @@ type family QuantRegisterMap (q :: Q.QuantityType) where
 
 data Scope = Scope
   { -- Fonts.
-    currentFontNr :: Maybe DVI.FontNumber,
-    familyMemberFonts :: Map Font.FamilyMember DVI.FontNumber,
+    currentFontNr :: Maybe Font.FontNumber,
+    familyMemberFonts :: Map Font.FamilyMember Font.FontNumber,
     -- Control sequences.
     symbolMap :: SymbolMap,
     -- Char-code attribute maps.
@@ -58,8 +58,8 @@ data Scope = Scope
   }
   deriving stock (Show, Generic)
 
-nullFontNumber :: DVI.FontNumber
-nullFontNumber = DVI.FontNumber Q.zeroInt
+nullFontNumber :: Font.FontNumber
+nullFontNumber = Font.FontNumber Q.zeroInt
 
 newGlobalScope :: MonadIO m => m Scope
 newGlobalScope = do
@@ -115,8 +115,8 @@ newLocalScope =
 
 fmtScope :: Fmt Scope
 fmtScope =
-  ("Current font number: " |%| F.accessed (.currentFontNr) (F.maybed "None" DVI.fmtFontNumber) |%| "\n")
-    <> (fmtMapWithHeading "Family-members" (.familyMemberFonts) Font.fmtFamilyMember DVI.fmtFontNumber)
+  ("Current font number: " |%| F.accessed (.currentFontNr) (F.maybed "None" Font.fmtFontNumber) |%| "\n")
+    <> (fmtMapWithHeading "Family-members" (.familyMemberFonts) Font.fmtFamilyMember Font.fmtFontNumber)
     <> (fmtMapWithHeading "Symbols" (.symbolMap) Res.fmtControlSymbol RT.fmtResolvedToken)
     <> (fmtMapWithHeading "Category codes" (.catCodes) Code.fmtCharCode Code.fmtCatCode)
     <> (fmtMapWithHeading "Math codes" (.mathCodes) Code.fmtCharCode Code.fmtMathCode)

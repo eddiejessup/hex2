@@ -6,9 +6,10 @@ module Hex.Common.HexState.Interface where
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
-import Hex.Common.HexState.Impl.Font qualified as HSt.Font
+import Hex.Common.Font qualified as Font
 import Hex.Common.HexState.Interface.Code qualified as HSt.Code
 import Hex.Common.HexState.Interface.Font qualified as Font
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as Grouped
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
@@ -25,7 +26,6 @@ import Hex.Common.Token.Resolved qualified as RT
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.ListElem qualified as ListElem
-import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 data ResolutionError = UnknownSymbolError HSt.Res.ControlSymbol
@@ -41,8 +41,8 @@ data ScopedValue
   | forall (q :: Q.QuantityType). ParameterValue (Param.QuantParam q) (Var.QuantVariableTarget q)
   | forall (c :: Code.CodeType). HexCodeValue (Code.CCodeType c) Code.CharCode (HSt.Code.CodeTableTarget c)
   | SymbolValue HSt.Res.ControlSymbol ResolvedToken
-  | FontValue DVI.FontNumber
-  | FamilyMemberFontValue Font.FamilyMember DVI.FontNumber
+  | FontValue Font.FontNumber
+  | FamilyMemberFontValue Font.FamilyMember Font.FontNumber
   | BoxRegisterValue Reg.RegisterLocation (Maybe BoxElem.BaseBox)
 
 data EHexState :: Effect where
@@ -51,7 +51,7 @@ data EHexState :: Effect where
   GetParameterValue :: Param.QuantParam q -> EHexState m (Var.QuantVariableTarget q)
   GetHexCode :: Code.CCodeType c -> Code.CharCode -> EHexState m (HSt.Code.CodeTableTarget c)
   ResolveSymbol :: HSt.Res.ControlSymbol -> EHexState m (Maybe ResolvedToken)
-  CurrentFontNumber :: EHexState m DVI.FontNumber
+  CurrentFontNumber :: EHexState m Font.FontNumber
   FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe BoxElem.BaseBox)
   -- End of scoped-value getters.
   SetScopedValue :: ScopedValue -> HSt.Grouped.ScopeFlag -> EHexState m ()
@@ -59,16 +59,17 @@ data EHexState :: Effect where
   GetSpecialLengthParameter :: Param.SpecialLengthParameter -> EHexState m Q.Length
   SetSpecialIntParameter :: Param.SpecialIntParameter -> Q.HexInt -> EHexState m ()
   SetSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> EHexState m ()
-  LoadFont :: HexFilePath -> TFM.FontSpecification -> EHexState m DVI.FontDefinition
-  SetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> Q.HexInt -> EHexState m ()
-  GetFontSpecialCharacter :: Font.FontSpecialChar -> DVI.FontNumber -> EHexState m Q.HexInt
-  CurrentFontCharacter :: Code.CharCode -> EHexState m (Maybe HSt.Font.CharacterAttrs)
-  CurrentSpaceGlue :: EHexState m Q.Glue
-  CurrentControlSpaceGlue :: EHexState m Q.Glue
+  LoadFont :: HexFilePath -> TFM.FontSpecification -> EHexState m Font.FontNumber
+  GetAllFontDefinitions :: EHexState m [HSt.Font.FontDefinition]
+  SetFontSpecialCharacter :: Font.FontSpecialChar -> Font.FontNumber -> Q.HexInt -> EHexState m ()
+  GetFontSpecialCharacter :: Font.FontSpecialChar -> Font.FontNumber -> EHexState m Q.HexInt
+  FontCharacter :: Font.FontNumber -> Code.CharCode -> EHexState m (Maybe HSt.Font.CharacterAttrs)
+  SpaceGlue :: Font.FontNumber -> EHexState m Q.Glue
+  ControlSpaceGlue :: Font.FontNumber -> EHexState m Q.Glue
   PopAfterAssignmentToken :: EHexState m (Maybe LT.LexToken)
   SetAfterAssignmentToken :: LT.LexToken -> EHexState m ()
   PushGroup :: Maybe Grouped.ScopedGroupType -> EHexState m ()
-  PopGroup :: Grouped.ChangeGroupTrigger -> EHexState m (HSt.Grouped.HexGroupType, Maybe DVI.FontNumber)
+  PopGroup :: Grouped.ChangeGroupTrigger -> EHexState m HSt.Grouped.HexGroupType
   EnterMode :: HSt.Mode.NonMainVMode -> EHexState m ()
   PeekMode :: EHexState m HSt.Mode.ModeWithVariant
   LeaveMode :: EHexState m ()
@@ -173,3 +174,52 @@ resolveLexToken = \case
       resolveSymbol cSym >>= \case
         Nothing -> throwError $ UnknownSymbolError cSym
         Just rt -> pure rt
+
+getHyphenCharCode ::
+  (EHexState :> es) =>
+  Font.FontNumber ->
+  Eff es (Maybe Code.CharCode)
+getHyphenCharCode fNr = do
+  hyphenCodeInt <- getFontSpecialCharacter HSt.Font.HyphenChar fNr
+  pure $ Code.fromHexInt @Code.CharCode hyphenCodeInt
+
+codeAsDiscretionaryItem ::
+  (EHexState :> es) =>
+  Font.FontNumber ->
+  Code.CharCode ->
+  Eff es (Maybe ListElem.DiscretionaryItem)
+codeAsDiscretionaryItem fNr hyphenCharCode =
+  charAsBox fNr hyphenCharCode
+    <&> fmap ListElem.discretionaryHyphenItem
+
+fontDiscretionaryHyphenItem ::
+  (EHexState :> es) =>
+  Font.FontNumber ->
+  Eff es (Maybe ListElem.DiscretionaryItem)
+fontDiscretionaryHyphenItem fNr = do
+  getHyphenCharCode fNr >>= \case
+    Nothing ->
+      pure Nothing
+    Just hyphenCharCode ->
+      codeAsDiscretionaryItem fNr hyphenCharCode
+
+charAsBox ::
+  ( EHexState :> es
+  ) =>
+  Font.FontNumber ->
+  Code.CharCode ->
+  Eff es (Maybe Box.CharBox)
+charAsBox fNr char = do
+  fontCharacter fNr char >>= \case
+    Nothing -> pure Nothing
+    Just HSt.Font.CharacterAttrs {width, height, depth} ->
+      pure $
+        Just $
+          Box.CharBox
+            Box.Box
+              { contents = char,
+                boxWidth = width,
+                boxHeight = height,
+                boxDepth = depth
+              }
+            fNr

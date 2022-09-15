@@ -39,8 +39,6 @@ vListElemIsDiscardable = \case
   ListElem.ListPenalty _ -> True
   ListElem.VListBaseElem (BoxElem.ElemKern _) -> True
   ListElem.VListBaseElem (BoxElem.ElemBox _) -> False
-  ListElem.VListBaseElem (BoxElem.ElemFontDefinition _) -> False
-  ListElem.VListBaseElem (BoxElem.ElemFontSelection _) -> False
 
 vBreakPenalty :: VBreakItem -> Bad.FiniteBadnessVal
 vBreakPenalty (PenaltyBreak p) = p

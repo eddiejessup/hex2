@@ -4,6 +4,7 @@ module Hex.Stage.Evaluate.Interface.AST.Command where
 
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.Font qualified as Font
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
@@ -24,7 +25,6 @@ import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
 import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
-import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 -- What's the plan here?
@@ -124,8 +124,8 @@ data AssignmentBody
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont DVI.FontNumber
-  | SetFamilyMember HSt.Font.FamilyMember DVI.FontNumber
+  | SelectFont Font.FontNumber
+  | SetFamilyMember HSt.Font.FamilyMember Font.FontNumber
   | SetParShape Uneval.HexInt [Uneval.Length]
   | SetBoxRegister HSt.Register.RegisterLocation Box
   | -- GlobalScope assignments.

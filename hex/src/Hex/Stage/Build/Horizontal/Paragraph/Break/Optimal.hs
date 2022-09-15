@@ -18,6 +18,7 @@ import Hex.Stage.Build.ListElem (HList (HList), HListElem)
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.Vertical.Page.Break qualified as V.Break
 import Hexlude
+import Hexlude.NonEmptySeq qualified as Seq.NE
 import Witherable qualified as Wither
 
 -- Cache stuff.
@@ -179,7 +180,7 @@ appendBreakListElement = \case
       use @BreakingState #incompleteLines
         >>= completeAndPruneUnacceptableLines breakItem
 
-    case toNonEmptySeq acceptableCompletedLines of
+    case Seq.NE.nonEmpty acceptableCompletedLines of
       -- If we can't break at this point acceptably somehow, it's not really a break-point, so just treat
       -- the break item like a non-break item, like the above 'chunk' case.
       Nothing ->
@@ -230,25 +231,6 @@ appendBreakListElement = \case
 
     getNextBreakpointId = use @BreakingState (#breakToBestLineSequenceCache % to nextBreakpointId)
 
-data NonEmptySeq a = NonEmptySeq a (Seq a)
-
-instance Foldable NonEmptySeq where
-  foldMap f (NonEmptySeq v vSeq) =
-    f v <> foldMap f vSeq
-
-instance Functor NonEmptySeq where
-  fmap f (NonEmptySeq v vSeq) =
-    NonEmptySeq (f v) (f <$> vSeq)
-
-instance Traversable NonEmptySeq where
-  traverse f (NonEmptySeq v vSeq) =
-    NonEmptySeq <$> f v <*> (traverse f vSeq)
-
-toNonEmptySeq :: Seq a -> Maybe (NonEmptySeq a)
-toNonEmptySeq = \case
-  Empty -> Nothing
-  x :<| xs -> Just (NonEmptySeq x xs)
-
 bestLineSequenceBreakingHere ::
   Reader LineBreakingEnv :> es =>
   HBreakItem ->
@@ -294,7 +276,7 @@ finaliseBrokenList finalState = do
   -- TODO: Do this properly.
   let finalBreakItem = H.Break.HVBreakItem (V.Break.PenaltyBreak Bad.zeroFiniteBadness)
   acceptableCompletedLines <- completeAndPruneUnacceptableLines finalBreakItem finalState.incompleteLines
-  case toNonEmptySeq acceptableCompletedLines of
+  case Seq.NE.nonEmpty acceptableCompletedLines of
     Nothing ->
       pure Nothing
     Just someAcceptableCompletedLines -> do

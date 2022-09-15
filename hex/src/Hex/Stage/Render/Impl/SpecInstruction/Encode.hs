@@ -93,7 +93,9 @@ specInstructionByteBuilder = \case
   BodySpecInstruction (SelectFontOp (ArgSelectFontOp un)) -> do
     putOp $ 235 + uOpOffset un -- Op
     put un
-  BodySpecInstruction (DefineFontOp args) -> do
+  BodySpecInstruction (DoSpecialOp _byteLength) ->
+    notImplemented "encode DoSpecialOp"
+  DefineFontOp args -> do
     putOp $ 243 + uOpOffset args.fontNr
     -- Op
     put args.fontNr
@@ -103,8 +105,6 @@ specInstructionByteBuilder = \case
     put args.dirPathLength
     put args.fileNameLength
     put args.fontPath
-  BodySpecInstruction (DoSpecialOp _byteLength) ->
-    notImplemented "encode DoSpecialOp"
   PreambleOp args -> do
     putOp 247
     put args.dviFormatPre

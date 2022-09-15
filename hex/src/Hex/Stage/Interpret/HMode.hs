@@ -4,8 +4,6 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
-import Hex.Common.Codes qualified as Codes
-import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
@@ -56,15 +54,20 @@ handleCommandInHMode oldSrc modeVariant = \case
       addGlue g
       pure ContinueHMode
     Eval.AddCharacter c -> do
-      charBox <- charAsBox c
-      Build.addHListElement $ ListElem.HListHBaseElem $ BoxElem.ElemCharacter charBox
+      fNr <- HSt.currentFontNumber
+      HSt.charAsBox fNr c >>= \case
+        Nothing -> throwError AllMode.CharacterCodeNotFound
+        Just charBox ->
+          Build.addHListElement $ ListElem.HListHBaseElem $ BoxElem.ElemCharacter charBox
       updateSpaceFactor c
       pure ContinueHMode
     Eval.AddHRule rule -> do
       Build.addHListElement $ ListElem.HVListElem $ ListElem.VListBaseElem $ BoxElem.ElemBox $ BoxElem.ruleAsBaseBox rule
       pure ContinueHMode
     Eval.AddControlSpace -> do
-      HSt.currentControlSpaceGlue >>= addGlue
+      HSt.currentFontNumber
+        >>= HSt.controlSpaceGlue
+        >>= addGlue
       pure ContinueHMode
     Eval.AddAccentedCharacter _n _assignments _mayCharCodeRef ->
       notImplemented "AddAccentedCharacter"
@@ -79,8 +82,9 @@ handleCommandInHMode oldSrc modeVariant = \case
           ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
             -- TODO: Handle ligatures too.
             BoxElem.ElemCharacter charBox -> do
-              let charCode = charBox.unCharacter.contents
-              HSt.currentFontCharacter charCode >>= \case
+              let charCode = charBox.unCharBox.contents
+              fNr <- HSt.currentFontNumber
+              HSt.fontCharacter fNr charCode >>= \case
                 -- No font selected
                 Nothing -> pure ()
                 Just charAttrs ->
@@ -93,14 +97,11 @@ handleCommandInHMode oldSrc modeVariant = \case
       notImplemented "AddDiscretionaryText"
     Eval.AddDiscretionaryHyphen -> do
       fNr <- HSt.currentFontNumber
-      hyphenCodeInt <- HSt.getFontSpecialCharacter HSt.Font.HyphenChar fNr
-      case Code.fromHexInt @Code.CharCode hyphenCodeInt of
+      HSt.fontDiscretionaryHyphenItem fNr >>= \case
         Nothing -> pure ()
-        Just hyphenCharCode -> do
-          hyphenCharBox <- charAsBox hyphenCharCode
-          Log.debugLog $ F.sformat ("Adding discretionary hyphen: " |%| Box.fmtCharBox) hyphenCharBox
-          let item = ListElem.discretionaryHyphenItem hyphenCharBox
-          Build.addHListElement $ ListElem.DiscretionaryItemElem item
+        Just item -> do
+          Log.debugLog $ F.sformat ("Adding discretionary hyphen: " |%| ListElem.fmtDiscretionaryItem) item
+          Build.addHListElement (ListElem.DiscretionaryItemElem item)
       pure ContinueHMode
     Eval.EnterMathMode ->
       notImplemented "EnterMathMode"
@@ -111,7 +112,9 @@ handleCommandInHMode oldSrc modeVariant = \case
     Eval.AddVAlignedMaterial _boxSpec ->
       notImplemented "HMode: AddVAlignedMaterial"
   Eval.AddSpace -> do
-    HSt.currentSpaceGlue >>= addGlue
+    HSt.currentFontNumber
+      >>= HSt.spaceGlue
+      >>= addGlue
     pure ContinueHMode
   Eval.StartParagraph indentFlag -> do
     hModeStartParagraph indentFlag
@@ -149,25 +152,6 @@ handleCommandInHMode oldSrc modeVariant = \case
         HSt.setSpecialIntParameter HSt.Param.SpaceFactor newSpaceFactor
 
     addGlue g = Build.addHListElement $ ListElem.HVListElem $ ListElem.ListGlue g
-
-charAsBox ::
-  ( HSt.EHexState :> es,
-    Error AllMode.InterpretError :> es
-  ) =>
-  Codes.CharCode ->
-  Eff es Box.CharBox
-charAsBox char = do
-  HSt.Font.CharacterAttrs {width, height, depth} <-
-    HSt.currentFontCharacter char
-      >>= note (AllMode.NoFontSelected)
-  pure $
-    Box.CharBox
-      Box.Box
-        { contents = char,
-          boxWidth = width,
-          boxHeight = height,
-          boxDepth = depth
-        }
 
 hModeStartParagraph ::
   ( HSt.EHexState :> es,

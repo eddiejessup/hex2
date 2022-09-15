@@ -5,6 +5,8 @@ import Data.ByteString.Char8 qualified as BS.Char8
 import Data.List qualified as List
 import GHC.Num
 import Hex.Common.Codes qualified as Codes
+import Hex.Common.Font qualified as Font
+import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Render.Impl.SpecInstruction.Encode qualified as Enc
 import Hex.Stage.Render.Interface.DocInstruction (DocInstruction (..))
@@ -38,28 +40,6 @@ docAsBodySpecInstruction lastBeginPagePointer = \case
           }
   EndPage ->
     pure EndPageOp
-  DefineFont fontDefinition -> do
-    let (dirPathRaw, fileNameRaw) = FilePath.splitFileName (fontDefinition.fontPath.unHexFilePath)
-        dirPath = BS.Char8.pack $ stripLeadingDot dirPathRaw
-        fileName = BS.Char8.pack fileNameRaw
-
-    dirPathLength <- noteOutOfBounds "dirPathLength" Dec.intToWord8 (BS.length dirPath)
-    fileNameLength <- noteOutOfBounds "fileNameLength" Dec.intToWord8 (BS.length fileName)
-    fontNrSized <- noteOutOfBounds "fontNrSized" Dec.intToUnsigned fontDefinition.fontNr.unFontNumber.unHexInt
-    scaleFactorSized <- noteOutOfBounds "scaleFactorSized" Dec.intToInt32 (fontDefinition.fontDefDesignScale.unLength.unHexInt)
-    designSizeSized <- noteOutOfBounds "designSizeSized" Dec.intToInt32 (fontDefinition.fontDefDesignSize.unLength.unHexInt)
-
-    pure $
-      DefineFontOp
-        DefineFontOpArgs
-          { fontNr = fontNrSized,
-            checksum = fontDefinition.fontDefChecksum,
-            scaleFactor = scaleFactorSized,
-            designSize = designSizeSized,
-            dirPathLength,
-            fileNameLength,
-            fontPath = Dec.SpecByteString $ dirPath <> fileName
-          }
   SelectFont fontNumber -> do
     let fontNumberInt = fontNumber.unFontNumber.unHexInt
     arg <- case Dec.intToWord8 fontNumberInt of
@@ -93,16 +73,15 @@ docAsBodySpecInstruction lastBeginPagePointer = \case
     pure PushOp
   PopStack ->
     pure PopOp
-  where
-    stripLeadingDot x =
-      if x == "./"
-        then ""
-        else x
 
-renderDocInstructions :: Magnification Q.HexInt -> [DocInstruction] -> (Maybe DVIError, SpecInstructionWriterState, [SpecInstruction])
-renderDocInstructions mag docInstrs =
+renderDocInstructions ::
+  Magnification Q.HexInt ->
+  [HSt.Font.FontDefinition] ->
+  [DocInstruction] ->
+  (Maybe DVIError, SpecInstructionWriterState, [SpecInstruction])
+renderDocInstructions mag fontDefinitions docInstrs =
   let ranErr :: Eff [State SpecInstructionWriterState, Writer [SpecInstruction]] (Either DVIError ())
-      ranErr = runErrorNoCallStack (addAllInstructions mag docInstrs)
+      ranErr = runErrorNoCallStack (addAllInstructions mag fontDefinitions docInstrs)
 
       ranState :: Eff '[Writer [SpecInstruction]] (Either DVIError (), SpecInstructionWriterState)
       ranState = runStateLocal (SpecInstructionWriterState {currentBytePointer = BytePointer 0, beginPagePointers = [], curFontNr = Nothing, stackDepth = 0, maxStackDepth = 0}) ranErr
@@ -118,7 +97,7 @@ renderDocInstructions mag docInstrs =
 data SpecInstructionWriterState = SpecInstructionWriterState
   { currentBytePointer :: BytePointer,
     beginPagePointers :: [BytePointer],
-    curFontNr :: Maybe DocInstruction.FontNumber,
+    curFontNr :: Maybe Font.FontNumber,
     stackDepth :: Word16,
     maxStackDepth :: Word16
   }
@@ -231,16 +210,47 @@ interpretDocInstruction i = do
     _ ->
       pure ()
 
+getDefineFontOpArgs :: (Error DVIError :> es) => HSt.Font.FontDefinition -> Eff es DefineFontOpArgs
+getDefineFontOpArgs fontDefinition = do
+  let (dirPathRaw, fileNameRaw) = FilePath.splitFileName (fontDefinition.fontPath.unHexFilePath)
+      dirPath = BS.Char8.pack $ stripLeadingDot dirPathRaw
+      fileName = BS.Char8.pack fileNameRaw
+
+  dirPathLength <- noteOutOfBounds "dirPathLength" Dec.intToWord8 (BS.length dirPath)
+  fileNameLength <- noteOutOfBounds "fileNameLength" Dec.intToWord8 (BS.length fileName)
+  fontNrSized <- noteOutOfBounds "fontNrSized" Dec.intToUnsigned fontDefinition.fontNr.unFontNumber.unHexInt
+  scaleFactorSized <- noteOutOfBounds "scaleFactorSized" Dec.intToInt32 (fontDefinition.fontDefDesignScale.unLength.unHexInt)
+  designSizeSized <- noteOutOfBounds "designSizeSized" Dec.intToInt32 (fontDefinition.fontDefDesignSize.unLength.unHexInt)
+
+  pure $
+    DefineFontOpArgs
+      { fontNr = fontNrSized,
+        checksum = fontDefinition.fontDefChecksum,
+        scaleFactor = scaleFactorSized,
+        designSize = designSizeSized,
+        dirPathLength,
+        fileNameLength,
+        fontPath = Dec.SpecByteString $ dirPath <> fileName
+      }
+  where
+    stripLeadingDot x =
+      if x == "./"
+        then ""
+        else x
+
 addAllInstructions ::
   ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) =>
   Magnification Q.HexInt ->
+  [HSt.Font.FontDefinition] ->
   [DocInstruction] ->
   Eff es ()
-addAllInstructions mag docInstrs = do
+addAllInstructions mag fontDefinitions docInstrs = do
   magInt32 <- Magnification <$> noteOutOfBounds "mag" Dec.intToInt32 (mag.unMagnification.unHexInt)
 
   -- Emit preamble instruction.
   emitSpecInstruction $ PreambleOp (preambleOpArgs magInt32)
+
+  emitFontDefinitions
 
   -- Emit instructions for all the 'doc' instructions.
   for_ docInstrs interpretDocInstruction
@@ -251,11 +261,10 @@ addAllInstructions mag docInstrs = do
   emitSpecInstruction (PostambleOp postambleArgs)
 
   -- Re-emit the define-font instructions in the doc-instructions.
-  for_ docInstrs $ \e -> case e of
-    DefineFont _ ->
-      emitDocInstruction e
-    _ ->
-      pure ()
+  emitFontDefinitions
 
   -- Emit the post-post-amble instruction.
   emitSpecInstruction $ PostPostambleOp (postPostambleArgs postamblePointer)
+  where
+    emitFontDefinitions = for_ fontDefinitions $ \def ->
+      DefineFontOp <$> getDefineFontOpArgs def >>= emitSpecInstruction

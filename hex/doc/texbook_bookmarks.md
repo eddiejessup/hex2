@@ -2,7 +2,7 @@
 
 ## DVI
 
-- [Classic spec I've used](https://web.archive.org/web/20070403030353/http://www.math.umd.edu/~asnowden/comp-cont/dvi.html#bop)
+- [Classic spec I've used](https://web.archive.org/web/20070403030353/http://www.math.umd.edu/~asnowden/comp-cont/dvi.html)
 - [Spec 2](https://www.mn.uio.no/ifi/tjenester/it/hjelp/latex/dvi.pdf)
 
 ## Texbook

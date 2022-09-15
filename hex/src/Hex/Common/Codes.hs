@@ -62,7 +62,7 @@ instance HexCode CharCode where
   toHexInt charCode = Q.HexInt $ charCode ^. #unCharCode % to (fromIntegral @Word8 @Int)
 
   fromHexInt (Q.HexInt n)
-    | n > 256 = Nothing
+    | n > 255 = Nothing
     | n < 0 = Nothing
     | otherwise = Just $ CharCode $ fromIntegral @Int @Word8 n
 
@@ -309,6 +309,11 @@ fmtChangeCaseCode = F.later $ \case
   NoCaseChange -> F.bformat $ "No change"
   ChangeToCode c -> "Change to " <> F.bformat fmtCharCode c
 
+changeCaseCodeImpliesThatCaseLetter :: CharCode -> ChangeCaseCode -> Bool
+changeCaseCodeImpliesThatCaseLetter c = \case
+  NoCaseChange -> False
+  ChangeToCode toCode -> c == toCode
+
 instance HexCode ChangeCaseCode where
   toHexInt NoCaseChange = Q.HexInt 0
   toHexInt (ChangeToCode c) = toHexInt c
@@ -327,6 +332,10 @@ fmtLowerCaseCode :: Fmt LowerCaseCode
 fmtLowerCaseCode = F.later $ \case
   LowerCaseCode c -> "Lowercase: " <> F.bformat fmtChangeCaseCode c
 
+codeIsLowerCaseLetter :: CharCode -> LowerCaseCode -> Bool
+codeIsLowerCaseLetter c (LowerCaseCode chCaseCode) =
+  changeCaseCodeImpliesThatCaseLetter c chCaseCode
+
 newtype UpperCaseCode = UpperCaseCode ChangeCaseCode
   deriving stock (Generic)
   deriving newtype (Show, Eq, HexCode)
@@ -334,6 +343,10 @@ newtype UpperCaseCode = UpperCaseCode ChangeCaseCode
 fmtUpperCaseCode :: Fmt UpperCaseCode
 fmtUpperCaseCode = F.later $ \case
   UpperCaseCode c -> "Uppercase: " <> F.bformat fmtChangeCaseCode c
+
+codeIsUpperCaseLetter :: CharCode -> UpperCaseCode -> Bool
+codeIsUpperCaseLetter c (UpperCaseCode chCaseCode) =
+  changeCaseCodeImpliesThatCaseLetter c chCaseCode
 
 -- Space factor code.
 ---------------------

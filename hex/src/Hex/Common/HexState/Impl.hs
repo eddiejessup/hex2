@@ -8,6 +8,7 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog (..), debugLog)
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
+import Hex.Common.Font qualified as Font
 import Hex.Common.HexEnv.Interface (EHexEnv)
 import Hex.Common.HexEnv.Interface qualified as Env
 import Hex.Common.HexState.Impl.Error qualified as Err
@@ -31,7 +32,6 @@ import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get qualified as TFM
 import Hex.Common.TFM.Types qualified as TFM
 import Hex.Stage.Build.BoxElem qualified as BoxElem
-import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 import System.FilePath qualified as FilePath
 
@@ -65,13 +65,14 @@ runHexState = interpret $ \_ -> \case
   GetHexCode t p -> getGroupScopesProperty (Sc.Code.localHexCode t p)
   ResolveSymbol p -> getGroupScopesProperty (Sc.Sym.localResolvedToken p)
   LoadFont fontPath spec -> loadFontImpl fontPath spec
+  GetAllFontDefinitions -> getAllFontDefinitionsImpl
   CurrentFontNumber -> currentFontNumberImpl
-  CurrentSpaceGlue -> do
+  SpaceGlue fNr -> do
     sf <- getSpecialIntParameterImpl HSt.Param.SpaceFactor
-    currentSpaceGlueFromSpaceFactor sf
-  CurrentControlSpaceGlue ->
-    currentSpaceGlueFromSpaceFactor (Q.thousandInt)
-  CurrentFontCharacter chrCode -> currentFontCharacterImpl chrCode
+    spaceGlueFromSpaceFactor fNr sf
+  ControlSpaceGlue fNr ->
+    spaceGlueFromSpaceFactor fNr (Q.thousandInt)
+  FontCharacter fNr chrCode -> fontCharacterImpl fNr chrCode
   SetFontSpecialCharacter fontSpecialChar fontNumber value -> setFontSpecialCharacterImpl fontSpecialChar fontNumber value
   GetFontSpecialCharacter fontSpecialChar fontNumber -> getFontSpecialCharacterImpl fontSpecialChar fontNumber
   SetAfterAssignmentToken t -> assign @HexState #afterAssignmentToken (Just t)
@@ -132,32 +133,33 @@ setScopedPropertyImpl scopeValueLens a scopeFlag =
     #groupScopes
     (Sc.GroupScopes.setScopedProperty scopeValueLens a scopeFlag)
 
-currentFontCharacterImpl ::
+fontCharacterImpl ::
   State HexState :> es =>
+  Font.FontNumber ->
   Code.CharCode ->
   Eff es (Maybe HSt.Font.CharacterAttrs)
-currentFontCharacterImpl chrCode = do
-  fInfo <- currentFontInfoImpl
+fontCharacterImpl fNr chrCode = do
+  fInfo <- fontInfoImpl fNr
   pure $ HSt.Font.characterAttrs fInfo chrCode
 
 setFontSpecialCharacterImpl ::
   (State HexState :> es) =>
   HSt.Font.FontSpecialChar ->
-  DVI.FontNumber ->
+  Font.FontNumber ->
   Q.HexInt ->
   Eff es ()
-setFontSpecialCharacterImpl fontSpecialChar fontNumber value = do
+setFontSpecialCharacterImpl fontSpecialChar fNr value = do
   let fontSpecialCharLens = case fontSpecialChar of
         HSt.Font.HyphenChar -> #hyphenChar
         HSt.Font.SkewChar -> #skewChar
   -- (Assert that the font number is valid, just to check for correctness.)
-  _ <- currentFontInfoImpl
-  assign @HexState (#fontInfos % at' fontNumber %? fontSpecialCharLens) value
+  _ <- fontInfoImpl fNr
+  assign @HexState (#fontInfos % at' fNr %? fontSpecialCharLens) value
 
 getFontSpecialCharacterImpl ::
   (State HexState :> es) =>
   HSt.Font.FontSpecialChar ->
-  DVI.FontNumber ->
+  Font.FontNumber ->
   Eff es Q.HexInt
 getFontSpecialCharacterImpl fontSpecialChar fontNumber = do
   use @HexState $
@@ -167,21 +169,22 @@ getFontSpecialCharacterImpl fontSpecialChar fontNumber = do
 
 readFontInfo ::
   ([Error TFM.TFMError, State HexState] :>> es) =>
+  HexFilePath ->
   ByteString ->
   TFM.FontSpecification ->
   Eff es HSt.Font.FontInfo
-readFontInfo fontBytes spec = do
+readFontInfo fontPath fontBytes spec = do
   fontMetrics <- TFM.parseTFMBytes fontBytes
   hyphenChar <- getParameterValueImpl (HSt.Param.IntQuantParam HSt.Param.DefaultHyphenChar)
   skewChar <- getParameterValueImpl (HSt.Param.IntQuantParam HSt.Param.DefaultSkewChar)
   let designScale = TFM.fontSpecToDesignScale fontMetrics.designFontSize spec
-  pure HSt.Font.FontInfo {fontMetrics, designScale, hyphenChar, skewChar}
+  pure HSt.Font.FontInfo {fontMetrics, designScale, hyphenChar, skewChar, fontPath}
 
 loadFontImpl ::
   [State HexState, Error Err.HexStateError, Error TFM.TFMError, EHexEnv] :>> es =>
   HexFilePath ->
   TFM.FontSpecification ->
-  Eff es DVI.FontDefinition
+  Eff es Font.FontNumber
 loadFontImpl fontPath spec = do
   fontBytes <-
     Env.findAndReadFile
@@ -189,29 +192,30 @@ loadFontImpl fontPath spec = do
       (fontPath ^. typed @FilePath)
       >>= note (Err.FontNotFound fontPath)
 
-  fontInfo <- readFontInfo fontBytes spec
-
-  let designScale = TFM.fontSpecToDesignScale fontInfo.fontMetrics.designFontSize spec
+  fontInfo <- readFontInfo fontPath fontBytes spec
 
   mayLastKey <- use @HexState $ #fontInfos % to Map.lookupMax
   let fontNr = case mayLastKey of
-        Nothing -> DVI.FontNumber $ Q.HexInt 0
+        Nothing -> Font.FontNumber $ Q.HexInt 0
         Just (i, _) -> succ i
   assign @HexState (#fontInfos % at' fontNr) (Just fontInfo)
+  pure fontNr
 
-  let fontName = Tx.pack $ FilePath.takeBaseName (fontPath ^. typed @FilePath)
-
-      fontDef =
-        DVI.FontDefinition
-          { fontDefChecksum = fontInfo.fontMetrics.checksum,
-            fontDefDesignSize = fontInfo.fontMetrics.designFontSize,
-            fontDefDesignScale = designScale,
-            fontPath,
-            fontName,
-            fontNr
-          }
-
-  pure fontDef
+getAllFontDefinitionsImpl ::
+  '[State HexState] :>> es =>
+  Eff es [HSt.Font.FontDefinition]
+getAllFontDefinitionsImpl =
+  use @HexState #fontInfos <&> Map.elems . Map.mapWithKey toFontDefinition
+  where
+    toFontDefinition fontNr fontInfo =
+      HSt.Font.FontDefinition
+        { fontDefChecksum = fontInfo.fontMetrics.checksum,
+          fontDefDesignSize = fontInfo.fontMetrics.designFontSize,
+          fontDefDesignScale = fontInfo.designScale,
+          fontPath = fontInfo.fontPath,
+          fontName = Tx.pack (FilePath.takeBaseName fontInfo.fontPath.unHexFilePath),
+          fontNr
+        }
 
 fetchBoxRegisterValueImpl ::
   State HexState :> es =>
@@ -228,9 +232,8 @@ fetchBoxRegisterValueImpl fetchMode loc = do
 popGroupImpl ::
   [State HexState, Error Err.HexStateError] :>> es =>
   HSt.Grouped.ChangeGroupTrigger ->
-  Eff es (HSt.Grouped.HexGroupType, Maybe DVI.FontNumber)
+  Eff es HSt.Grouped.HexGroupType
 popGroupImpl exitTrigger = do
-  fontNrPrePop <- currentFontNumberImpl
   use @HexState (#groupScopes % to Sc.GroupScopes.popGroup) >>= \case
     Nothing ->
       throwError Err.PoppedEmptyGroups
@@ -238,7 +241,6 @@ popGroupImpl exitTrigger = do
       case poppedGroup of
         Sc.Group.ScopeGroup (Sc.Group.GroupScope _scope scopeGroupType) -> do
           assign @HexState (#groupScopes) newGroupScopes
-          fontNrPostPop <- currentFontNumberImpl
           poppedGroupType <- case scopeGroupType of
             HSt.Grouped.LocalStructureScopeGroup enterTrigger
               | exitTrigger == enterTrigger ->
@@ -251,19 +253,16 @@ popGroupImpl exitTrigger = do
                   pure HSt.Grouped.ExplicitBoxGroupType
                 HSt.Grouped.ChangeGroupCSTrigger ->
                   throwError Err.UnmatchedExitGroupTrigger
-          let fontNrToSet =
-                if fontNrPrePop /= fontNrPostPop
-                  then Just fontNrPostPop
-                  else Nothing
-          pure (poppedGroupType, fontNrToSet)
+          pure poppedGroupType
         Sc.Group.NonScopeGroup ->
           notImplemented $ "popGroup: NonScopeGroup"
 
-currentSpaceGlueFromSpaceFactor ::
+spaceGlueFromSpaceFactor ::
   State HexState :> es =>
+  Font.FontNumber ->
   Q.HexInt ->
   Eff es Q.Glue
-currentSpaceGlueFromSpaceFactor sf = do
+spaceGlueFromSpaceFactor fNr sf = do
   -- TODO: Note that, if \spaceskip and \xspaceskip are defined in terms of em, they change with the font.
   let sfAbove2k = sf >= Q.HexInt 2000
   xSpaceSkip <- getParameterValueImpl (HSt.Param.GlueQuantParam HSt.Param.XSpaceSkip)
@@ -276,7 +275,7 @@ currentSpaceGlueFromSpaceFactor sf = do
       if spaceSkip /= Q.zeroGlue
         then pure $ scaleSpaceFlex spaceSkip
         else do
-          fontInfo <- currentFontInfoImpl
+          fontInfo <- fontInfoImpl fNr
           let baseSpacing = HSt.Font.fontLengthParamLength fontInfo (.spacing)
               baseStretch = Q.FinitePureFlex $ HSt.Font.fontLengthParamLength fontInfo (.spaceStretch)
               baseShrink = Q.FinitePureFlex $ HSt.Font.fontLengthParamLength fontInfo (.spaceShrink)

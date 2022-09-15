@@ -6,7 +6,6 @@ import Hexlude
 data HexStateError
   = FontNotFound HexFilePath
   | BadPath Text
-  | CharacterCodeNotFound
   | PoppedEmptyGroups
   | UnmatchedExitGroupTrigger
   | TriedToLeaveMainVMode

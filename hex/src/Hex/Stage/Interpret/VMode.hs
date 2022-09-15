@@ -118,34 +118,12 @@ extendVListWithParagraphStateT paraHList = do
     Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemBox $ BoxElem.BaseBox (BoxElem.HBoxContents <$> b)
 
 setAndBreakHListToHBoxes ::
-  ( [HSt.EHexState, Log.HexLog] :>> es
-  ) =>
+  [HSt.EHexState, Log.HexLog] :>> es =>
   ListElem.HList ->
   Eff es (Seq (Box.Box BoxElem.HBoxElemSeq))
 setAndBreakHListToHBoxes hList = do
+  lineHLists <- Break.breakHListMultiPass hList
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
-  preTolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.PreTolerance)
-  tolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
-  linePenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
-  emergencyStretch <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.EmergencyStretch)
-  hyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.HyphenPenalty)
-  exHyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.ExHyphenPenalty)
-  leftSkip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.LeftSkip)
-  rightSkip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.RightSkip)
-
-  lineHLists <-
-    Break.breakHListMultiPass
-      hSize
-      hyphenPenalty
-      exHyphenPenalty
-      preTolerance
-      tolerance
-      linePenalty
-      emergencyStretch
-      leftSkip
-      rightSkip
-      hList
-
   for lineHLists $ \lineHList -> do
     let listWidth = ListElem.hListNaturalWidth lineHList
         (hBoxElems, flexSpec) = List.H.setList lineHList hSize

@@ -20,4 +20,4 @@ logImpl lvl msg = do
   when (lvl >= logLevel) $
     liftIO $
       hPutStrLn logFileHandle $
-        showLevelEqualWidth logLevel <> " " <> msg
+        showLevelEqualWidth lvl <> " " <> msg

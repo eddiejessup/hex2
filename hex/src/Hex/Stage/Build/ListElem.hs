@@ -20,8 +20,6 @@ vListElemIsBox :: VListElem -> Bool
 vListElemIsBox = \case
   VListBaseElem baseElem -> case baseElem of
     BoxElem.ElemBox _ -> True
-    BoxElem.ElemFontDefinition _ -> False
-    BoxElem.ElemFontSelection _ -> False
     BoxElem.ElemKern _ -> False
   ListGlue _ -> False
   ListPenalty _ -> False
@@ -51,10 +49,6 @@ hListElemNaturalWidth = \case
     VListBaseElem baseElem -> case baseElem of
       BoxElem.ElemBox box ->
         box.unBaseBox.boxWidth
-      BoxElem.ElemFontDefinition _fontDefinition ->
-        Q.zeroLength
-      BoxElem.ElemFontSelection _fontSelection ->
-        Q.zeroLength
       BoxElem.ElemKern kern ->
         kern.unKern
     ListGlue glue ->
@@ -62,7 +56,7 @@ hListElemNaturalWidth = \case
     ListPenalty _penalty -> Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
     BoxElem.ElemCharacter charBox ->
-      charBox.unCharacter.boxWidth
+      charBox.unCharBox.boxWidth
   DiscretionaryItemElem discrItem ->
     BoxElem.hBoxNaturalWidth discrItem.noBreakText
 
@@ -72,10 +66,6 @@ hListElemNaturalDepth = \case
     VListBaseElem baseElem -> case baseElem of
       BoxElem.ElemBox box ->
         box.unBaseBox.boxDepth
-      BoxElem.ElemFontDefinition _fontDefinition ->
-        Q.zeroLength
-      BoxElem.ElemFontSelection _fontSelection ->
-        Q.zeroLength
       BoxElem.ElemKern _kern ->
         Q.zeroLength
     ListGlue _glue ->
@@ -84,7 +74,7 @@ hListElemNaturalDepth = \case
       Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
     BoxElem.ElemCharacter charBox ->
-      charBox.unCharacter.boxDepth
+      charBox.unCharBox.boxDepth
   DiscretionaryItemElem discrItem ->
     BoxElem.hBoxNaturalDepth discrItem.noBreakText
 
@@ -94,10 +84,6 @@ hListElemNaturalHeight = \case
     VListBaseElem baseElem -> case baseElem of
       BoxElem.ElemBox box ->
         box.unBaseBox.boxHeight
-      BoxElem.ElemFontDefinition _fontDefinition ->
-        Q.zeroLength
-      BoxElem.ElemFontSelection _fontSelection ->
-        Q.zeroLength
       BoxElem.ElemKern _kern ->
         Q.zeroLength
     ListGlue _glue ->
@@ -106,7 +92,7 @@ hListElemNaturalHeight = \case
       Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
     BoxElem.ElemCharacter charBox ->
-      charBox.unCharacter.boxHeight
+      charBox.unCharBox.boxHeight
   DiscretionaryItemElem discrItem ->
     BoxElem.hBoxNaturalHeight discrItem.noBreakText
 
@@ -211,10 +197,6 @@ vListElemNaturalHeight = \case
     Q.zeroLength
   VListBaseElem (BoxElem.ElemBox b) ->
     b.unBaseBox.boxHeight
-  VListBaseElem (BoxElem.ElemFontDefinition _) ->
-    Q.zeroLength
-  VListBaseElem (BoxElem.ElemFontSelection _) ->
-    Q.zeroLength
   VListBaseElem (BoxElem.ElemKern kern) ->
     kern.unKern
 

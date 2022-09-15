@@ -4,6 +4,7 @@ module Hex.Stage.Parse.Interface.AST.Command where
 
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.Font qualified as Font
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -16,7 +17,6 @@ import Hex.Common.Token.Resolved.Expandable qualified as ST
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Parse.Interface.AST.Quantity
-import Hex.Stage.Render.Interface.DocInstruction qualified as DVI
 import Hexlude
 
 data Command
@@ -131,7 +131,7 @@ data AssignmentBody
   | SetVariable VariableAssignment
   | ModifyVariable VariableModification
   | AssignCode CodeAssignment
-  | SelectFont DVI.FontNumber
+  | SelectFont Font.FontNumber
   | SetFamilyMember FamilyMember FontRef
   | SetParShape HexInt [Length]
   | SetBoxRegister ExplicitRegisterLocation Box

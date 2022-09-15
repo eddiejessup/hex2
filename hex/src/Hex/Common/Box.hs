@@ -2,6 +2,7 @@ module Hex.Common.Box where
 
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Codes
+import Hex.Common.Font qualified as Font
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -35,14 +36,14 @@ newtype Rule = Rule {unRule :: Box ()}
 fmtRule :: Fmt Rule
 fmtRule = F.accessed (.unRule) fmtBoxDimens |%| "\\rule{}"
 
-newtype CharBox = CharBox {unCharacter :: Box Codes.CharCode}
+data CharBox = CharBox {unCharBox :: Box Codes.CharCode, charBoxFont :: Font.FontNumber}
   deriving stock (Show, Generic)
 
 fmtCharBox :: Fmt CharBox
 fmtCharBox = fmtViewed (to charBoxChar) (F.squoted F.char)
 
 fmtCharBoxWithDimens :: Fmt CharBox
-fmtCharBoxWithDimens = fmtViewed #unCharacter fmtBoxDimens <> fmtCharBox
+fmtCharBoxWithDimens = fmtViewed #unCharBox fmtBoxDimens <> fmtCharBox
 
 charBoxChar :: CharBox -> Char
-charBoxChar = view $ #unCharacter % #contents % to Codes.unsafeCodeAsChar
+charBoxChar = view $ #unCharBox % #contents % to Codes.unsafeCodeAsChar

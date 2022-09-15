@@ -21,6 +21,7 @@ noteOutOfBounds ctx f n = case f n of
 
 data SpecInstruction
   = BodySpecInstruction BodySpecInstruction
+  | DefineFontOp DefineFontOpArgs
   | PreambleOp PreambleOpArgs
   | PostambleOp PostambleOpArgs
   | PostPostambleOp PostPostambleOpArgs
@@ -29,6 +30,7 @@ data SpecInstruction
 fmtSpecInstruction :: Fmt SpecInstruction
 fmtSpecInstruction = F.later $ \case
   BodySpecInstruction bodySpecInstruction -> F.bformat fmtBodySpecInstruction bodySpecInstruction
+  DefineFontOp defineFontOpArgs -> F.bformat F.text $ "Define Font: " <> show defineFontOpArgs
   PreambleOp preambleOpArgs -> F.bformat F.text $ "Preamble: " <> show preambleOpArgs
   PostambleOp postambleOpArgs -> F.bformat F.text $ "Postamble: " <> show postambleOpArgs
   PostPostambleOp postPostambleOpArgs -> F.bformat F.text $ "PostPostamble: " <> show postPostambleOpArgs
@@ -46,7 +48,6 @@ data BodySpecInstruction
   | MoveOp Axis Dec.SignedNByteInt
   | SelectFontOp SelectFontOpArgs
   | DoSpecialOp Dec.ByteLength
-  | DefineFontOp DefineFontOpArgs
   deriving stock (Show, Generic)
 
 fmtBodySpecInstruction :: Fmt BodySpecInstruction
@@ -61,7 +62,6 @@ fmtBodySpecInstruction = F.later $ \case
   MoveOp Horizontal signedNByteInt -> F.bformat F.text $ "Move right: " <> show signedNByteInt
   SelectFontOp selectFontOpArgs -> F.bformat F.text $ "Select Font: " <> show selectFontOpArgs
   DoSpecialOp byteLength -> F.bformat F.text $ "Do Special: " <> show byteLength
-  DefineFontOp defineFontOpArgs -> F.bformat F.text $ "Define Font: " <> show defineFontOpArgs
 
 data AddRuleOpArgs = AddRuleOpArgs
   { moveMode :: MoveMode,
