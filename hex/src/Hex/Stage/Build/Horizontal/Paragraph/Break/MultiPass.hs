@@ -22,25 +22,34 @@ import Hexlude.NonEmptySeq qualified as Seq.NE
 data HyphenationState
   = SearchingForStartingLetter
   | SearchingForGlue
-  | StartedWord MidWordState Font.FontNumber ListElem.DiscretionaryItem (NonEmptySeq (Box.Box Code.CharCode))
+  | StartedWord MidWordState
+  deriving stock (Generic)
 
-data MidWordState
-  = InWordProper
-  | InWordSuffix (NonEmptySeq ListElem.HListElem)
+data MidWordState = MidWordState
+  { wordFont :: Font.FontNumber,
+    hyphenItem :: ListElem.DiscretionaryItem,
+    wordLetters :: NonEmptySeq (Box.Box Code.CharCode),
+    suffixItems :: Seq ListElem.HListElem
+  }
+  deriving stock (Generic)
+
+midWordLettersAsElems :: MidWordState -> Seq ListElem.HListElem
+midWordLettersAsElems st = boxCharsAsElemSeq st.wordFont (Seq.NE.toSeq st.wordLetters)
 
 data TrialWordEndOutcome
-  = PassWordSuffix (Seq ListElem.HListElem)
-  | HyphenateNow (Seq ListElem.HListElem) Bool -- seen glue?
+  = PassWordSuffix
+  | HyphenateNow Bool -- seen glue?
   | AbandonHyphenation
 
-stateAccumulatedItems :: HyphenationState -> Seq ListElem.HListElem
-stateAccumulatedItems = \case
-  SearchingForGlue -> Empty
+midWordStateAccumulatedItems :: MidWordState -> Seq ListElem.HListElem
+midWordStateAccumulatedItems st =
+  midWordLettersAsElems st <> st.suffixItems
+
+hyphStateAccumulatedItems :: HyphenationState -> Seq ListElem.HListElem
+hyphStateAccumulatedItems = \case
   SearchingForStartingLetter -> Empty
-  StartedWord midWordState wordFontNumber _hyphenItem wordLetters ->
-    (boxCharsAsElemSeq wordFontNumber (Seq.NE.toSeq wordLetters)) <> case midWordState of
-      InWordProper -> Empty
-      InWordSuffix suffixItems -> Seq.NE.toSeq suffixItems
+  SearchingForGlue -> Empty
+  StartedWord midWordState -> midWordStateAccumulatedItems midWordState
 
 boxCharAsElem ::
   Font.FontNumber ->
@@ -63,8 +72,14 @@ hyphenateHList ::
   ListElem.HList ->
   Eff es ListElem.HList
 hyphenateHList hList = do
-  hListElems <- evalStateLocal SearchingForGlue (for hList.unHList handleHListElemInHyphenation)
-  let flattened = join hListElems
+  (hListElems, endState) <- runStateLocal SearchingForGlue (for hList.unHList handleHListElemInHyphenation)
+  finalYieldedItems <- case endState of
+    SearchingForGlue -> pure mempty
+    SearchingForStartingLetter -> pure mempty
+    StartedWord midWordState ->
+      hyphenateWord midWordState
+
+  let flattened = join (hListElems |> finalYieldedItems)
   pure $ ListElem.HList flattened
 
 handleHListElemInHyphenation ::
@@ -95,7 +110,8 @@ handleHListElemInHyphenation x =
         put $ vListElemToNextState vListElem
         pure $ Seq.singleton x
       ListElem.DiscretionaryItemElem _ -> do
-        abandonAndReset False
+        accumItems <- abandonAndReset False
+        pure $ accumItems |> x
       ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
         BoxElem.ElemCharacter charBox -> do
           let boxCharCode = charBox.unCharBox.contents
@@ -112,11 +128,12 @@ handleHListElemInHyphenation x =
                     -- is a number between 0 and 255, inclusive.
                     case mayHyphenItem of
                       Just hyphenItem -> do
-                        put (StartedWord InWordProper charBox.charBoxFont hyphenItem (Seq.NE.singleton charBox.unCharBox))
+                        put (StartedWord MidWordState {wordFont = charBox.charBoxFont, hyphenItem, wordLetters = Seq.NE.singleton charBox.unCharBox, suffixItems = mempty})
                         -- Don't emit the item yet, will do once we've handled hyphenation for this word.
                         pure Seq.Empty
-                      Nothing ->
-                        abandonAndReset False
+                      Nothing -> do
+                        accumItems <- abandonAndReset False
+                        pure $ accumItems |> x
               -- If the starting letter is not lowercase, i.e, if it
               -- doesn’t equal its own \lccode, hyphenation is
               -- abandoned unless \uchyph is positive.
@@ -127,59 +144,89 @@ handleHListElemInHyphenation x =
                   Log.debugLog $ "\\ucHyph = " <> F.sformat Q.fmtHexIntSimple ucHyph
                   if ucHyph > Q.zeroInt
                     then continueAttempt
-                    else abandonAndReset False
-    StartedWord InWordProper startingFont hyphenItem wordLetters -> do
-      -- Scan forward until coming to something that’s not one of the
-      -- following “admissible items”:
-      -- (1) A character in font f whose \lccode is nonzero
-      -- (2) a ligature formed entirely from characters of type (1)
-      -- (3) an implicit kern
-      -- The first inadmissible item terminates this part of the process.
-      -- the trial word consists of all the letters found in admissible
-      -- items.
-      -- Note that all of these letters are in font f.
+                    else do
+                      accumItems <- abandonAndReset False
+                      pure $ accumItems |> x
+    StartedWord midWordState -> do
       outcomeOrNewLetters <- case x of
         ListElem.HVListElem vListElem ->
-          pure $ Left $ postSuffixItemVListElemClassification mempty vListElem
-        ListElem.DiscretionaryItemElem _ -> do
+          pure $
+            Left $ case vListElem of
+              ListElem.VListBaseElem baseElem -> case baseElem of
+                BoxElem.ElemBox _box ->
+                  AbandonHyphenation
+                BoxElem.ElemKern _kern ->
+                  HyphenateNow False
+              ListElem.ListGlue _glue ->
+                HyphenateNow True
+              ListElem.ListPenalty _penalty ->
+                HyphenateNow False
+        ListElem.DiscretionaryItemElem _ ->
           pure $ Left AbandonHyphenation
         ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
-          BoxElem.ElemCharacter charBox -> do
-            -- Following the trial word can be zero or more of:
-            -- • Character from another font
-            -- • Character with zero \lccode
-            -- • Ligature
-            -- • Implicit kern
-            if charBox.charBoxFont /= startingFont
-              then pure $ Left $ PassWordSuffix Empty
-              else
-                HSt.getHexCode Code.CLowerCaseCodeType (charBox.unCharBox.contents) <&> \case
-                  Code.LowerCaseCode Code.NoCaseChange ->
-                    Left $ PassWordSuffix Empty
-                  Code.LowerCaseCode _ ->
-                    Right $ Seq.NE.singleton charBox.unCharBox
+          BoxElem.ElemCharacter charBox -> case midWordState.suffixItems of
+            -- Scan forward until coming to something that’s not one of the
+            -- following “admissible items”:
+            -- (1) A character in font f whose \lccode is nonzero
+            -- (2) a ligature formed entirely from characters of type (1)
+            -- (3) an implicit kern
+            -- The first inadmissible item terminates this part of the process.
+            -- the trial word consists of all the letters found in admissible
+            -- items.
+            -- Note that all of these letters are in font f.
+            Empty ->
+              -- Following the trial word can be zero or more of:
+              -- • Character from another font
+              -- • Character with zero \lccode
+              -- • Ligature
+              -- • Implicit kern
+              if charBox.charBoxFont /= midWordState.wordFont
+                then pure $ Left PassWordSuffix
+                else
+                  HSt.getHexCode Code.CLowerCaseCodeType (charBox.unCharBox.contents) <&> \case
+                    Code.LowerCaseCode Code.NoCaseChange ->
+                      Left PassWordSuffix
+                    Code.LowerCaseCode _ ->
+                      Right $ Seq.NE.singleton charBox.unCharBox
+            -- After these items, if any, must follow:
+            -- • Glue
+            -- • Explicit kern
+            -- • Penalty
+            -- • Whatsit
+            -- • A \mark, \insert, or \vadjust item
+            _ ->
+              pure $ Left PassWordSuffix
       case outcomeOrNewLetters of
-        Left outcome -> do
-          handleMidWordOutcome startingFont hyphenItem wordLetters outcome
+        Left outcome -> case outcome of
+          -- If we saw something that indicates we entered or stayed in a post-word
+          -- suffix,
+          -- then move/stay in that state, appending the new suffix item.
+          PassWordSuffix -> do
+            modifying @HyphenationState (_Typed @MidWordState % #suffixItems) (|> x)
+            pure Empty
+          -- If we saw something that indicates we should hyphenate now,
+          -- apply one last check:
+          --   hyphenation will still be abandoned unless n ≥ λ + ρ, where λ = max(1,
+          --   \lefthyphenmin) and ρ = max(1, \righthyphenmin)
+          -- Otherwise,
+          -- • Do the hyphenation,
+          -- • Move to the relevant searching-state, depending on whether we just
+          --   saw glue or something else.
+          -- • Produce the hyphenated items as elems, plus the current item
+          HyphenateNow seenGlue -> do
+            yieldedItems <- hyphenateWord midWordState
+            reset seenGlue
+            pure $ yieldedItems |> x
+          -- If we saw something that indicates we actually shouldn't hyphenate this word,
+          -- get the items we accumulated for the word and suffix (if present),
+          -- return those and the current item, and move to the relevant search-state.
+          AbandonHyphenation -> do
+            accumItems <- abandonAndReset False
+            pure $ accumItems |> x
         Right admissableLetters -> do
-          put $ StartedWord InWordProper startingFont hyphenItem (wordLetters <> admissableLetters)
+          modifying @HyphenationState (_Typed @MidWordState % #wordLetters) (<> admissableLetters)
           -- Don't emit the item yet, will do once we've handled hyphenation for this word.
           pure Empty
-    -- After these items, if any, must follow:
-    -- • Glue
-    -- • Explicit kern
-    -- • Penalty
-    -- • Whatsit
-    -- • A \mark, \insert, or \vadjust item
-    StartedWord (InWordSuffix suffixItems) startingFont hyphenItem wordLetters ->
-      handleMidWordOutcome startingFont hyphenItem wordLetters $ case x of
-        ListElem.HVListElem vListElem ->
-          postSuffixItemVListElemClassification (Seq.NE.toSeq suffixItems) vListElem
-        ListElem.DiscretionaryItemElem _ ->
-          AbandonHyphenation
-        ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
-          BoxElem.ElemCharacter _charBox ->
-            PassWordSuffix (Seq.NE.toSeq suffixItems)
   where
     vListElemToNextState = \case
       ListElem.VListBaseElem baseElem -> case baseElem of
@@ -192,84 +239,52 @@ handleHListElemInHyphenation x =
       ListElem.ListPenalty _penalty ->
         SearchingForGlue
 
-    postSuffixItemVListElemClassification suffixItems = \case
-      ListElem.VListBaseElem baseElem -> case baseElem of
-        BoxElem.ElemBox _box ->
-          AbandonHyphenation
-        BoxElem.ElemKern _kern ->
-          HyphenateNow suffixItems False
-      ListElem.ListGlue _glue ->
-        HyphenateNow suffixItems True
-      ListElem.ListPenalty _penalty ->
-        HyphenateNow suffixItems False
+hyphenateWord ::
+  (HSt.EHexState :> es, Log.HexLog :> es) =>
+  MidWordState ->
+  Eff es (Seq ListElem.HListElem)
+hyphenateWord midWordState = do
+  leftHyphenMin <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LeftHyphenMin)
+  rightHyphenMin <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.RightHyphenMin)
+  let hyphenMin = leftHyphenMin <> rightHyphenMin
+  let n = Seq.NE.length midWordState.wordLetters
 
-    handleMidWordOutcome wordFont hyphenItem wordLetters = \case
-      -- If we saw something that indicates we entered or stayed in a post-word
-      -- suffix,
-      -- then move/stay in that state, appending the new suffix item.
-      PassWordSuffix existingSuffixItems -> do
-        put $
-          StartedWord
-            (InWordSuffix (Seq.NE.seqConcat existingSuffixItems (Seq.NE.singleton x)))
-            wordFont
-            hyphenItem
-            wordLetters
-        pure Empty
-      -- If we saw something that indicates we should hyphenate now,
-      -- apply one last check:
-      --   hyphenation will still be abandoned unless n ≥ λ + ρ, where λ = max(1,
-      --   \lefthyphenmin) and ρ = max(1, \righthyphenmin)
-      -- Otherwise,
-      -- • Do the hyphenation,
-      -- • Move to the relevant searching-state, depending on whether we just
-      --   saw glue or something else.
-      -- • Produce the hyphenated items as elems, plus the current item
-      HyphenateNow suffixItems seenGlue -> do
-        leftHyphenMin <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LeftHyphenMin)
-        rightHyphenMin <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.RightHyphenMin)
-        let hyphenMin = leftHyphenMin <> rightHyphenMin
-        let n = Seq.NE.length wordLetters
+  if n < hyphenMin.unHexInt
+    then pure $ midWordStateAccumulatedItems midWordState
+    else do
+      Log.infoLog $ "Hyphenation: Found word: " <> (Code.codesAsText $ toList $ midWordState.wordLetters <&> (.contents))
+      let -- If leftHyphenMin is zero, then all indexes are valid.
+          -- If leftHyphenMin is one, then index must be >= 1.
+          -- etc.
+          minIx = leftHyphenMin.unHexInt
+          -- Maximum index is n-1
+          -- But really maximum we can hyphenate after is n-2, because we
+          -- can't insert a hyphen after the last letter.
+          -- If rightHyphenMin is zero, then all indexes are valid. So max is n-1
+          -- If rightHyphenMin is one, then max valid is n-2
+          -- This might result in a negative value, which will never be valid.
+          -- This is fine, it just means we can't hyphenate any characters
+          maxIx = min (n Num.- 2) (pred (n Num.- rightHyphenMin.unHexInt))
+          hyphenationWordBoxChars =
+            join $
+              indexed (toList midWordState.wordLetters) <&> \(i, v) ->
+                if i >= minIx && i <= maxIx
+                  then [boxCharAsElem midWordState.wordFont v, ListElem.DiscretionaryItemElem midWordState.hyphenItem]
+                  else [boxCharAsElem midWordState.wordFont v]
+      pure $ Seq.fromList hyphenationWordBoxChars <> midWordState.suffixItems
 
-        if n < hyphenMin.unHexInt
-          then abandonAndReset seenGlue
-          else do
-            Log.infoLog $ "Hyphenation: Found word: " <> (Code.codesAsText $ toList $ wordLetters <&> (.contents))
-            let -- If leftHyphenMin is zero, then all indexes are valid.
-                -- If leftHyphenMin is one, then index must be >= 1.
-                -- etc.
-                minIx = leftHyphenMin.unHexInt
-                -- Maximum index is n-1
-                -- But really maximum we can hyphenate after is n-2, because we
-                -- can't insert a hyphen after the last letter.
-                -- If rightHyphenMin is zero, then all indexes are valid. So max is n-1
-                -- If rightHyphenMin is one, then max valid is n-2
-                -- This might result in a negative value, which will never be valid.
-                -- This is fine, it just means we can't hyphenate any characters
-                maxIx = min (n Num.- 2) (pred (n Num.- rightHyphenMin.unHexInt))
-            let hyphenationWordBoxChars =
-                  join $
-                    indexed (toList wordLetters) <&> \(i, v) ->
-                      if i >= minIx && i <= maxIx
-                        then [boxCharAsElem wordFont v, ListElem.DiscretionaryItemElem hyphenItem]
-                        else [boxCharAsElem wordFont v]
+abandonAndReset ::
+  State HyphenationState :> es =>
+  Bool ->
+  Eff es (Seq ListElem.HListElem)
+abandonAndReset seenGlue = do
+  accumItems <- gets hyphStateAccumulatedItems
+  reset seenGlue
+  pure accumItems
 
-            let hyphenationWordElems = Seq.fromList hyphenationWordBoxChars
-            reset seenGlue
-            pure $ hyphenationWordElems <> suffixItems |> x
-
-      -- If we saw something that indicates we actually shouldn't hyphenate this word,
-      -- get the items we accumulated for the word and suffix (if present),
-      -- return those and the current item, and move to the relevant search-state.
-      AbandonHyphenation ->
-        abandonAndReset False
-
-    abandonAndReset seenGlue = do
-      accumItems <- get <&> stateAccumulatedItems
-      reset seenGlue
-      pure $ accumItems |> x
-
-    reset seenGlue =
-      put $ if seenGlue then SearchingForStartingLetter else SearchingForGlue
+reset :: State HyphenationState :> es => Bool -> Eff es ()
+reset seenGlue =
+  put $ if seenGlue then SearchingForStartingLetter else SearchingForGlue
 
 breakHListMultiPass ::
   [Log.HexLog, HSt.EHexState] :>> es =>
