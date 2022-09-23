@@ -10,7 +10,7 @@ import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Font qualified as Font
 import Hex.Common.HexEnv.Interface (EHexEnv)
-import Hex.Common.HexEnv.Interface qualified as Env
+import Hex.Common.HexEnv.Interface qualified as HEnv
 import Hex.Common.HexState.Impl.Error qualified as Err
 import Hex.Common.HexState.Impl.Font qualified as HSt.Font
 import Hex.Common.HexState.Impl.Scoped.Code qualified as Sc.Code
@@ -181,14 +181,14 @@ readFontInfo fontPath fontBytes spec = do
   pure HSt.Font.FontInfo {fontMetrics, designScale, hyphenChar, skewChar, fontPath}
 
 loadFontImpl ::
-  [State HexState, Error Err.HexStateError, Error TFM.TFMError, EHexEnv] :>> es =>
+  [State HexState, EHexEnv, Error Err.HexStateError, Error TFM.TFMError] :>> es =>
   HexFilePath ->
   TFM.FontSpecification ->
   Eff es Font.FontNumber
 loadFontImpl fontPath spec = do
   fontBytes <-
-    Env.findAndReadFile
-      (Env.WithImplicitExtension "tfm")
+    HEnv.findAndReadFile
+      (HEnv.WithImplicitExtension "tfm")
       (fontPath ^. typed @FilePath)
       >>= note (Err.FontNotFound fontPath)
 

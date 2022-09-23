@@ -79,7 +79,7 @@ evalModeIndepCmd = \case
   P.SetAfterAssignmentToken lexToken -> pure $ E.SetAfterAssignmentToken lexToken
   P.AddToAfterGroupTokens lexToken -> pure $ E.AddToAfterGroupTokens lexToken
   P.WriteMessage messageWriteCommand -> E.WriteMessage <$> evalMessageWriteCommand messageWriteCommand
-  P.ModifyFileStream fileStreamModificationCommand -> pure $ E.ModifyFileStream fileStreamModificationCommand
+  P.ModifyFileStream fileStreamModificationCommand -> E.ModifyFileStream <$> evalFileStreamModificationCommand fileStreamModificationCommand
   P.WriteToStream streamWriteCommand -> E.WriteToStream <$> evalStreamWriteCommand streamWriteCommand
   P.DoSpecial expandedBalancedText -> pure $ E.DoSpecial expandedBalancedText
   P.AddBox boxPlacement box -> E.AddBox boxPlacement <$> evalBox box
@@ -311,3 +311,16 @@ evalMessageWriteCommand ::
 evalMessageWriteCommand cmd = do
   messageContents <- Eval.evalBalancedTextToText cmd.messageContents
   pure $ E.MessageWriteCommand {messageDest = cmd.messageDest, messageContents}
+
+evalFileStreamModificationCommand ::
+  [Error Eval.EvaluationError, EHexState] :>> es =>
+  P.FileStreamModificationCommand ->
+  Eff es E.FileStreamModificationCommand
+evalFileStreamModificationCommand cmd = do
+  fileStreamNr <- Eval.evalIntToFourBitUnsigned cmd.fileStreamNr
+  pure $
+    E.FileStreamModificationCommand
+      { fileStreamType = cmd.fileStreamType,
+        fileStreamAction = cmd.fileStreamAction,
+        fileStreamNr
+      }

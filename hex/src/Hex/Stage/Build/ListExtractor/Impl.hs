@@ -4,6 +4,7 @@
 module Hex.Stage.Build.ListExtractor.Impl where
 
 import Hex.Capability.Log.Interface (HexLog (..))
+import Hex.Common.HexIO.Interface qualified as HIO
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -20,10 +21,9 @@ import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hex.Stage.Interpret.HMode qualified as Command.H
 import Hex.Stage.Interpret.VMode qualified as Command.V
 import Hex.Stage.Parse.Interface (CommandSource (..))
-import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
-runListExtractor :: [Eval.HexEvaluate, CommandSource, HSt.EHexState, HIn.HexInput, Error AllMode.InterpretError, HexLog] :>> es => Eff (ListExtractor.ExtractList : es) a -> Eff es a
+runListExtractor :: [Eval.HexEvaluate, CommandSource, HSt.EHexState, HIO.HexIO, Error AllMode.InterpretError, HexLog] :>> es => Eff (ListExtractor.ExtractList : es) a -> Eff es a
 runListExtractor = interpret $ \_ -> \case
   ListExtractor.ExtractHBoxList -> extractHBoxListImpl
   ListExtractor.ExtractVBoxList -> extractVBoxListImpl
@@ -34,7 +34,7 @@ extractHBoxListImpl ::
   ( Eval.HexEvaluate :> es,
     CommandSource :> es,
     HSt.EHexState :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     Error AllMode.InterpretError :> es,
     HexLog :> es
   ) =>
@@ -50,7 +50,7 @@ extractParagraphListImpl ::
   ( Eval.HexEvaluate :> es,
     CommandSource :> es,
     HSt.EHexState :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     Error AllMode.InterpretError :> es,
     HexLog :> es
   ) =>
@@ -73,7 +73,7 @@ buildHListImpl ::
   ( Eval.HexEvaluate :> es,
     CommandSource :> es,
     HSt.EHexState :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     Build.HListBuilder :> es,
     Build.HexListBuilder :> es,
     Error AllMode.InterpretError :> es,
@@ -91,7 +91,7 @@ buildHListImpl modeVariant = do
     go = do
       -- Get the state before reading the command,
       -- in case we need to revert to before the command.
-      sPreParse <- HIn.getInput
+      sPreParse <- HIO.getInput
       -- Read the next command.
       command <- AllMode.getNextCommandLogged
       -- Handle the next command, passing the old state in case we need to revert.
@@ -105,7 +105,7 @@ buildHListImpl modeVariant = do
 extractMainVListImpl ::
   forall es.
   ( Eval.HexEvaluate :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     CommandSource :> es,
     HSt.EHexState :> es,
     Error AllMode.InterpretError :> es,
@@ -122,7 +122,7 @@ extractVBoxListImpl ::
   ( Eval.HexEvaluate :> es,
     CommandSource :> es,
     HSt.EHexState :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     Error AllMode.InterpretError :> es,
     HexLog :> es
   ) =>
@@ -135,7 +135,7 @@ extractVBoxListImpl =
 buildVListImpl ::
   forall es.
   ( Eval.HexEvaluate :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     CommandSource :> es,
     HSt.EHexState :> es,
     Build.HexListBuilder :> es,
@@ -152,7 +152,7 @@ buildVListImpl modeVariant = do
   where
     go :: Eff es ()
     go = do
-      streamPreParse <- HIn.getInput
+      streamPreParse <- HIO.getInput
       command <- AllMode.getNextCommandLogged
       runListExtractor (Command.V.handleCommandInVMode streamPreParse modeVariant command) >>= \case
         Command.V.EndMainVMode ->

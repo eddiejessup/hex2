@@ -39,8 +39,8 @@ evalExpansionCommand = \case
     pure $ E.NoExpand lexToken
   P.GetMarkRegister markRegister ->
     pure $ E.GetMarkRegister markRegister
-  P.OpenInputFile filePath ->
-    pure $ E.OpenInputFile filePath
+  P.ReadFile filePath ->
+    pure $ E.ReadFile filePath
   P.EndInputFile ->
     pure $ E.EndInputFile
   P.RenderInternalQuantity internalQuantity ->

@@ -4,6 +4,8 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexIO.Interface qualified as HIO
+import Hex.Common.HexIO.Interface.CharSourceStack (CharSourceStack)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
@@ -16,8 +18,6 @@ import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.AllMode qualified as AllMode
-import Hex.Stage.Read.Interface qualified as HIn
-import Hex.Stage.Read.Interface.CharSourceStack (CharSourceStack)
 import Hexlude
 
 data HModeCommandResult
@@ -27,7 +27,7 @@ data HModeCommandResult
 
 handleCommandInHMode ::
   ( HSt.EHexState :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     Error AllMode.InterpretError :> es,
     Log.HexLog :> es,
     Build.HListBuilder :> es,
@@ -44,8 +44,8 @@ handleCommandInHMode oldSrc modeVariant = \case
       -- Insert the control sequence "\par" into the input. The control
       -- sequence's current meaning will be used, which might no longer be the \par
       -- primitive.
-      HIn.putInput oldSrc
-      HIn.insertLexToken LT.parToken
+      HIO.putInput oldSrc
+      HIO.insertLexToken LT.parToken
       pure ContinueHMode
     HSt.Mode.InnerModeVariant -> do
       throwError $ AllMode.VModeCommandInInnerHMode

@@ -4,13 +4,12 @@ module Common where
 
 import Data.ByteString qualified as BS
 import Hex.Capability.Log.Interface qualified as Log
-import Hex.Common.HexEnv.Interface
+import Hex.Common.HexIO.Impl
+import Hex.Common.HexIO.Interface
 import Hex.Common.HexState.Impl
 import Hex.Common.HexState.Interface
 import Hex.Run.App
 import Hex.Run.App qualified as App
-import Hex.Stage.Read.Impl
-import Hex.Stage.Read.Interface
 import Hexlude
 
 newtype TestApp a = TestApp {unTestApp :: StateT AppState (ExceptT AppError IO) a}
@@ -23,7 +22,7 @@ newtype TestApp a = TestApp {unTestApp :: StateT AppState (ExceptT AppError IO) 
       MonadState AppState,
       MonadIO
     )
-  deriving (MonadHexInput) via (HexInputT TestApp)
+  deriving (MonadHexIO) via (HexIOT TestApp)
   deriving (EHexState) via (HexStateT TestApp)
 
 instance MonadHexEnv TestApp where

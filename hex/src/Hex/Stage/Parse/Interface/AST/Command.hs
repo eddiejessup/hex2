@@ -92,7 +92,11 @@ data MessageWriteCommand = MessageWriteCommand
   }
   deriving stock (Show, Eq, Generic)
 
-data FileStreamModificationCommand = FileStreamModificationCommand FileStreamType FileStreamAction HexInt
+data FileStreamModificationCommand = FileStreamModificationCommand
+  { fileStreamType :: FileStreamType,
+    fileStreamAction :: FileStreamAction,
+    fileStreamNr :: HexInt
+  }
   deriving stock (Show, Eq, Generic)
 
 data Assignment = Assignment {body :: AssignmentBody, scope :: HSt.Grouped.ScopeFlag}

@@ -1,2 +1,60 @@
 packages:
   hex/
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/double-conversion
+  tag: 5d092e0
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/protolude
+  tag: db3670b
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/ascii
+  subdir: ascii
+  tag: af2c6f8
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/ascii
+  subdir: ascii-case
+  tag: af2c6f8
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/ascii
+  subdir: ascii-char
+  tag: af2c6f8
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/ascii
+  subdir: ascii-group
+  tag: af2c6f8
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/ascii
+  subdir: ascii-numbers
+  tag: af2c6f8
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/ascii
+  subdir: ascii-predicates
+  tag: af2c6f8
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/ascii
+  subdir: ascii-superset
+  tag: af2c6f8
+
+source-repository-package
+  type: git
+  location: /Users/elliotmarsden/elmo/src/ascii
+  subdir: ascii-th
+  tag: af2c6f8

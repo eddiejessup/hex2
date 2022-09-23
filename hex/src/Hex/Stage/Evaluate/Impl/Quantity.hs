@@ -38,6 +38,17 @@ evalSignedValue evalU (P.Signed signs u) = do
     evalSigns :: [Q.Sign] -> Q.Sign
     evalSigns = mconcat
 
+evalIntToFourBitUnsigned ::
+  [Error Eval.EvaluationError, EHexState] :>> es =>
+  P.HexInt ->
+  Eff es Q.FourBitInt
+evalIntToFourBitUnsigned n = do
+  Q.newFourBitInt <$> evalInt n >>= \case
+    Nothing ->
+      throwError ValueNotInRange
+    Just fourN ->
+      pure fourN
+
 evalInt :: [Error Eval.EvaluationError, EHexState] :>> es => P.HexInt -> Eff es Q.HexInt
 evalInt n = do
   evalSignedValue evalUnsignedInt n.unInt

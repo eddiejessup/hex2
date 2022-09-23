@@ -3,6 +3,7 @@
 module Hex.Common.HexState.Impl.Scoped.Scope where
 
 import Data.Map.Strict qualified as Map
+import Data.Time qualified as Time
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Font qualified as Font
@@ -61,32 +62,31 @@ data Scope = Scope
 nullFontNumber :: Font.FontNumber
 nullFontNumber = Font.FontNumber Q.zeroInt
 
-newGlobalScope :: MonadIO m => m Scope
-newGlobalScope = do
-  intParameters <- Defaults.newIntParameters
-  pure
-    Scope
-      { currentFontNr = Just nullFontNumber,
-        familyMemberFonts = mempty,
-        symbolMap = Defaults.initialSymbolMap,
-        catCodes = Defaults.newCatCodes,
-        mathCodes = Defaults.newMathCodes,
-        lowerCaseCodes = Defaults.newLowercaseCodes,
-        upperCaseCodes = Defaults.newUppercaseCodes,
-        spaceFactorCodes = Defaults.newSpaceFactorCodes,
-        delimiterCodes = Defaults.newDelimiterCodes,
-        intParameters,
-        lengthParameters = Defaults.newLengthParameters,
-        glueParameters = Defaults.newGlueParameters,
-        mathGlueParameters = Defaults.newMathGlueParameters,
-        tokenListParameters = Defaults.newTokenListParameters,
-        intRegister = Defaults.newIntRegister,
-        lengthRegister = Defaults.newLengthRegister,
-        glueRegister = Defaults.newGlueRegister,
-        mathGlueRegister = Defaults.newMathGlueRegister,
-        tokenListRegister = Defaults.newTokenListRegister,
-        boxRegister = Defaults.newBoxRegister
-      }
+newGlobalScope :: Time.ZonedTime -> Scope
+newGlobalScope zonedTime =
+  let intParameters = Defaults.newIntParameters zonedTime
+   in Scope
+        { currentFontNr = Just nullFontNumber,
+          familyMemberFonts = mempty,
+          symbolMap = Defaults.initialSymbolMap,
+          catCodes = Defaults.newCatCodes,
+          mathCodes = Defaults.newMathCodes,
+          lowerCaseCodes = Defaults.newLowercaseCodes,
+          upperCaseCodes = Defaults.newUppercaseCodes,
+          spaceFactorCodes = Defaults.newSpaceFactorCodes,
+          delimiterCodes = Defaults.newDelimiterCodes,
+          intParameters,
+          lengthParameters = Defaults.newLengthParameters,
+          glueParameters = Defaults.newGlueParameters,
+          mathGlueParameters = Defaults.newMathGlueParameters,
+          tokenListParameters = Defaults.newTokenListParameters,
+          intRegister = Defaults.newIntRegister,
+          lengthRegister = Defaults.newLengthRegister,
+          glueRegister = Defaults.newGlueRegister,
+          mathGlueRegister = Defaults.newMathGlueRegister,
+          tokenListRegister = Defaults.newTokenListRegister,
+          boxRegister = Defaults.newBoxRegister
+        }
 
 newLocalScope :: Scope
 newLocalScope =

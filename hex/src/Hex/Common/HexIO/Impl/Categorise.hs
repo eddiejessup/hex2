@@ -1,16 +1,17 @@
-module Hex.Stage.Read.Impl.Categorise where
+module Hex.Common.HexIO.Impl.Categorise where
 
 import Control.Monad.Trans.Maybe (MaybeT (..))
 import Data.ByteString qualified as BS
 import Formatting qualified as F
 import GHC.Num
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexIO.Impl.CharSource (HexLine (..))
+import Hex.Common.HexIO.Impl.CharSource qualified as CharSource
+import Hex.Common.HexIO.Impl.CharSourceStack qualified as CharSourceStack
+import Hex.Common.HexIO.Impl.IOState (IOState)
+import Hex.Common.HexIO.Impl.IOState qualified as IOState
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
-import Hex.Stage.Read.Impl.CharSource (HexLine (..))
-import Hex.Stage.Read.Impl.CharSource qualified as CharSource
-import Hex.Stage.Read.Impl.CharSourceStack (CharSourceStack (..))
-import Hex.Stage.Read.Impl.CharSourceStack qualified as CharSourceStack
 import Hexlude
 
 data RawCharCat = RawCharCat
@@ -53,21 +54,21 @@ extractCharCatFromHexLinePure (HexLine xs) = runMaybeT $ do
       pure normal
 
 extractCharCatFromCurrentLine ::
-  [State CharSourceStack, EHexState] :>> es =>
+  [State IOState, EHexState] :>> es =>
   Eff es (Maybe RawCharCat)
 extractCharCatFromCurrentLine = do
-  use @CharSourceStack (CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure >>= \case
+  use @IOState (#sourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure >>= \case
     Nothing ->
       pure Nothing
     Just (charCat, restOfLine) -> do
-      assign @CharSourceStack (CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) restOfLine
+      assign @IOState (#sourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) restOfLine
       pure $ Just charCat
 
 peekCharCatOnCurrentLineImpl ::
-  [State CharSourceStack, EHexState] :>> es =>
+  [State IOState, EHexState] :>> es =>
   Eff es (Maybe RawCharCat)
 peekCharCatOnCurrentLineImpl =
-  use @CharSourceStack (CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure <&> \case
+  use @IOState (#sourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure <&> \case
     Nothing ->
       Nothing
     Just (charCat, _restOfLine) ->

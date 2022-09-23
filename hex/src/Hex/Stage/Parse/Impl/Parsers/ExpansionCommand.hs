@@ -47,7 +47,7 @@ headToParseExpansionCommand = \case
   ST.MarkRegisterTok markRegister ->
     pure $ AST.GetMarkRegister markRegister
   ST.InputTok ->
-    AST.OpenInputFile <$> Par.parseFileName
+    AST.ReadFile <$> Par.parseFileName
   ST.EndInputTok ->
     pure $ AST.EndInputFile
   ST.TheTok ->

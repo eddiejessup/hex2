@@ -7,6 +7,7 @@ import Effectful.Dispatch.Dynamic (localSeqUnlift)
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog)
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexIO.Interface qualified as HIO
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -24,7 +25,6 @@ import Hex.Stage.Expand.Impl.Expand qualified as Expand
 import Hex.Stage.Expand.Interface (ExpansionError (..), ParseUnexpectedError (..), ParsingError (..), PrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
-import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 runPrimTokenSource ::
@@ -32,7 +32,7 @@ runPrimTokenSource ::
     Error ParsingError,
     Error Eval.EvaluationError,
     Error HSt.ResolutionError,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     State Expand.ConditionStates,
     HexLog,
@@ -49,10 +49,10 @@ runPrimTokenSource = interpret $ \env -> \case
   SatisfyThenExpanding x -> satisfyThenExpandingImpl x
   SatisfyThenInhibited x -> satisfyThenInhibitedImpl x
   TryParse parser -> do
-    st <- HIn.getInput
+    st <- HIO.getInput
     localSeqUnlift env $ \unlift -> do
       catchError @ParsingError (unlift parser) $ \_callStack e -> do
-        HIn.putInput st
+        HIO.putInput st
         throwError e
   FailParse e ->
     throwError $ UnexpectedParsingError e
@@ -62,7 +62,7 @@ runAltPrimTokenSource ::
     Error ParsingError,
     Error Eval.EvaluationError,
     Error HSt.ResolutionError,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     State Expand.ConditionStates,
     HexLog
@@ -84,7 +84,7 @@ runAltPrimTokenSourceMaybe ::
     Error ParsingError,
     Error Eval.EvaluationError,
     Error HSt.ResolutionError,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     State Expand.ConditionStates,
     HexLog
@@ -108,7 +108,7 @@ expandResolvedTokenImpl ::
     Error ParsingError,
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
-    HIn.HexInput,
+    HIO.HexIO,
     EAlternative,
     HSt.EHexState,
     HexLog
@@ -134,7 +134,7 @@ expandLexTokenImpl ::
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
     EAlternative,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     HexLog
   ]
@@ -153,21 +153,21 @@ getPrimitiveTokenImpl ::
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
     EAlternative,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     HexLog
   ]
     :>> es =>
   Eff es (Maybe (LT.LexToken, PrimitiveToken))
 getPrimitiveTokenImpl =
-  HIn.getResolvedToken >>= \case
+  HIO.getResolvedToken >>= \case
     Nothing -> pure Nothing
     Just (lt, rt) ->
       expandResolvedTokenImpl rt >>= \case
         UntouchedPrimitiveToken pt ->
           pure $ Just (lt, pt)
         ExpandedToLexTokens lts -> do
-          HIn.insertLexTokens lts
+          HIO.insertLexTokens lts
           getPrimitiveTokenImpl
 
 expandExpansionCommand ::
@@ -177,7 +177,7 @@ expandExpansionCommand ::
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
     EAlternative,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     HexLog
   ]
@@ -228,8 +228,8 @@ expandExpansionCommand = \case
   -- - Expand to no tokens
   -- - Prepare to read from the specified file before looking at any more
   --   tokens from the current source.
-  E.OpenInputFile filePath -> do
-    HIn.openInputFile filePath
+  E.ReadFile filePath -> do
+    HIO.readTexFile filePath
     pure mempty
   E.EndInputFile ->
     notImplemented "EndInputFile"
@@ -261,7 +261,7 @@ satisfyThenExpandingImpl ::
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
     EAlternative,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     HexLog
   ]
@@ -274,17 +274,17 @@ satisfyThenExpandingImpl f =
     f
 
 satisfyThenInhibitedImpl ::
-  (HIn.HexInput :> es, Error ParsingError :> es) =>
+  (HIO.HexIO :> es, Error ParsingError :> es) =>
   (LT.LexToken -> Maybe a) ->
   Eff es a
 satisfyThenInhibitedImpl f =
   -- Wrap and unwrap using the trivial tuple to make a common interface we can share with the 'expanding' version.
   satisfyThenCommon
-    (HIn.getNextLexToken <&> (fmap (,())))
+    (HIO.getNextLexToken <&> (fmap (,())))
     (\(lt, ()) -> f lt)
 
 satisfyThenCommon ::
-  (HIn.HexInput :> es, Error ParsingError :> es) =>
+  (HIO.HexIO :> es, Error ParsingError :> es) =>
   Eff es (Maybe (LT.LexToken, b)) ->
   ((LT.LexToken, b) -> Maybe a) ->
   Eff es a
@@ -295,7 +295,7 @@ satisfyThenCommon parser f = do
     Just x@(lt, _) -> do
       case f x of
         Nothing -> do
-          HIn.insertLexToken lt
+          HIO.insertLexToken lt
           throwError @ParsingError $ Expand.UnexpectedParsingError $ ParseExplicitFailure $ "satisfyThen, test failed on lex-token: " <> F.sformat LT.fmtLexToken lt
         Just a -> do
           pure a

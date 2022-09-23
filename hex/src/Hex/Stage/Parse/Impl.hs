@@ -3,6 +3,7 @@
 module Hex.Stage.Parse.Impl where
 
 import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.HexIO.Interface qualified as HIO
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Expand.Impl (runAltPrimTokenSourceMaybe)
@@ -11,7 +12,6 @@ import Hex.Stage.Expand.Interface qualified as Exp
 import Hex.Stage.Parse.Impl.Parsers.Command qualified as Parsers.Command
 import Hex.Stage.Parse.Interface
 import Hex.Stage.Parse.Interface.AST.Command qualified as Par
-import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 runCommandSource ::
@@ -19,7 +19,7 @@ runCommandSource ::
     Error ParsingError,
     Error Eval.EvaluationError,
     Error HSt.ResolutionError,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     State Exp.ConditionStates,
     Log.HexLog
@@ -35,7 +35,7 @@ getCommandImpl ::
     Error ParsingError,
     Error Eval.EvaluationError,
     Error HSt.ResolutionError,
-    HIn.HexInput,
+    HIO.HexIO,
     HSt.EHexState,
     State Exp.ConditionStates,
     Log.HexLog

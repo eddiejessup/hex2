@@ -1,6 +1,7 @@
 module Hex.Run.Interpret where
 
 import Hex.Capability.Log.Interface (HexLog)
+import Hex.Common.HexIO.Interface (HexIO)
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Stage.Build.ListElem (HList (..), VList (..))
 import Hex.Stage.Build.ListExtractor.Impl (extractMainVListImpl)
@@ -8,13 +9,12 @@ import Hex.Stage.Build.ListExtractor.Interface (EndHListReason, ExtractList, Ind
 import Hex.Stage.Evaluate.Interface (HexEvaluate)
 import Hex.Stage.Interpret.AllMode (InterpretError)
 import Hex.Stage.Parse.Interface (CommandSource)
-import Hex.Stage.Read.Interface (HexInput)
 import Hexlude
 
 extractMainVList ::
   forall es.
   ( HexEvaluate :> es,
-    HexInput :> es,
+    HexIO :> es,
     CommandSource :> es,
     EHexState :> es,
     Error InterpretError :> es,

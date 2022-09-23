@@ -51,7 +51,7 @@ data ExpansionCommand
   | ExpandAfter LT.LexToken LT.LexToken
   | NoExpand LT.LexToken
   | GetMarkRegister ST.MarkRegister
-  | OpenInputFile HexFilePath
+  | ReadFile HexFilePath
   | EndInputFile
   | RenderInternalQuantity InternalQuantity
   | ChangeCase VDirection HSt.TL.BalancedText

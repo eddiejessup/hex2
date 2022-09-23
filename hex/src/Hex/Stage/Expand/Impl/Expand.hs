@@ -3,6 +3,7 @@ module Hex.Stage.Expand.Impl.Expand where
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexIO.Interface qualified as HIO
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
@@ -15,7 +16,6 @@ import Hex.Stage.Expand.Interface (ExpansionError)
 import Hex.Stage.Expand.Interface qualified as Expand
 import Hex.Stage.Parse.Impl.Parsers.BalancedText qualified as Par
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as Uneval
-import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 substituteArgsIntoMacroBody ::
@@ -68,7 +68,7 @@ applyConditionOutcome ::
   forall es.
   ( Error ExpansionError :> es,
     Error HSt.ResolutionError :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     HSt.EHexState :> es,
     State Expand.ConditionStates :> es
     -- Expand.PrimTokenSource :> es
@@ -149,7 +149,7 @@ skipUpToCaseBlock tgtBlock getNextToken = go 0 1
 
 applyConditionBody ::
   forall es.
-  [Error ExpansionError, Error HSt.ResolutionError, HIn.HexInput, HSt.EHexState, State Expand.ConditionStates] :>> es =>
+  [Error ExpansionError, Error HSt.ResolutionError, HIO.HexIO, HSt.EHexState, State Expand.ConditionStates] :>> es =>
   ST.ConditionBodyTok ->
   Eff es ()
 applyConditionBody bodyToken = do
@@ -192,10 +192,10 @@ data SkipStopCondition
 
 getPresentResolvedToken ::
   forall es.
-  [Error ExpansionError, Error HSt.ResolutionError, HIn.HexInput, HSt.EHexState] :>> es =>
+  [Error ExpansionError, Error HSt.ResolutionError, HIO.HexIO, HSt.EHexState] :>> es =>
   Eff es RT.ResolvedToken
 getPresentResolvedToken = do
-  snd <$> nothingToError Expand.EndOfInputWhileSkipping HIn.getResolvedToken
+  snd <$> nothingToError Expand.EndOfInputWhileSkipping HIO.getResolvedToken
 
 skipUntilElseOrEndif ::
   forall m.

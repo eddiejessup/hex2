@@ -1,11 +1,11 @@
 module Hex.Run.Lex where
 
 import Formatting qualified as F
+import Hex.Common.HexIO.Interface
 import Hex.Common.Token.Lexed qualified as LT
-import Hex.Stage.Read.Interface
 import Hexlude
 
-lexAll :: HexInput :> es => Eff es [LT.LexToken]
+lexAll :: HexIO :> es => Eff es [LT.LexToken]
 lexAll = go
   where
     go =

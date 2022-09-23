@@ -4,6 +4,8 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog)
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
+import Hex.Common.HexIO.Interface qualified as HIO
+import Hex.Common.HexIO.Interface.CharSourceStack (CharSourceStack)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -17,8 +19,6 @@ import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Interpret.AllMode qualified as AllMode
-import Hex.Stage.Read.Interface qualified as HIn
-import Hex.Stage.Read.Interface.CharSourceStack (CharSourceStack)
 import Hexlude
 
 data VModeCommandResult
@@ -29,7 +29,7 @@ handleCommandInVMode ::
   forall es.
   ( HexLog :> es,
     HSt.EHexState :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     Error AllMode.InterpretError :> es,
     Build.HexListBuilder :> es,
     ListExtractor.ExtractList :> es
@@ -99,7 +99,7 @@ handleCommandInVMode oldSrc modeVariant command =
 
       -- If the command shifts to horizontal mode, run '\indent', and re-read
       -- the stream as if the command hadn't been read.
-      HIn.putInput oldSrc
+      HIO.putInput oldSrc
       (endParaReason, paraHList) <- ListExtractor.extractParagraphList indentFlag
       extendVListWithParagraphStateT paraHList
       case endParaReason of

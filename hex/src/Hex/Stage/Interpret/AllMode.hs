@@ -4,6 +4,7 @@ import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexIO.Interface qualified as HIO
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
@@ -25,7 +26,6 @@ import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
 import Hex.Stage.Parse.Interface qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as P
-import Hex.Stage.Read.Interface qualified as HIn
 import Hexlude
 
 data InterpretError
@@ -87,7 +87,7 @@ writeToOutput _ _ = pure ()
 handleModeIndependentCommand ::
   ( HSt.EHexState :> es,
     Log.HexLog :> es,
-    HIn.HexInput :> es,
+    HIO.HexIO :> es,
     Build.HexListBuilder :> es,
     ListExtractor.ExtractList :> es
   ) =>
@@ -240,7 +240,7 @@ handleModeIndependentCommand = \case
     HSt.popAfterAssignmentToken >>= \case
       Nothing -> pure ()
       -- If a token was indeed set, put it into the input.
-      Just lt -> HIn.insertLexToken lt
+      Just lt -> HIO.insertLexToken lt
     pure DidNotSeeEndBox
   -- Start a new level of grouping.
   Eval.ChangeScope Q.Positive entryTrigger -> do
@@ -272,8 +272,19 @@ handleModeIndependentCommand = \case
     notImplemented "handleModeIndependentCommand: RemoveItem"
   Eval.AddToAfterGroupTokens _lexToken ->
     notImplemented "handleModeIndependentCommand: AddToAfterGroupTokens"
-  Eval.ModifyFileStream _fileStreamModificationCommand ->
-    notImplemented "handleModeIndependentCommand: ModifyFileStream"
+  Eval.ModifyFileStream fileStreamModificationCommand -> do
+    case (fileStreamModificationCommand.fileStreamType, fileStreamModificationCommand.fileStreamAction) of
+      (P.FileInput, P.Open path) -> do
+        HIO.openStreamFile path fileStreamModificationCommand.fileStreamNr HIO.InputFile
+      (P.FileOutput P.Immediate, P.Open path) -> do
+        HIO.openStreamFile path fileStreamModificationCommand.fileStreamNr HIO.OutputFile
+      (P.FileOutput P.Deferred, P.Open _path) -> do
+        notImplemented "handleModeIndependentCommand: Open output file, deferred"
+      (P.FileInput, P.Close) -> do
+        notImplemented "handleModeIndependentCommand: Close input file"
+      (P.FileOutput _writePolicy, P.Close) -> do
+        notImplemented "handleModeIndependentCommand: Close output file"
+    pure DidNotSeeEndBox
   Eval.DoSpecial _text ->
     notImplemented "handleModeIndependentCommand: DoSpecial"
   where

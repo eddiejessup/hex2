@@ -2,6 +2,7 @@ module Hex.Run.Paginate where
 
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.HexIO.Interface (HexIO)
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
@@ -14,10 +15,9 @@ import Hex.Stage.Build.Vertical.Page.Types qualified as Page
 import Hex.Stage.Evaluate.Interface (HexEvaluate)
 import Hex.Stage.Interpret.AllMode (InterpretError)
 import Hex.Stage.Parse.Interface (CommandSource)
-import Hex.Stage.Read.Interface (HexInput)
 import Hexlude
 
-paginateAll :: '[Error InterpretError, HexEvaluate, HexInput, CommandSource, EHexState, Log.HexLog, ExtractList] :>> es => Eff es (Seq Page.Page)
+paginateAll :: '[Error InterpretError, HexEvaluate, HexIO, CommandSource, EHexState, Log.HexLog, ExtractList] :>> es => Eff es (Seq Page.Page)
 paginateAll = do
   mainVList <- extractMainVListImpl
   desiredHeight <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.VSize)

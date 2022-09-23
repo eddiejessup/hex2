@@ -11,5 +11,6 @@ data FindFilePolicy
 
 data EHexEnv :: Effect where
   FindAndReadFile :: FindFilePolicy -> FilePath -> EHexEnv m (Maybe ByteString)
+  FindAndOpenFile :: FindFilePolicy -> FilePath -> IOMode -> EHexEnv m (Maybe Handle)
 
 makeEffect ''EHexEnv

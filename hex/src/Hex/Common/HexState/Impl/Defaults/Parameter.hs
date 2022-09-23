@@ -15,9 +15,8 @@ import Hexlude
 
 -- >>> timeStats
 -- (65852,15,7,2022)
-timeStats :: MonadIO m => m (Int, Time.DayOfMonth, Time.MonthOfYear, Time.Year)
-timeStats = do
-  zonedTime <- liftIO Time.getZonedTime
+timeStats :: Time.ZonedTime -> (Int, Time.DayOfMonth, Time.MonthOfYear, Time.Year)
+timeStats zonedTime =
   let localTime = zonedTime.zonedTimeToLocalTime
       localTimeOfDay = localTime.localTimeOfDay
 
@@ -27,73 +26,72 @@ timeStats = do
 
       localDay = localTime.localDay
       (yearInteger, monthOfYear, dayOfMonth) = Time.toGregorian localDay
-  pure (secondsSinceMidnight, dayOfMonth, monthOfYear, yearInteger)
+   in (secondsSinceMidnight, dayOfMonth, monthOfYear, yearInteger)
 
 newEndLineChar :: Q.HexInt
 newEndLineChar = Q.HexInt 13 -- '\r'
 
-newIntParameters :: MonadIO m => m (Map Param.IntParameter Q.HexInt)
-newIntParameters = do
-  (secondsSinceMidnight, dayOfMonth, monthOfYear, yearInteger) <- timeStats
-  let yearInt = fromIntegral @Integer @Int yearInteger
-  pure $
-    Map.fromList
-      [ (Param.Tolerance, Q.HexInt 10000),
-        (Param.EscapeChar, Q.HexInt 92), -- '\'
-        (Param.EndLineChar, newEndLineChar), -- We insert this at the end of each input line.
-        (Param.MaxDeadCycles, Q.HexInt 25),
-        (Param.HangAfter, Q.HexInt 1),
-        (Param.Mag, Q.HexInt 1000),
-        (Param.Time, Q.HexInt secondsSinceMidnight),
-        (Param.Day, Q.HexInt dayOfMonth),
-        (Param.Month, Q.HexInt monthOfYear),
-        (Param.Year, Q.HexInt yearInt),
-        (Param.PreTolerance, Q.zeroInt),
-        (Param.HBadness, Q.zeroInt),
-        (Param.VBadness, Q.zeroInt),
-        (Param.LinePenalty, Q.zeroInt),
-        (Param.HyphenPenalty, Q.zeroInt),
-        (Param.ExHyphenPenalty, Q.zeroInt),
-        (Param.BinOpPenalty, Q.zeroInt),
-        (Param.RelPenalty, Q.zeroInt),
-        (Param.ClubPenalty, Q.zeroInt),
-        (Param.WidowPenalty, Q.zeroInt),
-        (Param.DisplayWidowPenalty, Q.zeroInt),
-        (Param.BrokenPenalty, Q.zeroInt),
-        (Param.PreDisplayPenalty, Q.zeroInt),
-        (Param.PostDisplayPenalty, Q.zeroInt),
-        (Param.InterlinePenalty, Q.zeroInt),
-        (Param.FloatingPenalty, Q.zeroInt),
-        (Param.OutputPenalty, Q.zeroInt),
-        (Param.DoubleHyphenDemerits, Q.zeroInt),
-        (Param.FinalHyphenDemerits, Q.zeroInt),
-        (Param.AdjDemerits, Q.zeroInt),
-        (Param.Looseness, Q.zeroInt),
-        (Param.Pausing, Q.zeroInt),
-        (Param.HoldingInserts, Q.zeroInt),
-        (Param.TracingOnline, Q.zeroInt),
-        (Param.TracingMacros, Q.zeroInt),
-        (Param.TracingStats, Q.zeroInt),
-        (Param.TracingParagraphs, Q.zeroInt),
-        (Param.TracingPages, Q.zeroInt),
-        (Param.TracingOutput, Q.zeroInt),
-        (Param.TracingLostChars, Q.zeroInt),
-        (Param.TracingCommands, Q.zeroInt),
-        (Param.TracingRestores, Q.zeroInt),
-        (Param.Language, Q.zeroInt),
-        (Param.UCHyph, Q.zeroInt),
-        (Param.LeftHyphenMin, Q.zeroInt),
-        (Param.RightHyphenMin, Q.zeroInt),
-        (Param.GlobalDefs, Q.zeroInt),
-        (Param.DefaultHyphenChar, Q.zeroInt),
-        (Param.DefaultSkewChar, Q.zeroInt),
-        (Param.NewLineChar, Q.zeroInt),
-        (Param.Fam, Q.zeroInt),
-        (Param.DelimiterFactor, Q.zeroInt),
-        (Param.ShowBoxBreadth, Q.zeroInt),
-        (Param.ShowBoxDepth, Q.zeroInt),
-        (Param.ErrorContextLines, Q.zeroInt)
-      ]
+newIntParameters :: Time.ZonedTime -> Map Param.IntParameter Q.HexInt
+newIntParameters zonedTime =
+  let (secondsSinceMidnight, dayOfMonth, monthOfYear, yearInteger) = timeStats zonedTime
+      yearInt = fromIntegral @Integer @Int yearInteger
+   in Map.fromList
+        [ (Param.Tolerance, Q.HexInt 10000),
+          (Param.EscapeChar, Q.HexInt 92), -- '\'
+          (Param.EndLineChar, newEndLineChar), -- We insert this at the end of each input line.
+          (Param.MaxDeadCycles, Q.HexInt 25),
+          (Param.HangAfter, Q.HexInt 1),
+          (Param.Mag, Q.HexInt 1000),
+          (Param.Time, Q.HexInt secondsSinceMidnight),
+          (Param.Day, Q.HexInt dayOfMonth),
+          (Param.Month, Q.HexInt monthOfYear),
+          (Param.Year, Q.HexInt yearInt),
+          (Param.PreTolerance, Q.zeroInt),
+          (Param.HBadness, Q.zeroInt),
+          (Param.VBadness, Q.zeroInt),
+          (Param.LinePenalty, Q.zeroInt),
+          (Param.HyphenPenalty, Q.zeroInt),
+          (Param.ExHyphenPenalty, Q.zeroInt),
+          (Param.BinOpPenalty, Q.zeroInt),
+          (Param.RelPenalty, Q.zeroInt),
+          (Param.ClubPenalty, Q.zeroInt),
+          (Param.WidowPenalty, Q.zeroInt),
+          (Param.DisplayWidowPenalty, Q.zeroInt),
+          (Param.BrokenPenalty, Q.zeroInt),
+          (Param.PreDisplayPenalty, Q.zeroInt),
+          (Param.PostDisplayPenalty, Q.zeroInt),
+          (Param.InterlinePenalty, Q.zeroInt),
+          (Param.FloatingPenalty, Q.zeroInt),
+          (Param.OutputPenalty, Q.zeroInt),
+          (Param.DoubleHyphenDemerits, Q.zeroInt),
+          (Param.FinalHyphenDemerits, Q.zeroInt),
+          (Param.AdjDemerits, Q.zeroInt),
+          (Param.Looseness, Q.zeroInt),
+          (Param.Pausing, Q.zeroInt),
+          (Param.HoldingInserts, Q.zeroInt),
+          (Param.TracingOnline, Q.zeroInt),
+          (Param.TracingMacros, Q.zeroInt),
+          (Param.TracingStats, Q.zeroInt),
+          (Param.TracingParagraphs, Q.zeroInt),
+          (Param.TracingPages, Q.zeroInt),
+          (Param.TracingOutput, Q.zeroInt),
+          (Param.TracingLostChars, Q.zeroInt),
+          (Param.TracingCommands, Q.zeroInt),
+          (Param.TracingRestores, Q.zeroInt),
+          (Param.Language, Q.zeroInt),
+          (Param.UCHyph, Q.zeroInt),
+          (Param.LeftHyphenMin, Q.zeroInt),
+          (Param.RightHyphenMin, Q.zeroInt),
+          (Param.GlobalDefs, Q.zeroInt),
+          (Param.DefaultHyphenChar, Q.zeroInt),
+          (Param.DefaultSkewChar, Q.zeroInt),
+          (Param.NewLineChar, Q.zeroInt),
+          (Param.Fam, Q.zeroInt),
+          (Param.DelimiterFactor, Q.zeroInt),
+          (Param.ShowBoxBreadth, Q.zeroInt),
+          (Param.ShowBoxDepth, Q.zeroInt),
+          (Param.ErrorContextLines, Q.zeroInt)
+        ]
 
 newLengthParameters :: Map Param.LengthParameter Q.Length
 newLengthParameters =

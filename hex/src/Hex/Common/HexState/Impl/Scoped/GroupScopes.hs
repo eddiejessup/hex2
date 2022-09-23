@@ -1,5 +1,6 @@
 module Hex.Common.HexState.Impl.Scoped.GroupScopes where
 
+import Data.Time qualified as Time
 import Formatting qualified as F
 import Hex.Common.HexState.Impl.Scoped.Group
 import Hex.Common.HexState.Impl.Scoped.Scope (Scope, newGlobalScope)
@@ -19,10 +20,10 @@ data GroupScopes = GroupScopes
   }
   deriving stock (Show, Generic)
 
-newGroupScopes :: MonadIO m => m GroupScopes
-newGroupScopes = do
-  globalScope <- newGlobalScope
-  pure GroupScopes {globalScope, groups = []}
+newGroupScopes :: Time.ZonedTime -> GroupScopes
+newGroupScopes zonedTime =
+  let globalScope = newGlobalScope zonedTime
+   in GroupScopes {globalScope, groups = []}
 
 pushGroup :: Maybe Group.ScopedGroupType -> GroupScopes -> GroupScopes
 pushGroup groupType =

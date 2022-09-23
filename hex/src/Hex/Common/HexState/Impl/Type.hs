@@ -2,6 +2,7 @@ module Hex.Common.HexState.Impl.Type where
 
 import Data.List.NonEmpty qualified as L.NE
 import Data.Map.Strict qualified as Map
+import Data.Time qualified as Time
 import Formatting qualified as F
 import Hex.Common.Font qualified as Font
 import Hex.Common.HexState.Impl.Defaults.Parameter qualified as Defaults
@@ -18,8 +19,6 @@ import Hexlude
 
 data HexState = HexState
   { fontInfos :: Map Font.FontNumber HSt.Font.FontInfo,
-    outFileStreams :: Map Q.FourBitInt Handle,
-    -- GlobalScope parameters.
     specialInts :: Map Param.SpecialIntParameter Q.HexInt,
     specialLengths :: Map Param.SpecialLengthParameter Q.Length,
     afterAssignmentToken :: Maybe LT.LexToken,
@@ -34,7 +33,6 @@ fmtHexState :: Fmt HexState
 fmtHexState =
   mconcat
     [ fmtMapWithHeading "FontInfos" (.fontInfos) Font.fmtFontNumber HSt.Font.fmtFontInfo,
-      fmtMapWithHeading "Output file streams" (.outFileStreams) Q.fmt4BitInt F.shown,
       fmtMapWithHeading "Special integer parameters" (.specialInts) Param.fmtSpecialIntParameter Q.fmtHexInt,
       fmtMapWithHeading "Special length parameters" (.specialLengths) Param.fmtSpecialLengthParameter Q.fmtLengthWithUnit,
       F.prefixed "After-assignnment token: " $ F.accessed (.afterAssignmentToken) (F.maybed "None" LT.fmtLexToken) |%| "\n",
@@ -44,21 +42,19 @@ fmtHexState =
       F.accessed (.groupScopes) fmtGroupScopes
     ]
 
-newHexState :: MonadIO m => m HexState
-newHexState = do
-  groupScopes <- newGroupScopes
-  pure
-    HexState
-      { fontInfos = newFontInfos,
-        specialInts = Defaults.newSpecialIntParameters,
-        specialLengths = Defaults.newSpecialLengthParameters,
-        outFileStreams = mempty,
-        afterAssignmentToken = Nothing,
-        groupScopes,
-        modeStack = MainVMode,
-        hyphenationPatterns = [],
-        hyphenationExceptions = mempty
-      }
+newHexState :: Time.ZonedTime -> HexState
+newHexState zonedTIme =
+  let groupScopes = newGroupScopes zonedTIme
+   in HexState
+        { fontInfos = newFontInfos,
+          specialInts = Defaults.newSpecialIntParameters,
+          specialLengths = Defaults.newSpecialLengthParameters,
+          afterAssignmentToken = Nothing,
+          groupScopes,
+          modeStack = MainVMode,
+          hyphenationPatterns = [],
+          hyphenationExceptions = mempty
+        }
   where
     newFontInfos = Map.fromList [(nullFontNumber, HSt.Font.nullFontInfo)]
 

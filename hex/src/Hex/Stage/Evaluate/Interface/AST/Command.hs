@@ -27,20 +27,6 @@ import Hex.Stage.Parse.Interface.AST.Command qualified as Uneval
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
 
--- What's the plan here?
--- I want to do as much evaluation as possible in this stage, but I'm not sure
--- what, if any, evaluation I need to defer to the interpretation stage, when
--- I'll have extra context about the current state of hex-lists and hex-boxes.
--- So I don't want to *eagerly* write an evaluated form of the parsed AST, then
--- find out when writing the interpreter, that I need to undo some of that work.
--- So my plan is to leave essentially all of the AST unchanged, then every time
--- I need to do some evaluation during interpretation, move that here, and
--- change the AST as needed. Then things continue to work and I don't have to
--- get things right all at once. I can leave some evaluation in the
--- interpretation stage while I'm unsure how to arrange things.
-
--- I've copied the top-level command type here, just to make the Parse/Evaluate
--- types distinct, so I don't confuse myself
 data Command
   = ShowToken LT.LexToken
   | ShowBox Q.HexInt
@@ -74,7 +60,7 @@ data ModeIndependentCommand
   | SetAfterAssignmentToken LT.LexToken
   | AddToAfterGroupTokens LT.LexToken
   | WriteMessage MessageWriteCommand
-  | ModifyFileStream Uneval.FileStreamModificationCommand
+  | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial HSt.TL.BalancedText
   | AddBox Uneval.BoxPlacement Box
@@ -117,6 +103,13 @@ data StreamWriteCommand = StreamWriteCommand {streamNumber :: Q.HexInt, writeTex
 data WriteText
   = ImmediateWriteText Text
   | DeferredWriteText HSt.TL.BalancedText
+  deriving stock (Show, Eq, Generic)
+
+data FileStreamModificationCommand = FileStreamModificationCommand
+  { fileStreamType :: Uneval.FileStreamType,
+    fileStreamAction :: Uneval.FileStreamAction,
+    fileStreamNr :: Q.FourBitInt
+  }
   deriving stock (Show, Eq, Generic)
 
 data AssignmentBody
