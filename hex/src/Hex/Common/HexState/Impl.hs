@@ -189,7 +189,7 @@ loadFontImpl fontPath spec = do
   fontBytes <-
     HEnv.findAndReadFile
       (HEnv.WithImplicitExtension "tfm")
-      (fontPath ^. typed @FilePath)
+      fontPath
       >>= note (Err.FontNotFound fontPath)
 
   fontInfo <- readFontInfo fontPath fontBytes spec

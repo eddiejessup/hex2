@@ -10,7 +10,7 @@ data FindFilePolicy
   | WithImplicitExtension Text
 
 data EHexEnv :: Effect where
-  FindAndReadFile :: FindFilePolicy -> FilePath -> EHexEnv m (Maybe ByteString)
-  FindAndOpenFile :: FindFilePolicy -> FilePath -> IOMode -> EHexEnv m (Maybe Handle)
+  FindAndReadFile :: FindFilePolicy -> HexFilePath -> EHexEnv m (Maybe ByteString)
+  FindAndOpenFile :: FindFilePolicy -> HexFilePath -> IOMode -> EHexEnv m (Maybe Handle)
 
 makeEffect ''EHexEnv

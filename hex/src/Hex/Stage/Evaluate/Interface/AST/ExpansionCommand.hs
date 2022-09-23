@@ -48,6 +48,6 @@ data IfConditionHead
   | IfTokenAttributesEqual PT.Syn.TokenAttribute LT.LexToken LT.LexToken -- \if, \ifcat
   | IfTokensEqual LT.LexToken LT.LexToken -- \ifx
   | IfBoxRegisterIs PT.BoxRegisterAttribute Q.HexInt -- \ifvoid, \ifhbox, \ifvbox
-  | IfInputEnded Q.HexInt -- \ifeof
+  | IfInputEnded Q.FourBitInt -- \ifeof
   | IfConst Bool -- \iftrue, \iffalse
   deriving stock (Show, Eq, Generic)

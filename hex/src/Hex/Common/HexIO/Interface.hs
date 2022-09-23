@@ -38,6 +38,7 @@ data HexIO :: Effect where
   GetNextLexToken :: HexIO m (Maybe LT.LexToken)
   ReadTexFile :: HexFilePath -> HexIO m ()
   OpenStreamFile :: HexFilePath -> Q.FourBitInt -> InputOrOutput -> HexIO m ()
+  AtEndOfInputStreamFile :: Q.FourBitInt -> HexIO m Bool
 
 makeEffect ''HexIO
 

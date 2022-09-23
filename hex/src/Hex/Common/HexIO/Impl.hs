@@ -4,6 +4,7 @@ module Hex.Common.HexIO.Impl where
 
 import Data.Sequence qualified as Seq
 import Effectful.FileSystem qualified as FS
+import Effectful.FileSystem.IO qualified as FS.IO
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog)
 import Hex.Capability.Log.Interface qualified as Log
@@ -37,7 +38,8 @@ runHexIO = interpret $ \_ -> \case
   InsertLexTokens lexTokens -> insertLexTokensImpl lexTokens
   GetNextLexToken -> getNextLexTokenImpl
   ReadTexFile hexFilePath -> readTexFileImpl hexFilePath
-  OpenStreamFile hexFilePath streamNr inOrOut -> openInputFileImpl hexFilePath streamNr inOrOut
+  OpenStreamFile hexFilePath streamNr inOrOut -> openStreamFileImpl hexFilePath streamNr inOrOut
+  AtEndOfInputStreamFile streamNr -> atEndOfInputStreamFileImpl streamNr
 
 putInputImpl :: State IOState :> es => CharSourceStack -> Eff es ()
 putInputImpl charSourceStack = assign @IOState #sourceStack charSourceStack
@@ -132,22 +134,30 @@ readTexFileImpl inputPath = do
   inputBytes <-
     HEnv.findAndReadFile
       (HEnv.WithImplicitExtension "tex")
-      inputPath.unHexFilePath
+      inputPath
       >>= note (HIO.FileNotFound inputPath)
   endLineCode <- getEndLineCharCode
   modifying @IOState #sourceStack (CharSourceStack.pushCharSource endLineCode inputBytes)
 
-openInputFileImpl ::
+openStreamFileImpl ::
   [EHexState, State IOState, HEnv.EHexEnv, Error HIO.LexError, FS.FileSystem] :>> es =>
   HexFilePath ->
   Q.FourBitInt ->
   HIO.InputOrOutput ->
   Eff es ()
-openInputFileImpl inputPath streamNr inOrOut = do
-  fileHandle <-
-    HEnv.findAndOpenFile
-      HEnv.NoImplicitExtension
-      inputPath.unHexFilePath
-      (IOState.toIOMode inOrOut)
-      >>= note (HIO.FileNotFound inputPath)
-  assign @IOState (IOState.streamsLens inOrOut % ix streamNr.unFourBitInt.unHexInt) (Just fileHandle)
+openStreamFileImpl inputPath streamNr inOrOut = do
+  mayHandle <- case inOrOut of
+    HIO.InputFile ->
+      HEnv.findAndOpenFile HEnv.NoImplicitExtension inputPath FS.IO.ReadMode
+    HIO.OutputFile ->
+      Just <$> FS.IO.openFile inputPath.unHexFilePath FS.IO.WriteMode
+  assign @IOState (IOState.streamLens inOrOut streamNr) mayHandle
+
+atEndOfInputStreamFileImpl ::
+  [EHexState, State IOState, HEnv.EHexEnv, Error HIO.LexError, FS.FileSystem] :>> es =>
+  Q.FourBitInt ->
+  Eff es Bool
+atEndOfInputStreamFileImpl streamNr = do
+  use @IOState (IOState.streamLens HIO.InputFile streamNr) >>= \case
+    Nothing -> pure True
+    Just streamHandle -> FS.IO.hIsEOF streamHandle

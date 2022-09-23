@@ -1,5 +1,7 @@
 module Hex.Stage.Evaluate.Impl.ExpansionCommand.Condition where
 
+import Hex.Common.HexIO.Interface (HexIO)
+import Hex.Common.HexIO.Interface qualified as HIO
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
@@ -14,7 +16,7 @@ import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as E
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as P
 import Hexlude
 
-evalConditionHead :: [Error Eval.EvaluationError, EHexState] :>> es => P.ConditionHead -> Eff es E.ConditionOutcome
+evalConditionHead :: [Error Eval.EvaluationError, EHexState, HexIO] :>> es => P.ConditionHead -> Eff es E.ConditionOutcome
 evalConditionHead = \case
   P.IfConditionHead ifConditionHead -> do
     evalHead <- evalIfConditionHeadToEvalHead ifConditionHead
@@ -41,11 +43,11 @@ evalIfConditionHeadToEvalHead = \case
   P.IfBoxRegisterIs boxRegisterAttribute n ->
     E.IfBoxRegisterIs boxRegisterAttribute <$> Eval.evalInt n
   P.IfInputEnded n ->
-    E.IfInputEnded <$> Eval.evalInt n
+    E.IfInputEnded <$> Eval.evalIntToFourBitUnsigned n
   P.IfConst constBool ->
     pure $ E.IfConst constBool
 
-evalIfConditionHeadToBool :: EHexState :> es => E.IfConditionHead -> Eff es Bool
+evalIfConditionHeadToBool :: [EHexState, HexIO] :>> es => E.IfConditionHead -> Eff es Bool
 evalIfConditionHeadToBool = \case
   E.IfIntPairTest lhs ordering rhs ->
     pure $ ordToComp ordering lhs rhs
@@ -93,8 +95,8 @@ evalIfConditionHeadToBool = \case
         notImplemented "Evaluate IfBoxRegister HasHorizontalBox to bool"
       PT.IsVoid ->
         notImplemented "Evaluate IfBoxRegister IsVoid to bool"
-  E.IfInputEnded _n -> do
-    notImplemented "Evaluate IfInputEnded to bool"
+  E.IfInputEnded streamNr -> do
+    HIO.atEndOfInputStreamFile streamNr
   E.IfConst b -> pure b
   where
     ordToComp GT = (>)

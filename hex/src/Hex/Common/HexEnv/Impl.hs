@@ -51,7 +51,7 @@ runHexEnv = interpret $ \_ -> \case
 findAndReadFileImpl ::
   [Reader HexEnv, FS.FileSystem] :>> es =>
   FindFilePolicy ->
-  FilePath ->
+  HexFilePath ->
   Eff es (Maybe ByteString)
 findAndReadFileImpl findPolicy tgtFile = do
   findFilePathImpl findPolicy tgtFile >>= \case
@@ -61,7 +61,7 @@ findAndReadFileImpl findPolicy tgtFile = do
 findAndOpenFileImpl ::
   [Reader HexEnv, FS.FileSystem] :>> es =>
   FindFilePolicy ->
-  FilePath ->
+  HexFilePath ->
   IOMode ->
   Eff es (Maybe Handle)
 findAndOpenFileImpl findPolicy tgtFile ioMode = do
@@ -72,12 +72,13 @@ findAndOpenFileImpl findPolicy tgtFile ioMode = do
 findFilePathImpl ::
   [Reader HexEnv, FS.FileSystem] :>> es =>
   FindFilePolicy ->
-  FilePath ->
+  HexFilePath ->
   Eff es (Maybe FilePath)
 findFilePathImpl findPolicy tgtFile = do
   searchDirs <- know @HexEnv #searchDirs
+  let tgtFilePath = tgtFile.unHexFilePath
   FS.findFile searchDirs $ case findPolicy of
     NoImplicitExtension ->
-      tgtFile
+      tgtFilePath
     WithImplicitExtension ext ->
-      Path.replaceExtension tgtFile (toS ext)
+      Path.replaceExtension tgtFilePath (toS ext)
