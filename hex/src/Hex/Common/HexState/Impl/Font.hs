@@ -41,9 +41,7 @@ characterAttrs fontInfo charCode = do
       toLen = lengthFromFontDesignScale fontInfo
   Just
     HSt.Font.CharacterAttrs
-      { width = toLen tfmChar.width,
-        height = toLen tfmChar.height,
-        depth = toLen tfmChar.depth,
+      { dims = tfmChar.dims <&> toLen,
         italicCorrection = toLen tfmChar.italicCorrection
       }
 

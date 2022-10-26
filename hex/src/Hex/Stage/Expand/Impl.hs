@@ -231,8 +231,9 @@ expandExpansionCommand = \case
   E.ReadFile filePath -> do
     HIO.readTexFile filePath
     pure mempty
-  E.EndInputFile ->
-    notImplemented "EndInputFile"
+  E.EndInputFile -> do
+    HIO.endCurrentInput
+    pure mempty
   E.RenderInternalQuantity internalQuantity -> do
     pure $ Expand.renderInternalQuantity internalQuantity
   E.ChangeCase vDirection inhibText ->

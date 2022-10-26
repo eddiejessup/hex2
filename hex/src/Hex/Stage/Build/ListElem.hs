@@ -16,11 +16,44 @@ data VListElem
   | ListPenalty FiniteBadnessVal
   deriving stock (Show, Generic)
 
+vListElemNaturalWidth :: VListElem -> Q.Length
+vListElemNaturalWidth = \case
+  ListGlue _glue ->
+    Q.zeroLength
+  ListPenalty _ ->
+    Q.zeroLength
+  VListBaseElem (BoxElem.AxOrRuleBoxBaseElem b) ->
+    b.boxedDims.boxWidth
+  VListBaseElem (BoxElem.KernBaseElem _kern) ->
+    Q.zeroLength
+
+vListElemNaturalHeight :: VListElem -> Q.Length
+vListElemNaturalHeight = \case
+  ListGlue glue ->
+    glue.gDimen
+  ListPenalty _ ->
+    Q.zeroLength
+  VListBaseElem (BoxElem.AxOrRuleBoxBaseElem b) ->
+    b.boxedDims.boxHeight
+  VListBaseElem (BoxElem.KernBaseElem kern) ->
+    kern.unKern
+
+vListElemNaturalDepth :: VListElem -> Q.Length
+vListElemNaturalDepth = \case
+  ListGlue _glue ->
+    Q.zeroLength
+  ListPenalty _ ->
+    Q.zeroLength
+  VListBaseElem (BoxElem.AxOrRuleBoxBaseElem b) ->
+    b.boxedDims.boxDepth
+  VListBaseElem (BoxElem.KernBaseElem _kern) ->
+    Q.zeroLength
+
 vListElemIsBox :: VListElem -> Bool
 vListElemIsBox = \case
   VListBaseElem baseElem -> case baseElem of
-    BoxElem.ElemBox _ -> True
-    BoxElem.ElemKern _ -> False
+    BoxElem.AxOrRuleBoxBaseElem _ -> True
+    BoxElem.KernBaseElem _ -> False
   ListGlue _ -> False
   ListPenalty _ -> False
 
@@ -47,16 +80,16 @@ hListElemNaturalWidth :: HListElem -> Q.Length
 hListElemNaturalWidth = \case
   HVListElem vListElem -> case vListElem of
     VListBaseElem baseElem -> case baseElem of
-      BoxElem.ElemBox box ->
-        box.unBaseBox.boxWidth
-      BoxElem.ElemKern kern ->
+      BoxElem.AxOrRuleBoxBaseElem box ->
+        box.boxedDims.boxWidth
+      BoxElem.KernBaseElem kern ->
         kern.unKern
     ListGlue glue ->
       glue.gDimen
     ListPenalty _penalty -> Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
-    BoxElem.ElemCharacter charBox ->
-      charBox.unCharBox.boxWidth
+    BoxElem.CharBoxHBaseElem charBox ->
+      charBox.boxedDims.boxWidth
   DiscretionaryItemElem discrItem ->
     BoxElem.hBoxNaturalWidth discrItem.noBreakText
 
@@ -64,17 +97,17 @@ hListElemNaturalDepth :: HListElem -> Q.Length
 hListElemNaturalDepth = \case
   HVListElem vListElem -> case vListElem of
     VListBaseElem baseElem -> case baseElem of
-      BoxElem.ElemBox box ->
-        box.unBaseBox.boxDepth
-      BoxElem.ElemKern _kern ->
+      BoxElem.AxOrRuleBoxBaseElem box ->
+        box.boxedDims.boxDepth
+      BoxElem.KernBaseElem _kern ->
         Q.zeroLength
     ListGlue _glue ->
       Q.zeroLength
     ListPenalty _penalty ->
       Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
-    BoxElem.ElemCharacter charBox ->
-      charBox.unCharBox.boxDepth
+    BoxElem.CharBoxHBaseElem charBox ->
+      charBox.boxedDims.boxDepth
   DiscretionaryItemElem discrItem ->
     BoxElem.hBoxNaturalDepth discrItem.noBreakText
 
@@ -82,17 +115,17 @@ hListElemNaturalHeight :: HListElem -> Q.Length
 hListElemNaturalHeight = \case
   HVListElem vListElem -> case vListElem of
     VListBaseElem baseElem -> case baseElem of
-      BoxElem.ElemBox box ->
-        box.unBaseBox.boxHeight
-      BoxElem.ElemKern _kern ->
+      BoxElem.AxOrRuleBoxBaseElem box ->
+        box.boxedDims.boxHeight
+      BoxElem.KernBaseElem _kern ->
         Q.zeroLength
     ListGlue _glue ->
       Q.zeroLength
     ListPenalty _penalty ->
       Q.zeroLength
   HListHBaseElem hBaseElem -> case hBaseElem of
-    BoxElem.ElemCharacter charBox ->
-      charBox.unCharBox.boxHeight
+    BoxElem.CharBoxHBaseElem charBox ->
+      charBox.boxedDims.boxHeight
   DiscretionaryItemElem discrItem ->
     BoxElem.hBoxNaturalHeight discrItem.noBreakText
 
@@ -100,30 +133,30 @@ data DiscretionaryItem = DiscretionaryItem
   { preBreakText,
     postBreakText,
     noBreakText ::
-      BoxElem.HBoxElemSeq
+      Seq BoxElem.HBoxElem
   }
   deriving stock (Show, Generic)
 
 data DiscretionaryTextPart
-  = DiscretionaryTextPartCharacter Box.CharBox
+  = DiscretionaryTextPartCharacter (Box.Boxed BoxElem.CharBoxContents)
   | DiscretionaryTextBaseELem
   deriving stock (Show, Generic)
 
-discretionaryHyphenItem :: Box.CharBox -> DiscretionaryItem
+discretionaryHyphenItem :: (Box.Boxed BoxElem.CharBoxContents) -> DiscretionaryItem
 discretionaryHyphenItem c =
   DiscretionaryItem
-    (BoxElem.singletonHBoxElemSeq $ BoxElem.HBoxHBaseElem $ BoxElem.ElemCharacter c)
+    (BoxElem.singletonHBoxElemSeq $ BoxElem.HBoxHBaseElem $ BoxElem.CharBoxHBaseElem c)
     mempty
     mempty
 
 discretionaryItemPenalty :: FiniteBadnessVal -> FiniteBadnessVal -> DiscretionaryItem -> FiniteBadnessVal
 discretionaryItemPenalty hyphenPenalty explicitHyphenPenalty item = case item.preBreakText of
-  BoxElem.HBoxElemSeq Empty -> explicitHyphenPenalty
+  Empty -> explicitHyphenPenalty
   _ -> hyphenPenalty
 
-hBoxElemSeqAsHListElems :: BoxElem.HBoxElemSeq -> Seq HListElem
+hBoxElemSeqAsHListElems :: Seq BoxElem.HBoxElem -> Seq HListElem
 hBoxElemSeqAsHListElems boxElemSeq =
-  boxElemSeq.unHBoxElemSeq <&> \case
+  boxElemSeq <&> \case
     BoxElem.HVBoxElem (BoxElem.VBoxBaseElem baseElem) ->
       HVListElem $ VListBaseElem baseElem
     BoxElem.HBoxHBaseElem hBaseElem ->
@@ -186,19 +219,19 @@ newtype VList = VList {unVList :: Seq VListElem}
 vListElemTraversal :: Traversal' VList VListElem
 vListElemTraversal = #unVList % traversed
 
+vListNaturalWidth :: VList -> Q.Length
+vListNaturalWidth vList =
+  -- The empty VList has zero width.
+  fromMaybe Q.zeroLength $
+    maximumOf (vListElemTraversal % to vListElemNaturalWidth) vList
+
 vListNaturalHeight :: VList -> Q.Length
 vListNaturalHeight = foldMapOf vListElemTraversal vListElemNaturalHeight
 
-vListElemNaturalHeight :: VListElem -> Q.Length
-vListElemNaturalHeight = \case
-  ListGlue glue ->
-    glue.gDimen
-  ListPenalty _ ->
-    Q.zeroLength
-  VListBaseElem (BoxElem.ElemBox b) ->
-    b.unBaseBox.boxHeight
-  VListBaseElem (BoxElem.ElemKern kern) ->
-    kern.unKern
+vListNaturalDepth :: VList -> Q.Length
+vListNaturalDepth vList =
+  fromMaybe Q.zeroLength $
+    lastOf (vListElemTraversal % to vListElemNaturalDepth) vList
 
 vListNetBiFlex :: VList -> Q.BiNetFlex
 vListNetBiFlex = foldOf (vListElemTraversal % vListElemBiFlex)

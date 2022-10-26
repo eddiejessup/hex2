@@ -20,6 +20,13 @@ import Hex.Stage.Parse.Interface.AST.Quantity
 import Hexlude
 
 data Command
+  = ModeDependentCommand ModeDependentCommand
+  | HModeCommand HModeCommand
+  | VModeCommand VModeCommand
+  | ModeIndependentCommand ModeIndependentCommand
+  deriving stock (Show, Eq, Generic)
+
+data ModeDependentCommand
   = ShowToken LT.LexToken
   | ShowBox HexInt
   | ShowLists
@@ -33,9 +40,6 @@ data Command
   | AddSpace
   | StartParagraph ListExtractor.IndentFlag
   | EndParagraph
-  | HModeCommand HModeCommand
-  | VModeCommand VModeCommand
-  | ModeIndependentCommand ModeIndependentCommand
   deriving stock (Show, Eq, Generic)
 
 data ModeIndependentCommand
@@ -52,7 +56,7 @@ data ModeIndependentCommand
   | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial HSt.TL.BalancedText
-  | AddBox BoxPlacement Box
+  | AddBox (Maybe (OffsetAlongAxis Length)) Box
   | ChangeScope Q.Sign HSt.Grouped.ChangeGroupTrigger
   | DebugShowState
   deriving stock (Show, Eq, Generic)
@@ -255,8 +259,8 @@ data FileStreamAction = Open HexFilePath | Close
 data FileStreamType = FileInput | FileOutput WritePolicy
   deriving stock (Show, Eq, Generic)
 
-data BoxPlacement = NaturalPlacement | ShiftedPlacement Axis Direction Length
-  deriving stock (Show, Eq, Generic)
+data OffsetAlongAxis a = OffsetAlongAxis Axis (Box.OffsetInDirection a)
+  deriving stock (Show, Eq, Generic, Functor, Foldable, Traversable)
 
 data CharCodeRef
   = CharRef Code.CharCode

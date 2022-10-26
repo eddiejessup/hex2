@@ -18,13 +18,13 @@ addHListElementImpl e = do
   -- [The space factor] is set to 1000 just after a non-character box
   -- or a math formula has been put onto the current horizontal list.
   case e of
-    ListElem.HListHBaseElem (BoxElem.ElemCharacter _) ->
+    ListElem.HListHBaseElem (BoxElem.CharBoxHBaseElem _) ->
       pure ()
     ListElem.HVListElem (ListElem.ListGlue _) ->
       pure ()
     ListElem.HVListElem (ListElem.ListPenalty _) ->
       pure ()
-    ListElem.HVListElem (ListElem.VListBaseElem (BoxElem.ElemBox _)) ->
+    ListElem.HVListElem (ListElem.VListBaseElem (BoxElem.AxOrRuleBoxBaseElem _)) ->
       HSt.setSpecialIntParameter HSt.Param.SpaceFactor Q.thousandInt
     ListElem.HVListElem (ListElem.VListBaseElem _) ->
       pure ()

@@ -28,6 +28,13 @@ import Hex.Stage.Parse.Interface.AST.Quantity qualified as Uneval
 import Hexlude
 
 data Command
+  = ModeDependentCommand ModeDependentCommand
+  | HModeCommand HModeCommand
+  | VModeCommand VModeCommand
+  | ModeIndependentCommand ModeIndependentCommand
+  deriving stock (Show, Eq, Generic)
+
+data ModeDependentCommand
   = ShowToken LT.LexToken
   | ShowBox Q.HexInt
   | ShowLists
@@ -41,12 +48,6 @@ data Command
   | AddSpace
   | StartParagraph ListExtractor.IndentFlag
   | EndParagraph
-  | HModeCommand HModeCommand
-  | VModeCommand VModeCommand
-  | ModeIndependentCommand ModeIndependentCommand
-  deriving stock (Show, Eq, Generic)
-
-data Assignment = Assignment {body :: AssignmentBody, scope :: HSt.Grouped.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
 data ModeIndependentCommand
@@ -63,7 +64,7 @@ data ModeIndependentCommand
   | ModifyFileStream FileStreamModificationCommand
   | WriteToStream StreamWriteCommand
   | DoSpecial HSt.TL.BalancedText
-  | AddBox Uneval.BoxPlacement Box
+  | AddBox (Maybe (Uneval.OffsetAlongAxis Q.Length)) Box
   | ChangeScope Q.Sign HSt.Group.ChangeGroupTrigger
   | DebugShowState
   deriving stock (Show, Eq, Generic)
@@ -78,7 +79,7 @@ data HModeCommand
   | EnterMathMode
   | AddHGlue Q.Glue
   | AddHLeaders Uneval.LeadersSpec
-  | AddHRule Box.Rule
+  | AddHRule (Box.BoxDims Q.Length)
   | AddVAlignedMaterial BoxSpecification
   | AddUnwrappedFetchedHBox Uneval.FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
@@ -89,9 +90,12 @@ data VModeCommand
   | EnterHMode
   | AddVGlue Q.Glue
   | AddVLeaders Uneval.LeadersSpec
-  | AddVRule Box.Rule
+  | AddVRule (Box.BoxDims Q.Length)
   | AddHAlignedMaterial BoxSpecification
   | AddUnwrappedFetchedVBox Uneval.FetchedBoxRef -- \unv{box,copy}
+  deriving stock (Show, Eq, Generic)
+
+data Assignment = Assignment {body :: AssignmentBody, scope :: HSt.Grouped.ScopeFlag}
   deriving stock (Show, Eq, Generic)
 
 data MessageWriteCommand = MessageWriteCommand {messageDest :: PT.StandardOutputInput, messageContents :: Text}

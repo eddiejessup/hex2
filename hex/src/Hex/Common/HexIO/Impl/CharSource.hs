@@ -39,6 +39,10 @@ newCharSource mayEndLineChar sourceBytes =
           sourceLines = restLines
         }
 
+endCharSourceAfterCurrentLine :: CharSource -> CharSource
+endCharSourceAfterCurrentLine charSource =
+  charSource & #sourceLines .~ mempty
+
 data WorkingLine = WorkingLine
   { sourceLine :: CurrentSourceLine,
     workingLexTokens :: Seq LT.LexToken

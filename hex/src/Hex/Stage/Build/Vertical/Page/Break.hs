@@ -26,7 +26,7 @@ vListElemToBreakItem = \case
   (Just x, ListElem.ListGlue g, _)
     | not (vListElemIsDiscardable x) ->
         Just $ GlueBreak g
-  (_, ListElem.VListBaseElem (BoxElem.ElemKern k), Just (ListElem.ListGlue _)) ->
+  (_, ListElem.VListBaseElem (BoxElem.KernBaseElem k), Just (ListElem.ListGlue _)) ->
     Just $ KernBreak k
   (_, ListElem.ListPenalty p, _) ->
     Just $ PenaltyBreak p
@@ -37,8 +37,8 @@ vListElemIsDiscardable :: ListElem.VListElem -> Bool
 vListElemIsDiscardable = \case
   ListElem.ListGlue _ -> True
   ListElem.ListPenalty _ -> True
-  ListElem.VListBaseElem (BoxElem.ElemKern _) -> True
-  ListElem.VListBaseElem (BoxElem.ElemBox _) -> False
+  ListElem.VListBaseElem (BoxElem.KernBaseElem _) -> True
+  ListElem.VListBaseElem (BoxElem.AxOrRuleBoxBaseElem _) -> False
 
 vBreakPenalty :: VBreakItem -> Bad.FiniteBadnessVal
 vBreakPenalty (PenaltyBreak p) = p

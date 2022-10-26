@@ -14,6 +14,9 @@
   - What is discardable: §15p110
   - What is a breakpoint: §15p110
 - Demerits: §19p177
+- Parameter meanings: §24p272
+- Mode independent command meanings: §24p279
+- VMode command meanings: §24p281
 
 ## Tex By Topic
 

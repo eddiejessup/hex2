@@ -5,6 +5,7 @@ module Hex.Common.HexState.Impl.Scoped.Scope where
 import Data.Map.Strict qualified as Map
 import Data.Time qualified as Time
 import Formatting qualified as F
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Font qualified as Font
 import Hex.Common.HexState.Impl.Defaults.Code qualified as Defaults
@@ -20,7 +21,7 @@ import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable (QuantVariableTarget)
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Resolved qualified as RT
-import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hexlude
 
 type CharCodeMap v = Map Code.CharCode v
@@ -55,7 +56,7 @@ data Scope = Scope
     glueRegister :: QuantRegisterMap 'Q.GlueQuantity,
     mathGlueRegister :: QuantRegisterMap 'Q.MathGlueQuantity,
     tokenListRegister :: QuantRegisterMap 'Q.TokenListQuantity,
-    boxRegister :: RegisterMap Box.BaseBox
+    boxRegister :: RegisterMap (Box.Boxed BoxElem.AxBoxElems)
   }
   deriving stock (Show, Generic)
 
@@ -133,7 +134,7 @@ fmtScope =
     <> (fmtMapWithHeading "Length registers" (.lengthRegister) fmtRegisterLocation Q.fmtLengthWithUnit)
     <> (fmtMapWithHeading "Glue registers" (.glueRegister) fmtRegisterLocation Q.fmtGlue)
     <> (fmtMapWithHeading "Math-glue registers" (.mathGlueRegister) fmtRegisterLocation Q.fmtMathGlue)
-    <> (fmtMapWithHeading "Box registers" (.boxRegister) fmtRegisterLocation Box.fmtBaseBox)
+    <> (fmtMapWithHeading "Box registers" (.boxRegister) fmtRegisterLocation BoxElem.fmtBoxedAxBoxElemsOneLine)
 
 -- If we have two scopes, one nested inside another, we want to consider the
 -- effective scope seen in the inner scope.

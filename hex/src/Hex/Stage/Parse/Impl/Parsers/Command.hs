@@ -3,6 +3,7 @@ module Hex.Stage.Parse.Impl.Parsers.Command where
 import Control.Monad.Combinators qualified as PC
 import Formatting qualified as F
 import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.Quantity qualified as Q
@@ -27,24 +28,24 @@ parseCommand =
     PT.DebugShowState ->
       pure $ AST.ModeIndependentCommand $ AST.DebugShowState
     PT.ShowTokenTok ->
-      AST.ShowToken <$> anyLexInhibited
+      AST.ModeDependentCommand . AST.ShowToken <$> anyLexInhibited
     PT.ShowBoxTok ->
-      AST.ShowBox <$> Par.parseInt
+      AST.ModeDependentCommand . AST.ShowBox <$> Par.parseInt
     PT.ShowListsTok ->
-      pure AST.ShowLists
+      pure $ AST.ModeDependentCommand AST.ShowLists
     PT.ShowTheInternalQuantityTok ->
-      AST.ShowTheInternalQuantity <$> (anyPrim >>= headToParseInternalQuantity)
+      AST.ModeDependentCommand . AST.ShowTheInternalQuantity <$> (anyPrim >>= headToParseInternalQuantity)
     PT.ShipOutTok ->
-      AST.ShipOut <$> (anyPrim >>= Par.headToParseBox)
+      AST.ModeDependentCommand . AST.ShipOut <$> (anyPrim >>= Par.headToParseBox)
     PT.MarkTok ->
-      AST.AddMark <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
+      AST.ModeDependentCommand . AST.AddMark <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
     PT.StartParagraphTok _indent ->
-      pure $ AST.StartParagraph _indent
+      pure $ AST.ModeDependentCommand $ AST.StartParagraph _indent
     PT.EndParagraphTok ->
-      pure AST.EndParagraph
+      pure $ AST.ModeDependentCommand AST.EndParagraph
     t
       | primTokenHasCategory Code.Space t ->
-          pure AST.AddSpace
+          pure $ AST.ModeDependentCommand AST.AddSpace
       | primTokenHasCategory Code.BeginGroup t ->
           pure $ AST.ModeIndependentCommand $ AST.ChangeScope Q.Positive HSt.Group.ChangeGroupCharTrigger
       | primTokenHasCategory Code.EndGroup t ->
@@ -87,8 +88,9 @@ parseCommand =
                     )
             )
     PT.ModedCommand axis (PT.ShiftedBoxTok direction) -> do
-      placement <- AST.ShiftedPlacement axis direction <$> Par.parseLength
-      AST.ModeIndependentCommand . AST.AddBox placement <$> (anyPrim >>= Par.headToParseBox)
+      offsetLength <- Par.parseLength
+      let placement = AST.OffsetAlongAxis axis (Box.OffsetInDirection direction offsetLength)
+      AST.ModeIndependentCommand . AST.AddBox (Just placement) <$> (anyPrim >>= Par.headToParseBox)
     PT.ChangeScopeCSTok sign ->
       pure $ AST.ModeIndependentCommand $ AST.ChangeScope sign HSt.Group.ChangeGroupCSTrigger
     PT.ControlSpaceTok ->
@@ -116,10 +118,10 @@ parseCommand =
     PT.InsertionTok -> do
       n <- Par.parseInt
       skipFillerExpanding
-      pure $ AST.AddInsertion n
+      pure $ AST.ModeDependentCommand $ AST.AddInsertion n
     PT.AdjustmentTok -> do
       skipFillerExpanding
-      pure AST.AddAdjustment
+      pure $ AST.ModeDependentCommand AST.AddAdjustment
     PT.ModedCommand axis PT.AlignedMaterialTok -> do
       boxSpec <- Par.parseBoxSpecification
       pure $ case axis of
@@ -133,7 +135,7 @@ parseCommand =
           AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.headToParseOpenOutput AST.Deferred t,
           AST.ModeIndependentCommand . AST.ModifyFileStream <$> Par.headToParseCloseOutput AST.Deferred t,
           AST.ModeIndependentCommand . AST.WriteToStream <$> Par.headToParseWriteToStream AST.Deferred t,
-          AST.ModeIndependentCommand . AST.AddBox AST.NaturalPlacement <$> Par.headToParseBox t,
+          AST.ModeIndependentCommand . AST.AddBox Nothing <$> Par.headToParseBox t,
           AST.HModeCommand . AST.AddCharacter <$> headToParseCharCodeRef t,
           AST.HModeCommand . AST.AddHGlue <$> Par.headToParseModedAddGlue Horizontal t,
           AST.HModeCommand . AST.AddHLeaders <$> Par.headToParseLeadersSpec Horizontal t,

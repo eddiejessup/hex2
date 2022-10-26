@@ -21,6 +21,7 @@ import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface (ExtractList)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
+import Hex.Stage.Build.Vertical.Set qualified as Build.V.Set
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as Eval
@@ -35,6 +36,7 @@ data InterpretError
   | UnexpectedEndOfInput
   | VModeCommandInInnerHMode
   | CharacterCodeNotFound
+  | BadOffset
   deriving stock (Show, Generic)
 
 fmtInterpretError :: Fmt InterpretError
@@ -85,11 +87,13 @@ writeToOutput _ _ = pure ()
 -- liftIO $ hPutStrLn logHandle txtTxt
 
 handleModeIndependentCommand ::
+  forall es.
   ( HSt.EHexState :> es,
     Log.HexLog :> es,
     HIO.HexIO :> es,
     Build.HexListBuilder :> es,
-    ListExtractor.ExtractList :> es
+    ListExtractor.ExtractList :> es,
+    Error InterpretError :> es
   ) =>
   Eval.ModeIndependentCommand ->
   Eff es AllModeCommandResult
@@ -124,7 +128,7 @@ handleModeIndependentCommand = \case
     Build.addVListElement $ ListElem.ListPenalty p
     pure DidNotSeeEndBox
   Eval.AddKern k -> do
-    Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemKern k
+    Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.KernBaseElem k
     pure DidNotSeeEndBox
   Eval.Assign Eval.Assignment {Eval.scope, Eval.body} -> do
     case body of
@@ -260,11 +264,61 @@ handleModeIndependentCommand = \case
   Eval.AddBox boxPlacement box -> do
     fetchBox box >>= \case
       Nothing -> pure ()
-      Just b -> case boxPlacement of
-        P.NaturalPlacement ->
-          Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemBox b
-        P.ShiftedPlacement _axis _direction _distance ->
-          notImplemented $ "AddBox with ShiftedPlacement: " <> show boxPlacement
+      Just b -> do
+        -- We have 'shift' commands:
+        -- - \moveleft, \moveright: can be used only on vboxes
+        -- - \raise, \lower: can be used only on hboxes
+        -- We couldn't have known until fetching the box whether the command
+        -- used is appropriate for the box type, so check that now.
+        offset <- case boxPlacement of
+          Nothing ->
+            pure Nothing
+          Just (P.OffsetAlongAxis ax offsetInDirection) ->
+            -- Confusingly, if we are building a *h*-box, we need to be asked to offset in the *v* direction.
+            -- so we actually want to test for inequality here.
+            if ax == BoxElem.axBoxElemsAxis b.boxedContents
+              then throwError BadOffset
+              else pure $ Just offsetInDirection
+
+        -- If this box is offset, we need to do two things:
+        -- (1) We must record the offset in the element we append to our list,
+        --     so that when we render the page, we know to move up or down the
+        --     page within the box.
+        -- (2) We must change the dimensions of the box itself, so that we
+        --     understand its true bounding box. To do this, we must inspect the
+        --     effective offset direction to see what to do:
+        --     (2a) If the effective movement is up the page, or 'backwards' in the
+        --          generic language of the offsetable type, then we should:
+        --          (2a, i)  Increase the height by this amount
+        --          (2b, ii) Decrease the depth.
+        --     (2b) If the effective movement is down the page, or 'forwards', then we should:
+        --          (2a, i)  Decrease the height by this amount
+        --          (2b, ii) Increase the depth.
+        -- TODO: Should we floor height and depth at zero?
+        let bWithOffsetDims = case offset of
+              Nothing -> b
+              Just realOffset ->
+                let offsetDownPage = Box.offsetForward realOffset
+
+                    heightOffset =
+                      if offsetDownPage >= Q.zeroLength
+                        then offsetDownPage
+                        else invert offsetDownPage
+                 in b
+                      & #boxedDims % #boxHeight %~ (<> heightOffset)
+                      & #boxedDims % #boxDepth %~ (<> (invert heightOffset))
+        when (bWithOffsetDims /= b) $
+          Log.debugLog $ F.sformat ("b before offset: " |%| Box.fmtBoxDimens |%| "; b after offset: " |%| Box.fmtBoxDimens) b.boxedDims bWithOffsetDims.boxedDims
+
+        Build.addVListElement $
+          ListElem.VListBaseElem $
+            BoxElem.AxOrRuleBoxBaseElem $
+              bWithOffsetDims <&> \axBoxElems ->
+                BoxElem.AxBoxOrRuleContentsAx $
+                  Box.Offsettable
+                    { offset,
+                      offsetContents = axBoxElems
+                    }
     pure DidNotSeeEndBox
   Eval.AddMathKern _mathLength ->
     notImplemented "handleModeIndependentCommand: AddMathKern"
@@ -307,6 +361,7 @@ handleModeIndependentCommand = \case
         HSt.Var.RegisterVar registerLoc ->
           HSt.setScopedValue (HSt.QuantRegisterValue registerLoc tgt) scope
 
+    fetchBox :: Eval.Box -> Eff es (Maybe (Box.Boxed BoxElem.AxBoxElems))
     fetchBox = \case
       Eval.FetchedRegisterBox fetchMode rhsIdx -> do
         HSt.fetchBoxRegisterValue fetchMode rhsIdx
@@ -321,7 +376,7 @@ handleModeIndependentCommand = \case
       HSt.pushGroup (Just HSt.Group.ExplicitBoxScopeGroup)
       Log.debugLog "Extracting explicit box"
       extractedBox <- extractExplicitBox spec boxType
-      Log.debugLog $ F.sformat ("Extracted explicit box: " |%| BoxElem.fmtBaseBox) extractedBox
+      Log.debugLog $ F.sformat ("Extracted explicit box: " |%| BoxElem.fmtBoxedAxBoxElemsOneLine) extractedBox
       pure extractedBox
 
     selectFontInternallyAndDVI fNr scope = do
@@ -337,7 +392,7 @@ lengthToSetAtFromSpec spec naturalLength = case spec of
   Eval.To toLength -> toLength
   Eval.Spread spreadLength -> naturalLength <> spreadLength
 
-extractExplicitBox :: ExtractList :> es => Eval.BoxSpecification -> PT.ExplicitBoxType -> Eff es BoxElem.BaseBox
+extractExplicitBox :: ExtractList :> es => Eval.BoxSpecification -> PT.ExplicitBoxType -> Eff es (Box.Boxed BoxElem.AxBoxElems)
 extractExplicitBox spec = \case
   PT.ExplicitHBoxType -> do
     hList <- ListExtractor.extractHBoxList
@@ -345,17 +400,35 @@ extractExplicitBox spec = \case
         naturalHeight = ListElem.hListNaturalHeight hList
         naturalDepth = ListElem.hListNaturalDepth hList
         widthToSetAt = lengthToSetAtFromSpec spec naturalWidth
+
         (hBoxElems, _) = Build.H.Set.setList hList widthToSetAt
-        hBoxContents = BoxElem.HBoxContents hBoxElems
-        hBox =
-          BoxElem.BaseBox $
-            Box.Box
-              { contents = hBoxContents,
-                boxWidth = widthToSetAt,
+    pure
+      Box.Boxed
+        { boxedContents = BoxElem.AxBoxElemsH hBoxElems,
+          boxedDims =
+            Box.BoxDims
+              { boxWidth = widthToSetAt,
                 boxHeight = naturalHeight,
                 boxDepth = naturalDepth
               }
-    pure hBox
-  PT.ExplicitVBoxType _vAlignType -> do
-    _vList <- ListExtractor.extractVBoxList
-    notImplemented "extractExplicitBox: ExplicitVBoxType"
+        }
+  PT.ExplicitVBoxType vAlignType -> do
+    vList <- ListExtractor.extractVBoxList
+    let naturalWidth = ListElem.vListNaturalWidth vList
+        naturalHeight = ListElem.vListNaturalHeight vList
+        naturalDepth = ListElem.vListNaturalDepth vList
+    pure $ case vAlignType of
+      PT.DefaultAlign ->
+        let heightToSetAt = lengthToSetAtFromSpec spec naturalHeight
+            (vBoxElems, _) = Build.V.Set.setList vList heightToSetAt
+         in Box.Boxed
+              { boxedContents = BoxElem.AxBoxElemsV vBoxElems,
+                boxedDims =
+                  Box.BoxDims
+                    { boxWidth = naturalWidth,
+                      boxHeight = heightToSetAt,
+                      boxDepth = naturalDepth
+                    }
+              }
+      PT.TopAlign ->
+        notImplemented "extractExplicitBox.ExplicitVBoxType.{TopAlign}"

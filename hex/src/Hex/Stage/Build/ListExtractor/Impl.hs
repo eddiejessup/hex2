@@ -58,12 +58,13 @@ extractParagraphListImpl ::
   Eff es (ListExtractor.EndHListReason, HList)
 extractParagraphListImpl indentFlag = do
   initList <-
-    HList <$> case indentFlag of
-      ListExtractor.Indent ->
-        singleton <$> HSt.getParIndentBox
+    case indentFlag of
+      ListExtractor.Indent -> do
+        parDims <- HSt.getParIndentBoxDims
+        pure $ singleton $ HSt.emptyHBoxAsHListElem parDims
       ListExtractor.DoNotIndent ->
         pure mempty
-  runStateLocal initList $
+  runStateLocal (HList initList) $
     runHListBuilder $
       runHexListBuilderHMode $
         buildHListImpl HSt.Mode.OuterModeVariant
@@ -155,11 +156,11 @@ buildVListImpl modeVariant = do
       streamPreParse <- HIO.getInput
       command <- AllMode.getNextCommandLogged
       runListExtractor (Command.V.handleCommandInVMode streamPreParse modeVariant command) >>= \case
-        Command.V.EndMainVMode ->
+        Command.V.EndVMode ->
           case modeVariant of
             HSt.Mode.InnerModeVariant ->
               HSt.leaveMode
             HSt.Mode.OuterModeVariant ->
               pure ()
-        Command.V.ContinueMainVMode ->
+        Command.V.ContinueVMode ->
           go

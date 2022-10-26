@@ -28,7 +28,7 @@ data HyphenationState
 data MidWordState = MidWordState
   { wordFont :: Font.FontNumber,
     hyphenItem :: ListElem.DiscretionaryItem,
-    wordLetters :: NonEmptySeq (Box.Box Code.CharCode),
+    wordLetters :: NonEmptySeq (Box.Boxed Code.CharCode),
     suffixItems :: Seq ListElem.HListElem
   }
   deriving stock (Generic)
@@ -53,17 +53,21 @@ hyphStateAccumulatedItems = \case
 
 boxCharAsElem ::
   Font.FontNumber ->
-  Box.Box Code.CharCode ->
+  Box.Boxed Code.CharCode ->
   ListElem.HListElem
 boxCharAsElem fNr boxChar =
   ListElem.HListHBaseElem $
-    BoxElem.ElemCharacter $
-      Box.CharBox boxChar fNr
+    BoxElem.CharBoxHBaseElem $
+      boxChar <&> \charCode ->
+        BoxElem.CharBoxContents
+          { charBoxCharCode = charCode,
+            charBoxFont = fNr
+          }
 
 boxCharsAsElemSeq ::
   Functor f =>
   Font.FontNumber ->
-  f (Box.Box Code.CharCode) ->
+  f (Box.Boxed Code.CharCode) ->
   f ListElem.HListElem
 boxCharsAsElemSeq fNr = fmap (boxCharAsElem fNr)
 
@@ -113,22 +117,29 @@ handleHListElemInHyphenation x =
         accumItems <- abandonAndReset False
         pure $ accumItems |> x
       ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
-        BoxElem.ElemCharacter charBox -> do
-          let boxCharCode = charBox.unCharBox.contents
+        BoxElem.CharBoxHBaseElem charBox -> do
+          let boxCharCode = charBox.boxedContents.charBoxCharCode
           HSt.getHexCode Code.CLowerCaseCodeType boxCharCode >>= \case
             -- Bypass with zero lowercase code.
             Code.LowerCaseCode Code.NoCaseChange ->
               pure $ Seq.singleton x
             lcCode@(Code.LowerCaseCode _) -> do
               let continueAttempt = do
-                    mayHyphenItem <- HSt.fontDiscretionaryHyphenItem charBox.charBoxFont
+                    mayHyphenItem <- HSt.fontDiscretionaryHyphenItem charBox.boxedContents.charBoxFont
                     -- If a suitable starting letter is found, let it be in
                     -- font f.
                     -- Hyphenation is abandoned unless the \hyphenchar of f
                     -- is a number between 0 and 255, inclusive.
                     case mayHyphenItem of
                       Just hyphenItem -> do
-                        put (StartedWord MidWordState {wordFont = charBox.charBoxFont, hyphenItem, wordLetters = Seq.NE.singleton charBox.unCharBox, suffixItems = mempty})
+                        put $
+                          StartedWord
+                            MidWordState
+                              { wordFont = charBox.boxedContents.charBoxFont,
+                                hyphenItem,
+                                wordLetters = Seq.NE.singleton (charBox <&> (.charBoxCharCode)),
+                                suffixItems = mempty
+                              }
                         -- Don't emit the item yet, will do once we've handled hyphenation for this word.
                         pure Seq.Empty
                       Nothing -> do
@@ -153,9 +164,9 @@ handleHListElemInHyphenation x =
           pure $
             Left $ case vListElem of
               ListElem.VListBaseElem baseElem -> case baseElem of
-                BoxElem.ElemBox _box ->
+                BoxElem.AxOrRuleBoxBaseElem _box ->
                   AbandonHyphenation
-                BoxElem.ElemKern _kern ->
+                BoxElem.KernBaseElem _kern ->
                   HyphenateNow False
               ListElem.ListGlue _glue ->
                 HyphenateNow True
@@ -164,7 +175,7 @@ handleHListElemInHyphenation x =
         ListElem.DiscretionaryItemElem _ ->
           pure $ Left AbandonHyphenation
         ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
-          BoxElem.ElemCharacter charBox -> case midWordState.suffixItems of
+          BoxElem.CharBoxHBaseElem charBox -> case midWordState.suffixItems of
             -- Scan forward until coming to something that’s not one of the
             -- following “admissible items”:
             -- (1) A character in font f whose \lccode is nonzero
@@ -180,14 +191,14 @@ handleHListElemInHyphenation x =
               -- • Character with zero \lccode
               -- • Ligature
               -- • Implicit kern
-              if charBox.charBoxFont /= midWordState.wordFont
+              if charBox.boxedContents.charBoxFont /= midWordState.wordFont
                 then pure $ Left PassWordSuffix
                 else
-                  HSt.getHexCode Code.CLowerCaseCodeType (charBox.unCharBox.contents) <&> \case
+                  HSt.getHexCode Code.CLowerCaseCodeType (charBox.boxedContents.charBoxCharCode) <&> \case
                     Code.LowerCaseCode Code.NoCaseChange ->
                       Left PassWordSuffix
                     Code.LowerCaseCode _ ->
-                      Right $ Seq.NE.singleton charBox.unCharBox
+                      Right $ Seq.NE.singleton (charBox <&> (.charBoxCharCode))
             -- After these items, if any, must follow:
             -- • Glue
             -- • Explicit kern
@@ -230,9 +241,9 @@ handleHListElemInHyphenation x =
   where
     vListElemToNextState = \case
       ListElem.VListBaseElem baseElem -> case baseElem of
-        BoxElem.ElemBox _box ->
+        BoxElem.AxOrRuleBoxBaseElem _box ->
           SearchingForGlue
-        BoxElem.ElemKern _kern ->
+        BoxElem.KernBaseElem _kern ->
           SearchingForGlue
       ListElem.ListGlue _glue ->
         SearchingForStartingLetter
@@ -252,7 +263,7 @@ hyphenateWord midWordState = do
   if n < hyphenMin.unHexInt
     then pure $ midWordStateAccumulatedItems midWordState
     else do
-      Log.infoLog $ "Hyphenation: Found word: " <> (Code.codesAsText $ toList $ midWordState.wordLetters <&> (.contents))
+      Log.infoLog $ "Hyphenation: Found word: " <> (Code.codesAsText $ toList $ midWordState.wordLetters <&> (.boxedContents))
       let -- If leftHyphenMin is zero, then all indexes are valid.
           -- If leftHyphenMin is one, then index must be >= 1.
           -- etc.

@@ -1,6 +1,7 @@
 module Hex.Common.TFM.Types where
 
 import Formatting qualified as F
+import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -158,9 +159,7 @@ data LigKernInstr = LigKernInstr
   deriving stock (Show)
 
 data Character = Character
-  { width :: LengthDesignSize,
-    height :: LengthDesignSize,
-    depth :: LengthDesignSize,
+  { dims :: Box.BoxDims LengthDesignSize,
     italicCorrection :: LengthDesignSize,
     special :: Maybe CharacterSpecial
   }

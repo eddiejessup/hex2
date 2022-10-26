@@ -7,6 +7,7 @@ import Data.Text qualified as Tx
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog (..), debugLog)
 import Hex.Capability.Log.Interface qualified as Log
+import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Font qualified as Font
 import Hex.Common.HexEnv.Interface (EHexEnv)
@@ -221,7 +222,7 @@ fetchBoxRegisterValueImpl ::
   State HexState :> es =>
   HSt.Reg.BoxFetchMode ->
   HSt.Reg.RegisterLocation ->
-  Eff es (Maybe BoxElem.BaseBox)
+  Eff es (Maybe (Box.Boxed BoxElem.AxBoxElems))
 fetchBoxRegisterValueImpl fetchMode loc = do
   mayV <- getGroupScopesProperty (Sc.R.localBoxRegisterValue loc)
   case fetchMode of

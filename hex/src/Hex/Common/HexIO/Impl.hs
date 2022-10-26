@@ -31,6 +31,7 @@ runHexIO ::
   Eff es a
 runHexIO = interpret $ \_ -> \case
   EndCurrentLine -> endCurrentLineImpl
+  EndCurrentInput -> endCurrentInputImpl
   InputIsFinished -> inputIsFinishedImpl
   GetInput -> getInputImpl
   PutInput charSourceStack -> putInputImpl charSourceStack
@@ -66,6 +67,15 @@ endCurrentLineImpl = do
           throwError HIO.NoMoreLines
         Just newStack -> do
           putInputImpl newStack
+
+endCurrentInputImpl ::
+  [State IOState, EHexState, Error HIO.LexError] :>> es =>
+  Eff es ()
+endCurrentInputImpl =
+  modifying
+    @IOState
+    (#sourceStack % CharSourceStack.currentSourceLens)
+    CharSource.endCharSourceAfterCurrentLine
 
 inputIsFinishedImpl :: State IOState :> es => Eff es Bool
 inputIsFinishedImpl = use @IOState (#sourceStack % to CharSourceStack.stackIsFinished)

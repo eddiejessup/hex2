@@ -58,11 +58,18 @@ handleCommandInHMode oldSrc modeVariant = \case
       HSt.charAsBox fNr c >>= \case
         Nothing -> throwError AllMode.CharacterCodeNotFound
         Just charBox ->
-          Build.addHListElement $ ListElem.HListHBaseElem $ BoxElem.ElemCharacter charBox
+          Build.addHListElement $ ListElem.HListHBaseElem $ BoxElem.CharBoxHBaseElem charBox
       updateSpaceFactor c
       pure ContinueHMode
     Eval.AddHRule rule -> do
-      Build.addHListElement $ ListElem.HVListElem $ ListElem.VListBaseElem $ BoxElem.ElemBox $ BoxElem.ruleAsBaseBox rule
+      Build.addHListElement $
+        ListElem.HVListElem $
+          ListElem.VListBaseElem $
+            BoxElem.AxOrRuleBoxBaseElem $
+              Box.Boxed
+                { boxedDims = rule,
+                  boxedContents = BoxElem.AxBoxOrRuleContentsRule
+                }
       pure ContinueHMode
     Eval.AddControlSpace -> do
       HSt.currentFontNumber
@@ -81,8 +88,8 @@ handleCommandInHMode oldSrc modeVariant = \case
             pure ()
           ListElem.HListHBaseElem hBaseElem -> case hBaseElem of
             -- TODO: Handle ligatures too.
-            BoxElem.ElemCharacter charBox -> do
-              let charCode = charBox.unCharBox.contents
+            BoxElem.CharBoxHBaseElem charBox -> do
+              let charCode = charBox.boxedContents.charBoxCharCode
               fNr <- HSt.currentFontNumber
               HSt.fontCharacter fNr charCode >>= \case
                 -- No font selected
@@ -91,7 +98,7 @@ handleCommandInHMode oldSrc modeVariant = \case
                   Build.addHListElement $
                     ListElem.HVListElem $
                       ListElem.VListBaseElem $
-                        BoxElem.ElemKern $ BoxElem.Kern charAttrs.italicCorrection
+                        BoxElem.KernBaseElem $ BoxElem.Kern charAttrs.italicCorrection
       pure ContinueHMode
     Eval.AddDiscretionaryText _discretionaryText ->
       notImplemented "AddDiscretionaryText"
@@ -111,34 +118,35 @@ handleCommandInHMode oldSrc modeVariant = \case
       notImplemented "AddUnwrappedFetchedHBox"
     Eval.AddVAlignedMaterial _boxSpec ->
       notImplemented "HMode: AddVAlignedMaterial"
-  Eval.AddSpace -> do
-    HSt.currentFontNumber
-      >>= HSt.spaceGlue
-      >>= addGlue
-    pure ContinueHMode
-  Eval.StartParagraph indentFlag -> do
-    hModeStartParagraph indentFlag
-    pure ContinueHMode
-  -- \par: Restricted: does nothing. Unrestricted: ends mode.
-  Eval.EndParagraph -> pure $ case modeVariant of
-    HSt.Mode.OuterModeVariant ->
-      EndHList ListExtractor.EndHListSawEndParaCommand
-    HSt.Mode.InnerModeVariant ->
-      ContinueHMode
+  Eval.ModeDependentCommand modeDependentCommand -> case modeDependentCommand of
+    Eval.AddSpace -> do
+      HSt.currentFontNumber
+        >>= HSt.spaceGlue
+        >>= addGlue
+      pure ContinueHMode
+    Eval.StartParagraph indentFlag -> do
+      hModeStartParagraph indentFlag
+      pure ContinueHMode
+    -- \par: Restricted: does nothing. Unrestricted: ends mode.
+    Eval.EndParagraph -> pure $ case modeVariant of
+      HSt.Mode.OuterModeVariant ->
+        EndHList ListExtractor.EndHListSawEndParaCommand
+      HSt.Mode.InnerModeVariant ->
+        ContinueHMode
+    Eval.ShowToken _lexToken -> notImplemented "HMode: ShowToken"
+    Eval.ShowBox _n -> notImplemented "HMode: ShowBox"
+    Eval.ShowLists -> notImplemented "HMode: ShowLists"
+    Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "HMode: ShowTheInternalQuantity"
+    Eval.ShipOut _box -> notImplemented "HMode: ShipOut"
+    Eval.AddMark _text -> notImplemented "HMode: AddMark"
+    Eval.AddInsertion _n -> notImplemented "HMode: AddInsertion"
+    Eval.AddAdjustment -> notImplemented "HMode: AddAdjustment"
   Eval.ModeIndependentCommand modeIndependentCommand ->
     AllMode.handleModeIndependentCommand modeIndependentCommand <&> \case
       AllMode.SawEndBox ->
         EndHList ListExtractor.EndHListSawEndParaCommand
       AllMode.DidNotSeeEndBox ->
         ContinueHMode
-  Eval.ShowToken _lexToken -> notImplemented "HMode: ShowToken"
-  Eval.ShowBox _n -> notImplemented "HMode: ShowBox"
-  Eval.ShowLists -> notImplemented "HMode: ShowLists"
-  Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "HMode: ShowTheInternalQuantity"
-  Eval.ShipOut _box -> notImplemented "HMode: ShipOut"
-  Eval.AddMark _text -> notImplemented "HMode: AddMark"
-  Eval.AddInsertion _n -> notImplemented "HMode: AddInsertion"
-  Eval.AddAdjustment -> notImplemented "HMode: AddAdjustment"
   where
     -- Tex by topic, §20.2, p186.
     updateSpaceFactor c = do
@@ -166,4 +174,5 @@ hModeStartParagraph = \case
   -- list, and the space factor is set to 1000.
   -- TODO: Space factor.
   ListExtractor.Indent -> do
-    HSt.getParIndentBox >>= Build.addHListElement
+    parDims <- HSt.getParIndentBoxDims
+    Build.addHListElement (HSt.emptyHBoxAsHListElem parDims)

@@ -43,7 +43,7 @@ data ScopedValue
   | SymbolValue HSt.Res.ControlSymbol ResolvedToken
   | FontValue Font.FontNumber
   | FamilyMemberFontValue Font.FamilyMember Font.FontNumber
-  | BoxRegisterValue Reg.RegisterLocation (Maybe BoxElem.BaseBox)
+  | BoxRegisterValue Reg.RegisterLocation (Maybe (Box.Boxed (BoxElem.AxBoxElems)))
 
 data EHexState :: Effect where
   -- Get scoped values.
@@ -52,7 +52,7 @@ data EHexState :: Effect where
   GetHexCode :: Code.CCodeType c -> Code.CharCode -> EHexState m (HSt.Code.CodeTableTarget c)
   ResolveSymbol :: HSt.Res.ControlSymbol -> EHexState m (Maybe ResolvedToken)
   CurrentFontNumber :: EHexState m Font.FontNumber
-  FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe BoxElem.BaseBox)
+  FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe (Box.Boxed (BoxElem.AxBoxElems)))
   -- End of scoped-value getters.
   SetScopedValue :: ScopedValue -> HSt.Grouped.ScopeFlag -> EHexState m ()
   GetSpecialIntParameter :: Param.SpecialIntParameter -> EHexState m Q.HexInt
@@ -78,20 +78,20 @@ data EHexState :: Effect where
 
 makeEffect ''EHexState
 
-getParIndentBox :: EHexState :> es => Eff es ListElem.HListElem
-getParIndentBox = do
+getParIndentBoxDims :: EHexState :> es => Eff es (Box.BoxDims Q.Length)
+getParIndentBoxDims = do
   boxWidth <- getParameterValue (Param.LengthQuantParam Param.ParIndent)
-  pure $
-    ListElem.HVListElem $
-      ListElem.VListBaseElem $
-        BoxElem.ElemBox $
-          BoxElem.BaseBox $
-            Box.Box
-              { contents = BoxElem.HBoxContents (BoxElem.HBoxElemSeq Empty),
-                boxWidth,
-                boxHeight = mempty,
-                boxDepth = mempty
-              }
+  pure Box.BoxDims {boxWidth, boxHeight = mempty, boxDepth = mempty}
+
+emptyHBoxAsHListElem :: Box.BoxDims Q.Length -> ListElem.HListElem
+emptyHBoxAsHListElem boxedDims =
+  let emptyHElems =
+        BoxElem.AxBoxOrRuleContentsAx
+          Box.Offsettable {offset = Nothing, offsetContents = BoxElem.AxBoxElemsH Empty}
+   in ListElem.HVListElem $
+        ListElem.VListBaseElem $
+          BoxElem.AxOrRuleBoxBaseElem $
+            Box.Boxed {boxedDims, boxedContents = emptyHElems}
 
 modifyParameterValue ::
   forall (q :: Q.QuantityType) es.
@@ -208,18 +208,18 @@ charAsBox ::
   ) =>
   Font.FontNumber ->
   Code.CharCode ->
-  Eff es (Maybe Box.CharBox)
+  Eff es (Maybe (Box.Boxed BoxElem.CharBoxContents))
 charAsBox fNr char = do
   fontCharacter fNr char >>= \case
     Nothing -> pure Nothing
-    Just HSt.Font.CharacterAttrs {width, height, depth} ->
+    Just HSt.Font.CharacterAttrs {dims} ->
       pure $
         Just $
-          Box.CharBox
-            Box.Box
-              { contents = char,
-                boxWidth = width,
-                boxHeight = height,
-                boxDepth = depth
-              }
-            fNr
+          Box.Boxed
+            { boxedContents =
+                BoxElem.CharBoxContents
+                  { charBoxCharCode = char,
+                    charBoxFont = fNr
+                  },
+              boxedDims = dims
+            }

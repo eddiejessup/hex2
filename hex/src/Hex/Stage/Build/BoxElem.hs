@@ -2,6 +2,8 @@ module Hex.Stage.Build.BoxElem where
 
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
+import Hex.Common.Codes qualified as Codes
+import Hex.Common.Font qualified as Font
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
@@ -10,43 +12,43 @@ import Hexlude
 data HBoxElem
   = HVBoxElem VBoxElem
   | HBoxHBaseElem HBaseElem
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 hBoxElemNaturalWidth :: HBoxElem -> Q.Length
 hBoxElemNaturalWidth = \case
   HVBoxElem vBoxElem -> case vBoxElem of
     VBoxBaseElem baseElem -> case baseElem of
-      ElemBox box ->
-        box.unBaseBox.boxWidth
-      ElemKern kern ->
+      AxOrRuleBoxBaseElem box ->
+        box.boxedDims.boxWidth
+      KernBaseElem kern ->
         kern.unKern
   HBoxHBaseElem hBaseElem -> case hBaseElem of
-    ElemCharacter charBox ->
-      charBox.unCharBox.boxWidth
+    CharBoxHBaseElem charBox ->
+      charBox.boxedDims.boxWidth
 
 hBoxElemNaturalDepth :: HBoxElem -> Q.Length
 hBoxElemNaturalDepth = \case
   HVBoxElem vBoxElem -> case vBoxElem of
     VBoxBaseElem baseElem -> case baseElem of
-      ElemBox box ->
-        box.unBaseBox.boxDepth
-      ElemKern _kern ->
+      AxOrRuleBoxBaseElem box ->
+        box.boxedDims.boxDepth
+      KernBaseElem _kern ->
         Q.zeroLength
   HBoxHBaseElem hBaseElem -> case hBaseElem of
-    ElemCharacter charBox ->
-      charBox.unCharBox.boxDepth
+    CharBoxHBaseElem charBox ->
+      charBox.boxedDims.boxDepth
 
 hBoxElemNaturalHeight :: HBoxElem -> Q.Length
 hBoxElemNaturalHeight = \case
   HVBoxElem vBoxElem -> case vBoxElem of
     VBoxBaseElem baseElem -> case baseElem of
-      ElemBox box ->
-        box.unBaseBox.boxHeight
-      ElemKern _kern ->
+      AxOrRuleBoxBaseElem box ->
+        box.boxedDims.boxHeight
+      KernBaseElem _kern ->
         Q.zeroLength
   HBoxHBaseElem hBaseElem -> case hBaseElem of
-    ElemCharacter charBox ->
-      charBox.unCharBox.boxHeight
+    CharBoxHBaseElem charBox ->
+      charBox.boxedDims.boxHeight
 
 fmtHBoxElem :: Fmt HBoxElem
 fmtHBoxElem = F.later $ \case
@@ -55,31 +57,44 @@ fmtHBoxElem = F.later $ \case
 
 -- TODO: Ligature, Math on/off, V-adust
 newtype HBaseElem
-  = ElemCharacter Box.CharBox
-  deriving stock (Show)
+  = CharBoxHBaseElem (Box.Boxed CharBoxContents)
+  deriving stock (Show, Eq, Generic)
+
+data CharBoxContents = CharBoxContents
+  { charBoxCharCode :: Codes.CharCode,
+    charBoxFont :: Font.FontNumber
+  }
+  deriving stock (Show, Eq, Generic)
+
+fmtCharBoxContents :: Fmt CharBoxContents
+fmtCharBoxContents = fmtViewed (to charBoxChar) (F.squoted F.char)
+
+charBoxChar :: CharBoxContents -> Char
+charBoxChar = Codes.unsafeCodeAsChar . (.charBoxCharCode)
 
 fmtHBaseElem :: Fmt HBaseElem
 fmtHBaseElem = F.later $ \case
-  ElemCharacter c -> bformat Box.fmtCharBoxWithDimens c
+  CharBoxHBaseElem c -> bformat (Box.fmtBoxed fmtCharBoxContents) c
 
 data VBoxElem
   = VBoxBaseElem BaseElem
-  deriving stock (Show, Generic)
+  deriving stock (Show, Eq, Generic)
 
 fmtVBoxElemOneLine :: Fmt VBoxElem
 fmtVBoxElemOneLine = F.later $ \case
   VBoxBaseElem e -> bformat fmtBaseElemOneLine e
 
 data BaseElem
-  = ElemBox BaseBox
-  | ElemKern Kern
-  deriving stock (Show, Generic)
+  = AxOrRuleBoxBaseElem (Box.Boxed (AxBoxOrRuleContents))
+  | KernBaseElem Kern
+  deriving stock (Show, Eq, Generic)
 
 fmtBaseElemOneLine :: Fmt BaseElem
 fmtBaseElemOneLine = F.later $ \case
-  ElemBox b -> bformat fmtBaseBox b
-  ElemKern _ ->
-    "kern"
+  AxOrRuleBoxBaseElem b ->
+    bformat (Box.fmtBoxed fmtAxOrRuleBoxContentsOneLine) b
+  KernBaseElem k ->
+    bformat fmtKern k
 
 newtype Kern = Kern {unKern :: Q.Length}
   deriving stock (Show, Eq, Generic)
@@ -89,61 +104,71 @@ fmtKern = F.accessed (.unKern) ("K" |%| Q.fmtLengthWithUnit)
 
 -- Element constituents.
 
-data BaseBoxContents
-  = HBoxContents HBoxElemSeq
-  | VBoxContents VBoxElemSeq
-  | RuleContents
-  deriving stock (Show, Generic)
+data AxBoxOrRuleContents
+  = AxBoxOrRuleContentsRule
+  | AxBoxOrRuleContentsAx (Box.Offsettable Q.Length AxBoxElems)
+  deriving stock (Show, Eq, Generic)
 
-fmtBaseBoxContents :: Fmt BaseBoxContents
-fmtBaseBoxContents = F.later $ \case
-  HBoxContents hboxElemSeq -> bformat (F.prefixed "\\hbox" $ fmtViewed #unHBoxElemSeq (F.braced (F.commaSpaceSep fmtHBoxElem))) hboxElemSeq
-  VBoxContents vboxElemSeq -> bformat (F.prefixed "\\vbox" $ fmtViewed #unVBoxElemSeq (F.braced (F.commaSpaceSep fmtVBoxElemOneLine))) vboxElemSeq
-  RuleContents -> "\\rule{}"
+fmtBoxedAxBoxElemsOneLine :: Fmt (Box.Boxed AxBoxElems)
+fmtBoxedAxBoxElemsOneLine = Box.fmtBoxed fmtAxBoxElemsOneLine
 
-newtype BaseBox = BaseBox {unBaseBox :: Box.Box BaseBoxContents}
-  deriving stock (Show, Generic)
+fmtAxOrRuleBoxContentsOneLine :: Fmt AxBoxOrRuleContents
+fmtAxOrRuleBoxContentsOneLine = F.later $ \case
+  AxBoxOrRuleContentsRule -> "\\rule{}"
+  AxBoxOrRuleContentsAx x@(Box.Offsettable _ (AxBoxElemsH _)) ->
+    bformat
+      (F.prefixed "\\hbox" $ Box.fmtOffsettable Q.fmtLengthWithUnit fmtAxBoxElemsOneLine)
+      x
+  AxBoxOrRuleContentsAx x@(Box.Offsettable _ (AxBoxElemsV _)) ->
+    bformat
+      (F.prefixed "\\hbox" $ Box.fmtOffsettable Q.fmtLengthWithUnit fmtAxBoxElemsOneLine)
+      x
 
-fmtBaseBox :: Fmt BaseBox
-fmtBaseBox = F.accessed (.unBaseBox) (Box.fmtBoxDimens <> F.accessed (.contents) fmtBaseBoxContents)
+data AxBoxElems
+  = AxBoxElemsH (Seq HBoxElem)
+  | AxBoxElemsV (Seq VBoxElem)
+  deriving stock (Show, Eq, Generic)
 
-ruleAsBaseBox :: Box.Rule -> BaseBox
-ruleAsBaseBox (Box.Rule box) = BaseBox $ box <&> \() -> RuleContents
+axBoxElemsAxis :: AxBoxElems -> Axis
+axBoxElemsAxis = \case
+  AxBoxElemsH _ -> Horizontal
+  AxBoxElemsV _ -> Vertical
 
-newtype HBoxElemSeq = HBoxElemSeq {unHBoxElemSeq :: Seq HBoxElem}
-  deriving stock (Show, Generic)
-  deriving newtype (Semigroup, Monoid)
+fmtAxBoxElemsOneLine :: Fmt AxBoxElems
+fmtAxBoxElemsOneLine = F.later $ \case
+  AxBoxElemsH h -> bformat (fmtSeqOneLine fmtHBoxElem) h
+  AxBoxElemsV v -> bformat (fmtSeqOneLine fmtVBoxElemOneLine) v
 
-singletonHBoxElemSeq :: HBoxElem -> HBoxElemSeq
-singletonHBoxElemSeq = HBoxElemSeq . pure
+fmtSeqLined :: Fmt a -> Fmt (Seq a)
+fmtSeqLined f = F.intercalated "\n" f
 
-fmtHBoxElemSeq :: Fmt HBoxElemSeq
-fmtHBoxElemSeq = F.accessed (.unHBoxElemSeq) (F.intercalated "\n" fmtHBoxElem)
+fmtSeqOneLine :: Fmt a -> Fmt (Seq a)
+fmtSeqOneLine f = F.commaSpaceSep f
 
-hBoxElemTraversal :: Traversal' HBoxElemSeq HBoxElem
-hBoxElemTraversal = #unHBoxElemSeq % traversed
+singletonHBoxElemSeq :: HBoxElem -> Seq HBoxElem
+singletonHBoxElemSeq = pure
 
-hBoxNaturalDepth :: HBoxElemSeq -> Q.Length
+fmtHBoxElemSeq :: Fmt (Seq HBoxElem)
+fmtHBoxElemSeq = F.intercalated "\n" fmtHBoxElem
+
+fmtHBoxElemSeqOneLine :: Fmt (Seq HBoxElem)
+fmtHBoxElemSeqOneLine = fmtSeqOneLine fmtHBoxElem
+
+hBoxNaturalDepth :: Seq HBoxElem -> Q.Length
 hBoxNaturalDepth hBox =
   -- The empty HBox has zero depth.
   fromMaybe Q.zeroLength $
-    maximumOf (hBoxElemTraversal % to hBoxElemNaturalDepth) hBox
+    maximumOf (traversed % to hBoxElemNaturalDepth) hBox
 
-hBoxNaturalHeight :: HBoxElemSeq -> Q.Length
+hBoxNaturalHeight :: Seq HBoxElem -> Q.Length
 hBoxNaturalHeight hBox =
   -- The empty HBox has zero height.
   fromMaybe Q.zeroLength $
-    maximumOf (hBoxElemTraversal % to hBoxElemNaturalHeight) hBox
+    maximumOf (traversed % to hBoxElemNaturalHeight) hBox
 
-hBoxNaturalWidth :: HBoxElemSeq -> Q.Length
+hBoxNaturalWidth :: Seq HBoxElem -> Q.Length
 hBoxNaturalWidth =
-  foldMapOf hBoxElemTraversal hBoxElemNaturalWidth
+  foldMapOf traversed hBoxElemNaturalWidth
 
-newtype VBoxElemSeq = VBoxElemSeq {unVBoxElemSeq :: Seq VBoxElem}
-  deriving stock (Show, Generic)
-
-fmtVBoxElemSeq :: Fmt VBoxElemSeq
-fmtVBoxElemSeq = F.accessed (.unVBoxElemSeq) (F.intercalated "\n" fmtVBoxElemOneLine)
-
-vBoxElemTraversal :: Traversal' VBoxElemSeq VBoxElem
-vBoxElemTraversal = #unVBoxElemSeq % traversed
+fmtVBoxElemSeq :: Fmt (Seq VBoxElem)
+fmtVBoxElemSeq = F.intercalated "\n" fmtVBoxElemOneLine

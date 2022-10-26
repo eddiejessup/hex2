@@ -31,7 +31,7 @@ extendVList ::
   Eff es List.VList
 extendVList e vList@(List.VList accSeq) = case e of
   -- TODO: topskip
-  List.VListBaseElem (Box.ElemBox b) -> do
+  List.VListBaseElem (Box.AxOrRuleBoxBaseElem b) -> do
     -- Assume we are adding a non-rule box of height h to the vertical list.
     -- Let \prevdepth = p, \lineskiplimit = l, \baselineskip = (b plus y minus z).
     -- Add interline glue, above the new box, of:
@@ -54,8 +54,8 @@ extendVList e vList@(List.VList accSeq) = case e of
         else do
           Log.infoLog $ "extendVList: \\glue(\\baselineskip): " <> F.sformat Q.fmtGlue blineGlue
           Log.infoLog $ "extendVList: \\sdimen(\\prevDepth): " <> F.sformat Q.fmtLengthWithUnit prevDepth
-          Log.infoLog $ "extendVList: boxHeight:  " <> F.sformat Q.fmtLengthWithUnit b.unBaseBox.boxHeight
-          let proposedBaselineLength = blineGlue.gDimen ~~ prevDepth ~~ b.unBaseBox.boxHeight
+          Log.infoLog $ "extendVList: boxHeight:  " <> F.sformat Q.fmtLengthWithUnit b.boxedDims.boxHeight
+          let proposedBaselineLength = blineGlue.gDimen ~~ prevDepth ~~ b.boxedDims.boxHeight
           Log.infoLog $ "extendVList: Proposed baseline length: " <> F.sformat Q.fmtLengthWithUnit proposedBaselineLength <> ", skip limit: " <> F.sformat Q.fmtLengthWithUnit skipLimit
           Log.infoLog $ "extendVList: \\dimen(\\lineskiplimit): " <> F.sformat Q.fmtLengthWithUnit skipLimit
           -- Intuition: set the distance between baselines to \baselineskip, but no
@@ -73,7 +73,7 @@ extendVList e vList@(List.VList accSeq) = case e of
           Log.infoLog $ "extendVList: Adding interline glue: " <> F.sformat Q.fmtGlue glue
           let glueElem = List.ListGlue glue
           pure $ Empty |> glueElem |> e
-    let boxDepth = b.unBaseBox.boxDepth
+    let boxDepth = b.boxedDims.boxDepth
     Log.infoLog $ "extendVList: \\sdimen(\\prevDepth) := " <> F.sformat Q.fmtLengthWithUnit boxDepth
     HSt.setSpecialLengthParameter HSt.Param.PrevDepth boxDepth
     pure $ List.VList $ accSeq <> newElems

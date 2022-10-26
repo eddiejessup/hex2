@@ -30,6 +30,7 @@ data InputOrOutput = InputFile | OutputFile
 
 data HexIO :: Effect where
   EndCurrentLine :: HexIO m ()
+  EndCurrentInput :: HexIO m ()
   InputIsFinished :: HexIO m Bool
   GetInput :: HexIO m CharSourceStack
   PutInput :: CharSourceStack -> HexIO m ()

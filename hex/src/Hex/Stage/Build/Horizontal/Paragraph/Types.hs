@@ -31,7 +31,7 @@ hListElemToBreakItem = \case
   (Just x, ListElem.HVListElem (ListElem.ListGlue g), _)
     | not (hListElemIsDiscardable x) ->
         Just $ HVBreakItem $ V.GlueBreak g
-  (_, ListElem.HVListElem (ListElem.VListBaseElem (BoxElem.ElemKern k)), Just (ListElem.HVListElem (ListElem.ListGlue _))) ->
+  (_, ListElem.HVListElem (ListElem.VListBaseElem (BoxElem.KernBaseElem k)), Just (ListElem.HVListElem (ListElem.ListGlue _))) ->
     Just $ HVBreakItem $ V.KernBreak k
   (_, ListElem.HVListElem (ListElem.ListPenalty p), _) ->
     Just $ HVBreakItem $ V.PenaltyBreak p
@@ -43,7 +43,7 @@ hListElemToBreakItem = \case
 hListElemIsDiscardable :: ListElem.HListElem -> Bool
 hListElemIsDiscardable = \case
   ListElem.HVListElem e -> V.vListElemIsDiscardable e
-  ListElem.HListHBaseElem (BoxElem.ElemCharacter _) -> False
+  ListElem.HListHBaseElem (BoxElem.CharBoxHBaseElem _) -> False
   ListElem.DiscretionaryItemElem _ -> False
 
 hBreakPenalty :: FiniteBadnessVal -> FiniteBadnessVal -> HBreakItem -> FiniteBadnessVal
@@ -63,7 +63,7 @@ hBreakItemAsListElemsNoBreak = \case
     vBreakItemAsListElemNoBreak :: VBreakItem -> Seq ListElem.VListElem
     vBreakItemAsListElemNoBreak = \case
       GlueBreak glue -> Seq.singleton $ ListElem.ListGlue glue
-      KernBreak kern -> Seq.singleton $ ListElem.VListBaseElem $ BoxElem.ElemKern kern
+      KernBreak kern -> Seq.singleton $ ListElem.VListBaseElem $ BoxElem.KernBaseElem kern
       PenaltyBreak p -> Seq.singleton $ ListElem.ListPenalty p
 
 -- List elements in a break item that will form part of the pre-break line.
@@ -80,7 +80,7 @@ hBreakItemAsListElemsPreBreak = \case
     vBreakItemAsListElemPreBreak :: VBreakItem -> Seq ListElem.VListElem
     vBreakItemAsListElemPreBreak = \case
       GlueBreak _ -> mempty
-      KernBreak kern -> Seq.singleton $ ListElem.VListBaseElem $ BoxElem.ElemKern kern
+      KernBreak kern -> Seq.singleton $ ListElem.VListBaseElem $ BoxElem.KernBaseElem kern
       PenaltyBreak p -> Seq.singleton $ ListElem.ListPenalty p
 
 -- List elements in a break item that will form part of the post-break line.

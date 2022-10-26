@@ -6,6 +6,7 @@ import Hex.Common.Codes qualified as Code
 import Hex.Common.HexState.Interface (EHexState)
 import Hex.Common.HexState.Interface qualified as HSt
 import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
+import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Types qualified as TFM
 import Hex.Common.Token.Resolved.Primitive qualified as PT
 import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
@@ -22,20 +23,10 @@ import Witherable qualified as Wither
 
 evalCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.Command -> Eff es E.Command
 evalCommand = \case
-  P.ShowToken lt -> pure $ E.ShowToken lt
-  P.ShowBox n -> E.ShowBox <$> Eval.evalInt n
   P.VModeCommand vModeCommand -> E.VModeCommand <$> evalVModeCommand vModeCommand
   P.HModeCommand hModeCommand -> E.HModeCommand <$> evalHModeCommand hModeCommand
   P.ModeIndependentCommand modeIndepCmd -> E.ModeIndependentCommand <$> evalModeIndepCmd modeIndepCmd
-  P.ShowLists -> pure E.ShowLists
-  P.ShowTheInternalQuantity internalQuantity -> pure $ E.ShowTheInternalQuantity internalQuantity
-  P.ShipOut box -> pure $ E.ShipOut box
-  P.AddMark expandedBalancedText -> pure $ E.AddMark expandedBalancedText
-  P.AddInsertion n -> E.AddInsertion <$> Eval.evalInt n
-  P.AddAdjustment -> pure $ E.AddAdjustment
-  P.AddSpace -> pure E.AddSpace
-  P.StartParagraph indentFlag -> pure $ E.StartParagraph indentFlag
-  P.EndParagraph -> pure E.EndParagraph
+  P.ModeDependentCommand modeDepCmd -> E.ModeDependentCommand <$> evalModeDepCmd modeDepCmd
 
 evalVModeCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.VModeCommand -> Eff es E.VModeCommand
 evalVModeCommand = \case
@@ -82,9 +73,23 @@ evalModeIndepCmd = \case
   P.ModifyFileStream fileStreamModificationCommand -> E.ModifyFileStream <$> evalFileStreamModificationCommand fileStreamModificationCommand
   P.WriteToStream streamWriteCommand -> E.WriteToStream <$> evalStreamWriteCommand streamWriteCommand
   P.DoSpecial expandedBalancedText -> pure $ E.DoSpecial expandedBalancedText
-  P.AddBox boxPlacement box -> E.AddBox boxPlacement <$> evalBox box
+  P.AddBox boxPlacement box -> E.AddBox <$> evalBoxPlacement boxPlacement <*> evalBox box
   P.ChangeScope sign localStructureTrigger -> pure $ E.ChangeScope sign localStructureTrigger
   P.DebugShowState -> pure E.DebugShowState
+
+evalModeDepCmd :: [Error Eval.EvaluationError, EHexState] :>> es => P.ModeDependentCommand -> Eff es E.ModeDependentCommand
+evalModeDepCmd = \case
+  P.ShowToken lt -> pure $ E.ShowToken lt
+  P.ShowBox n -> E.ShowBox <$> Eval.evalInt n
+  P.ShowLists -> pure E.ShowLists
+  P.ShowTheInternalQuantity internalQuantity -> pure $ E.ShowTheInternalQuantity internalQuantity
+  P.ShipOut box -> pure $ E.ShipOut box
+  P.AddMark expandedBalancedText -> pure $ E.AddMark expandedBalancedText
+  P.AddInsertion n -> E.AddInsertion <$> Eval.evalInt n
+  P.AddAdjustment -> pure $ E.AddAdjustment
+  P.AddSpace -> pure E.AddSpace
+  P.StartParagraph indentFlag -> pure $ E.StartParagraph indentFlag
+  P.EndParagraph -> pure E.EndParagraph
 
 evalCharCodeRef :: [Error Eval.EvaluationError, EHexState] :>> es => P.CharCodeRef -> Eff es Code.CharCode
 evalCharCodeRef = \case
@@ -106,6 +111,13 @@ evalWriteText = \case
     E.ImmediateWriteText <$> Eval.evalBalancedTextToText expandedBalancedText
   P.DeferredWriteText balancedText ->
     pure $ E.DeferredWriteText balancedText
+
+evalBoxPlacement :: [Error Eval.EvaluationError, EHexState] :>> es => Maybe (P.OffsetAlongAxis P.Length) -> Eff es (Maybe (P.OffsetAlongAxis Q.Length))
+evalBoxPlacement = \case
+  Nothing -> pure Nothing
+  Just offsetAlongAxis -> do
+    v <- traverse Eval.evalLength offsetAlongAxis
+    pure $ Just v
 
 evalAssignmentBody :: [Error Eval.EvaluationError, EHexState] :>> es => P.AssignmentBody -> Eff es E.AssignmentBody
 evalAssignmentBody = \case

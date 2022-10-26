@@ -1,5 +1,6 @@
 module Hex.Common.HexState.Impl.Scoped.Register where
 
+import Hex.Common.Box qualified as Box
 import Hex.Common.HexState.Impl.Scoped.GroupScopes (GroupScopes)
 import Hex.Common.HexState.Impl.Scoped.GroupScopes qualified as HSt.GroupScopes
 import Hex.Common.HexState.Impl.Scoped.Scope qualified as Scope
@@ -7,7 +8,7 @@ import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.BoxElem qualified as Box
+import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hexlude
 
 quantRegisterValueLens :: HSt.Reg.QuantRegisterLocation q -> Lens' Scope.Scope (Maybe (HSt.Var.QuantVariableTarget q))
@@ -26,8 +27,8 @@ localQuantRegisterValue (HSt.Reg.QuantRegisterLocation regType loc) = case regTy
   HSt.Reg.MathGlueQuantRegisterType -> fromMaybe Q.zeroMathGlue . HSt.GroupScopes.localProperty (#mathGlueRegister % at' loc)
   HSt.Reg.TokenListQuantRegisterType -> fromMaybe HSt.TL.emptyBalancedText . HSt.GroupScopes.localProperty (#tokenListRegister % at' loc)
 
-boxRegisterValueLens :: HSt.Reg.RegisterLocation -> Lens' Scope.Scope (Maybe Box.BaseBox)
+boxRegisterValueLens :: HSt.Reg.RegisterLocation -> Lens' Scope.Scope (Maybe (Box.Boxed BoxElem.AxBoxElems))
 boxRegisterValueLens = HSt.GroupScopes.scopedMapValueLens #boxRegister
 
-localBoxRegisterValue :: HSt.Reg.RegisterLocation -> GroupScopes -> Maybe Box.BaseBox
+localBoxRegisterValue :: HSt.Reg.RegisterLocation -> GroupScopes -> Maybe (Box.Boxed BoxElem.AxBoxElems)
 localBoxRegisterValue loc = HSt.GroupScopes.localProperty (#boxRegister % at' loc)

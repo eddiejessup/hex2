@@ -1,6 +1,7 @@
 module Hex.Common.HexState.Interface.Font where
 
 import Formatting qualified as F
+import Hex.Common.Box qualified as Box
 import Hex.Common.Font qualified as Font
 import Hex.Common.Quantity qualified as Q
 import Hexlude
@@ -42,6 +43,7 @@ fmtFontDefinition :: Fmt FontDefinition
 fmtFontDefinition = "Font " |%| F.accessed (.fontName) (F.squoted F.stext)
 
 data CharacterAttrs = CharacterAttrs
-  { width, height, depth, italicCorrection :: Q.Length
+  { dims :: Box.BoxDims Q.Length,
+    italicCorrection :: Q.Length
   }
   deriving stock (Show, Generic)

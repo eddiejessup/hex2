@@ -2,6 +2,7 @@ module Hex.Common.TFM.Get.Character where
 
 import Data.IntMap qualified as IntMap
 import GHC.Num
+import Hex.Common.Box qualified as Box
 import Hex.Common.TFM.Get.CharInfo qualified as TFM.Get.CharInfo
 import Hex.Common.TFM.Get.Types qualified as Internal
 import Hex.Common.TFM.Types
@@ -22,6 +23,7 @@ character recipes widths heights depths italicCorrs charInfo =
     width <- note (TFMError "Bad width index") $ dimAtEith widths $ TFM.Get.CharInfo.widthIdx charInfo
     height <- note (TFMError "Bad height index") $ dimAtEith heights $ TFM.Get.CharInfo.heightIdx charInfo
     depth <- note (TFMError "Bad depth index") $ dimAtEith depths $ TFM.Get.CharInfo.depthIdx charInfo
+    let dims = Box.BoxDims {boxWidth = width, boxHeight = height, boxDepth = depth}
     italicCorrection <- note (TFMError "Bad italic correction index") $ dimAtEith italicCorrs $ TFM.Get.CharInfo.italicCorrectionIdx charInfo
     let remainder = TFM.Get.CharInfo.charRemainder charInfo
     -- If the character is special, get its particular extra attributes.
@@ -34,9 +36,7 @@ character recipes widths heights depths italicCorrs charInfo =
         pure $ Just $ ExtensibleRecipeSpecial recipe
     pure
       Character
-        { width,
-          height,
-          depth,
+        { dims,
           italicCorrection,
           special
         }

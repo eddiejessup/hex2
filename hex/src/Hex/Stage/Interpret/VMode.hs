@@ -22,8 +22,8 @@ import Hex.Stage.Interpret.AllMode qualified as AllMode
 import Hexlude
 
 data VModeCommandResult
-  = ContinueMainVMode
-  | EndMainVMode
+  = ContinueVMode
+  | EndVMode
 
 handleCommandInVMode ::
   forall es.
@@ -38,73 +38,80 @@ handleCommandInVMode ::
   HSt.Mode.ModeVariant ->
   Eval.Command ->
   Eff es VModeCommandResult
-handleCommandInVMode oldSrc modeVariant command =
-  case modeVariant of
-    HSt.Mode.InnerModeVariant ->
-      notImplemented "Inner V Mode command"
-    HSt.Mode.OuterModeVariant -> case command of
-      Eval.VModeCommand vModeCommand -> case vModeCommand of
-        Eval.End ->
-          pure EndMainVMode
-        Eval.AddVGlue g -> do
-          Build.addVListElement $ ListElem.ListGlue g
-          pure ContinueMainVMode
-        Eval.Dump ->
-          notImplemented "handleCommandInVMode: Dump"
-        Eval.EnterHMode ->
-          notImplemented "handleCommandInVMode: EnterHMode"
-        Eval.AddVLeaders _leadersSpec ->
-          notImplemented "handleCommandInVMode: AddVLeaders"
-        Eval.AddVRule rule -> do
-          Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemBox $ BoxElem.ruleAsBaseBox rule
-          pure ContinueMainVMode
-        Eval.AddUnwrappedFetchedVBox _fetchedBoxRef ->
-          notImplemented "handleCommandInVMode: AddUnwrappedFetchedVBox"
-        Eval.AddHAlignedMaterial _boxSpec ->
-          notImplemented "VMode: AddHAlignedMaterial"
-      Eval.HModeCommand _ ->
-        addPara ListExtractor.Indent
-      Eval.StartParagraph indentFlag ->
-        addPara indentFlag
-      -- \par does nothing in vertical mode.
-      Eval.EndParagraph ->
-        pure ContinueMainVMode
-      -- <space token> has no effect in vertical modes.
-      Eval.AddSpace ->
-        pure ContinueMainVMode
-      Eval.ShowToken _lexToken -> notImplemented "VMode: ShowToken"
-      Eval.ShowBox _n -> notImplemented "VMode: ShowBox"
-      Eval.ShowLists -> notImplemented "VMode: ShowLists"
-      Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "VMode: ShowTheInternalQuantity"
-      Eval.ShipOut _box -> notImplemented "VMode: ShipOut"
-      Eval.AddMark _text -> notImplemented "VMode: AddMark"
-      Eval.AddInsertion _n -> notImplemented "VMode: AddInsertion"
-      Eval.AddAdjustment -> notImplemented "VMode: AddAdjustment"
-      Eval.ModeIndependentCommand modeIndependentCommand ->
-        AllMode.handleModeIndependentCommand modeIndependentCommand >>= \case
-          AllMode.SawEndBox ->
+handleCommandInVMode oldSrc modeVariant = \case
+  Eval.VModeCommand vModeCommand -> case vModeCommand of
+    Eval.End ->
+      pure EndVMode
+    Eval.AddVGlue g -> do
+      Build.addVListElement $ ListElem.ListGlue g
+      pure ContinueVMode
+    Eval.Dump ->
+      notImplemented "handleCommandInVMode: Dump"
+    Eval.EnterHMode ->
+      notImplemented "handleCommandInVMode: EnterHMode"
+    Eval.AddVLeaders _leadersSpec ->
+      notImplemented "handleCommandInVMode: AddVLeaders"
+    Eval.AddVRule rule -> do
+      Build.addVListElement $
+        ListElem.VListBaseElem $
+          BoxElem.AxOrRuleBoxBaseElem $ Box.Boxed {boxedContents = BoxElem.AxBoxOrRuleContentsRule, boxedDims = rule}
+      pure ContinueVMode
+    Eval.AddUnwrappedFetchedVBox _fetchedBoxRef ->
+      notImplemented "handleCommandInVMode: AddUnwrappedFetchedVBox"
+    Eval.AddHAlignedMaterial _boxSpec ->
+      notImplemented "VMode: AddHAlignedMaterial"
+  Eval.HModeCommand _ ->
+    addPara ListExtractor.Indent True
+  Eval.ModeDependentCommand modeDependentCommand -> case modeDependentCommand of
+    Eval.StartParagraph indentFlag ->
+      addPara indentFlag False
+    -- \par does nothing in vertical mode.
+    Eval.EndParagraph ->
+      pure ContinueVMode
+    -- <space token> has no effect in vertical modes.
+    Eval.AddSpace ->
+      pure ContinueVMode
+    Eval.ShowToken _lexToken -> notImplemented "VMode: ShowToken"
+    Eval.ShowBox _n -> notImplemented "VMode: ShowBox"
+    Eval.ShowLists -> notImplemented "VMode: ShowLists"
+    Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "VMode: ShowTheInternalQuantity"
+    Eval.ShipOut _box -> notImplemented "VMode: ShipOut"
+    Eval.AddMark _text -> notImplemented "VMode: AddMark"
+    Eval.AddInsertion _n -> notImplemented "VMode: AddInsertion"
+    Eval.AddAdjustment -> notImplemented "VMode: AddAdjustment"
+  Eval.ModeIndependentCommand modeIndependentCommand ->
+    AllMode.handleModeIndependentCommand modeIndependentCommand >>= \case
+      AllMode.SawEndBox ->
+        case modeVariant of
+          HSt.Mode.OuterModeVariant ->
             throwError AllMode.SawEndBoxInMainVMode
-          AllMode.DidNotSeeEndBox ->
-            pure ContinueMainVMode
+          HSt.Mode.InnerModeVariant ->
+            pure EndVMode
+      AllMode.DidNotSeeEndBox ->
+        pure ContinueVMode
   where
-    addPara :: ListExtractor.IndentFlag -> Eff es VModeCommandResult
-    addPara indentFlag = do
-      -- Just before switching to horizontal mode to begin scanning a paragraph,
-      -- TEX inserts the glue specified by \parskip into the vertical list that
-      -- will contain the paragraph, unless that vertical list is empty so far.
-      parSkipGlue <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.ParSkip)
-      Log.infoLog $ "addPara: Adding \\glue(\\parSkip): " <> F.sformat Q.fmtGlue parSkipGlue
-
-      Build.addVListElement $ ListElem.ListGlue parSkipGlue
+    addPara :: ListExtractor.IndentFlag -> Bool -> Eff es VModeCommandResult
+    addPara indentFlag resetSrc = do
+      case modeVariant of
+        HSt.Mode.OuterModeVariant -> do
+          -- Just before switching to horizontal mode to begin scanning a paragraph,
+          -- TEX inserts the glue specified by \parskip into the vertical list that
+          -- will contain the paragraph, unless that vertical list is empty so far.
+          parSkipGlue <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.ParSkip)
+          Log.infoLog $ "addPara: Adding \\glue(\\parSkip): " <> F.sformat Q.fmtGlue parSkipGlue
+          Build.addVListElement $ ListElem.ListGlue parSkipGlue
+        HSt.Mode.InnerModeVariant ->
+          pure ()
 
       -- If the command shifts to horizontal mode, run '\indent', and re-read
       -- the stream as if the command hadn't been read.
-      HIO.putInput oldSrc
+      when resetSrc (HIO.putInput oldSrc)
+
       (endParaReason, paraHList) <- ListExtractor.extractParagraphList indentFlag
       extendVListWithParagraphStateT paraHList
       case endParaReason of
         ListExtractor.EndHListSawEndParaCommand ->
-          pure ContinueMainVMode
+          pure ContinueVMode
         ListExtractor.EndHListSawLeaveBox ->
           throwError AllMode.SawEndBoxInMainVModePara
 
@@ -115,12 +122,20 @@ extendVListWithParagraphStateT ::
 extendVListWithParagraphStateT paraHList = do
   lineBoxes <- setAndBreakHListToHBoxes paraHList
   for_ lineBoxes $ \b ->
-    Build.addVListElement $ ListElem.VListBaseElem $ BoxElem.ElemBox $ BoxElem.BaseBox (BoxElem.HBoxContents <$> b)
+    Build.addVListElement $
+      ListElem.VListBaseElem $
+        BoxElem.AxOrRuleBoxBaseElem $
+          b <&> \elems ->
+            BoxElem.AxBoxOrRuleContentsAx $
+              Box.Offsettable
+                { offset = Nothing,
+                  offsetContents = BoxElem.AxBoxElemsH elems
+                }
 
 setAndBreakHListToHBoxes ::
   [HSt.EHexState, Log.HexLog] :>> es =>
   ListElem.HList ->
-  Eff es (Seq (Box.Box BoxElem.HBoxElemSeq))
+  Eff es (Seq (Box.Boxed (Seq BoxElem.HBoxElem)))
 setAndBreakHListToHBoxes hList = do
   lineHLists <- Break.breakHListMultiPass hList
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
@@ -133,6 +148,7 @@ setAndBreakHListToHBoxes hList = do
         boxDepth = BoxElem.hBoxNaturalDepth hBoxElems
         -- TODO: Is this correct?
         boxWidth = hSize
+        boxedDims = Box.BoxDims {boxWidth, boxHeight, boxDepth}
     Log.infoLog $
       F.sformat
         ( "setAndBreakHListToHBoxes: setting at page width: "
@@ -145,4 +161,4 @@ setAndBreakHListToHBoxes hList = do
         hSize
         listWidth
         flexSpec
-    pure $ Box.Box {contents = hBoxElems, boxWidth, boxHeight, boxDepth}
+    pure $ Box.Boxed {boxedContents = hBoxElems, boxedDims}

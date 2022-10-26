@@ -7,13 +7,13 @@ import Hex.Stage.Build.Horizontal.Evaluate
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
-setList :: ListElem.HList -> Q.Length -> (BoxElem.HBoxElemSeq, Eval.GlueFlexSpec)
+setList :: ListElem.HList -> Q.Length -> ((Seq BoxElem.HBoxElem), Eval.GlueFlexSpec)
 setList hList desiredWidth =
   let flexSpec = listFlexSpec hList desiredWidth
    in (setListElems flexSpec hList, flexSpec)
 
-setListElems :: Eval.GlueFlexSpec -> ListElem.HList -> BoxElem.HBoxElemSeq
-setListElems flexSpec hList = BoxElem.HBoxElemSeq $ seqOf (ListElem.hListElemTraversal % afolding (setElem flexSpec)) hList
+setListElems :: Eval.GlueFlexSpec -> ListElem.HList -> (Seq BoxElem.HBoxElem)
+setListElems flexSpec hList = seqOf (ListElem.hListElemTraversal % afolding (setElem flexSpec)) hList
 
 setElem :: Eval.GlueFlexSpec -> ListElem.HListElem -> Maybe BoxElem.HBoxElem
 setElem flexSpec = \case
@@ -21,7 +21,7 @@ setElem flexSpec = \case
     Just $
       BoxElem.HVBoxElem $
         BoxElem.VBoxBaseElem $
-          BoxElem.ElemKern $
+          BoxElem.KernBaseElem $
             Eval.applyGlueFlexSpec flexSpec glue
   ListElem.HVListElem (ListElem.ListPenalty _) ->
     Nothing

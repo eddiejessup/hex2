@@ -15,7 +15,6 @@ import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
-import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
@@ -255,12 +254,12 @@ evalRule ::
   Eff es Q.Length ->
   Eff es Q.Length ->
   Eff es Q.Length ->
-  Eff es Box.Rule
+  Eff es (Box.BoxDims Q.Length)
 evalRule (P.Rule dims) defaultW defaultH defaultD = do
   w <- ruleDimen Box.BoxWidth defaultW
   h <- ruleDimen Box.BoxHeight defaultH
   d <- ruleDimen Box.BoxDepth defaultD
-  pure $ Box.Rule $ Box.Box () w h d
+  pure $ Box.BoxDims w h d
   where
     ruleDimen d defaultDim = case Seq.filter (\(dim, _len) -> dim == d) dims of
       _ :|> (_, lastDim) ->
@@ -271,7 +270,7 @@ evalRule (P.Rule dims) defaultW defaultH defaultD = do
 evalVModeRule ::
   [EHexState, Error Eval.EvaluationError] :>> es =>
   P.Rule ->
-  Eff es Box.Rule
+  Eff es (Box.BoxDims Q.Length)
 evalVModeRule rule =
   evalRule rule defaultWidth defaultHeight defaultDepth
   where
@@ -282,7 +281,7 @@ evalVModeRule rule =
 evalHModeRule ::
   [EHexState, Error Eval.EvaluationError] :>> es =>
   P.Rule ->
-  Eff es Box.Rule
+  Eff es (Box.BoxDims Q.Length)
 evalHModeRule rule =
   evalRule rule defaultWidth defaultHeight defaultDepth
   where
@@ -399,10 +398,10 @@ evalBoxDimensionRef (P.BoxDimensionRef loc boxDim) = do
   eLoc <- evalExplicitRegisterLocation loc
   HSt.fetchBoxRegisterValue HSt.Reg.Lookup eLoc <&> \case
     Nothing -> Q.zeroLength
-    Just (BoxElem.BaseBox bx) -> case boxDim of
-      Box.BoxWidth -> bx.boxWidth
-      Box.BoxHeight -> bx.boxHeight
-      Box.BoxDepth -> bx.boxDepth
+    Just (Box.Boxed {boxedDims}) -> case boxDim of
+      Box.BoxWidth -> boxedDims.boxWidth
+      Box.BoxHeight -> boxedDims.boxHeight
+      Box.BoxDepth -> boxedDims.boxDepth
 
 evalInternalGlue :: [Error Eval.EvaluationError, EHexState] :>> es => P.InternalGlue -> Eff es Q.Glue
 evalInternalGlue = \case
