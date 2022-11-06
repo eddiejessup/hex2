@@ -16,14 +16,14 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-headToParseLeadersSpec :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.LeadersSpec
+headToParseLeadersSpec :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Axis -> PT.PrimitiveToken -> Eff es AST.LeadersSpec
 headToParseLeadersSpec axis = \case
   PT.LeadersTok leaders ->
     AST.LeadersSpec leaders <$> parseBoxOrRule <*> (anyPrim >>= Par.headToParseModedAddGlue axis)
   t ->
     parseFail $ "headToParseLeadersSpec " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseBox :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.Box
+headToParseBox :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => PrimitiveToken -> Eff es AST.Box
 headToParseBox = \case
   PT.FetchedBoxTok fetchMode ->
     AST.FetchedRegisterBox fetchMode <$> Par.parseExplicitRegisterLocation
@@ -40,7 +40,7 @@ headToParseBox = \case
   t ->
     parseFail $ "headToParseBox " <> F.sformat PT.fmtPrimitiveToken t
 
-parseBoxSpecification :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.BoxSpecification
+parseBoxSpecification :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AST.BoxSpecification
 parseBoxSpecification = do
   spec <-
     PC.choice
@@ -51,7 +51,7 @@ parseBoxSpecification = do
   skipFillerExpanding
   pure spec
 
-parseBoxOrRule :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.BoxOrRule
+parseBoxOrRule :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AST.BoxOrRule
 parseBoxOrRule = do
   headTok <- anyPrim
   PC.choice
@@ -61,7 +61,7 @@ parseBoxOrRule = do
     ]
 
 -- \hrule and such.
-headToParseModedRule :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.Rule
+headToParseModedRule :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Axis -> PT.PrimitiveToken -> Eff es AST.Rule
 headToParseModedRule axis = \case
   PT.ModedCommand tokenAxis PT.RuleTok
     | axis == tokenAxis ->
@@ -86,7 +86,7 @@ headToParseModedRule axis = \case
       skipKeyword PT.Expanding keyword
       Par.parseLength
 
-headToParseFetchedBoxRef :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Axis -> PT.PrimitiveToken -> Eff es AST.FetchedBoxRef
+headToParseFetchedBoxRef :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Axis -> PT.PrimitiveToken -> Eff es AST.FetchedBoxRef
 headToParseFetchedBoxRef tgtAxis = \case
   PT.ModedCommand tokenAxis (PT.UnwrappedFetchedBoxTok fetchMode) | tgtAxis == tokenAxis -> do
     n <- Par.parseInt

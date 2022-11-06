@@ -10,7 +10,7 @@ import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as P
 import Hexlude
 
 evalExpansionCommand ::
-  [Error Eval.EvaluationError, EHexState, HexIO] :>> es =>
+  (Error Eval.EvaluationError :> es, EHexState :> es, HexIO :> es) =>
   P.ExpansionCommand ->
   Eff es E.ExpansionCommand
 evalExpansionCommand = \case

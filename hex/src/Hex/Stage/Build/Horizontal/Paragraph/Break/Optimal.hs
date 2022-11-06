@@ -124,7 +124,7 @@ completeIncompleteLine br leftSkip rightSkip line =
    in CompletedLine completedLineElements line.lineStartPoint
 
 completeAndPruneUnacceptableLines ::
-  [Reader LineBreakingEnv, Log.HexLog] :>> es =>
+  (Reader LineBreakingEnv :> es) =>
   HBreakItem ->
   Seq IncompleteLine ->
   Eff es (Seq CompletedLine)
@@ -169,7 +169,7 @@ initialBreakingState =
     }
 
 appendBreakListElement ::
-  [Reader LineBreakingEnv, State BreakingState, Log.HexLog] :>> es =>
+  (Reader LineBreakingEnv :> es, State BreakingState :> es, Log.HexLog :> es) =>
   ChunkedHListItem ->
   Eff es ()
 appendBreakListElement = \case
@@ -257,7 +257,7 @@ addLineToLineSequence breakpointCache (ln@(CompletedLine _elems src), lnDemerit)
    in CompletedLineSequence (rSoln |> ln) (Demerit.combineDemerits demerit lnDemerit)
 
 appendAllElements ::
-  [Reader LineBreakingEnv, Log.HexLog] :>> es =>
+  (Reader LineBreakingEnv :> es, Log.HexLog :> es) =>
   ListElem.HList ->
   Eff es BreakingState
 appendAllElements (ListElem.HList allEs) =
@@ -268,7 +268,7 @@ appendAllElements (ListElem.HList allEs) =
         (for_ breakList appendBreakListElement)
 
 finaliseBrokenList ::
-  [Reader LineBreakingEnv, Log.HexLog] :>> es =>
+  (Reader LineBreakingEnv :> es) =>
   BreakingState ->
   Eff es (Maybe (Seq HList))
 finaliseBrokenList finalState = do
@@ -291,7 +291,7 @@ finaliseBrokenList finalState = do
             ListElem.HList $ completedLine.lineElements
 
 breakHListOptimally ::
-  [Reader LineBreakingEnv, Log.HexLog] :>> es =>
+  (Reader LineBreakingEnv :> es, Log.HexLog :> es) =>
   ListElem.HList ->
   Eff es (Maybe (Seq HList))
 breakHListOptimally hList = do

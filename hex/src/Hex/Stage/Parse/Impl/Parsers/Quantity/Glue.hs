@@ -17,7 +17,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
 
-headToParseModedAddGlue :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Axis -> T.PrimitiveToken -> Eff es AST.Glue
+headToParseModedAddGlue :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Axis -> T.PrimitiveToken -> Eff es AST.Glue
 headToParseModedAddGlue axis = \case
   T.ModedCommand tokenAxis modedTok | tokenAxis == axis ->
     case modedTok of
@@ -46,21 +46,21 @@ headToParseModedAddGlue axis = \case
   where
     noLengthGlueSpec = AST.ExplicitGlueSpec AST.zeroLength
 
-parseGlue :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.Glue
+parseGlue :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AST.Glue
 parseGlue =
   PC.choice
     [ AST.ExplicitGlue <$> parseExplicitGlueSpec,
       Par.tryParse $ AST.InternalGlue <$> Par.parseSigned (anyPrim >>= Par.headToParseInternalGlue)
     ]
 
-parseExplicitGlueSpec :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.ExplicitGlueSpec
+parseExplicitGlueSpec :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AST.ExplicitGlueSpec
 parseExplicitGlueSpec = do
   len <- Par.parseLength
   stretch <- parsePureFlex [Chr_ 'p', Chr_ 'l', Chr_ 'u', Chr_ 's']
   shrink <- parsePureFlex [Chr_ 'm', Chr_ 'i', Chr_ 'n', Chr_ 'u', Chr_ 's']
   pure $ AST.ExplicitGlueSpec len stretch shrink
 
-parsePureFlex :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => [Code.CharCode] -> Eff es (Maybe AST.PureFlex)
+parsePureFlex :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => [Code.CharCode] -> Eff es (Maybe AST.PureFlex)
 parsePureFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,
@@ -74,7 +74,7 @@ parsePureFlex s =
           AST.InfPureFlex <$> parseInfFlexOfOrder
         ]
 
-parseInfFlexOfOrder :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.InfFlexOfOrder
+parseInfFlexOfOrder :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AST.InfFlexOfOrder
 parseInfFlexOfOrder = do
   factor <- Par.parseSigned Par.parseFactor
   skipKeyword PT.Expanding [Chr_ 'f', Chr_ 'i']

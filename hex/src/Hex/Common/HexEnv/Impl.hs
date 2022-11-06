@@ -43,13 +43,13 @@ withHexEnv extraSearchDirs logLevel k = do
   FS.IO.withFile "log.txt" WriteMode $ \hexLogHandle -> do
     k $ newHexEnv hexLogHandle logLevel searchDirs
 
-runHexEnv :: [FS.FileSystem, R.Reader HexEnv] :>> es => Eff (EHexEnv : es) a -> Eff es a
+runHexEnv :: (FS.FileSystem :> es, R.Reader HexEnv :> es) => Eff (EHexEnv : es) a -> Eff es a
 runHexEnv = interpret $ \_ -> \case
   FindAndReadFile findPolicy tgtFile -> findAndReadFileImpl findPolicy tgtFile
   FindAndOpenFile findPolicy tgtFile ioMode -> findAndOpenFileImpl findPolicy tgtFile ioMode
 
 findAndReadFileImpl ::
-  [Reader HexEnv, FS.FileSystem] :>> es =>
+  (Reader HexEnv :> es, FS.FileSystem :> es) =>
   FindFilePolicy ->
   HexFilePath ->
   Eff es (Maybe ByteString)
@@ -59,7 +59,7 @@ findAndReadFileImpl findPolicy tgtFile = do
     Just absPath -> Just <$> Eff.unsafeEff_ (BS.readFile absPath)
 
 findAndOpenFileImpl ::
-  [Reader HexEnv, FS.FileSystem] :>> es =>
+  (Reader HexEnv :> es, FS.FileSystem :> es) =>
   FindFilePolicy ->
   HexFilePath ->
   IOMode ->
@@ -70,7 +70,7 @@ findAndOpenFileImpl findPolicy tgtFile ioMode = do
     Just absPath -> Just <$> FS.IO.openFile absPath ioMode
 
 findFilePathImpl ::
-  [Reader HexEnv, FS.FileSystem] :>> es =>
+  (Reader HexEnv :> es, FS.FileSystem :> es) =>
   FindFilePolicy ->
   HexFilePath ->
   Eff es (Maybe FilePath)

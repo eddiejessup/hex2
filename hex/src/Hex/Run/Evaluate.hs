@@ -6,7 +6,7 @@ import Hex.Stage.Evaluate.Interface.AST.Command (Command)
 import Hex.Stage.Parse.Interface (CommandSource)
 import Hexlude
 
-evaluateAll :: [CommandSource, HexEvaluate] :>> es => Eff es [Command]
+evaluateAll :: (CommandSource :> es, HexEvaluate :> es) => Eff es [Command]
 evaluateAll = go
   where
     go =

@@ -36,7 +36,7 @@ import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hexlude
 import System.FilePath qualified as FilePath
 
-runHexState :: [HexLog, State HexState, EHexEnv, Error Err.HexStateError, Error TFM.TFMError] :>> es => Eff (EHexState : es) a -> Eff es a
+runHexState :: (HexLog :> es, State HexState :> es, EHexEnv :> es, Error Err.HexStateError :> es, Error TFM.TFMError :> es) => Eff (EHexState : es) a -> Eff es a
 runHexState = interpret $ \_ -> \case
   SetScopedValue scopedValue scopeFlag ->
     let setter = case scopedValue of
@@ -169,7 +169,7 @@ getFontSpecialCharacterImpl fontSpecialChar fontNumber = do
       HSt.Font.SkewChar -> #skewChar
 
 readFontInfo ::
-  ([Error TFM.TFMError, State HexState] :>> es) =>
+  (Error TFM.TFMError :> es, State HexState :> es) =>
   HexFilePath ->
   ByteString ->
   TFM.FontSpecification ->
@@ -182,7 +182,7 @@ readFontInfo fontPath fontBytes spec = do
   pure HSt.Font.FontInfo {fontMetrics, designScale, hyphenChar, skewChar, fontPath}
 
 loadFontImpl ::
-  [State HexState, EHexEnv, Error Err.HexStateError, Error TFM.TFMError] :>> es =>
+  (State HexState :> es, EHexEnv :> es, Error Err.HexStateError :> es, Error TFM.TFMError :> es) =>
   HexFilePath ->
   TFM.FontSpecification ->
   Eff es Font.FontNumber
@@ -203,7 +203,7 @@ loadFontImpl fontPath spec = do
   pure fontNr
 
 getAllFontDefinitionsImpl ::
-  '[State HexState] :>> es =>
+  (State HexState :> es) =>
   Eff es [HSt.Font.FontDefinition]
 getAllFontDefinitionsImpl =
   use @HexState #fontInfos <&> Map.elems . Map.mapWithKey toFontDefinition
@@ -231,7 +231,7 @@ fetchBoxRegisterValueImpl fetchMode loc = do
   pure mayV
 
 popGroupImpl ::
-  [State HexState, Error Err.HexStateError] :>> es =>
+  (State HexState :> es, Error Err.HexStateError :> es) =>
   HSt.Grouped.ChangeGroupTrigger ->
   Eff es HSt.Grouped.HexGroupType
 popGroupImpl exitTrigger = do

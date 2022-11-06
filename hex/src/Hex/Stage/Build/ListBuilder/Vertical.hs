@@ -86,6 +86,6 @@ extendVList e vList@(List.VList accSeq) = case e of
         Log.infoLog $ "extendVList: Adding non-box element: " <> F.sformat List.fmtVListElem e
         pure (List.VList (accSeq :|> e))
 
-runHexListBuilderVMode :: [EHexState, HexLog, State ListElem.VList] :>> es => Eff (HexListBuilder : es) a -> Eff es a
+runHexListBuilderVMode :: (EHexState :> es, HexLog :> es, State ListElem.VList :> es) => Eff (HexListBuilder : es) a -> Eff es a
 runHexListBuilderVMode = interpret $ \_ -> \case
   AddVListElement e -> addVListElementImpl e

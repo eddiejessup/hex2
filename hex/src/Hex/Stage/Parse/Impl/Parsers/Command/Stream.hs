@@ -17,27 +17,27 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-parseOpenFileStream :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => AST.FileStreamType -> Eff es AST.FileStreamModificationCommand
+parseOpenFileStream :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => AST.FileStreamType -> Eff es AST.FileStreamModificationCommand
 parseOpenFileStream fileStreamType =
   do
     (n, fileName) <- parseXEqualsY PT.Expanding Par.parseInt parseFileName
     pure $ AST.FileStreamModificationCommand fileStreamType (AST.Open fileName) n
 
-headToParseOpenOutput :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => AST.WritePolicy -> T.PrimitiveToken -> Eff es AST.FileStreamModificationCommand
+headToParseOpenOutput :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => AST.WritePolicy -> T.PrimitiveToken -> Eff es AST.FileStreamModificationCommand
 headToParseOpenOutput writePolicy = \case
   T.OpenOutputTok ->
     parseOpenFileStream (AST.FileOutput writePolicy)
   t ->
     Par.parseFail $ "headToParseOpenOutput " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseCloseOutput :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => AST.WritePolicy -> T.PrimitiveToken -> Eff es AST.FileStreamModificationCommand
+headToParseCloseOutput :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => AST.WritePolicy -> T.PrimitiveToken -> Eff es AST.FileStreamModificationCommand
 headToParseCloseOutput writePolicy = \case
   T.CloseOutputTok ->
     AST.FileStreamModificationCommand (AST.FileOutput writePolicy) AST.Close <$> Par.parseInt
   t ->
     Par.parseFail $ "headToParseOpenOutput " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseWriteToStream :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => AST.WritePolicy -> T.PrimitiveToken -> Eff es AST.StreamWriteCommand
+headToParseWriteToStream :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => AST.WritePolicy -> T.PrimitiveToken -> Eff es AST.StreamWriteCommand
 headToParseWriteToStream writePolicy = \case
   T.WriteTok ->
     do
@@ -50,7 +50,7 @@ headToParseWriteToStream writePolicy = \case
     Par.parseFail $ "headToParseOpenOutput " <> F.sformat PT.fmtPrimitiveToken t
 
 -- <file name> = <optional spaces> <some explicit letter or digit characters> <space>
-parseFileName :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es HexFilePath
+parseFileName :: (PrimTokenSource :> es, NonDet :> es) => Eff es HexFilePath
 parseFileName = do
   skipOptionalSpaces PT.Expanding
   fileNameAsciiChars <-

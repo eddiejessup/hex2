@@ -149,7 +149,7 @@ skipUpToCaseBlock tgtBlock getNextToken = go 0 1
 
 applyConditionBody ::
   forall es.
-  [Error ExpansionError, Error HSt.ResolutionError, HIO.HexIO, HSt.EHexState, State Expand.ConditionStates] :>> es =>
+  (Error ExpansionError :> es, Error HSt.ResolutionError :> es, HIO.HexIO :> es, HSt.EHexState :> es, State Expand.ConditionStates :> es) =>
   ST.ConditionBodyTok ->
   Eff es ()
 applyConditionBody bodyToken = do
@@ -192,7 +192,7 @@ data SkipStopCondition
 
 getPresentResolvedToken ::
   forall es.
-  [Error ExpansionError, Error HSt.ResolutionError, HIO.HexIO, HSt.EHexState] :>> es =>
+  (Error ExpansionError :> es, Error HSt.ResolutionError :> es, HIO.HexIO :> es, HSt.EHexState :> es) =>
   Eff es RT.ResolvedToken
 getPresentResolvedToken = do
   snd <$> nothingToError Expand.EndOfInputWhileSkipping HIO.getResolvedToken

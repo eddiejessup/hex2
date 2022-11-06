@@ -159,7 +159,7 @@ scaleRegisterValue qLoc scaleDirection arg scopeFlag =
   modifyRegisterValue qLoc (Q.scaleInDirection scaleDirection arg) scopeFlag
 
 resolveLexToken ::
-  [Error ResolutionError, EHexState] :>> es =>
+  (Error ResolutionError :> es, EHexState :> es) =>
   LT.LexToken ->
   Eff es RT.ResolvedToken
 resolveLexToken = \case

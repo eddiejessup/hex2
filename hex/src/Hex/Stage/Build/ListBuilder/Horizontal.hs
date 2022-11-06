@@ -10,7 +10,7 @@ import Hex.Stage.Build.ListBuilder.Interface
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
-addHListElementImpl :: [State ListElem.HList, HSt.EHexState] :>> es => ListElem.HListElem -> Eff es ()
+addHListElementImpl :: (State ListElem.HList :> es, HSt.EHexState :> es) => ListElem.HListElem -> Eff es ()
 addHListElementImpl e = do
   hList <- get
   newHList <- extendHList e hList
@@ -41,13 +41,13 @@ extendHList ::
 extendHList e (ListElem.HList accSeq) =
   pure $ ListElem.HList $ accSeq :|> e
 
-runHListBuilder :: [State ListElem.HList, HSt.EHexState] :>> es => Eff (HListBuilder : es) a -> Eff es a
+runHListBuilder :: (State ListElem.HList :> es, HSt.EHexState :> es) => Eff (HListBuilder : es) a -> Eff es a
 runHListBuilder = interpret $ \_ -> \case
   AddHListElement e -> addHListElementImpl e
   GetLastHListElement ->
     lastOf ListElem.hListElemTraversal <$> get
 
-runHexListBuilderHMode :: [State ListElem.HList, HSt.EHexState] :>> es => Eff (HexListBuilder : es) a -> Eff es a
+runHexListBuilderHMode :: (State ListElem.HList :> es, HSt.EHexState :> es) => Eff (HexListBuilder : es) a -> Eff es a
 runHexListBuilderHMode = interpret $ \_ -> \case
   AddVListElement e -> do
     addHListElementImpl (ListElem.HVListElem e)

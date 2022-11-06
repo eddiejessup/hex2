@@ -9,7 +9,6 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Impl (extractMainVListImpl)
-import Hex.Stage.Build.ListExtractor.Interface (ExtractList)
 import Hex.Stage.Build.Vertical.Page.Break qualified as Page
 import Hex.Stage.Build.Vertical.Page.Types qualified as Page
 import Hex.Stage.Evaluate.Interface (HexEvaluate)
@@ -17,7 +16,7 @@ import Hex.Stage.Interpret.AllMode (InterpretError)
 import Hex.Stage.Parse.Interface (CommandSource)
 import Hexlude
 
-paginateAll :: '[Error InterpretError, HexEvaluate, HexIO, CommandSource, EHexState, Log.HexLog, ExtractList] :>> es => Eff es (Seq Page.Page)
+paginateAll :: (Error InterpretError :> es, HexEvaluate :> es, HexIO :> es, CommandSource :> es, EHexState :> es, Log.HexLog :> es) => Eff es (Seq Page.Page)
 paginateAll = do
   mainVList <- extractMainVListImpl
   desiredHeight <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.VSize)

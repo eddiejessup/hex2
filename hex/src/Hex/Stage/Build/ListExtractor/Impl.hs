@@ -23,7 +23,7 @@ import Hex.Stage.Interpret.VMode qualified as Command.V
 import Hex.Stage.Parse.Interface (CommandSource (..))
 import Hexlude
 
-runListExtractor :: [Eval.HexEvaluate, CommandSource, HSt.EHexState, HIO.HexIO, Error AllMode.InterpretError, HexLog] :>> es => Eff (ListExtractor.ExtractList : es) a -> Eff es a
+runListExtractor :: (Eval.HexEvaluate :> es, CommandSource :> es, HSt.EHexState :> es, HIO.HexIO :> es, Error AllMode.InterpretError :> es, HexLog :> es) => Eff (ListExtractor.ExtractList : es) a -> Eff es a
 runListExtractor = interpret $ \_ -> \case
   ListExtractor.ExtractHBoxList -> extractHBoxListImpl
   ListExtractor.ExtractVBoxList -> extractVBoxListImpl

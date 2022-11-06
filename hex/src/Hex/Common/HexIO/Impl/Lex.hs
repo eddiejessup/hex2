@@ -15,7 +15,7 @@ spaceTok = CharCatLexToken $ LexCharCat (Code.Chr_ ' ') Code.Space
 
 -- Take letters until we see end-of-input, or a non-letter. Leave the non-letter in the rest-of-input
 getLetterChars ::
-  [State IOState, EHexState] :>> es =>
+  (State IOState :> es, EHexState :> es) =>
   Eff es (Seq Code.CharCode)
 getLetterChars = go Empty
   where
@@ -35,7 +35,7 @@ getLetterChars = go Empty
 
 extractLexTokenFromSourceLine ::
   forall es.
-  [EHexState, Error HIO.LexError, State IOState] :>> es =>
+  (EHexState :> es, Error HIO.LexError :> es, State IOState :> es) =>
   HIO.LineState ->
   Eff es (Maybe (LexToken, HIO.LineState))
 extractLexTokenFromSourceLine = go

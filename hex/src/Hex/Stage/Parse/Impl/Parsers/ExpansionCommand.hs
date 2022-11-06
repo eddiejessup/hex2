@@ -16,7 +16,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
-headToParseExpansionCommand :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => ST.ExpansionCommandHeadToken -> Eff es AST.ExpansionCommand
+headToParseExpansionCommand :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => ST.ExpansionCommandHeadToken -> Eff es AST.ExpansionCommand
 headToParseExpansionCommand = \case
   ST.MacroTok macroDefinition -> do
     args <- Par.parseMacroArguments macroDefinition.parameterSpecification
@@ -55,7 +55,7 @@ headToParseExpansionCommand = \case
   ST.ChangeCaseTok vDirection ->
     AST.ChangeCase vDirection <$> (Par.parseInhibitedGeneralText Par.ExpectingBeginGroup)
 
-parseControlSymbolBody :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es LT.ControlSequence
+parseControlSymbolBody :: (PrimTokenSource :> es, NonDet :> es) => Eff es LT.ControlSequence
 parseControlSymbolBody = do
   controlSequenceCodes <- PC.manyTill getCharCode (satisfyPrimEquals PT.EndCSNameTok)
   pure $ LT.mkControlSequence controlSequenceCodes

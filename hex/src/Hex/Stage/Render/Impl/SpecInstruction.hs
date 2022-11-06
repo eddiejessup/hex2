@@ -125,7 +125,7 @@ preambleOpArgs mag =
       comment = Dec.SpecByteString ""
     }
 
-getPostambleOpArgs :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => Magnification Int32 -> Eff es PostambleOpArgs
+getPostambleOpArgs :: (State SpecInstructionWriterState :> es, Error DVIError :> es) => Magnification Int32 -> Eff es PostambleOpArgs
 getPostambleOpArgs mag = do
   lastPointer <- getPrevBeginPagePointer
   maxStackDepth <- use @SpecInstructionWriterState #maxStackDepth
@@ -151,7 +151,7 @@ postPostambleArgs postamblePointer =
       signatureByte4 = 223
     }
 
-emitSpecInstruction :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => SpecInstruction -> Eff es ()
+emitSpecInstruction :: (Writer [SpecInstruction] :> es, State SpecInstructionWriterState :> es, Error DVIError :> es) => SpecInstruction -> Eff es ()
 emitSpecInstruction specI = do
   -- Compute the number of bytes in the spec-instruction.
 
@@ -167,12 +167,12 @@ getPrevBeginPagePointer = use @SpecInstructionWriterState $ #beginPagePointers %
 getCurrentBytePointer :: (State SpecInstructionWriterState :> es) => Eff es BytePointer
 getCurrentBytePointer = use @SpecInstructionWriterState #currentBytePointer
 
-getNrBeginPagePointers :: ([State SpecInstructionWriterState, Error DVIError] :>> es) => Eff es Word16
+getNrBeginPagePointers :: (State SpecInstructionWriterState :> es, Error DVIError :> es) => Eff es Word16
 getNrBeginPagePointers = do
   nInt <- use @SpecInstructionWriterState (#beginPagePointers % to List.length)
   noteOutOfBounds "nrBeginPagePointers" Dec.intToWord16 nInt
 
-emitDocInstruction :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => DocInstruction -> Eff es ()
+emitDocInstruction :: (Writer [SpecInstruction] :> es, State SpecInstructionWriterState :> es, Error DVIError :> es) => DocInstruction -> Eff es ()
 emitDocInstruction i = do
   -- Get the most recent begin-page pointer.
   prevBeginPagePointer <- getPrevBeginPagePointer
@@ -180,7 +180,7 @@ emitDocInstruction i = do
   specI <- BodySpecInstruction <$> docAsBodySpecInstruction prevBeginPagePointer i
   emitSpecInstruction specI
 
-interpretDocInstruction :: ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) => DocInstruction -> Eff es ()
+interpretDocInstruction :: (Writer [SpecInstruction] :> es, State SpecInstructionWriterState :> es, Error DVIError :> es) => DocInstruction -> Eff es ()
 interpretDocInstruction i = do
   case i of
     PushStack -> do
@@ -239,7 +239,7 @@ getDefineFontOpArgs fontDefinition = do
         else x
 
 addAllInstructions ::
-  ([Writer [SpecInstruction], State SpecInstructionWriterState, Error DVIError] :>> es) =>
+  (Writer [SpecInstruction] :> es, State SpecInstructionWriterState :> es, Error DVIError :> es) =>
   Magnification Q.HexInt ->
   [HSt.Font.FontDefinition] ->
   [DocInstruction] ->

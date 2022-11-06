@@ -54,7 +54,7 @@ extractCharCatFromHexLinePure (HexLine xs) = runMaybeT $ do
       pure normal
 
 extractCharCatFromCurrentLine ::
-  [State IOState, EHexState] :>> es =>
+  (State IOState :> es, EHexState :> es) =>
   Eff es (Maybe RawCharCat)
 extractCharCatFromCurrentLine = do
   use @IOState (#sourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure >>= \case
@@ -65,7 +65,7 @@ extractCharCatFromCurrentLine = do
       pure $ Just charCat
 
 peekCharCatOnCurrentLineImpl ::
-  [State IOState, EHexState] :>> es =>
+  (State IOState :> es, EHexState :> es) =>
   Eff es (Maybe RawCharCat)
 peekCharCatOnCurrentLineImpl =
   use @IOState (#sourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #currentLine) >>= extractCharCatFromHexLinePure <&> \case

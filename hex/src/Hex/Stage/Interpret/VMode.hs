@@ -116,7 +116,7 @@ handleCommandInVMode oldSrc modeVariant = \case
           throwError AllMode.SawEndBoxInMainVModePara
 
 extendVListWithParagraphStateT ::
-  [HSt.EHexState, Log.HexLog, Build.HexListBuilder] :>> es =>
+  (HSt.EHexState :> es, Log.HexLog :> es, Build.HexListBuilder :> es) =>
   ListElem.HList ->
   Eff es ()
 extendVListWithParagraphStateT paraHList = do
@@ -133,7 +133,7 @@ extendVListWithParagraphStateT paraHList = do
                 }
 
 setAndBreakHListToHBoxes ::
-  [HSt.EHexState, Log.HexLog] :>> es =>
+  (HSt.EHexState :> es, Log.HexLog :> es) =>
   ListElem.HList ->
   Eff es (Seq (Box.Boxed (Seq BoxElem.HBoxElem)))
 setAndBreakHListToHBoxes hList = do

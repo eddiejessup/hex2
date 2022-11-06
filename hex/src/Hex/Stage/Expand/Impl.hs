@@ -29,17 +29,16 @@ import Hex.Stage.Parse.Impl.Parsers.ExpansionCommand qualified as Par
 import Hexlude
 
 runPrimTokenSource ::
-  [ Error ExpansionError,
-    Error ParsingError,
-    Error Eval.EvaluationError,
-    Error HSt.ResolutionError,
-    HIO.HexIO,
-    HSt.EHexState,
-    State Expand.ConditionStates,
-    HexLog,
-    NonDet
-  ]
-    :>> es =>
+  ( Error ExpansionError :> es,
+    Error ParsingError :> es,
+    Error Eval.EvaluationError :> es,
+    Error HSt.ResolutionError :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    State Expand.ConditionStates :> es,
+    HexLog :> es,
+    NonDet :> es
+  ) =>
   Eff (PrimTokenSource : es) a ->
   Eff es a
 runPrimTokenSource = interpret $ \env -> \case
@@ -59,16 +58,15 @@ runPrimTokenSource = interpret $ \env -> \case
     throwError $ UnexpectedParsingError e
 
 runAltPrimTokenSource ::
-  [ Error ExpansionError,
-    Error ParsingError,
-    Error Eval.EvaluationError,
-    Error HSt.ResolutionError,
-    HIO.HexIO,
-    HSt.EHexState,
-    State Expand.ConditionStates,
-    HexLog
-  ]
-    :>> es =>
+  ( Error ExpansionError :> es,
+    Error ParsingError :> es,
+    Error Eval.EvaluationError :> es,
+    Error HSt.ResolutionError :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    State Expand.ConditionStates :> es,
+    HexLog :> es
+  ) =>
   Eff (PrimTokenSource : NonDet : es) a ->
   Eff es a
 runAltPrimTokenSource = runAlt . runPrimTokenSource
@@ -81,16 +79,15 @@ runAlt = interpret $ \env -> \case
       catchError @ParsingError (unlift a) $ \_callStack _e -> unlift b
 
 runAltPrimTokenSourceMaybe ::
-  [ Error ExpansionError,
-    Error ParsingError,
-    Error Eval.EvaluationError,
-    Error HSt.ResolutionError,
-    HIO.HexIO,
-    HSt.EHexState,
-    State Expand.ConditionStates,
-    HexLog
-  ]
-    :>> es =>
+  ( Error ExpansionError :> es,
+    Error ParsingError :> es,
+    Error Eval.EvaluationError :> es,
+    Error HSt.ResolutionError :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    State Expand.ConditionStates :> es,
+    HexLog :> es
+  ) =>
   Eff (PrimTokenSource : NonDet : Error ParsingError : es) a ->
   Eff es (Maybe a)
 runAltPrimTokenSourceMaybe ef = do
@@ -104,17 +101,16 @@ data ExpansionResult
   | ExpandedToLexTokens (Seq LT.LexToken)
 
 expandResolvedTokenImpl ::
-  [ Error ExpansionError,
-    Error Eval.EvaluationError,
-    Error ParsingError,
-    Error HSt.ResolutionError,
-    State Expand.ConditionStates,
-    HIO.HexIO,
-    NonDet,
-    HSt.EHexState,
-    HexLog
-  ]
-    :>> es =>
+  ( Error ExpansionError :> es,
+    Error Eval.EvaluationError :> es,
+    Error ParsingError :> es,
+    Error HSt.ResolutionError :> es,
+    State Expand.ConditionStates :> es,
+    HIO.HexIO :> es,
+    NonDet :> es,
+    HSt.EHexState :> es,
+    HexLog :> es
+  ) =>
   RT.ResolvedToken ->
   Eff es ExpansionResult
 expandResolvedTokenImpl = \case
@@ -129,17 +125,16 @@ expandResolvedTokenImpl = \case
     ExpandedToLexTokens <$> expandExpansionCommand eExpansionCommand
 
 expandLexTokenImpl ::
-  [ Error ExpansionError,
-    Error Eval.EvaluationError,
-    Error ParsingError,
-    Error HSt.ResolutionError,
-    State Expand.ConditionStates,
-    NonDet,
-    HIO.HexIO,
-    HSt.EHexState,
-    HexLog
-  ]
-    :>> es =>
+  ( Error ExpansionError :> es,
+    Error Eval.EvaluationError :> es,
+    Error ParsingError :> es,
+    Error HSt.ResolutionError :> es,
+    State Expand.ConditionStates :> es,
+    NonDet :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    HexLog :> es
+  ) =>
   LT.LexToken ->
   Eff es ExpansionResult
 expandLexTokenImpl lt = do
@@ -148,17 +143,16 @@ expandLexTokenImpl lt = do
 -- Get the next lex-token from the input, resolve it, and expand it if
 -- necessary.
 getPrimitiveTokenImpl ::
-  [ Error ExpansionError,
-    Error Eval.EvaluationError,
-    Error ParsingError,
-    Error HSt.ResolutionError,
-    State Expand.ConditionStates,
-    NonDet,
-    HIO.HexIO,
-    HSt.EHexState,
-    HexLog
-  ]
-    :>> es =>
+  ( Error ExpansionError :> es,
+    Error Eval.EvaluationError :> es,
+    Error ParsingError :> es,
+    Error HSt.ResolutionError :> es,
+    State Expand.ConditionStates :> es,
+    NonDet :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    HexLog :> es
+  ) =>
   Eff es (Maybe (LT.LexToken, PrimitiveToken))
 getPrimitiveTokenImpl =
   HIO.getResolvedToken >>= \case
@@ -172,17 +166,16 @@ getPrimitiveTokenImpl =
           getPrimitiveTokenImpl
 
 expandExpansionCommand ::
-  [ Error ExpansionError,
-    Error Eval.EvaluationError,
-    Error ParsingError,
-    Error HSt.ResolutionError,
-    State Expand.ConditionStates,
-    NonDet,
-    HIO.HexIO,
-    HSt.EHexState,
-    HexLog
-  ]
-    :>> es =>
+  ( Error ExpansionError :> es,
+    Error Eval.EvaluationError :> es,
+    Error ParsingError :> es,
+    Error HSt.ResolutionError :> es,
+    State Expand.ConditionStates :> es,
+    NonDet :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    HexLog :> es
+  ) =>
   E.ExpansionCommand ->
   Eff es (Seq LT.LexToken)
 expandExpansionCommand = \case
@@ -257,17 +250,16 @@ expandExpansionCommand = \case
               lt & _Typed @LT.LexCharCat % typed @Code.CharCode !~ uc
 
 satisfyThenExpandingImpl ::
-  [ Error ExpansionError,
-    Error Eval.EvaluationError,
-    Error ParsingError,
-    Error HSt.ResolutionError,
-    State Expand.ConditionStates,
-    NonDet,
-    HIO.HexIO,
-    HSt.EHexState,
-    HexLog
-  ]
-    :>> es =>
+  ( Error ExpansionError :> es,
+    Error Eval.EvaluationError :> es,
+    Error ParsingError :> es,
+    Error HSt.ResolutionError :> es,
+    State Expand.ConditionStates :> es,
+    NonDet :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    HexLog :> es
+  ) =>
   ((LT.LexToken, PT.PrimitiveToken) -> Maybe a) ->
   Eff es a
 satisfyThenExpandingImpl f =

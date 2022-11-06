@@ -72,7 +72,7 @@ boxCharsAsElemSeq ::
 boxCharsAsElemSeq fNr = fmap (boxCharAsElem fNr)
 
 hyphenateHList ::
-  [HSt.EHexState, Log.HexLog] :>> es =>
+  (HSt.EHexState :> es, Log.HexLog :> es) =>
   ListElem.HList ->
   Eff es ListElem.HList
 hyphenateHList hList = do
@@ -87,7 +87,7 @@ hyphenateHList hList = do
   pure $ ListElem.HList flattened
 
 handleHListElemInHyphenation ::
-  [HSt.EHexState, State HyphenationState, Log.HexLog] :>> es =>
+  (HSt.EHexState :> es, State HyphenationState :> es, Log.HexLog :> es) =>
   ListElem.HListElem ->
   Eff es (Seq ListElem.HListElem)
 handleHListElemInHyphenation x =
@@ -298,7 +298,7 @@ reset seenGlue =
   put $ if seenGlue then SearchingForStartingLetter else SearchingForGlue
 
 breakHListMultiPass ::
-  [Log.HexLog, HSt.EHexState] :>> es =>
+  (Log.HexLog :> es, HSt.EHexState :> es) =>
   ListElem.HList ->
   Eff es (Seq HList)
 breakHListMultiPass rawHList = do

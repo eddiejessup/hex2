@@ -12,7 +12,7 @@ data HexEvaluate :: Effect where
 
 makeEffect ''HexEvaluate
 
-getEvalCommand :: [CommandSource, HexEvaluate] :>> es => Eff es (Maybe Eval.Command)
+getEvalCommand :: (CommandSource :> es, HexEvaluate :> es) => Eff es (Maybe Eval.Command)
 getEvalCommand =
   getCommand >>= \case
     Nothing -> pure Nothing

@@ -46,7 +46,7 @@ data AppState = AppState
   deriving stock (Generic)
 
 runInputApp ::
-  '[FS.FileSystem] :>> es =>
+  (FS.FileSystem :> es) =>
   HexEnv ->
   AppState ->
   Eff
@@ -79,7 +79,7 @@ runInputApp hexEnv appState app = do
     & runAppErrorJoin AppTFMError
 
 runPTSourceApp ::
-  '[FS.FileSystem] :>> es =>
+  (FS.FileSystem :> es) =>
   HexEnv ->
   AppState ->
   Eff
@@ -114,7 +114,7 @@ runPTSourceApp hexEnv appState app = do
     & runInputApp hexEnv appState
 
 runCommandSourceApp ::
-  '[FS.FileSystem] :>> es =>
+  (FS.FileSystem :> es) =>
   HexEnv ->
   AppState ->
   Eff
@@ -145,7 +145,7 @@ runCommandSourceApp hexEnv appState app = do
     & runPTSourceApp hexEnv appState
 
 runEvaluateApp ::
-  '[FS.FileSystem] :>> es =>
+  (FS.FileSystem :> es) =>
   HexEnv ->
   AppState ->
   Eff
@@ -177,7 +177,7 @@ runEvaluateApp hexEnv appState app = do
     & runCommandSourceApp hexEnv appState
 
 runExtractorApp ::
-  '[FS.FileSystem] :>> es =>
+  (FS.FileSystem :> es) =>
   HexEnv ->
   AppState ->
   Eff

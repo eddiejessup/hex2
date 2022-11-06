@@ -16,7 +16,7 @@ import Hex.Stage.Evaluate.Interface.AST.ExpansionCommand qualified as E
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as P
 import Hexlude
 
-evalConditionHead :: [Error Eval.EvaluationError, EHexState, HexIO] :>> es => P.ConditionHead -> Eff es E.ConditionOutcome
+evalConditionHead :: (Error Eval.EvaluationError :> es, EHexState :> es, HexIO :> es) => P.ConditionHead -> Eff es E.ConditionOutcome
 evalConditionHead = \case
   P.IfConditionHead ifConditionHead -> do
     evalHead <- evalIfConditionHeadToEvalHead ifConditionHead
@@ -26,7 +26,7 @@ evalConditionHead = \case
   P.CaseConditionHead caseNr ->
     E.CaseConditionOutcome <$> Eval.evalInt caseNr
 
-evalIfConditionHeadToEvalHead :: [Error Eval.EvaluationError, EHexState] :>> es => P.IfConditionHead -> Eff es E.IfConditionHead
+evalIfConditionHeadToEvalHead :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.IfConditionHead -> Eff es E.IfConditionHead
 evalIfConditionHeadToEvalHead = \case
   P.IfIntPairTest lhs ordering rhs ->
     E.IfIntPairTest <$> Eval.evalInt lhs <*> pure ordering <*> Eval.evalInt rhs
@@ -47,7 +47,7 @@ evalIfConditionHeadToEvalHead = \case
   P.IfConst constBool ->
     pure $ E.IfConst constBool
 
-evalIfConditionHeadToBool :: [EHexState, HexIO] :>> es => E.IfConditionHead -> Eff es Bool
+evalIfConditionHeadToBool :: (EHexState :> es, HexIO :> es) => E.IfConditionHead -> Eff es Bool
 evalIfConditionHeadToBool = \case
   E.IfIntPairTest lhs ordering rhs ->
     pure $ ordToComp ordering lhs rhs

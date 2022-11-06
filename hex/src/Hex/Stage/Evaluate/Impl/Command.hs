@@ -21,14 +21,14 @@ import Hex.Stage.Parse.Interface.AST.Quantity qualified as P
 import Hexlude
 import Witherable qualified as Wither
 
-evalCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.Command -> Eff es E.Command
+evalCommand :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.Command -> Eff es E.Command
 evalCommand = \case
   P.VModeCommand vModeCommand -> E.VModeCommand <$> evalVModeCommand vModeCommand
   P.HModeCommand hModeCommand -> E.HModeCommand <$> evalHModeCommand hModeCommand
   P.ModeIndependentCommand modeIndepCmd -> E.ModeIndependentCommand <$> evalModeIndepCmd modeIndepCmd
   P.ModeDependentCommand modeDepCmd -> E.ModeDependentCommand <$> evalModeDepCmd modeDepCmd
 
-evalVModeCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.VModeCommand -> Eff es E.VModeCommand
+evalVModeCommand :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.VModeCommand -> Eff es E.VModeCommand
 evalVModeCommand = \case
   P.End -> pure E.End
   P.Dump -> pure E.Dump
@@ -39,7 +39,7 @@ evalVModeCommand = \case
   P.AddHAlignedMaterial boxSpec -> E.AddHAlignedMaterial <$> evalBoxSpecification boxSpec
   P.AddUnwrappedFetchedVBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedVBox fetchedBoxRef
 
-evalHModeCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.HModeCommand -> Eff es E.HModeCommand
+evalHModeCommand :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.HModeCommand -> Eff es E.HModeCommand
 evalHModeCommand = \case
   P.AddControlSpace -> pure E.AddControlSpace
   P.AddCharacter charCodeRef -> E.AddCharacter <$> evalCharCodeRef charCodeRef
@@ -58,7 +58,7 @@ evalHModeCommand = \case
   P.AddVAlignedMaterial boxSpec -> E.AddVAlignedMaterial <$> evalBoxSpecification boxSpec
   P.AddUnwrappedFetchedHBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedHBox fetchedBoxRef
 
-evalModeIndepCmd :: [Error Eval.EvaluationError, EHexState] :>> es => P.ModeIndependentCommand -> Eff es E.ModeIndependentCommand
+evalModeIndepCmd :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.ModeIndependentCommand -> Eff es E.ModeIndependentCommand
 evalModeIndepCmd = \case
   P.Assign assignment -> E.Assign <$> evalAssignment assignment
   P.Relax -> pure E.Relax
@@ -77,7 +77,7 @@ evalModeIndepCmd = \case
   P.ChangeScope sign localStructureTrigger -> pure $ E.ChangeScope sign localStructureTrigger
   P.DebugShowState -> pure E.DebugShowState
 
-evalModeDepCmd :: [Error Eval.EvaluationError, EHexState] :>> es => P.ModeDependentCommand -> Eff es E.ModeDependentCommand
+evalModeDepCmd :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.ModeDependentCommand -> Eff es E.ModeDependentCommand
 evalModeDepCmd = \case
   P.ShowToken lt -> pure $ E.ShowToken lt
   P.ShowBox n -> E.ShowBox <$> Eval.evalInt n
@@ -91,17 +91,17 @@ evalModeDepCmd = \case
   P.StartParagraph indentFlag -> pure $ E.StartParagraph indentFlag
   P.EndParagraph -> pure E.EndParagraph
 
-evalCharCodeRef :: [Error Eval.EvaluationError, EHexState] :>> es => P.CharCodeRef -> Eff es Code.CharCode
+evalCharCodeRef :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.CharCodeRef -> Eff es Code.CharCode
 evalCharCodeRef = \case
   P.CharRef charCode -> pure charCode
   P.CharTokenRef n -> Eval.noteRange @Code.CharCode n
   P.CharCodeNrRef charCodeInt -> Eval.evalCharCodeInt charCodeInt
 
-evalAssignment :: [Error Eval.EvaluationError, EHexState] :>> es => P.Assignment -> Eff es E.Assignment
+evalAssignment :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.Assignment -> Eff es E.Assignment
 evalAssignment P.Assignment {body, scope} =
   E.Assignment <$> (evalAssignmentBody body) <*> pure scope
 
-evalStreamWriteCommand :: [Error Eval.EvaluationError, EHexState] :>> es => P.StreamWriteCommand -> Eff es E.StreamWriteCommand
+evalStreamWriteCommand :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.StreamWriteCommand -> Eff es E.StreamWriteCommand
 evalStreamWriteCommand (P.StreamWriteCommand n writeText) =
   E.StreamWriteCommand <$> Eval.evalInt n <*> evalWriteText writeText
 
@@ -112,14 +112,14 @@ evalWriteText = \case
   P.DeferredWriteText balancedText ->
     pure $ E.DeferredWriteText balancedText
 
-evalBoxPlacement :: [Error Eval.EvaluationError, EHexState] :>> es => Maybe (P.OffsetAlongAxis P.Length) -> Eff es (Maybe (P.OffsetAlongAxis Q.Length))
+evalBoxPlacement :: (Error Eval.EvaluationError :> es, EHexState :> es) => Maybe (P.OffsetAlongAxis P.Length) -> Eff es (Maybe (P.OffsetAlongAxis Q.Length))
 evalBoxPlacement = \case
   Nothing -> pure Nothing
   Just offsetAlongAxis -> do
     v <- traverse Eval.evalLength offsetAlongAxis
     pure $ Just v
 
-evalAssignmentBody :: [Error Eval.EvaluationError, EHexState] :>> es => P.AssignmentBody -> Eff es E.AssignmentBody
+evalAssignmentBody :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.AssignmentBody -> Eff es E.AssignmentBody
 evalAssignmentBody = \case
   P.DefineControlSequence controlSymbol controlSequenceTarget ->
     E.DefineControlSequence controlSymbol <$> evalControlSequenceTarget controlSequenceTarget
@@ -138,7 +138,7 @@ evalAssignmentBody = \case
   P.SetBoxDimension boxDimensionRef length -> pure $ E.SetBoxDimension boxDimensionRef length
   P.SetInteractionMode interactionMode -> pure $ E.SetInteractionMode interactionMode
 
-evalHyphenationPatterns :: [Error Eval.EvaluationError, EHexState] :>> es => [HSt.Hyph.HyphenationPattern] -> Eff es [HSt.Hyph.HyphenationPattern]
+evalHyphenationPatterns :: (Error Eval.EvaluationError :> es, EHexState :> es) => [HSt.Hyph.HyphenationPattern] -> Eff es [HSt.Hyph.HyphenationPattern]
 evalHyphenationPatterns patterns = do
   validatedPatterns <- for patterns $ \(HSt.Hyph.HyphenationPattern preLast lastValue) -> do
     validatedPreLast <- for preLast $ \(value, letterCharCode) -> do
@@ -154,7 +154,7 @@ evalHyphenationPatterns patterns = do
   pure $ validatedPatterns
 
 evalHyphenationExceptions ::
-  [Error Eval.EvaluationError, EHexState] :>> es =>
+  (Error Eval.EvaluationError :> es, EHexState :> es) =>
   [P.HyphenationException] ->
   Eff es (Map HSt.Hyph.WordCodes HSt.Hyph.WordHyphenationPoints)
 evalHyphenationExceptions hyphExceptions =
@@ -178,7 +178,7 @@ evalHyphenationExceptions hyphExceptions =
         L.NE.nonEmpty codeWord <&> \neCodeWord ->
           (HSt.Hyph.WordCodes neCodeWord, codePoints)
 
-toLowerCaseOrError :: [Error Eval.EvaluationError, EHexState] :>> es => Code.CharCode -> Eff es Code.CharCode
+toLowerCaseOrError :: (Error Eval.EvaluationError :> es, EHexState :> es) => Code.CharCode -> Eff es Code.CharCode
 toLowerCaseOrError charCode =
   HSt.getHexCode Code.CLowerCaseCodeType charCode >>= \case
     Code.LowerCaseCode Code.NoCaseChange ->
@@ -189,20 +189,20 @@ toLowerCaseOrError charCode =
 evalFontSpecialCharRef :: EHexState :> es => P.FontSpecialCharRef -> Eff es E.FontSpecialCharRef
 evalFontSpecialCharRef (P.FontSpecialCharRef fontSpecialChar fontNr) = E.FontSpecialCharRef fontSpecialChar <$> Eval.evalFontRef fontNr
 
-evalBox :: [Error Eval.EvaluationError, EHexState] :>> es => P.Box -> Eff es E.Box
+evalBox :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.Box -> Eff es E.Box
 evalBox = \case
   P.FetchedRegisterBox boxFetchMode loc -> E.FetchedRegisterBox boxFetchMode <$> Eval.evalExplicitRegisterLocation loc
   P.LastBox -> pure E.LastBox
   P.VSplitBox n length -> E.VSplitBox <$> Eval.evalInt n <*> Eval.evalLength length
   P.ExplicitBox boxSpecification explicitBoxType -> E.ExplicitBox <$> evalBoxSpecification boxSpecification <*> pure explicitBoxType
 
-evalBoxSpecification :: [Error Eval.EvaluationError, EHexState] :>> es => P.BoxSpecification -> Eff es E.BoxSpecification
+evalBoxSpecification :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.BoxSpecification -> Eff es E.BoxSpecification
 evalBoxSpecification = \case
   P.Natural -> pure E.Natural
   P.To length -> E.To <$> Eval.evalLength length
   P.Spread length -> E.Spread <$> Eval.evalLength length
 
-evalVariableAssignment :: [Error Eval.EvaluationError, EHexState] :>> es => P.VariableAssignment -> Eff es E.VariableAssignment
+evalVariableAssignment :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.VariableAssignment -> Eff es E.VariableAssignment
 evalVariableAssignment = \case
   P.IntVariableAssignment (P.QuantVariableAssignment qVar tgt) -> do
     quantVariableEval <- Eval.evalQuantVariableAsVariable qVar
@@ -229,7 +229,7 @@ evalVariableAssignment = \case
   P.SpecialLengthParameterVariableAssignment specialLengthParameter length ->
     E.SpecialLengthParameterVariableAssignment specialLengthParameter <$> Eval.evalLength length
 
-evalVariableModification :: [Error Eval.EvaluationError, EHexState] :>> es => P.VariableModification -> Eff es E.VariableModification
+evalVariableModification :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.VariableModification -> Eff es E.VariableModification
 evalVariableModification = \case
   P.AdvanceIntVariable var arg -> do
     eVar <- Eval.evalQuantVariableAsVariable var
@@ -252,14 +252,14 @@ evalVariableModification = \case
     eArg <- Eval.evalInt arg
     pure $ E.ScaleVariable scaleDirection eVar eArg
 
-evalNumericVariable :: [Error Eval.EvaluationError, EHexState] :>> es => P.NumericVariable -> Eff es E.NumericVariable
+evalNumericVariable :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.NumericVariable -> Eff es E.NumericVariable
 evalNumericVariable = \case
   P.IntNumericVariable var -> E.IntNumericVariable <$> Eval.evalQuantVariableAsVariable var
   P.LengthNumericVariable var -> E.LengthNumericVariable <$> Eval.evalQuantVariableAsVariable var
   P.GlueNumericVariable var -> E.GlueNumericVariable <$> Eval.evalQuantVariableAsVariable var
   P.MathGlueNumericVariable var -> E.MathGlueNumericVariable <$> Eval.evalQuantVariableAsVariable var
 
-evalControlSequenceTarget :: [Error Eval.EvaluationError, EHexState] :>> es => P.ControlSequenceTarget -> Eff es E.ControlSequenceTarget
+evalControlSequenceTarget :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.ControlSequenceTarget -> Eff es E.ControlSequenceTarget
 evalControlSequenceTarget = \case
   P.MacroTarget macroDefinition ->
     pure $ E.MacroTarget macroDefinition
@@ -278,17 +278,17 @@ evalControlSequenceTarget = \case
         <*> pure pFontFileSpec.fontPath
     pure $ E.FontTarget eFontFileSpec
 
-evalShortDefineTargetValue :: [Error Eval.EvaluationError, EHexState] :>> es => P.ShortDefTargetValue -> Eff es PT.ShortDefTargetValue
+evalShortDefineTargetValue :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.ShortDefTargetValue -> Eff es PT.ShortDefTargetValue
 evalShortDefineTargetValue (P.ShortDefTargetValue charryQuantityType tgtValInt) =
   PT.ShortDefTargetValue charryQuantityType <$> Eval.evalInt tgtValInt
 
-evalFontSpecification :: [Error Eval.EvaluationError, EHexState] :>> es => P.FontSpecification -> Eff es TFM.FontSpecification
+evalFontSpecification :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.FontSpecification -> Eff es TFM.FontSpecification
 evalFontSpecification = \case
   P.NaturalFont -> pure TFM.NaturalFont
   P.FontAt len -> TFM.FontAt <$> Eval.evalLength len
   P.FontScaled n -> TFM.FontScaled <$> Eval.evalInt n
 
-evalCodeAssignment :: [Error Eval.EvaluationError, EHexState] :>> es => P.CodeAssignment -> Eff es E.CodeAssignment
+evalCodeAssignment :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.CodeAssignment -> Eff es E.CodeAssignment
 evalCodeAssignment codeAssignment = do
   -- Evaluate the index in the code-table, i.e. which char-code's property to set.
   codeIx <- Eval.evalCharCodeInt codeAssignment.codeTableRef.codeIndex
@@ -325,7 +325,7 @@ evalMessageWriteCommand cmd = do
   pure $ E.MessageWriteCommand {messageDest = cmd.messageDest, messageContents}
 
 evalFileStreamModificationCommand ::
-  [Error Eval.EvaluationError, EHexState] :>> es =>
+  (Error Eval.EvaluationError :> es, EHexState :> es) =>
   P.FileStreamModificationCommand ->
   Eff es E.FileStreamModificationCommand
 evalFileStreamModificationCommand cmd = do

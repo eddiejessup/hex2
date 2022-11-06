@@ -26,7 +26,7 @@ import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
 
 runHexIO ::
-  [Error HIO.LexError, State IOState, HEnv.EHexEnv, HexLog, EHexState, FS.FileSystem] :>> es =>
+  (Error HIO.LexError :> es, State IOState :> es, HEnv.EHexEnv :> es, HexLog :> es, EHexState :> es, FS.FileSystem :> es) =>
   Eff (HexIO : es) a ->
   Eff es a
 runHexIO = interpret $ \_ -> \case
@@ -53,7 +53,7 @@ getEndLineCharCode =
   Code.fromHexInt <$> HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.EndLineChar)
 
 endCurrentLineImpl ::
-  [State IOState, EHexState, Error HIO.LexError] :>> es =>
+  (State IOState :> es, EHexState :> es, Error HIO.LexError :> es) =>
   Eff es ()
 endCurrentLineImpl = do
   stack <- getInputImpl
@@ -69,7 +69,7 @@ endCurrentLineImpl = do
           putInputImpl newStack
 
 endCurrentInputImpl ::
-  [State IOState, EHexState, Error HIO.LexError] :>> es =>
+  (State IOState :> es) =>
   Eff es ()
 endCurrentInputImpl =
   modifying
@@ -101,7 +101,7 @@ extractNextLexTokenFromWorkingLineBuffer = do
       pure Nothing
 
 extractNextLexTokenFromWorkingLineSource ::
-  [EHexState, State IOState, Error HIO.LexError, HexLog] :>> es =>
+  (EHexState :> es, State IOState :> es, Error HIO.LexError :> es, HexLog :> es) =>
   Eff es (Maybe LT.LexToken)
 extractNextLexTokenFromWorkingLineSource = do
   lineState <- use @IOState (#sourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #lineState)
@@ -120,7 +120,7 @@ extractNextLexTokenFromWorkingLineSource = do
       pure $ Just lt
 
 getNextLexTokenImpl ::
-  [EHexState, State IOState, Error HIO.LexError, HexLog] :>> es =>
+  (EHexState :> es, State IOState :> es, Error HIO.LexError :> es, HexLog :> es) =>
   Eff es (Maybe LT.LexToken)
 getNextLexTokenImpl = do
   extractNextLexTokenFromWorkingLineBuffer >>= \case
@@ -137,7 +137,7 @@ getNextLexTokenImpl = do
               getNextLexTokenImpl
 
 readTexFileImpl ::
-  [EHexState, FS.FileSystem, HEnv.EHexEnv, State IOState, Error HIO.LexError] :>> es =>
+  (EHexState :> es, HEnv.EHexEnv :> es, State IOState :> es, Error HIO.LexError :> es) =>
   HexFilePath ->
   Eff es ()
 readTexFileImpl inputPath = do
@@ -150,7 +150,7 @@ readTexFileImpl inputPath = do
   modifying @IOState #sourceStack (CharSourceStack.pushCharSource endLineCode inputBytes)
 
 openStreamFileImpl ::
-  [EHexState, State IOState, HEnv.EHexEnv, Error HIO.LexError, FS.FileSystem] :>> es =>
+  (State IOState :> es, HEnv.EHexEnv :> es, FS.FileSystem :> es) =>
   HexFilePath ->
   Q.FourBitInt ->
   HIO.InputOrOutput ->
@@ -164,7 +164,7 @@ openStreamFileImpl inputPath streamNr inOrOut = do
   assign @IOState (IOState.streamLens inOrOut streamNr) mayHandle
 
 atEndOfInputStreamFileImpl ::
-  [EHexState, State IOState, HEnv.EHexEnv, Error HIO.LexError, FS.FileSystem] :>> es =>
+  (State IOState :> es, FS.FileSystem :> es) =>
   Q.FourBitInt ->
   Eff es Bool
 atEndOfInputStreamFileImpl streamNr = do

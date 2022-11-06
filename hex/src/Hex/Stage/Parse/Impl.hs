@@ -15,32 +15,30 @@ import Hex.Stage.Parse.Interface.AST.Command qualified as Par
 import Hexlude
 
 runCommandSource ::
-  [ Error Exp.ExpansionError,
-    Error ParsingError,
-    Error Eval.EvaluationError,
-    Error HSt.ResolutionError,
-    HIO.HexIO,
-    HSt.EHexState,
-    State Exp.ConditionStates,
-    Log.HexLog
-  ]
-    :>> es =>
+  ( Error Exp.ExpansionError :> es,
+    Error ParsingError :> es,
+    Error Eval.EvaluationError :> es,
+    Error HSt.ResolutionError :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    State Exp.ConditionStates :> es,
+    Log.HexLog :> es
+  ) =>
   Eff (CommandSource : es) a ->
   Eff es a
 runCommandSource = interpret $ \_ -> \case
   GetCommand -> getCommandImpl
 
 getCommandImpl ::
-  [ Error Exp.ExpansionError,
-    Error ParsingError,
-    Error Eval.EvaluationError,
-    Error HSt.ResolutionError,
-    HIO.HexIO,
-    HSt.EHexState,
-    State Exp.ConditionStates,
-    Log.HexLog
-  ]
-    :>> es =>
+  ( Error Exp.ExpansionError :> es,
+    Error ParsingError :> es,
+    Error Eval.EvaluationError :> es,
+    Error HSt.ResolutionError :> es,
+    HIO.HexIO :> es,
+    HSt.EHexState :> es,
+    State Exp.ConditionStates :> es,
+    Log.HexLog :> es
+  ) =>
   Eff es (Maybe Par.Command)
 getCommandImpl = do
   runAltPrimTokenSourceMaybe Parsers.Command.parseCommand >>= \case

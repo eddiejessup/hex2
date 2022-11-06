@@ -22,7 +22,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-parseCommand :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.Command
+parseCommand :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AST.Command
 parseCommand =
   anyPrim >>= \case
     PT.DebugShowState ->
@@ -147,7 +147,7 @@ parseCommand =
           AST.VModeCommand . AST.AddUnwrappedFetchedVBox <$> Par.headToParseFetchedBoxRef Vertical t
         ]
 
-headToParseInternalQuantity :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalQuantity
+headToParseInternalQuantity :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => PT.PrimitiveToken -> Eff es AST.InternalQuantity
 headToParseInternalQuantity =
   choiceFlap
     [ fmap AST.InternalIntQuantity <$> Par.headToParseInternalInt,
@@ -158,7 +158,7 @@ headToParseInternalQuantity =
       fmap AST.TokenListVariableQuantity <$> Par.headToParseTokenListVariable
     ]
 
-headToParseCharCodeRef :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.CharCodeRef
+headToParseCharCodeRef :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => PT.PrimitiveToken -> Eff es AST.CharCodeRef
 headToParseCharCodeRef = \case
   PT.CharCatPair (LT.LexCharCat c Code.Letter) ->
     pure $ AST.CharRef c
