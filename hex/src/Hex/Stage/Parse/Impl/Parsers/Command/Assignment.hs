@@ -11,7 +11,7 @@ import Hex.Stage.Parse.Impl.Parsers.Command.Assignment.NonMacro qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-headToParseAssignment :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.Assignment
+headToParseAssignment :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.Assignment
 headToParseAssignment = go mempty
   where
     go prefixes = \case
@@ -41,7 +41,7 @@ headToParseAssignment = go mempty
 
 -- ⟨optional assignments⟩ stands for zero or more ⟨assignment⟩ commands
 -- other than \setbox.
-parseNonSetBoxAssignment :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.Assignment
+parseNonSetBoxAssignment :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.Assignment
 parseNonSetBoxAssignment =
   anyPrim >>= headToParseAssignment >>= \case
     AST.Assignment (AST.SetBoxRegister _ _) _ ->

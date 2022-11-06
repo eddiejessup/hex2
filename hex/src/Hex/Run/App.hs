@@ -84,7 +84,7 @@ runPTSourceApp ::
   AppState ->
   Eff
     ( Expand.PrimTokenSource
-        : EAlternative
+        : NonDet
           : Error ParsingError
             : Error Expand.ExpansionError
               : Error ResolutionError
@@ -120,7 +120,7 @@ runCommandSourceApp ::
   Eff
     ( CommandSource
         : Expand.PrimTokenSource
-          : EAlternative
+          : NonDet
             : Error ParsingError
               : Error Expand.ExpansionError
                 : Error ResolutionError
@@ -152,7 +152,7 @@ runEvaluateApp ::
     ( HexEvaluate
         : CommandSource
           : Expand.PrimTokenSource
-            : EAlternative
+            : NonDet
               : Error ParsingError
                 : Error Expand.ExpansionError
                   : Error ResolutionError
@@ -186,7 +186,7 @@ runExtractorApp ::
           : HexEvaluate
             : CommandSource
               : Expand.PrimTokenSource
-                : EAlternative
+                : NonDet
                   : Error ParsingError
                     : Error Expand.ExpansionError
                       : Error ResolutionError

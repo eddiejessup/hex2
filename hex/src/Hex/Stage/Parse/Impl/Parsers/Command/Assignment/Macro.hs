@@ -16,14 +16,14 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators qualified as Par
 import Hex.Stage.Parse.Interface.AST.Command qualified as AST
 import Hexlude
 
-parseMacroBody :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpansionMode -> Seq PT.AssignPrefixTok -> Eff es AST.AssignmentBody
+parseMacroBody :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.ExpansionMode -> Seq PT.AssignPrefixTok -> Eff es AST.AssignmentBody
 parseMacroBody expansionMode prefixes = do
   cs <- Par.parseControlSymbol
   tgt <- parseMacroDefinition expansionMode prefixes
   pure $ AST.DefineControlSequence cs (AST.MacroTarget tgt)
 
 -- Parse a parameter specification, and also the begin-group that surround the macro's replacement text.
-parseMacroParameterSpecificationAndLeftBrace :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ST.MacroParameterSpecification
+parseMacroParameterSpecificationAndLeftBrace :: forall es. [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es ST.MacroParameterSpecification
 parseMacroParameterSpecificationAndLeftBrace = do
   -- Pre-parameter text tokens.
   preParameterText <- parseMacroParameterDelimiterText
@@ -80,7 +80,7 @@ parseMacroParameterSpecificationAndLeftBrace = do
 charCodeToDigit :: Code.CharCode -> Maybe ASCII.Digit
 charCodeToDigit charCode = ASCII.toDigitMaybe (Code.codeAsAsciiChar charCode)
 
-parseMacroParameterDelimiterText :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es ST.ParameterText
+parseMacroParameterDelimiterText :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es ST.ParameterText
 parseMacroParameterDelimiterText = do
   delimiterTokens <- PC.many $ Par.satisfyIf Par.satisfyThenInhibited isDelimiterToken
   pure $ ST.ParameterText $ Seq.fromList delimiterTokens
@@ -94,7 +94,7 @@ parseMacroParameterDelimiterText = do
       _ ->
         True
 
-parseMacroDefinition :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpansionMode -> Seq PT.AssignPrefixTok -> Eff es ST.MacroDefinition
+parseMacroDefinition :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.ExpansionMode -> Seq PT.AssignPrefixTok -> Eff es ST.MacroDefinition
 parseMacroDefinition expansionMode prefixes = do
   parameterSpecification <- parseMacroParameterSpecificationAndLeftBrace
   replacementText <- parseMacroReplacementText expansionMode
@@ -108,7 +108,7 @@ parseMacroDefinition expansionMode prefixes = do
 
 -- Extract a balanced text but parsing parameter references at definition-time.
 -- Assumes we just parsed the '{' that starts the macro text.
-parseMacroReplacementText :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpansionMode -> Eff es ST.MacroReplacementText
+parseMacroReplacementText :: forall es. [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.ExpansionMode -> Eff es ST.MacroReplacementText
 parseMacroReplacementText expansionMode =
   -- The const is because the 'parse-next' function actually accepts a Int
   -- parameter representing the current depth. But in this case we don't use

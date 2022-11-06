@@ -14,7 +14,7 @@ import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as Par
 import Hexlude
 
-parseMathGlue :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es Par.MathGlue
+parseMathGlue :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es Par.MathGlue
 parseMathGlue =
   PC.choice
     [ AST.ExplicitMathGlue
@@ -24,7 +24,7 @@ parseMathGlue =
       AST.InternalMathGlue <$> Par.parseSigned (anyPrim >>= Par.headToParseInternalMathGlue)
     ]
 
-parsePureMathFlex :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => [Code.CharCode] -> Eff es (Maybe AST.PureMathFlex)
+parsePureMathFlex :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => [Code.CharCode] -> Eff es (Maybe AST.PureMathFlex)
 parsePureMathFlex s =
   PC.choice
     [ Just <$> parsePresentFlex,

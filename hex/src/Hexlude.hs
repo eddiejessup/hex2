@@ -11,7 +11,6 @@ module Hexlude
     module Formatting,
     module Hexlude.Concept,
     module Hexlude.NonEmptySeq,
-    module Hexlude.Alternative,
     module Effectful,
     traceShowIdM,
     traceResultM,
@@ -41,6 +40,7 @@ module Hexlude
     nothingToError,
     module Effectful.Reader.Dynamic,
     module Effectful.Error.Dynamic,
+    module Effectful.NonDet,
     module Effectful.Writer.Dynamic,
     module Effectful.State.Dynamic,
   )
@@ -57,13 +57,13 @@ import Effectful
 import Effectful.Dispatch.Dynamic (interpret, reinterpret, send)
 import Effectful.Error.Dynamic
 import Effectful.Reader.Dynamic
+import Effectful.NonDet hiding (Empty)
 import Effectful.State.Dynamic
 import Effectful.TH (makeEffect)
 import Effectful.Writer.Dynamic
 import Formatting (Format, bformat, later, sformat)
 import Formatting qualified as F
 import GHC.Num qualified as Num
-import Hexlude.Alternative
 import Hexlude.Concept
 import Hexlude.NonEmptySeq (NonEmptySeq)
 -- Import `Optics.At` for instance:

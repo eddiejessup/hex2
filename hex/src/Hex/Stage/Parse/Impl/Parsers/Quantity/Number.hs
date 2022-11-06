@@ -19,7 +19,7 @@ import Hex.Stage.Parse.Impl.Parsers.Combinators
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
 
-parseSigned :: forall es a. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es a -> Eff es (AST.Signed a)
+parseSigned :: forall es a. [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es a -> Eff es (AST.Signed a)
 parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
   where
     parseOptionalSigns :: Eff es [Q.Sign]
@@ -32,10 +32,10 @@ parseSigned parseQuantity = AST.Signed <$> parseOptionalSigns <*> parseQuantity
           | isOnly (ccCatChar Code.Other) (Code.Chr_ '-') cc = Just Q.Negative
           | otherwise = Nothing
 
-parseInt :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.HexInt
+parseInt :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.HexInt
 parseInt = AST.HexInt <$> parseSigned (anyPrim >>= headToParseUnsignedInt)
 
-headToParseUnsignedInt :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.UnsignedInt
+headToParseUnsignedInt :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.UnsignedInt
 headToParseUnsignedInt headTok =
   choiceFlap
     [ fmap AST.NormalUnsignedInt <$> headToParseNormalInt,
@@ -43,7 +43,7 @@ headToParseUnsignedInt headTok =
     ]
     headTok
 
-headToParseNormalInt :: forall es. [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.NormalInt
+headToParseNormalInt :: forall es. [PrimTokenSource, NonDet, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.NormalInt
 headToParseNormalInt headToken = do
   Log.debugLog $ "headToParseNormalInt " <> F.sformat PT.fmtPrimitiveToken headToken
   choiceFlap
@@ -99,7 +99,7 @@ fromCatChar cat fromWord cc =
     then fromWord cc.lexCCChar.unCharCode
     else Nothing
 
-headToParseInternalInt :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalInt
+headToParseInternalInt :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalInt
 headToParseInternalInt =
   choiceFlap
     [ \case
@@ -116,45 +116,45 @@ headToParseInternalInt =
       fmap AST.InternalFontSpecialCharRef <$> headToParseFontSpecialCharRef
     ]
 
-headToParseCoercedInt :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.CoercedInt
+headToParseCoercedInt :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PrimitiveToken -> Eff es AST.CoercedInt
 headToParseCoercedInt =
   choiceFlap
     [ fmap AST.InternalLengthAsInt <$> headToParseInternalLength,
       fmap AST.InternalGlueAsInt <$> headToParseInternalGlue
     ]
 
-headToParseCodeTableRef :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.CodeTableRef
+headToParseCodeTableRef :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.CodeTableRef
 headToParseCodeTableRef = \case
   PT.CodeTypeTok c ->
     AST.CodeTableRef c <$> parseCharCodeInt
   t ->
     failParse $ SawUnexpectedPrimitiveToken $ UnexpectedPrimitiveToken {saw = t, expected = "CodeTypeTok"}
 
-parseCharCodeInt :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.CharCodeInt
+parseCharCodeInt :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.CharCodeInt
 parseCharCodeInt = AST.CharCodeInt <$> parseInt
 
-headToParseCharToken :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es Q.HexInt
+headToParseCharToken :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es Q.HexInt
 headToParseCharToken = \case
   PT.ShortDefTargetToken (PT.ShortDefTargetValue PT.CharQuantity c) ->
     pure c
   t ->
     failParse $ SawUnexpectedPrimitiveToken $ UnexpectedPrimitiveToken {saw = t, expected = "ShortDefTargetValue CharQuantity"}
 
-headToParseMathCharToken :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es Q.HexInt
+headToParseMathCharToken :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es Q.HexInt
 headToParseMathCharToken = \case
   PT.ShortDefTargetToken (PT.ShortDefTargetValue PT.MathCharQuantity c) ->
     pure c
   t ->
     parseFail $ "headToParseMathCharToken " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseFontSpecialCharRef :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.FontSpecialCharRef
+headToParseFontSpecialCharRef :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.FontSpecialCharRef
 headToParseFontSpecialCharRef = \case
   PT.FontSpecialCharTok c ->
     AST.FontSpecialCharRef c <$> (anyPrim >>= headToParseFontRef)
   t ->
     parseFail $ "headToParseFontSpecialCharRef " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseFontRef :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.FontRef
+headToParseFontRef :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.FontRef
 headToParseFontRef =
   choiceFlap
     [ \case
@@ -164,12 +164,12 @@ headToParseFontRef =
       fmap AST.FamilyMemberFontRef <$> headToParseFamilyMember
     ]
 
-headToParseFontRefToken :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es Font.FontNumber
+headToParseFontRefToken :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es Font.FontNumber
 headToParseFontRefToken = \case
   PT.FontRefToken n -> pure n
   t -> parseFail $ "headToParseFontRefToken " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseFamilyMember :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.FamilyMember
+headToParseFamilyMember :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.FamilyMember
 headToParseFamilyMember = \case
   PT.FontRangeTok r -> AST.FamilyMember r <$> parseInt
   t -> parseFail $ "headToParseFamilyMember " <> F.sformat PT.fmtPrimitiveToken t
@@ -181,7 +181,7 @@ headToParseFamilyMember = \case
 
 -- Length.
 
-headToParseInternalLength :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalLength
+headToParseInternalLength :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalLength
 headToParseInternalLength =
   choiceFlap
     [ \case
@@ -193,14 +193,14 @@ headToParseInternalLength =
       fmap AST.InternalBoxDimensionRef <$> headToParseBoxDimensionRef
     ]
 
-headToParseFontDimensionRef :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.FontDimensionRef
+headToParseFontDimensionRef :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.FontDimensionRef
 headToParseFontDimensionRef = \case
   PT.FontDimensionTok ->
     AST.FontDimensionRef <$> parseInt <*> (anyPrim >>= headToParseFontRef)
   t ->
     parseFail $ "headToParseFontDimensionRef " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseBoxDimensionRef :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.BoxDimensionRef
+headToParseBoxDimensionRef :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.BoxDimensionRef
 headToParseBoxDimensionRef = \case
   PT.BoxDimensionTok dim -> do
     boxNr <- parseExplicitRegisterLocation
@@ -210,7 +210,7 @@ headToParseBoxDimensionRef = \case
 
 -- Glue.
 
-headToParseInternalGlue :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalGlue
+headToParseInternalGlue :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalGlue
 headToParseInternalGlue =
   choiceFlap
     [ fmap AST.InternalGlueVariable <$> headToParseGlueVariable,
@@ -225,10 +225,10 @@ headToParseInternalGlue =
 -- (Also, 'special' quantities are kept here too, because they are similar to
 -- variables.)
 
-parseExplicitRegisterLocation :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es (AST.ExplicitRegisterLocation)
+parseExplicitRegisterLocation :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es (AST.ExplicitRegisterLocation)
 parseExplicitRegisterLocation = AST.ExplicitRegisterLocation <$> parseInt
 
-headToParseIntVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.IntQuantity)
+headToParseIntVariable :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.IntQuantity)
 headToParseIntVariable = \case
   PT.IntParamVarTok p ->
     pure (AST.ParamVar (HSt.Param.IntQuantParam p))
@@ -239,7 +239,7 @@ headToParseIntVariable = \case
   t ->
     parseFail $ "headToParseIntVariable " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseLengthVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.LengthQuantity)
+headToParseLengthVariable :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.LengthQuantity)
 headToParseLengthVariable = \case
   PT.LengthParamVarTok p ->
     pure (AST.ParamVar (HSt.Param.LengthQuantParam p))
@@ -250,7 +250,7 @@ headToParseLengthVariable = \case
   t ->
     parseFail $ "headToParseLengthVariable " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseGlueVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.GlueQuantity)
+headToParseGlueVariable :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.GlueQuantity)
 headToParseGlueVariable = \case
   PT.GlueParamVarTok p ->
     pure (AST.ParamVar (HSt.Param.GlueQuantParam p))
@@ -261,7 +261,7 @@ headToParseGlueVariable = \case
   t ->
     parseFail $ "headToParseGlueVariable " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseMathGlueVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.MathGlueQuantity)
+headToParseMathGlueVariable :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.MathGlueQuantity)
 headToParseMathGlueVariable = \case
   PT.MathGlueParamVarTok p ->
     pure $ AST.ParamVar $ HSt.Param.MathGlueQuantParam p
@@ -278,7 +278,7 @@ headToParseMathGlueVariable = \case
   t ->
     parseFail $ "headToParseMathGlueVariable " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseTokenListVariable :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.TokenListQuantity)
+headToParseTokenListVariable :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.TokenListQuantity)
 headToParseTokenListVariable = \case
   PT.TokenListParamVarTok p ->
     pure (AST.ParamVar (HSt.Param.TokenListQuantParam p))
@@ -289,14 +289,14 @@ headToParseTokenListVariable = \case
   t ->
     parseFail $ "headToParseTokenListVariable " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseSpecialInt :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es HSt.Param.SpecialIntParameter
+headToParseSpecialInt :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es HSt.Param.SpecialIntParameter
 headToParseSpecialInt = \case
   PT.SpecialIntParameterTok p ->
     pure p
   t ->
     parseFail $ "headToParseSpecialInt " <> F.sformat PT.fmtPrimitiveToken t
 
-headToParseSpecialLength :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es HSt.Param.SpecialLengthParameter
+headToParseSpecialLength :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es HSt.Param.SpecialLengthParameter
 headToParseSpecialLength = \case
   PT.SpecialLengthParameterTok p ->
     pure p

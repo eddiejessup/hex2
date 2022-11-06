@@ -78,11 +78,29 @@ fmtHBaseElem = F.later $ \case
 
 data VBoxElem
   = VBoxBaseElem BaseElem
+  | VBoxSetGlueElem SetGlue
   deriving stock (Show, Eq, Generic)
+
+data SetGlue = SetGlue {setAt :: Q.Length, glue :: Q.Glue}
+  deriving stock (Show, Eq, Generic)
+
+-- >>> a = SetGlue {setAt = Q.onePt, glue = Q.filStretchGlue}
+fmtSetGlue :: Fmt SetGlue
+fmtSetGlue = F.accessed asKVs (F.prefixed "\\setglue" $ F.braced $ F.commaSpaceSep fmtKV)
+  where
+    asKVs :: SetGlue -> [(Text, Text)]
+    asKVs SetGlue {setAt, glue} =
+      [("setAt", F.sformat Q.fmtLengthWithUnit setAt), ("glue", F.sformat Q.fmtGlue glue)]
+
+    fmtKV :: Fmt (Text, Text)
+    fmtKV = F.accessed fst F.stext <> " = " |%| F.accessed snd F.stext
 
 fmtVBoxElemOneLine :: Fmt VBoxElem
 fmtVBoxElemOneLine = F.later $ \case
   VBoxBaseElem e -> bformat fmtBaseElemOneLine e
+  VBoxSetGlueElem setGlue -> bformat fmtSetGlue setGlue
+
+-- \setGlue{}
 
 data BaseElem
   = AxOrRuleBoxBaseElem (Box.Boxed (AxBoxOrRuleContents))

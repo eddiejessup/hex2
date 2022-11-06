@@ -4,6 +4,7 @@ module Hex.Stage.Expand.Impl where
 
 import Data.Sequence qualified as Seq
 import Effectful.Dispatch.Dynamic (localSeqUnlift)
+import Effectful.NonDet qualified as NonDet
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog)
 import Hex.Common.Codes qualified as Code
@@ -36,7 +37,7 @@ runPrimTokenSource ::
     HSt.EHexState,
     State Expand.ConditionStates,
     HexLog,
-    EAlternative
+    NonDet
   ]
     :>> es =>
   Eff (PrimTokenSource : es) a ->
@@ -68,14 +69,14 @@ runAltPrimTokenSource ::
     HexLog
   ]
     :>> es =>
-  Eff (PrimTokenSource : EAlternative : es) a ->
+  Eff (PrimTokenSource : NonDet : es) a ->
   Eff es a
 runAltPrimTokenSource = runAlt . runPrimTokenSource
 
-runAlt :: Error ParsingError :> es => Eff (EAlternative : es) a -> Eff es a
+runAlt :: Error ParsingError :> es => Eff (NonDet : es) a -> Eff es a
 runAlt = interpret $ \env -> \case
-  AltEmpty -> throwError @ParsingError $ Expand.UnexpectedParsingError ParseDefaultFailure
-  AltChoice a b -> do
+  NonDet.Empty -> throwError @ParsingError $ Expand.UnexpectedParsingError ParseDefaultFailure
+  a :<|>: b -> do
     localSeqUnlift env $ \unlift -> do
       catchError @ParsingError (unlift a) $ \_callStack _e -> unlift b
 
@@ -90,7 +91,7 @@ runAltPrimTokenSourceMaybe ::
     HexLog
   ]
     :>> es =>
-  Eff (PrimTokenSource : EAlternative : Error ParsingError : es) a ->
+  Eff (PrimTokenSource : NonDet : Error ParsingError : es) a ->
   Eff es (Maybe a)
 runAltPrimTokenSourceMaybe ef = do
   runErrorNoCallStack @ParsingError (runAltPrimTokenSource ef) >>= \case
@@ -109,7 +110,7 @@ expandResolvedTokenImpl ::
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
     HIO.HexIO,
-    EAlternative,
+    NonDet,
     HSt.EHexState,
     HexLog
   ]
@@ -133,7 +134,7 @@ expandLexTokenImpl ::
     Error ParsingError,
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
-    EAlternative,
+    NonDet,
     HIO.HexIO,
     HSt.EHexState,
     HexLog
@@ -152,7 +153,7 @@ getPrimitiveTokenImpl ::
     Error ParsingError,
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
-    EAlternative,
+    NonDet,
     HIO.HexIO,
     HSt.EHexState,
     HexLog
@@ -176,7 +177,7 @@ expandExpansionCommand ::
     Error ParsingError,
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
-    EAlternative,
+    NonDet,
     HIO.HexIO,
     HSt.EHexState,
     HexLog
@@ -261,7 +262,7 @@ satisfyThenExpandingImpl ::
     Error ParsingError,
     Error HSt.ResolutionError,
     State Expand.ConditionStates,
-    EAlternative,
+    NonDet,
     HIO.HexIO,
     HSt.EHexState,
     HexLog

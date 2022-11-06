@@ -12,28 +12,28 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.Quantity qualified as AST
 import Hexlude
 
-parseMathLength :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.MathLength
+parseMathLength :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.MathLength
 parseMathLength = AST.MathLength <$> Par.parseSigned parseUnsignedMathLength
 
-parseUnsignedMathLength :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.UnsignedMathLength
+parseUnsignedMathLength :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.UnsignedMathLength
 parseUnsignedMathLength =
   PC.choice
     [ AST.NormalMathLengthAsUMathLength <$> parseNormalMathLength,
       AST.CoercedMathLength . AST.InternalMathGlueAsMathLength <$> (anyPrim >>= headToParseInternalMathGlue)
     ]
 
-parseNormalMathLength :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.NormalMathLength
+parseNormalMathLength :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.NormalMathLength
 parseNormalMathLength =
   AST.MathLengthSemiConstant <$> Par.parseFactor <*> parseMathUnit
 
-parseMathUnit :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es AST.MathUnit
+parseMathUnit :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es AST.MathUnit
 parseMathUnit =
   PC.choice
     [ skipKeyword PT.Expanding [Chr_ 'm', Chr_ 'u'] >> skipOneOptionalSpace PT.Expanding $> AST.Mu,
       skipOptionalSpaces PT.Expanding *> (AST.InternalMathGlueAsUnit <$> (anyPrim >>= headToParseInternalMathGlue))
     ]
 
-headToParseInternalMathGlue :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalMathGlue
+headToParseInternalMathGlue :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.PrimitiveToken -> Eff es AST.InternalMathGlue
 headToParseInternalMathGlue =
   choiceFlap
     [ fmap AST.InternalMathGlueVariable <$> Par.headToParseMathGlueVariable,

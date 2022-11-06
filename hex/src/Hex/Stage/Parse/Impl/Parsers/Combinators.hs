@@ -13,17 +13,17 @@ import Hex.Stage.Expand.Interface (PrimTokenSource (..))
 import Hex.Stage.Expand.Interface qualified as Par
 import Hexlude
 
-satisfyLexThen :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> (LT.LexToken -> Maybe a) -> Eff es a
+satisfyLexThen :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> (LT.LexToken -> Maybe a) -> Eff es a
 satisfyLexThen mode f = case mode of
   PT.Expanding -> Par.satisfyThenExpanding (\(lt, _pt) -> f lt)
   PT.Inhibited -> Par.satisfyThenInhibited f
 
-satisfyCharCatThen :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> (LT.LexCharCat -> Maybe a) -> Eff es a
+satisfyCharCatThen :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> (LT.LexCharCat -> Maybe a) -> Eff es a
 satisfyCharCatThen mode f = satisfyLexThen mode $ \case
   LT.CharCatLexToken cc -> f cc
   _ -> Nothing
 
-satisfyPrimThenExpanding :: [PrimTokenSource, EAlternative] :>> es => (PT.PrimitiveToken -> Maybe a) -> Eff es a
+satisfyPrimThenExpanding :: (PrimTokenSource :> es, NonDet :> es) => (PT.PrimitiveToken -> Maybe a) -> Eff es a
 satisfyPrimThenExpanding f = Par.satisfyThenExpanding (\(_lt, pt) -> f pt)
 
 type SatisfyThen m t a = (t -> Maybe a) -> m a
@@ -31,16 +31,16 @@ type SatisfyThen m t a = (t -> Maybe a) -> m a
 anyToken :: SatisfyThen (Eff es) t t -> Eff es t
 anyToken satisfyThen = satisfyThen Just
 
-anyLexInMode :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> Eff es LT.LexToken
+anyLexInMode :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> Eff es LT.LexToken
 anyLexInMode mode = anyToken (satisfyLexThen mode)
 
-anyLexExpanding :: [PrimTokenSource, EAlternative] :>> es => Eff es LT.LexToken
+anyLexExpanding :: (PrimTokenSource :> es, NonDet :> es) => Eff es LT.LexToken
 anyLexExpanding = anyLexInMode PT.Expanding
 
-anyLexInhibited :: [PrimTokenSource, EAlternative] :>> es => Eff es LT.LexToken
+anyLexInhibited :: (PrimTokenSource :> es, NonDet :> es) => Eff es LT.LexToken
 anyLexInhibited = anyLexInMode PT.Inhibited
 
-anyPrim :: [PrimTokenSource, EAlternative] :>> es => Eff es PrimitiveToken
+anyPrim :: (PrimTokenSource :> es, NonDet :> es) => Eff es PrimitiveToken
 anyPrim = anyToken satisfyPrimThenExpanding
 
 satisfyIf :: SatisfyThen (Eff es) t t -> (t -> Bool) -> Eff es t
@@ -56,17 +56,17 @@ skipSatisfied :: MonadPlus (Eff es) => SatisfyThen (Eff es) t t -> (t -> Bool) -
 skipSatisfied satisfyThen = void . satisfyIf satisfyThen
 
 skipCharCatWithCategory ::
-  [PrimTokenSource, EAlternative] :>> es =>
+  (PrimTokenSource :> es, NonDet :> es) =>
   PT.ExpansionMode ->
   Code.CoreCatCode ->
   Eff es ()
 skipCharCatWithCategory mode cat =
   skipSatisfied (satisfyCharCatThen mode) $ charCatHasCategory cat
 
-satisfyPrimEquals :: [PrimTokenSource, EAlternative] :>> es => PrimitiveToken -> Eff es ()
+satisfyPrimEquals :: (PrimTokenSource :> es, NonDet :> es) => PrimitiveToken -> Eff es ()
 satisfyPrimEquals t = skipSatisfied satisfyPrimThenExpanding (== t)
 
-satisfyLexEquals :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> LT.LexToken -> Eff es ()
+satisfyLexEquals :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> LT.LexToken -> Eff es ()
 satisfyLexEquals mode t = skipSatisfied (satisfyLexThen mode) (== t)
 
 isOnly :: forall k is s a. (Eq a, Is k An_AffineFold) => Optic' k is s a -> a -> s -> Bool
@@ -80,11 +80,11 @@ choiceFlap headToParsers t =
   PC.choice (flap headToParsers t)
 
 -- <optional spaces> = <zero or more spaces>.
-skipOptionalSpaces :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> Eff es ()
+skipOptionalSpaces :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> Eff es ()
 skipOptionalSpaces mode =
   skipManySatisfied (satisfyCharCatThen mode) charCatIsSpace
 
-liftLexHead :: [PrimTokenSource, EAlternative] :>> es => (LT.LexCharCat -> Eff es a) -> PrimitiveToken -> Eff es a
+liftLexHead :: (PrimTokenSource :> es, NonDet :> es) => (LT.LexCharCat -> Eff es a) -> PrimitiveToken -> Eff es a
 liftLexHead lexParser pt =
   case pt ^? PT.primTokCharCat of
     Nothing -> Par.failParse $ Par.ParseExplicitFailure $ "liftLexHead " <> F.sformat PT.fmtPrimitiveToken pt
@@ -102,10 +102,10 @@ charCatHasCategory cat cc = cc.lexCCCat == cat
 charCatChar :: Code.CoreCatCode -> AffineFold LT.LexCharCat Code.CharCode
 charCatChar cat = filtered (isOnly (typed @Code.CoreCatCode) cat) % typed @Code.CharCode
 
-skipOneOptionalSpace :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> Eff es ()
+skipOneOptionalSpace :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> Eff es ()
 skipOneOptionalSpace mode = skipOptional (satisfyCharCatThen mode) charCatIsSpace
 
-skipSpace :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> Eff es ()
+skipSpace :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> Eff es ()
 skipSpace mode = skipCharCatWithCategory mode Code.Space
 
 -- <space token> = character token of category [space], or a control sequence
@@ -119,16 +119,16 @@ matchNonActiveCharacterUncased a cc =
       chrWord = cc ^. typed @Code.CharCode % typed @Word8
    in (cc ^. typed @Code.CoreCatCode /= Code.Active) && (chrWord == H.Ascii.toUpper aWord || chrWord == H.Ascii.toLower aWord)
 
-skipKeyword :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> [Code.CharCode] -> Eff es ()
+skipKeyword :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> [Code.CharCode] -> Eff es ()
 skipKeyword mode s = do
   skipOptionalSpaces mode
   for_ s (skipSatisfied (satisfyCharCatThen mode) . matchNonActiveCharacterUncased)
 
-parseOptionalKeyword :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> [Code.CharCode] -> Eff es Bool
+parseOptionalKeyword :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> [Code.CharCode] -> Eff es Bool
 parseOptionalKeyword mode s =
   isJust <$> optional (skipKeyword mode s)
 
-skipFillerExpanding :: [PrimTokenSource, EAlternative] :>> es => Eff es ()
+skipFillerExpanding :: (PrimTokenSource :> es, NonDet :> es) => Eff es ()
 skipFillerExpanding = skipManySatisfied satisfyPrimThenExpanding isFillerItem
   where
     isFillerItem :: PrimitiveToken -> Bool
@@ -136,7 +136,7 @@ skipFillerExpanding = skipManySatisfied satisfyPrimThenExpanding isFillerItem
       PT.RelaxTok -> True
       t -> primTokenHasCategory Code.Space t
 
-skipOptionalEquals :: [PrimTokenSource, EAlternative] :>> es => PT.ExpansionMode -> Eff es ()
+skipOptionalEquals :: (PrimTokenSource :> es, NonDet :> es) => PT.ExpansionMode -> Eff es ()
 skipOptionalEquals mode = do
   skipOptionalSpaces mode
   skipOptional (satisfyCharCatThen mode) $ isOnly (ccCatChar Code.Other) (Code.Chr_ '=')
@@ -144,7 +144,7 @@ skipOptionalEquals mode = do
 ccCatChar :: Code.CoreCatCode -> AffineFold LT.LexCharCat Code.CharCode
 ccCatChar cat = filtered (isOnly (typed @Code.CoreCatCode) cat) % typed @Code.CharCode
 
-parseControlSymbol :: [PrimTokenSource, EAlternative] :>> es => Eff es ControlSymbol
+parseControlSymbol :: (PrimTokenSource :> es, NonDet :> es) => Eff es ControlSymbol
 parseControlSymbol = Par.satisfyThenInhibited lextokToCSLike
   where
     lextokToCSLike = \case
@@ -155,7 +155,7 @@ parseControlSymbol = Par.satisfyThenInhibited lextokToCSLike
       _ ->
         Nothing
 
-parseXEqualsY :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => PT.ExpansionMode -> Eff es a -> Eff es b -> Eff es (a, b)
+parseXEqualsY :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => PT.ExpansionMode -> Eff es a -> Eff es b -> Eff es (a, b)
 parseXEqualsY mode parseX parseY = do
   x <- parseX
   Log.debugLog "Successfully parsed X of X=Y"

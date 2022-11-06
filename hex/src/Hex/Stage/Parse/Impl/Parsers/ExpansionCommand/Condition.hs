@@ -12,7 +12,7 @@ import Hex.Stage.Parse.Impl.Parsers.Quantity.Number qualified as Par
 import Hex.Stage.Parse.Interface.AST.ExpansionCommand qualified as AST
 import Hexlude
 
-parseRelationExpanding :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => Eff es Ordering
+parseRelationExpanding :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => Eff es Ordering
 parseRelationExpanding = Par.satisfyCharCatThen PT.Expanding $ \cc ->
   if
       | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '<') cc -> Just LT
@@ -20,7 +20,7 @@ parseRelationExpanding = Par.satisfyCharCatThen PT.Expanding $ \cc ->
       | Par.isOnly (Par.charCatChar Code.Other) (Code.Chr_ '=') cc -> Just EQ
       | otherwise -> Nothing
 
-parseConditionHead :: [PrimTokenSource, EAlternative, Log.HexLog] :>> es => ST.ConditionHeadTok -> Eff es AST.ConditionHead
+parseConditionHead :: [PrimTokenSource, NonDet, Log.HexLog] :>> es => ST.ConditionHeadTok -> Eff es AST.ConditionHead
 parseConditionHead = \case
   ST.IfIntPairTestTok ->
     AST.IfConditionHead <$> (AST.IfIntPairTest <$> Par.parseInt <*> parseRelationExpanding <*> Par.parseInt)
