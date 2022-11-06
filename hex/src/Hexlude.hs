@@ -71,7 +71,24 @@ import Hexlude.NonEmptySeq (NonEmptySeq)
 -- So we can do `at` on a HashMap, for control sequence map
 import Optics.At ()
 import Optics.Core hiding (Empty)
-import Protolude hiding (Except, ExceptT, MonadError (..), MonadReader (..), MonadState (..), Num (..), Reader, ReaderT, State, U1, asks, gets, isDigit, isLower, isSpace, isUpper, length, log, modify, notImplemented, note, runReader, runReaderT, runState, to, uncons, unsnoc, words, (%))
+import Protolude hiding (
+  Num (..),
+  U1,
+  isDigit,
+  isLower,
+  isSpace,
+  isUpper,
+  length,
+  log,
+  notImplemented,
+  note,
+  to,
+  uncons,
+  unsnoc,
+  words,
+  (%),
+  )
+
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a
