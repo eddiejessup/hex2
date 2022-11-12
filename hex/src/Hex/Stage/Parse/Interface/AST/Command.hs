@@ -227,7 +227,7 @@ data BoxOrRule = BoxOrRuleBox Box | BoxOrRuleRule Axis Rule
 data DiscretionaryText = DiscretionaryText {preBreak, postBreak, noBreak :: HSt.TL.BalancedText}
   deriving stock (Show, Eq, Generic)
 
-data FetchedBoxRef = FetchedBoxRef HexInt HSt.Register.BoxFetchMode
+data FetchedBoxRef = FetchedBoxRef ExplicitRegisterLocation HSt.Register.BoxFetchMode
   deriving stock (Show, Eq, Generic)
 
 data LeadersSpec = LeadersSpec PT.LeadersType BoxOrRule Glue

@@ -89,7 +89,7 @@ headToParseModedRule axis = \case
 headToParseFetchedBoxRef :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Axis -> PT.PrimitiveToken -> Eff es AST.FetchedBoxRef
 headToParseFetchedBoxRef tgtAxis = \case
   PT.ModedCommand tokenAxis (PT.UnwrappedFetchedBoxTok fetchMode) | tgtAxis == tokenAxis -> do
-    n <- Par.parseInt
+    n <- Par.parseExplicitRegisterLocation
     pure $ AST.FetchedBoxRef n fetchMode
   t ->
     parseFail $ "headToParseFetchedBoxRef " <> F.sformat PT.fmtPrimitiveToken t

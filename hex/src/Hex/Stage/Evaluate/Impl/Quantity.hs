@@ -138,7 +138,10 @@ evalRegisterLocationAsLocation = \case
   P.InternalQuantRegisterLocation loc ->
     pure loc
 
-evalExplicitRegisterLocation :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.ExplicitRegisterLocation -> Eff es HSt.Reg.RegisterLocation
+evalExplicitRegisterLocation ::
+  (Error Eval.EvaluationError :> es, EHexState :> es) =>
+  P.ExplicitRegisterLocation ->
+  Eff es HSt.Reg.RegisterLocation
 evalExplicitRegisterLocation explicitRegisterLocation = HSt.Reg.RegisterLocation <$> evalInt explicitRegisterLocation.unExplicitRegisterLocation
 
 evalFontSpecialCharRef :: P.FontSpecialCharRef -> Eff es Q.HexInt

@@ -37,7 +37,8 @@ evalVModeCommand = \case
   P.AddVLeaders leadersSpec -> pure $ E.AddVLeaders leadersSpec
   P.AddVRule rule -> E.AddVRule <$> Eval.evalVModeRule rule
   P.AddHAlignedMaterial boxSpec -> E.AddHAlignedMaterial <$> evalBoxSpecification boxSpec
-  P.AddUnwrappedFetchedVBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedVBox fetchedBoxRef
+  P.AddUnwrappedFetchedVBox fetchedBoxRef ->
+    E.AddUnwrappedFetchedVBox <$> evalFetchedBoxRef fetchedBoxRef
 
 evalHModeCommand :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.HModeCommand -> Eff es E.HModeCommand
 evalHModeCommand = \case
@@ -56,7 +57,7 @@ evalHModeCommand = \case
   P.AddHLeaders leadersSpec -> pure $ E.AddHLeaders leadersSpec
   P.AddHRule rule -> E.AddHRule <$> Eval.evalHModeRule rule
   P.AddVAlignedMaterial boxSpec -> E.AddVAlignedMaterial <$> evalBoxSpecification boxSpec
-  P.AddUnwrappedFetchedHBox fetchedBoxRef -> pure $ E.AddUnwrappedFetchedHBox fetchedBoxRef
+  P.AddUnwrappedFetchedHBox fetchedBoxRef -> E.AddUnwrappedFetchedHBox <$> evalFetchedBoxRef fetchedBoxRef
 
 evalModeIndepCmd :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.ModeIndependentCommand -> Eff es E.ModeIndependentCommand
 evalModeIndepCmd = \case
@@ -201,6 +202,10 @@ evalBoxSpecification = \case
   P.Natural -> pure E.Natural
   P.To length -> E.To <$> Eval.evalLength length
   P.Spread length -> E.Spread <$> Eval.evalLength length
+
+evalFetchedBoxRef :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.FetchedBoxRef -> Eff es E.FetchedBoxRef
+evalFetchedBoxRef (P.FetchedBoxRef n fetchMode) =
+  E.FetchedBoxRef <$> Eval.evalExplicitRegisterLocation n <*> pure fetchMode
 
 evalVariableAssignment :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.VariableAssignment -> Eff es E.VariableAssignment
 evalVariableAssignment = \case

@@ -40,6 +40,8 @@ vBoxElemToDocInstructions ax = \case
             <> [Move Vertical boxedBoxlike.boxedDims.boxDepth]
   BoxElem.VBoxBaseElem (BoxElem.KernBaseElem kern) ->
     pure [Move ax kern.unKern]
+  BoxElem.VBoxSetGlueElem BoxElem.SetGlue {setAt} ->
+    pure [Move ax setAt]
 
 boxContentsToDocInstructions :: State (Maybe Font.FontNumber) :> es => Box.Boxed BoxElem.AxBoxOrRuleContents -> Eff es [DocInstruction]
 boxContentsToDocInstructions boxedBoxlike =

@@ -48,7 +48,7 @@ handleCommandInHMode oldSrc modeVariant = \case
       HIO.insertLexToken LT.parToken
       pure ContinueHMode
     HSt.Mode.InnerModeVariant -> do
-      throwError $ AllMode.VModeCommandInInnerHMode
+      throwError AllMode.VModeCommandInInnerHMode
   Eval.HModeCommand hModeCommand -> case hModeCommand of
     Eval.AddHGlue g -> do
       addGlue g
@@ -77,7 +77,7 @@ handleCommandInHMode oldSrc modeVariant = \case
         >>= addGlue
       pure ContinueHMode
     Eval.AddAccentedCharacter _n _assignments _mayCharCodeRef ->
-      notImplemented "AddAccentedCharacter"
+      notImplemented "handleCommandInHMode: AddAccentedCharacter"
     Eval.AddItalicCorrection -> do
       Build.getLastHListElement >>= \case
         Nothing -> pure ()
@@ -101,7 +101,7 @@ handleCommandInHMode oldSrc modeVariant = \case
                         BoxElem.KernBaseElem $ BoxElem.Kern charAttrs.italicCorrection
       pure ContinueHMode
     Eval.AddDiscretionaryText _discretionaryText ->
-      notImplemented "AddDiscretionaryText"
+      notImplemented "handleCommandInHMode: AddDiscretionaryText"
     Eval.AddDiscretionaryHyphen -> do
       fNr <- HSt.currentFontNumber
       HSt.fontDiscretionaryHyphenItem fNr >>= \case
@@ -111,13 +111,20 @@ handleCommandInHMode oldSrc modeVariant = \case
           Build.addHListElement (ListElem.DiscretionaryItemElem item)
       pure ContinueHMode
     Eval.EnterMathMode ->
-      notImplemented "EnterMathMode"
+      notImplemented "handleCommandInHMode: EnterMathMode"
     Eval.AddHLeaders _leadersSpec ->
-      notImplemented "AddHLeaders"
-    Eval.AddUnwrappedFetchedHBox _fetchedBoxRef ->
-      notImplemented "AddUnwrappedFetchedHBox"
+      notImplemented "handleCommandInHMode: AddHLeaders"
+    Eval.AddUnwrappedFetchedHBox (Eval.FetchedBoxRef regLoc fetchMode) -> do
+      HSt.fetchBoxRegisterValue fetchMode regLoc >>= \case
+        Nothing -> pure ()
+        Just b -> case b.boxedContents of
+          BoxElem.AxBoxElemsH _hboxElems ->
+            notImplemented "handleCommandInHMode: AddUnwrappedFetchedHBox, with hbox"
+          BoxElem.AxBoxElemsV _vboxElems ->
+            throwError AllMode.UnboxWrongBoxAxis
+      pure ContinueHMode
     Eval.AddVAlignedMaterial _boxSpec ->
-      notImplemented "HMode: AddVAlignedMaterial"
+      notImplemented "handleCommandInHMode: HMode: AddVAlignedMaterial"
   Eval.ModeDependentCommand modeDependentCommand -> case modeDependentCommand of
     Eval.AddSpace -> do
       HSt.currentFontNumber
@@ -133,14 +140,14 @@ handleCommandInHMode oldSrc modeVariant = \case
         EndHList ListExtractor.EndHListSawEndParaCommand
       HSt.Mode.InnerModeVariant ->
         ContinueHMode
-    Eval.ShowToken _lexToken -> notImplemented "HMode: ShowToken"
-    Eval.ShowBox _n -> notImplemented "HMode: ShowBox"
-    Eval.ShowLists -> notImplemented "HMode: ShowLists"
-    Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "HMode: ShowTheInternalQuantity"
-    Eval.ShipOut _box -> notImplemented "HMode: ShipOut"
-    Eval.AddMark _text -> notImplemented "HMode: AddMark"
-    Eval.AddInsertion _n -> notImplemented "HMode: AddInsertion"
-    Eval.AddAdjustment -> notImplemented "HMode: AddAdjustment"
+    Eval.ShowToken _lexToken -> notImplemented "handleCommandInHMode: HMode: ShowToken"
+    Eval.ShowBox _n -> notImplemented "handleCommandInHMode: HMode: ShowBox"
+    Eval.ShowLists -> notImplemented "handleCommandInHMode: HMode: ShowLists"
+    Eval.ShowTheInternalQuantity _internalQuantity -> notImplemented "handleCommandInHMode: HMode: ShowTheInternalQuantity"
+    Eval.ShipOut _box -> notImplemented "handleCommandInHMode: HMode: ShipOut"
+    Eval.AddMark _text -> notImplemented "handleCommandInHMode: HMode: AddMark"
+    Eval.AddInsertion _n -> notImplemented "handleCommandInHMode: HMode: AddInsertion"
+    Eval.AddAdjustment -> notImplemented "handleCommandInHMode: HMode: AddAdjustment"
   Eval.ModeIndependentCommand modeIndependentCommand ->
     AllMode.handleModeIndependentCommand modeIndependentCommand <&> \case
       AllMode.SawEndBox ->

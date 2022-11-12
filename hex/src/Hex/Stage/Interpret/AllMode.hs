@@ -37,6 +37,7 @@ data InterpretError
   | VModeCommandInInnerHMode
   | CharacterCodeNotFound
   | BadOffset
+  | UnboxWrongBoxAxis
   deriving stock (Show, Generic)
 
 fmtInterpretError :: Fmt InterpretError

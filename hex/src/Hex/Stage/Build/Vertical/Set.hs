@@ -19,7 +19,7 @@ setListElems flexSpec vList =
 setElem :: Eval.GlueFlexSpec -> List.VListElem -> Maybe BoxElem.VBoxElem
 setElem flexSpec = \case
   List.ListGlue glue ->
-    Just $ BoxElem.VBoxBaseElem $ BoxElem.KernBaseElem (Eval.applyGlueFlexSpec flexSpec glue)
+    Just $ BoxElem.VBoxSetGlueElem $ Eval.applyGlueFlexSpec flexSpec glue
   List.ListPenalty _ ->
     Nothing
   List.VListBaseElem e ->

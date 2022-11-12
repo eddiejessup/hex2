@@ -22,6 +22,8 @@ hBoxElemNaturalWidth = \case
         box.boxedDims.boxWidth
       KernBaseElem kern ->
         kern.unKern
+    VBoxSetGlueElem setGlue ->
+      setGlue.glue.gDimen
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     CharBoxHBaseElem charBox ->
       charBox.boxedDims.boxWidth
@@ -34,6 +36,8 @@ hBoxElemNaturalDepth = \case
         box.boxedDims.boxDepth
       KernBaseElem _kern ->
         Q.zeroLength
+    VBoxSetGlueElem _setGlue ->
+      Q.zeroLength
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     CharBoxHBaseElem charBox ->
       charBox.boxedDims.boxDepth
@@ -46,6 +50,8 @@ hBoxElemNaturalHeight = \case
         box.boxedDims.boxHeight
       KernBaseElem _kern ->
         Q.zeroLength
+    VBoxSetGlueElem _setGlue ->
+      Q.zeroLength
   HBoxHBaseElem hBaseElem -> case hBaseElem of
     CharBoxHBaseElem charBox ->
       charBox.boxedDims.boxHeight

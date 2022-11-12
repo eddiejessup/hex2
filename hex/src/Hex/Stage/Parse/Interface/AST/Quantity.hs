@@ -184,7 +184,8 @@ data QuantRegisterLocation (q :: Q.QuantityType)
   | InternalQuantRegisterLocation (HSt.Reg.QuantRegisterLocation q)
   deriving stock (Show, Eq, Generic)
 
-newtype ExplicitRegisterLocation = ExplicitRegisterLocation {unExplicitRegisterLocation :: HexInt}
+newtype ExplicitRegisterLocation =
+  ExplicitRegisterLocation {unExplicitRegisterLocation :: HexInt}
   deriving stock (Show, Eq, Generic)
 
 data InternalInt

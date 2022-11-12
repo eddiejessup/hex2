@@ -226,7 +226,8 @@ headToParseInternalGlue =
 -- variables.)
 
 parseExplicitRegisterLocation :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es (AST.ExplicitRegisterLocation)
-parseExplicitRegisterLocation = AST.ExplicitRegisterLocation <$> parseInt
+parseExplicitRegisterLocation =
+  AST.ExplicitRegisterLocation <$> parseInt
 
 headToParseIntVariable :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => PT.PrimitiveToken -> Eff es (AST.QuantVariableAST 'Q.IntQuantity)
 headToParseIntVariable = \case

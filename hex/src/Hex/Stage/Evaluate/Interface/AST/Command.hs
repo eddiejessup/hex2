@@ -10,7 +10,7 @@ import Hex.Common.HexState.Interface.Grouped qualified as HSt.Group
 import Hex.Common.HexState.Interface.Grouped qualified as HSt.Grouped
 import Hex.Common.HexState.Interface.Hyphen qualified as HSt.Hyph
 import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
-import Hex.Common.HexState.Interface.Register qualified as HSt.Register
+import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.Resolve qualified as Res
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
@@ -81,7 +81,7 @@ data HModeCommand
   | AddHLeaders Uneval.LeadersSpec
   | AddHRule (Box.BoxDims Q.Length)
   | AddVAlignedMaterial BoxSpecification
-  | AddUnwrappedFetchedHBox Uneval.FetchedBoxRef -- \unh{box,copy}
+  | AddUnwrappedFetchedHBox FetchedBoxRef -- \unh{box,copy}
   deriving stock (Show, Eq, Generic)
 
 data VModeCommand
@@ -92,7 +92,7 @@ data VModeCommand
   | AddVLeaders Uneval.LeadersSpec
   | AddVRule (Box.BoxDims Q.Length)
   | AddHAlignedMaterial BoxSpecification
-  | AddUnwrappedFetchedVBox Uneval.FetchedBoxRef -- \unv{box,copy}
+  | AddUnwrappedFetchedVBox FetchedBoxRef -- \unv{box,copy}
   deriving stock (Show, Eq, Generic)
 
 data Assignment = Assignment {body :: AssignmentBody, scope :: HSt.Grouped.ScopeFlag}
@@ -124,7 +124,7 @@ data AssignmentBody
   | SelectFont Font.FontNumber
   | SetFamilyMember HSt.Font.FamilyMember Font.FontNumber
   | SetParShape Uneval.HexInt [Uneval.Length]
-  | SetBoxRegister HSt.Register.RegisterLocation Box
+  | SetBoxRegister HSt.Reg.RegisterLocation Box
   | -- GlobalScope assignments.
     SetFontDimension Uneval.FontDimensionRef Uneval.Length
   | SetFontSpecialChar E.FontSpecialCharRef Q.HexInt
@@ -159,7 +159,7 @@ data FontFileSpec = FontFileSpec TFM.FontSpecification HexFilePath
   deriving stock (Show, Eq, Generic)
 
 data Box
-  = FetchedRegisterBox HSt.Register.BoxFetchMode HSt.Register.RegisterLocation
+  = FetchedRegisterBox HSt.Reg.BoxFetchMode HSt.Reg.RegisterLocation
   | LastBox
   | VSplitBox Q.HexInt Q.Length
   | ExplicitBox BoxSpecification PT.ExplicitBoxType
@@ -201,4 +201,7 @@ data NumericVariable
   | LengthNumericVariable (HSt.Var.QuantVariable 'Q.LengthQuantity)
   | GlueNumericVariable (HSt.Var.QuantVariable 'Q.GlueQuantity)
   | MathGlueNumericVariable (HSt.Var.QuantVariable 'Q.MathGlueQuantity)
+  deriving stock (Show, Eq, Generic)
+
+data FetchedBoxRef = FetchedBoxRef HSt.Reg.RegisterLocation HSt.Reg.BoxFetchMode
   deriving stock (Show, Eq, Generic)

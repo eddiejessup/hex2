@@ -40,45 +40,47 @@ glueFlexSpecBadness = \case
   NeedsToFlex glueFlexProblem ->
     Bad.glueFlexProblemBadness glueFlexProblem
 
-applyGlueFlexSpec :: GlueFlexSpec -> Q.Glue -> Box.Kern
+applyGlueFlexSpec :: GlueFlexSpec -> Q.Glue -> Box.SetGlue
 applyGlueFlexSpec spec g =
-  case spec of
-    DesiredEqualsNatural ->
-      Box.Kern $ g.gDimen
-    NeedsToFlex glueFlexProblem ->
-      let setRatio = case glueFlexProblem.flexInDirection.flexDirection of
-            Q.Stretch ->
-              case (glueFlexProblem.flexInDirection.flexAmount, g.gStretch) of
-                (Q.FinitePureFlex netFiniteStretch, Q.FinitePureFlex thisFiniteGlueStretch) ->
-                  if netFiniteStretch == Q.zeroLength then 0 else Q.lengthRatio thisFiniteGlueStretch netFiniteStretch
-                (Q.InfPureFlex (Q.InfFlexOfOrder netInfStretch setInfOrder), Q.InfPureFlex (Q.InfFlexOfOrder thisInfGlueStretch thisGlueInfOrder))
-                  | setInfOrder == thisGlueInfOrder ->
-                      Q.infLengthRatio thisInfGlueStretch netInfStretch
-                -- If we are setting at finite stretch, and this glue has
-                -- non-zero infinite stretch, then set at the natural
-                -- width.
-                -- If we are setting at some infinite stretch, and this
-                -- glue has finite stretch, then set at the natural width.
-                _ ->
-                  0
-            Q.Shrink ->
-              case (glueFlexProblem.flexInDirection.flexAmount, g.gShrink) of
-                -- If we are setting at finite shrink, and this glue itself has finite shrink, then modify.
-                (Q.FinitePureFlex netFiniteShrink, Q.FinitePureFlex thisFiniteGlueShrink) ->
-                  Q.lengthRatio thisFiniteGlueShrink (max glueFlexProblem.excessLength netFiniteShrink)
-                -- If we are setting at some infinite shrink, and this glue has finite shrink, then set at the natural width.
-                (Q.InfPureFlex (Q.InfFlexOfOrder netInfShrink setInfOrder), Q.InfPureFlex (Q.InfFlexOfOrder thisInfGlueShrink thisGlueInfOrder))
-                  | setInfOrder == thisGlueInfOrder ->
+  let setAt =
+        case spec of
+          DesiredEqualsNatural ->
+            g.gDimen
+          NeedsToFlex glueFlexProblem ->
+            let setRatio = case glueFlexProblem.flexInDirection.flexDirection of
+                  Q.Stretch ->
+                    case (glueFlexProblem.flexInDirection.flexAmount, g.gStretch) of
+                      (Q.FinitePureFlex netFiniteStretch, Q.FinitePureFlex thisFiniteGlueStretch) ->
+                        if netFiniteStretch == Q.zeroLength then 0 else Q.lengthRatio thisFiniteGlueStretch netFiniteStretch
+                      (Q.InfPureFlex (Q.InfFlexOfOrder netInfStretch setInfOrder), Q.InfPureFlex (Q.InfFlexOfOrder thisInfGlueStretch thisGlueInfOrder))
+                        | setInfOrder == thisGlueInfOrder ->
+                            Q.infLengthRatio thisInfGlueStretch netInfStretch
+                      -- If we are setting at finite stretch, and this glue has
+                      -- non-zero infinite stretch, then set at the natural
+                      -- width.
+                      -- If we are setting at some infinite stretch, and this
+                      -- glue has finite stretch, then set at the natural width.
+                      _ ->
+                        0
+                  Q.Shrink ->
+                    case (glueFlexProblem.flexInDirection.flexAmount, g.gShrink) of
+                      -- If we are setting at finite shrink, and this glue itself has finite shrink, then modify.
+                      (Q.FinitePureFlex netFiniteShrink, Q.FinitePureFlex thisFiniteGlueShrink) ->
+                        Q.lengthRatio thisFiniteGlueShrink (max glueFlexProblem.excessLength netFiniteShrink)
+                      -- If we are setting at some infinite shrink, and this glue has finite shrink, then set at the natural width.
+                      (Q.InfPureFlex (Q.InfFlexOfOrder netInfShrink setInfOrder), Q.InfPureFlex (Q.InfFlexOfOrder thisInfGlueShrink thisGlueInfOrder))
+                        | setInfOrder == thisGlueInfOrder ->
+                            -- If we are setting at some infinite shrink, and this
+                            -- glue has non-zero infinite shrink of the same order,
+                            -- then modify.
+                            Q.infLengthRatio thisInfGlueShrink netInfShrink
+                      -- If we are setting at finite shrink, and this glue has
+                      -- non-zero infinite shrink, then set at the natural
+                      -- width.
                       -- If we are setting at some infinite shrink, and this
-                      -- glue has non-zero infinite shrink of the same order,
-                      -- then modify.
-                      Q.infLengthRatio thisInfGlueShrink netInfShrink
-                -- If we are setting at finite shrink, and this glue has
-                -- non-zero infinite shrink, then set at the natural
-                -- width.
-                -- If we are setting at some infinite shrink, and this
-                -- glue has non-zero infinite shrink of a different order,
-                -- then set at the natural width.
-                _ ->
-                  0
-       in Box.Kern $ g.gDimen ~~ Q.scaleLengthByRational setRatio glueFlexProblem.excessLength
+                      -- glue has non-zero infinite shrink of a different order,
+                      -- then set at the natural width.
+                      _ ->
+                        0
+            in g.gDimen ~~ Q.scaleLengthByRational setRatio glueFlexProblem.excessLength
+  in Box.SetGlue {setAt, glue = g}
