@@ -22,7 +22,6 @@ setElem flexSpec = \case
       BoxElem.HVBoxElem $
         BoxElem.VBoxSetGlueElem $
           Eval.applyGlueFlexSpec flexSpec glue
-
   ListElem.HVListElem (ListElem.ListPenalty _) ->
     Nothing
   ListElem.HVListElem (ListElem.VListBaseElem e) ->

@@ -56,8 +56,8 @@ import Data.Text.Lazy.Builder qualified as Text.Lazy
 import Effectful
 import Effectful.Dispatch.Dynamic (interpret, reinterpret, send)
 import Effectful.Error.Dynamic
-import Effectful.Reader.Dynamic
 import Effectful.NonDet hiding (Empty)
+import Effectful.Reader.Dynamic
 import Effectful.State.Dynamic
 import Effectful.TH (makeEffect)
 import Effectful.Writer.Dynamic
@@ -71,24 +71,24 @@ import Hexlude.NonEmptySeq (NonEmptySeq)
 -- So we can do `at` on a HashMap, for control sequence map
 import Optics.At ()
 import Optics.Core hiding (Empty)
-import Protolude hiding (
-  Num (..),
-  U1,
-  isDigit,
-  isLower,
-  isSpace,
-  isUpper,
-  length,
-  log,
-  notImplemented,
-  note,
-  to,
-  uncons,
-  unsnoc,
-  words,
-  (%),
+import Protolude hiding
+  ( Num (..),
+    SrcLoc,
+    U1,
+    isDigit,
+    isLower,
+    isSpace,
+    isUpper,
+    length,
+    log,
+    notImplemented,
+    note,
+    to,
+    uncons,
+    unsnoc,
+    words,
+    (%),
   )
-
 
 traceShowIdM :: (Show a, Applicative m) => Text -> a -> m a
 traceShowIdM prefix a = pure $ traceShow (prefix <> show a) a

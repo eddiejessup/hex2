@@ -46,21 +46,22 @@ data AppState = AppState
   deriving stock (Generic)
 
 runInputApp ::
-  (FS.FileSystem :> es) =>
+  (FS.FileSystem :> es, IOE :> es) =>
   HexEnv ->
   AppState ->
   Eff
     ( HexIO
         : EHexState
-          : EHexEnv
-            : HexLog
-              : State IOState
-                : State Expand.ConditionStates
-                  : State HexState
-                    : Reader HexEnv
-                      : Error LexError
-                        : Error HSt.Err.HexStateError
-                          : Error TFMError : es
+        : EHexEnv
+        : HexLog
+        : State IOState
+        : State Expand.ConditionStates
+        : State HexState
+        : Reader HexEnv
+        : Error LexError
+        : Error HSt.Err.HexStateError
+        : Error TFMError
+        : es
     )
     (Either AppError a) ->
   Eff es (Either AppError a)
@@ -79,27 +80,28 @@ runInputApp hexEnv appState app = do
     & runAppErrorJoin AppTFMError
 
 runPTSourceApp ::
-  (FS.FileSystem :> es) =>
+  (FS.FileSystem :> es, IOE :> es) =>
   HexEnv ->
   AppState ->
   Eff
     ( Expand.PrimTokenSource
         : NonDet
-          : Error ParsingError
-            : Error Expand.ExpansionError
-              : Error ResolutionError
-                : Error EvaluationError
-                  : HexIO
-                    : EHexState
-                      : EHexEnv
-                        : HexLog
-                          : State IOState
-                            : State Expand.ConditionStates
-                              : State HexState
-                                : Reader HexEnv
-                                  : Error LexError
-                                    : Error HSt.Err.HexStateError
-                                      : Error TFMError : es
+        : Error ParsingError
+        : Error Expand.ExpansionError
+        : Error ResolutionError
+        : Error EvaluationError
+        : HexIO
+        : EHexState
+        : EHexEnv
+        : HexLog
+        : State IOState
+        : State Expand.ConditionStates
+        : State HexState
+        : Reader HexEnv
+        : Error LexError
+        : Error HSt.Err.HexStateError
+        : Error TFMError
+        : es
     )
     (Either AppError a) ->
   Eff es (Either AppError a)
@@ -114,28 +116,29 @@ runPTSourceApp hexEnv appState app = do
     & runInputApp hexEnv appState
 
 runCommandSourceApp ::
-  (FS.FileSystem :> es) =>
+  (FS.FileSystem :> es, IOE :> es) =>
   HexEnv ->
   AppState ->
   Eff
     ( CommandSource
         : Expand.PrimTokenSource
-          : NonDet
-            : Error ParsingError
-              : Error Expand.ExpansionError
-                : Error ResolutionError
-                  : Error EvaluationError
-                    : HexIO
-                      : EHexState
-                        : EHexEnv
-                          : HexLog
-                            : State IOState
-                              : State Expand.ConditionStates
-                                : State HexState
-                                  : Reader HexEnv
-                                    : Error LexError
-                                      : Error HSt.Err.HexStateError
-                                        : Error TFMError : es
+        : NonDet
+        : Error ParsingError
+        : Error Expand.ExpansionError
+        : Error ResolutionError
+        : Error EvaluationError
+        : HexIO
+        : EHexState
+        : EHexEnv
+        : HexLog
+        : State IOState
+        : State Expand.ConditionStates
+        : State HexState
+        : Reader HexEnv
+        : Error LexError
+        : Error HSt.Err.HexStateError
+        : Error TFMError
+        : es
     )
     (Either AppError a) ->
   Eff es (Either AppError a)
@@ -145,29 +148,30 @@ runCommandSourceApp hexEnv appState app = do
     & runPTSourceApp hexEnv appState
 
 runEvaluateApp ::
-  (FS.FileSystem :> es) =>
+  (FS.FileSystem :> es, IOE :> es) =>
   HexEnv ->
   AppState ->
   Eff
     ( HexEvaluate
         : CommandSource
-          : Expand.PrimTokenSource
-            : NonDet
-              : Error ParsingError
-                : Error Expand.ExpansionError
-                  : Error ResolutionError
-                    : Error EvaluationError
-                      : HexIO
-                        : EHexState
-                          : EHexEnv
-                            : HexLog
-                              : State IOState
-                                : State Expand.ConditionStates
-                                  : State HexState
-                                    : Reader HexEnv
-                                      : Error LexError
-                                        : Error HSt.Err.HexStateError
-                                          : Error TFMError : es
+        : Expand.PrimTokenSource
+        : NonDet
+        : Error ParsingError
+        : Error Expand.ExpansionError
+        : Error ResolutionError
+        : Error EvaluationError
+        : HexIO
+        : EHexState
+        : EHexEnv
+        : HexLog
+        : State IOState
+        : State Expand.ConditionStates
+        : State HexState
+        : Reader HexEnv
+        : Error LexError
+        : Error HSt.Err.HexStateError
+        : Error TFMError
+        : es
     )
     (Either AppError a) ->
   Eff es (Either AppError a)
@@ -177,31 +181,32 @@ runEvaluateApp hexEnv appState app = do
     & runCommandSourceApp hexEnv appState
 
 runExtractorApp ::
-  (FS.FileSystem :> es) =>
+  (FS.FileSystem :> es, IOE :> es) =>
   HexEnv ->
   AppState ->
   Eff
     ( ExtractList
         : Error Interpret.InterpretError
-          : HexEvaluate
-            : CommandSource
-              : Expand.PrimTokenSource
-                : NonDet
-                  : Error ParsingError
-                    : Error Expand.ExpansionError
-                      : Error ResolutionError
-                        : Error EvaluationError
-                          : HexIO
-                            : EHexState
-                              : EHexEnv
-                                : HexLog
-                                  : State IOState
-                                    : State Expand.ConditionStates
-                                      : State HexState
-                                        : Reader HexEnv
-                                          : Error LexError
-                                            : Error HSt.Err.HexStateError
-                                              : Error TFMError : es
+        : HexEvaluate
+        : CommandSource
+        : Expand.PrimTokenSource
+        : NonDet
+        : Error ParsingError
+        : Error Expand.ExpansionError
+        : Error ResolutionError
+        : Error EvaluationError
+        : HexIO
+        : EHexState
+        : EHexEnv
+        : HexLog
+        : State IOState
+        : State Expand.ConditionStates
+        : State HexState
+        : Reader HexEnv
+        : Error LexError
+        : Error HSt.Err.HexStateError
+        : Error TFMError
+        : es
     )
     (Either AppError a) ->
   Eff es (Either AppError a)
@@ -223,14 +228,14 @@ runAppErrorJoin inj eff = do
     Left e -> pure $ Left $ inj e
     Right v -> pure v
 
-newAppStateWithChars :: Time.ZonedTime -> ByteString -> AppState
-newAppStateWithChars zonedTime inputBytes =
+newAppStateWithChars :: Time.ZonedTime -> Text -> ByteString -> AppState
+newAppStateWithChars zonedTime name inputBytes =
   let appHexState = HSt.newHexState zonedTime
       endLineCharInt = appHexState ^. #groupScopes % #globalScope % #intParameters % at' HSt.Param.EndLineChar
       mayEndLineChar = endLineCharInt >>= Code.fromHexInt
    in AppState
         { appHexState,
-          appIOState = newIOState mayEndLineChar inputBytes,
+          appIOState = newIOState name mayEndLineChar inputBytes,
           appConditionStates = Expand.newConditionStates
         }
 
@@ -260,35 +265,40 @@ fmtAppError = F.later $ \case
 
 evalAppGivenEnv ::
   Time.ZonedTime ->
+  Text ->
   ByteString ->
   (HexEnv -> AppState -> m a) ->
   HexEnv ->
   m a
-evalAppGivenEnv zonedTime bs app appEnv =
-  app appEnv (newAppStateWithChars zonedTime bs)
+evalAppGivenEnv zonedTime name bs app appEnv =
+  app appEnv (newAppStateWithChars zonedTime name bs)
 
 evalApp ::
   FS.FileSystem :> es =>
   [FilePath] ->
   Log.LogLevel ->
   Time.ZonedTime ->
+  Text ->
   ByteString ->
   (HexEnv -> AppState -> Eff es a) ->
   Eff es a
-evalApp extraSearchDirs logLevel zonedTime bs app =
+evalApp extraSearchDirs logLevel zonedTime name bs app =
   HEnv.withHexEnv extraSearchDirs logLevel $ \appEnv -> do
-    a <- evalAppGivenEnv zonedTime bs app appEnv
+    a <- evalAppGivenEnv zonedTime name bs app appEnv
     pure a
+
+type BasicApp a = HexEnv -> AppState -> Eff [FS.FileSystem, IOE] (Either AppError a)
 
 evalAppIO ::
   [FilePath] ->
   Log.LogLevel ->
   Time.ZonedTime ->
+  Text ->
   ByteString ->
   (HexEnv -> AppState -> Eff [FS.FileSystem, IOE] a) ->
   IO a
-evalAppIO extraSearchDirs logLevel zonedTime bs app =
-  evalApp extraSearchDirs logLevel zonedTime bs app
+evalAppIO extraSearchDirs logLevel zonedTime name bs app =
+  evalApp extraSearchDirs logLevel zonedTime name bs app
     & FS.runFileSystem
     & runEff
 

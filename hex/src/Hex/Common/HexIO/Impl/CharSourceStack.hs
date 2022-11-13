@@ -9,13 +9,13 @@ import Hexlude
 data CharSourceStack = CharSourceStack {unCharSourceStack :: NonEmpty CharSource.CharSource}
   deriving stock (Show, Generic)
 
-newCharSourceStack :: Maybe Code.CharCode -> ByteString -> CharSourceStack
-newCharSourceStack mayEndLineChar sourceBytes =
-  CharSourceStack (L.NE.singleton (CharSource.newCharSource mayEndLineChar sourceBytes))
+newCharSourceStack :: Text -> Maybe Code.CharCode -> ByteString -> CharSourceStack
+newCharSourceStack name mayEndLineChar sourceBytes =
+  CharSourceStack (L.NE.singleton (CharSource.newCharSource name mayEndLineChar sourceBytes))
 
-pushCharSource :: Maybe Code.CharCode -> ByteString -> CharSourceStack -> CharSourceStack
-pushCharSource mayEndLineChar sourceBytes stack =
-  let newSource = CharSource.newCharSource mayEndLineChar sourceBytes
+pushCharSource :: Text -> Maybe Code.CharCode -> ByteString -> CharSourceStack -> CharSourceStack
+pushCharSource name mayEndLineChar sourceBytes stack =
+  let newSource = CharSource.newCharSource name mayEndLineChar sourceBytes
    in stack & #unCharSourceStack %~ L.NE.cons newSource
 
 currentSourceLens :: Lens' CharSourceStack CharSource.CharSource

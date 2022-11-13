@@ -100,7 +100,7 @@ handleModeIndependentCommand ::
   Eff es AllModeCommandResult
 handleModeIndependentCommand = \case
   Eval.DebugShowState -> do
-    Log.logInternalState
+    Log.logInternalState Log.Info
     pure DidNotSeeEndBox
   Eval.WriteMessage (Eval.MessageWriteCommand stdStream expandedText) -> do
     writeToOutput (StandardStream stdStream) expandedText
@@ -309,7 +309,8 @@ handleModeIndependentCommand = \case
                       & #boxedDims % #boxHeight %~ (<> heightOffset)
                       & #boxedDims % #boxDepth %~ (<> (invert heightOffset))
         when (bWithOffsetDims /= b) $
-          Log.debugLog $ F.sformat ("b before offset: " |%| Box.fmtBoxDimens |%| "; b after offset: " |%| Box.fmtBoxDimens) b.boxedDims bWithOffsetDims.boxedDims
+          Log.debugLog $
+            F.sformat ("b before offset: " |%| Box.fmtBoxDimens |%| "; b after offset: " |%| Box.fmtBoxDimens) b.boxedDims bWithOffsetDims.boxedDims
 
         Build.addVListElement $
           ListElem.VListBaseElem $

@@ -3,8 +3,9 @@ module Hex.Common.HexIO.Impl.IOState where
 import Data.Vector (Vector, (!))
 import Data.Vector qualified as V
 import Hex.Common.Codes qualified as Code
+import Hex.Common.HexIO.Impl.CharSource qualified as CharSource
 import Hex.Common.HexIO.Impl.CharSourceStack (CharSourceStack)
-import Hex.Common.HexIO.Impl.CharSourceStack qualified as SourceStack
+import Hex.Common.HexIO.Impl.CharSourceStack qualified as CharSourceStack
 import Hex.Common.HexIO.Interface qualified as HIO
 import Hex.Common.Quantity qualified as Q
 import Hexlude
@@ -33,6 +34,9 @@ streamVecIx streamNr = lens getter setter
     setter (StreamVec mayHandles) x =
       StreamVec $ V.unsafeUpd mayHandles [(streamNrInt, x)]
 
+ioStateCurrentSourceLens :: Lens' IOState CharSource.CharSource
+ioStateCurrentSourceLens = #sourceStack % CharSourceStack.currentSourceLens
+
 toIOMode :: HIO.InputOrOutput -> IOMode
 toIOMode = \case
   HIO.InputFile -> ReadMode
@@ -47,11 +51,12 @@ streamLens :: HIO.InputOrOutput -> Q.FourBitInt -> Lens' IOState (Maybe Handle)
 streamLens inOrOut streamNr = streamsLens inOrOut % streamVecIx streamNr
 
 newIOState ::
+  Text ->
   Maybe Code.CharCode ->
   ByteString ->
   IOState
-newIOState mayEndLineChar bs = do
-  let sourceStack = SourceStack.newCharSourceStack mayEndLineChar bs
+newIOState name mayEndLineChar bs = do
+  let sourceStack = CharSourceStack.newCharSourceStack name mayEndLineChar bs
   IOState
     { sourceStack,
       inputStreams = newStreamVec,

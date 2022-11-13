@@ -24,6 +24,7 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
+import System.FilePath qualified as FilePath
 
 runHexIO ::
   (Error HIO.LexError :> es, State IOState :> es, HEnv.EHexEnv :> es, HexLog :> es, EHexState :> es, FS.FileSystem :> es) =>
@@ -42,8 +43,9 @@ runHexIO = interpret $ \_ -> \case
   OpenStreamFile hexFilePath streamNr inOrOut -> openStreamFileImpl hexFilePath streamNr inOrOut
   AtEndOfInputStreamFile streamNr -> atEndOfInputStreamFileImpl streamNr
 
-putInputImpl :: State IOState :> es => CharSourceStack -> Eff es ()
-putInputImpl charSourceStack = assign @IOState #sourceStack charSourceStack
+putInputImpl :: (State IOState :> es) => CharSourceStack -> Eff es ()
+putInputImpl charSourceStack = do
+  assign @IOState #sourceStack charSourceStack
 
 getInputImpl :: State IOState :> es => Eff es CharSourceStack
 getInputImpl = use @IOState #sourceStack
@@ -71,7 +73,7 @@ endCurrentLineImpl = do
 endCurrentInputImpl ::
   (State IOState :> es) =>
   Eff es ()
-endCurrentInputImpl =
+endCurrentInputImpl = do
   modifying
     @IOState
     (#sourceStack % CharSourceStack.currentSourceLens)
@@ -91,7 +93,7 @@ insertLexTokenImpl lt =
     (#sourceStack % CharSourceStack.currentSourceLens)
     (CharSource.insertLexTokenToSource lt)
 
-extractNextLexTokenFromWorkingLineBuffer :: State IOState :> es => Eff es (Maybe LT.LexToken)
+extractNextLexTokenFromWorkingLineBuffer :: (State IOState :> es) => Eff es (Maybe LT.LexToken)
 extractNextLexTokenFromWorkingLineBuffer = do
   use @IOState (#sourceStack % CharSourceStack.currentSourceLens % #workingLine % #workingLexTokens) >>= \case
     lt :<| ltRest -> do
@@ -109,12 +111,11 @@ extractNextLexTokenFromWorkingLineSource = do
     Nothing -> pure Nothing
     Just (lt, newLineState) -> do
       -- Logging.
-      lineNr <- use @IOState (#sourceStack % CharSourceStack.currentSourceLens % #lineNr)
-      let logFmtString = CharSource.fmtLineNr |%| ": Fetched lex-token from source: " |%| LT.fmtLexToken
-      Log.infoLog $
+      let logFmtString = "Fetched lex-token from source: " |%| LT.fmtLexToken
+      Log.debugLog $
         if newLineState == lineState
-          then F.sformat logFmtString lineNr lt
-          else F.sformat (logFmtString |%| ", " |%| CharSource.fmtLineState |%| " -> " |%| CharSource.fmtLineState) lineNr lt lineState newLineState
+          then F.sformat logFmtString lt
+          else F.sformat (logFmtString |%| ", " |%| CharSource.fmtLineState |%| " -> " |%| CharSource.fmtLineState) lt lineState newLineState
       -- Back to logic.
       assign @IOState (#sourceStack % CharSourceStack.currentSourceLens % #workingLine % #sourceLine % #lineState) newLineState
       pure $ Just lt
@@ -147,7 +148,8 @@ readTexFileImpl inputPath = do
       inputPath
       >>= note (HIO.FileNotFound inputPath)
   endLineCode <- getEndLineCharCode
-  modifying @IOState #sourceStack (CharSourceStack.pushCharSource endLineCode inputBytes)
+  let name = toS $ FilePath.takeBaseName inputPath.unHexFilePath
+  modifying @IOState #sourceStack (CharSourceStack.pushCharSource name endLineCode inputBytes)
 
 openStreamFileImpl ::
   (State IOState :> es, HEnv.EHexEnv :> es, FS.FileSystem :> es) =>

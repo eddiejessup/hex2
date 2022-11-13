@@ -125,50 +125,53 @@ appOptionsParserInfo =
 main :: IO ()
 main = do
   opts <- execParser appOptionsParserInfo
-  (inputBytes, extraSearchDirs) <-
+  (inputBytes, extraSearchDirs, name) <-
     case opts.input of
       StdInput -> do
         cs <- liftIO BS.getContents
-        pure (cs, [])
+        pure (cs, [], "stdin")
       ExpressionInput cs -> do
-        pure (cs, [])
+        pure (cs, [], "cmd")
       FileInput inPathStr -> do
         cs <- BS.readFile inPathStr
-        pure (cs, [Path.takeDirectory inPathStr])
+        pure (cs, [Path.takeDirectory inPathStr], (toS inPathStr))
   let searchDirs = opts.searchDirs <> extraSearchDirs
   zonedTime <- Time.getZonedTime
 
+  let run :: Run.BasicApp a -> IO a
+      run x = Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime name inputBytes x
+
   case opts.mode of
     LexMode -> do
-      lts <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runInputApp e s (pure <$> Run.Lex.lexAll))
+      lts <- run (\e s -> Run.runInputApp e s (pure <$> Run.Lex.lexAll))
       putText $ sformat Run.Lex.fmtLexResult lts
     ExpandMode -> do
-      resultList <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runPTSourceApp e s (pure <$> Run.Expand.expandAll))
+      resultList <- run (\e s -> Run.runPTSourceApp e s (pure <$> Run.Expand.expandAll))
       putText $ sformat Run.Expand.fmtExpandResult resultList
     RawCommandMode -> do
-      commandList <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runCommandSourceApp e s (pure <$> Run.Parse.parseAll))
+      commandList <- run (\e s -> Run.runCommandSourceApp e s (pure <$> Run.Parse.parseAll))
       putText $ sformat Run.Parse.fmtCommandList commandList
     EvalCommandMode -> do
-      commandList <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runEvaluateApp e s (pure <$> Run.Evaluate.evaluateAll))
+      commandList <- run (\e s -> Run.runEvaluateApp e s (pure <$> Run.Evaluate.evaluateAll))
       putText $ sformat Run.Evaluate.fmtEvalCommandList commandList
     ParaListMode -> do
-      (endReason, paraList) <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Interpret.extractParaHList))
+      (endReason, paraList) <- run (\e s -> Run.runExtractorApp e s (pure <$> Run.Interpret.extractParaHList))
       putText $ "End reason: " <> show endReason
       putText $ sformat fmtHListMultiLine paraList
     VListMode -> do
-      vList <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Interpret.extractMainVList))
+      vList <- run (\e s -> Run.runExtractorApp e s (pure <$> Run.Interpret.extractMainVList))
       putText $ sformat fmtVList vList
     PageMode -> do
-      pages <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Paginate.paginateAll))
+      pages <- run (\e s -> Run.runExtractorApp e s (pure <$> Run.Paginate.paginateAll))
       putText $ sformat Run.Paginate.fmtPages pages
     DVIDocInstructionMode -> do
-      dviDocInstrs <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToDocInstructions))
+      dviDocInstrs <- run (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToDocInstructions))
       putText $ sformat Render.Doc.fmtDocInstructions dviDocInstrs
     DVISpecInstructionMode -> do
-      dviSpecInstrs <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToSpecInstructions))
+      dviSpecInstrs <- run (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToSpecInstructions))
       putText $ sformat Render.Spec.fmtSpecInstructions dviSpecInstrs
     DVIWriteMode dviOptions -> do
-      dviBytes <- Run.unsafeEval $ Run.evalAppIO searchDirs opts.logLevel zonedTime inputBytes (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToDVIBytes))
+      dviBytes <- run (\e s -> Run.runExtractorApp e s (pure <$> Run.Render.renderToDVIBytes))
       BS.writeFile (dviOptions.dviOutputPath) dviBytes
     _ ->
       putText $ "Unsupported mode: " <> show (opts.mode)

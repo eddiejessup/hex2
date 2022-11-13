@@ -82,5 +82,5 @@ applyGlueFlexSpec spec g =
                       -- then set at the natural width.
                       _ ->
                         0
-            in g.gDimen ~~ Q.scaleLengthByRational setRatio glueFlexProblem.excessLength
-  in Box.SetGlue {setAt, glue = g}
+             in g.gDimen ~~ Q.scaleLengthByRational setRatio glueFlexProblem.excessLength
+   in Box.SetGlue {setAt, glue = g}

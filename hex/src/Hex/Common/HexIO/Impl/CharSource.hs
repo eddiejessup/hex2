@@ -5,6 +5,7 @@ module Hex.Common.HexIO.Impl.CharSource where
 import Data.ByteString qualified as BS
 import Data.Sequence qualified as Seq
 import Formatting qualified as F
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.Token.Lexed qualified as LT
 import Hexlude
@@ -16,8 +17,8 @@ import Hexlude
 
 -- The input to Tex is a sequence of “lines.”
 data CharSource = CharSource
-  { -- | The line number of the current line.
-    lineNr :: LineNr,
+  { srcLoc :: Log.SrcLoc,
+    -- | The line number of the current line.
     workingLine :: WorkingLine,
     sourceLines :: [ByteString] -- Remaining lines, in unprocessed form.
   }
@@ -28,13 +29,13 @@ newlineWord = 10
 
 -- Split the input into lines, assuming '\n' line-termination characters.
 -- We will append the \endlinechar to each input line as we traverse the lines.
-newCharSource :: Maybe Code.CharCode -> ByteString -> CharSource
-newCharSource mayEndLineChar sourceBytes =
+newCharSource :: Text -> Maybe Code.CharCode -> ByteString -> CharSource
+newCharSource name mayEndLineChar sourceBytes =
   let (workingLineBytes, restLines) = case BS.split newlineWord sourceBytes of
         [] -> ("", [])
         fstLine : rest -> (fstLine, rest)
    in CharSource
-        { lineNr = LineNr 1,
+        { srcLoc = Log.newSrcLoc name,
           workingLine = newWorkingLine mayEndLineChar workingLineBytes,
           sourceLines = restLines
         }
@@ -80,18 +81,6 @@ newCurrentSourceLine mayEndLineChar sourceLineBytes =
     { currentLine = mkHexLine mayEndLineChar sourceLineBytes,
       lineState = LineBegin
     }
-
-charSourceLineNr :: CharSource -> LineNr
-charSourceLineNr = (.lineNr)
-
--- | A source line-number
-newtype LineNr = LineNr {unLineNr :: Int}
-  deriving stock (Show, Generic)
-  deriving newtype (Eq, Enum)
-
-fmtLineNr :: Fmt LineNr
-fmtLineNr = F.later $ \ln ->
-  F.bformat (F.left 4 ' ') ln.unLineNr
 
 data LineState
   = SkippingBlanks
@@ -146,7 +135,7 @@ endSourceCurrentLine mayEndLineChar a =
     Just (nextLine, restOfLines) ->
       Just $
         a
-          & #lineNr %~ succ
+          & #srcLoc %~ Log.succSrcLoc
           & #workingLine !~ newWorkingLine mayEndLineChar nextLine
           & #sourceLines !~ restOfLines
 

@@ -6,7 +6,6 @@ module Hex.Common.HexEnv.Impl where
 import Data.ByteString qualified as BS
 import Effectful.FileSystem qualified as FS
 import Effectful.FileSystem.IO qualified as FS.IO
-import Effectful.Internal.Monad qualified as Eff
 import Effectful.Reader.Dynamic qualified as R
 import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.HexEnv.Interface
@@ -30,7 +29,7 @@ newHexEnv logHandle logLevel searchDirs =
 
 -- | Set up the enironment in this 'with'-style, to ensure we clean up the log
 -- handle when we're finished.
-withHexEnv :: FS.FileSystem :> es => [FilePath] -> Log.LogLevel -> (HexEnv -> Eff es a) -> Eff es a
+withHexEnv :: (FS.FileSystem :> es) => [FilePath] -> Log.LogLevel -> (HexEnv -> Eff es a) -> Eff es a
 withHexEnv extraSearchDirs logLevel k = do
   cwd <- FS.getCurrentDirectory
   let searchDirs =
@@ -43,20 +42,20 @@ withHexEnv extraSearchDirs logLevel k = do
   FS.IO.withFile "log.txt" WriteMode $ \hexLogHandle -> do
     k $ newHexEnv hexLogHandle logLevel searchDirs
 
-runHexEnv :: (FS.FileSystem :> es, R.Reader HexEnv :> es) => Eff (EHexEnv : es) a -> Eff es a
+runHexEnv :: (FS.FileSystem :> es, R.Reader HexEnv :> es, IOE :> es) => Eff (EHexEnv : es) a -> Eff es a
 runHexEnv = interpret $ \_ -> \case
   FindAndReadFile findPolicy tgtFile -> findAndReadFileImpl findPolicy tgtFile
   FindAndOpenFile findPolicy tgtFile ioMode -> findAndOpenFileImpl findPolicy tgtFile ioMode
 
 findAndReadFileImpl ::
-  (Reader HexEnv :> es, FS.FileSystem :> es) =>
+  (Reader HexEnv :> es, FS.FileSystem :> es, IOE :> es) =>
   FindFilePolicy ->
   HexFilePath ->
   Eff es (Maybe ByteString)
 findAndReadFileImpl findPolicy tgtFile = do
   findFilePathImpl findPolicy tgtFile >>= \case
     Nothing -> pure Nothing
-    Just absPath -> Just <$> Eff.unsafeEff_ (BS.readFile absPath)
+    Just absPath -> Just <$> (liftIO $ BS.readFile absPath)
 
 findAndOpenFileImpl ::
   (Reader HexEnv :> es, FS.FileSystem :> es) =>

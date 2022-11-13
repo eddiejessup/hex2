@@ -54,7 +54,8 @@ handleCommandInVMode oldSrc modeVariant = \case
     Eval.AddVRule rule -> do
       Build.addVListElement $
         ListElem.VListBaseElem $
-          BoxElem.AxOrRuleBoxBaseElem $ Box.Boxed {boxedContents = BoxElem.AxBoxOrRuleContentsRule, boxedDims = rule}
+          BoxElem.AxOrRuleBoxBaseElem $
+            Box.Boxed {boxedContents = BoxElem.AxBoxOrRuleContentsRule, boxedDims = rule}
       pure ContinueVMode
     Eval.AddUnwrappedFetchedVBox _fetchedBoxRef ->
       notImplemented "handleCommandInVMode: AddUnwrappedFetchedVBox"

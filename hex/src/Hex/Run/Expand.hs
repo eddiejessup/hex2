@@ -21,7 +21,8 @@ fmtExpandResult :: Fmt [(LT.LexToken, PrimitiveToken)]
 fmtExpandResult = F.intercalated "\n\n" fmtOneResult
   where
     fmtOneResult =
-      F.accessed fst LT.fmtLexToken <> F.fconst "\n"
+      F.accessed fst LT.fmtLexToken
+        <> F.fconst "\n"
         <> F.reindented
           4
           (F.fconst "--e--> " <> F.accessed snd fmtPrimitiveToken <> F.fconst "\n")

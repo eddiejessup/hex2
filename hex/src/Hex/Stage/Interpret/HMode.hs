@@ -98,7 +98,8 @@ handleCommandInHMode oldSrc modeVariant = \case
                   Build.addHListElement $
                     ListElem.HVListElem $
                       ListElem.VListBaseElem $
-                        BoxElem.KernBaseElem $ BoxElem.Kern charAttrs.italicCorrection
+                        BoxElem.KernBaseElem $
+                          BoxElem.Kern charAttrs.italicCorrection
       pure ContinueHMode
     Eval.AddDiscretionaryText _discretionaryText ->
       notImplemented "handleCommandInHMode: AddDiscretionaryText"

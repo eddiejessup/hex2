@@ -159,6 +159,8 @@ hBoxElemSeqAsHListElems boxElemSeq =
   boxElemSeq <&> \case
     BoxElem.HVBoxElem (BoxElem.VBoxBaseElem baseElem) ->
       HVListElem $ VListBaseElem baseElem
+    BoxElem.HVBoxElem (BoxElem.VBoxSetGlueElem setGlue) ->
+      HVListElem $ ListGlue setGlue.glue
     BoxElem.HBoxHBaseElem hBaseElem ->
       HListHBaseElem hBaseElem
 
@@ -167,9 +169,9 @@ fmtDiscretionaryItem =
   "Discretionary{pre="
     |%| F.accessed (.preBreakText) BoxElem.fmtHBoxElemSeq
     <> ", post="
-    |%| F.accessed (.postBreakText) BoxElem.fmtHBoxElemSeq
+      |%| F.accessed (.postBreakText) BoxElem.fmtHBoxElemSeq
     <> ", full="
-    |%| F.accessed (.noBreakText) BoxElem.fmtHBoxElemSeq
+      |%| F.accessed (.noBreakText) BoxElem.fmtHBoxElemSeq
 
 -- Lists.
 

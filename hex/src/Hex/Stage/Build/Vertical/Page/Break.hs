@@ -193,7 +193,8 @@ runPageBuilder desiredHeight vList =
                         Log.infoLog $ "Breaking at cost: " <> show cost <> " with current-page length: " <> show (Seq.length (currentPage.items.unVList))
                         let (newPageElems, leftoverListElems) = breakPageAtBest currentPage
                         Log.infoLog $
-                          "Broken page length: " <> show (Seq.length newPageElems.unVList)
+                          "Broken page length: "
+                            <> show (Seq.length newPageElems.unVList)
                             <> ", leftover elems length: "
                             <> show (Seq.length leftoverListElems.unVList)
                             <> ", remaining length: "

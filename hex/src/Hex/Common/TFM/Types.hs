@@ -59,9 +59,9 @@ fmtFont =
     <> ("Design font-size: " |%| F.accessed (.designFontSize) Q.fmtLengthWithUnit |%| "\n")
     <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "None" F.stext) |%| "\n")
     <> ("Family: " |%| fmtViewed (field @"family") (F.maybed "None" F.stext) |%| "\n")
-    |%| ("Params: [...]\n")
-    |%| ("ligKerns: [...]\n")
-    |%| ("characters: [...]\n")
+      |%| ("Params: [...]\n")
+      |%| ("ligKerns: [...]\n")
+      |%| ("characters: [...]\n")
   where
     fmtChecksum = F.int
 
