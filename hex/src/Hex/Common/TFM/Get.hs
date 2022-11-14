@@ -25,7 +25,7 @@ data RawFont = RawFont
     ligKernCommands :: [TFM.Get.LigKernCommand.LigKernCommand],
     kernOps :: [LengthDesignSize],
     recipes :: [Recipe],
-    fontParams :: FontParams,
+    fontParameters :: FontParams,
     smallestCharCode :: Word16,
     largestCharCode :: Word16
   }
@@ -33,37 +33,55 @@ data RawFont = RawFont
 
 parseTFMBytesRaw :: (Log.HexLog :> es, Error TFMError :> es, Get.Get :> es) => Eff es RawFont
 parseTFMBytesRaw = do
+  Log.debugLog "Parsing table parameters"
   tableParams <- TFM.Get.TableParams.getTableParams
-  Log.debugLog "Parsed table parameters"
-  header <- TFM.Get.Common.getFixedLength (tableParams.headerLength) TFM.Get.Header.getHeader
-  Log.debugLog "Parsed header"
-  charInfos <- getChunkedTable (tableParams.characterInfosLength) $ (TFM.Get.CharInfo.getCharInfo)
-  Log.debugLog "Parsed character info"
-  widths <- getLengthsTable (tableParams.widthsLength)
-  Log.debugLog "Parsed widths"
-  heights <- getLengthsTable (tableParams.heightsLength)
-  Log.debugLog "Parsed heights"
-  depths <- getLengthsTable (tableParams.depthsLength)
-  Log.debugLog "Parsed depths"
-  italicCorrections <- getLengthsTable (tableParams.italicCorrectionsLength)
-  Log.debugLog "Parsed italic corrections"
-  ligKernCommands <- getChunkedTable (tableParams.ligKernCommandsLength) $ (TFM.Get.LigKernCommand.getLigKernCommand)
-  Log.debugLog "Parsed ligature/kerning commands"
-  kernOps <- getLengthsTable (tableParams.kernOpsLength)
-  Log.debugLog "Parsed kerning operations"
-  recipes <- getChunkedTable (tableParams.extensibleRecipesLength) $ (TFM.Get.Recipe.getExtensibleRecipe)
-  Log.debugLog "Parsed extensible recipes"
-  let scheme = TFM.Get.Header.characterCodingScheme header
-  fontParams <- TFM.Get.FontParams.getFontParams scheme
-  Log.debugLog "Parsed font parameters"
+  Log.debugLog "Parsing header"
+  header <- getTable tableParams.headerLength TFM.Get.Header.getHeader
+  Log.debugLog "Parsing character info"
+  charInfos <- getChunkedTable tableParams.characterInfosLength TFM.Get.CharInfo.getCharInfo
+  Log.debugLog "Parsing widths"
+  widths <- getLengthsTable tableParams.widthsLength
+  Log.debugLog "Parsing heights"
+  heights <- getLengthsTable tableParams.heightsLength
+  Log.debugLog "Parsing depths"
+  depths <- getLengthsTable tableParams.depthsLength
+  Log.debugLog "Parsing italic corrections"
+  italicCorrections <- getLengthsTable tableParams.italicCorrectionsLength
+  Log.debugLog "Parsing ligature/kerning commands"
+  ligKernCommands <- getChunkedTable tableParams.ligKernCommandsLength TFM.Get.LigKernCommand.getLigKernCommand
+  Log.debugLog "Parsing kerning operations"
+  kernOps <- getLengthsTable tableParams.kernOpsLength
+  Log.debugLog "Parsing extensible recipes"
+  recipes <- getChunkedTable tableParams.extensibleRecipesLength TFM.Get.Recipe.getExtensibleRecipe
+  Log.debugLog "Parsing font parameters"
+  fontParameters <- getTable tableParams.fontParametersLength $ TFM.Get.FontParams.getFontParams header.characterCodingScheme
 
-  pure RawFont {header, charInfos, widths, heights, depths, italicCorrections, ligKernCommands, kernOps, recipes, fontParams, smallestCharCode = tableParams.smallestCharCode, largestCharCode = tableParams.largestCharCode}
+  pure
+    RawFont
+      { header,
+        charInfos,
+        widths,
+        heights,
+        depths,
+        italicCorrections,
+        ligKernCommands,
+        kernOps,
+        recipes,
+        fontParameters,
+        smallestCharCode = tableParams.smallestCharCode,
+        largestCharCode = tableParams.largestCharCode
+      }
   where
     getLengthsTable tableLength =
       getChunkedTable tableLength TFM.Get.Common.getDesignSizeLength
 
     getChunkedTable tableLength getChunk =
-      TFM.Get.Common.getFixedLength tableLength (TFM.Get.Common.getChunks getChunk)
+      getTable tableLength (TFM.Get.Common.getChunks getChunk)
+
+    getTable tableLength getBody = do
+      (body, skipped) <- TFM.Get.Common.getFixedLength tableLength getBody
+      when (skipped > 0) $ Log.warnLog $ "Skipped unused bytes: " <> show skipped
+      pure body
 
 parseTFMBytes :: (Log.HexLog :> es, Error TFMError :> es) => ByteString -> Eff es Font
 parseTFMBytes bs = do
@@ -78,9 +96,9 @@ parseTFMBytes bs = do
     Font
       { checksum = rawFont.header.checksum,
         designFontSize = rawFont.header.designFontSize,
-        characterCodingScheme = ASCII.charListToText <$> rawFont.header.characterCodingScheme,
+        characterCodingScheme = rawFont.header.characterCodingScheme,
         fontFamily = ASCII.charListToText <$> rawFont.header.fontFamily,
-        params = rawFont.fontParams,
+        params = rawFont.fontParameters,
         ligKerns = ligKernInstrs,
         characters
       }

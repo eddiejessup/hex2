@@ -1,6 +1,8 @@
 module Hex.Common.TFM.Types where
 
+import ASCII qualified
 import Formatting qualified as F
+import Hex.Common.Ascii qualified as H.ASCII
 import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
 import Hexlude
@@ -9,7 +11,7 @@ data TFMError
   = ParseError Text
   | IndexError
   | BadTableLengths
-  | SectionTooLong
+  | SectionTooLong Text
   | InvalidBCPL
   deriving stock (Show, Generic)
 
@@ -26,7 +28,7 @@ zeroLengthDesignSize = LengthDesignSize 0
 data Font = Font
   { checksum :: Word32,
     designFontSize :: Q.Length,
-    characterCodingScheme :: Maybe Text,
+    characterCodingScheme :: Maybe CharacterCodingScheme,
     fontFamily :: Maybe Text,
     params :: FontParams,
     ligKerns :: [LigKernInstr],
@@ -54,7 +56,7 @@ nullFont =
           spaceShrink = zeroLengthDesignSize,
           xHeight = zeroLengthDesignSize,
           quad = zeroLengthDesignSize,
-          extraSpace = zeroLengthDesignSize,
+          extraSpace = Nothing,
           extraParams = Nothing
         }
 
@@ -62,13 +64,29 @@ fmtFont :: Fmt Font
 fmtFont =
   ("Checksum: " |%| F.accessed (.checksum) fmtChecksum |%| "\n")
     <> ("Design font-size: " |%| F.accessed (.designFontSize) Q.fmtLengthWithUnit |%| "\n")
-    <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "None" F.stext) |%| "\n")
+    <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "None" fmtCharacterCodingScheme) |%| "\n")
     <> ("Family: " |%| fmtViewed #fontFamily (F.maybed "None" F.stext) |%| "\n")
       |%| ("Params: [...]\n")
       |%| ("ligKerns: [...]\n")
       |%| ("characters: [...]\n")
   where
     fmtChecksum = F.int
+
+data CharacterCodingScheme
+  = MathSymbolsScheme
+  | MathExtensionScheme
+  | MathItalicScheme
+  | TextScheme
+  | TextWithoutFLigaturesScheme
+  | TypewriterTextScheme
+  | ExplicitUnspecifiedScheme
+  | UnknownScheme [ASCII.Char]
+  deriving stock (Show)
+
+fmtCharacterCodingScheme :: Fmt CharacterCodingScheme
+fmtCharacterCodingScheme = F.later $ \case
+  UnknownScheme asciiChars -> F.bformat H.ASCII.fmtAsciiList asciiChars
+  x -> F.bformat F.shown x
 
 lengthFromDesignSize :: LengthDesignSize -> Q.Length -> Q.Length
 lengthFromDesignSize (LengthDesignSize d) = Q.scaleLengthByRational d
@@ -101,7 +119,7 @@ data FontParams = FontParams
     spaceShrink :: LengthDesignSize,
     xHeight :: LengthDesignSize,
     quad :: LengthDesignSize,
-    extraSpace :: LengthDesignSize,
+    extraSpace :: Maybe LengthDesignSize,
     extraParams :: Maybe ExtraFontParams
   }
   deriving stock (Show)

@@ -59,3 +59,9 @@ debugLog = log Debug
 
 infoLog :: (HexLog :> es) => Text -> Eff es ()
 infoLog = log Info
+
+warnLog :: (HexLog :> es) => Text -> Eff es ()
+warnLog = log Warn
+
+errLog :: (HexLog :> es) => Text -> Eff es ()
+errLog = log Error

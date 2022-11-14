@@ -280,7 +280,7 @@ spaceGlueFromSpaceFactor fNr sf = do
           let baseSpacing = HSt.Font.fontLengthParamLength fontInfo (.spacing)
               baseStretch = Q.FinitePureFlex $ HSt.Font.fontLengthParamLength fontInfo (.spaceStretch)
               baseShrink = Q.FinitePureFlex $ HSt.Font.fontLengthParamLength fontInfo (.spaceShrink)
-              extraSpace = HSt.Font.fontLengthParamLength fontInfo (.extraSpace)
+              extraSpace = HSt.Font.fontLengthParamLength fontInfo (fromMaybe TFM.zeroLengthDesignSize . (.extraSpace))
 
               adjustedSpacing =
                 if sfAbove2k

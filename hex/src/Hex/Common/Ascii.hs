@@ -1,7 +1,13 @@
 module Hex.Common.Ascii where
 
+import ASCII qualified as ASCII
+import Data.Text.Lazy.Builder qualified as Tx
+import Formatting qualified as F
 import GHC.Num
 import Hexlude
+
+fmtAsciiList :: Fmt [ASCII.Char]
+fmtAsciiList = F.later (Tx.fromText . ASCII.charListToText)
 
 ascii :: Char -> Word8
 ascii = fromIntegral . ord
