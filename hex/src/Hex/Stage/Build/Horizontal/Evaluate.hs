@@ -7,8 +7,8 @@ import Hexlude
 
 -- Widths, glue aggregates, box status.
 
-hListNetBiFlex :: ListElem.HList -> Q.BiNetFlex
-hListNetBiFlex = foldOf (ListElem.hListElemTraversal % hListElemBiFlex)
+hListNetBiFlex :: Seq ListElem.HListElem -> Q.BiNetFlex
+hListNetBiFlex = foldOf (traversed % hListElemBiFlex)
   where
     hListElemBiFlex :: AffineFold ListElem.HListElem Q.BiNetFlex
     hListElemBiFlex = _Typed @ListElem.VListElem % _Typed @Q.Glue % to Q.asBiNetFlex
@@ -48,6 +48,6 @@ hListNetBiFlex = foldOf (ListElem.hListElemTraversal % hListElemBiFlex)
 -- >>> applyGlueFlexSpec (NeedsToFlex (ImperfectGlueFlexSpec {flexDirection = Shrink, netFlexInDirection = Q.FinitePureFlex (Q.pt 1), excessWidth = (Q.pt 1)})) (Q.Glue (Q.pt 1) (Q.finFlex (Q.pt 1)) (Q.finFlex (Q.pt 1)))
 -- SetGlue {sgDimen = Length {unLength = HexInt {unHexInt = 0}}}
 
-listFlexSpec :: ListElem.HList -> Q.Length -> Eval.GlueFlexSpec
+listFlexSpec :: Seq ListElem.HListElem -> Q.Length -> Eval.GlueFlexSpec
 listFlexSpec hList desiredWidth =
   Eval.glueFlexSpec ((ListElem.hListNaturalWidth hList) ~~ desiredWidth) (hListNetBiFlex hList)

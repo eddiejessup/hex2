@@ -7,14 +7,14 @@ import Hex.Stage.Build.ListElem qualified as List
 import Hex.Stage.Build.Vertical.Evaluate qualified as V
 import Hexlude
 
-setList :: List.VList -> Q.Length -> (Seq BoxElem.VBoxElem, Eval.GlueFlexSpec)
+setList :: Seq List.VListElem -> Q.Length -> (Seq BoxElem.VBoxElem, Eval.GlueFlexSpec)
 setList vList desiredHeight =
   let flexSpec = V.listFlexSpec vList desiredHeight
    in (setListElems flexSpec vList, flexSpec)
 
-setListElems :: Eval.GlueFlexSpec -> List.VList -> Seq BoxElem.VBoxElem
+setListElems :: Eval.GlueFlexSpec -> Seq List.VListElem -> Seq BoxElem.VBoxElem
 setListElems flexSpec vList =
-  seqOf (List.vListElemTraversal % afolding (setElem flexSpec)) vList
+  seqOf (traversed % afolding (setElem flexSpec)) vList
 
 setElem :: Eval.GlueFlexSpec -> List.VListElem -> Maybe BoxElem.VBoxElem
 setElem flexSpec = \case

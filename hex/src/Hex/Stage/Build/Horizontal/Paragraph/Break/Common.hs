@@ -54,17 +54,16 @@ mkLineBreakingEnv
         rightSkip
       }
 
-prepareHListForBreaking :: ListElem.HList -> ListElem.HList
-prepareHListForBreaking (ListElem.HList Empty) =
-  ListElem.HList mempty
-prepareHListForBreaking (ListElem.HList elems@(elemInit :|> lastElem)) =
+prepareHListForBreaking :: (Seq ListElem.HListElem) -> (Seq ListElem.HListElem)
+prepareHListForBreaking Empty =
+  mempty
+prepareHListForBreaking elems@(elemInit :|> lastElem) =
   let -- Remove the final item if it's glue.
       trimmedElems = case lastElem of
         ListElem.HVListElem (ListElem.ListGlue _) -> elemInit
         _ -> elems
-      -- Add extra bits to finish the list.
-      finishedElems = trimmedElems >< finishingElems
-   in ListElem.HList finishedElems
+   in -- Add extra bits to finish the list.
+      trimmedElems >< finishingElems
   where
     -- \penalty10k \hfil \penalty-10k.
     finishingElems :: Seq HListElem

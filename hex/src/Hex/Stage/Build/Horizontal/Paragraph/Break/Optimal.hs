@@ -14,7 +14,7 @@ import Hex.Stage.Build.Horizontal.Paragraph.Demerit qualified as Demerit
 import Hex.Stage.Build.Horizontal.Paragraph.Types (HBreakItem)
 import Hex.Stage.Build.Horizontal.Paragraph.Types qualified as H.Break
 import Hex.Stage.Build.Horizontal.Paragraph.Types qualified as Para
-import Hex.Stage.Build.ListElem (HList (HList), HListElem)
+import Hex.Stage.Build.ListElem (HListElem)
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.Vertical.Page.Break qualified as V.Break
 import Hexlude
@@ -93,7 +93,7 @@ addElemsToIncompleteLines :: Seq HListElem -> Seq IncompleteLine -> Seq Incomple
 addElemsToIncompleteLines elems = fmap (incompleteLineAddElems elems)
 
 lineFlexSpec :: HasField "lineElements" r (Seq HListElem) => Q.Length -> r -> Eval.GlueFlexSpec
-lineFlexSpec desiredWidth line = listFlexSpec (HList line.lineElements) desiredWidth
+lineFlexSpec desiredWidth line = listFlexSpec line.lineElements desiredWidth
 
 incompleteLineIsNotOverfull :: Q.Length -> IncompleteLine -> Bool
 incompleteLineIsNotOverfull desiredWidth line =
@@ -258,10 +258,10 @@ addLineToLineSequence breakpointCache (ln@(CompletedLine _elems src), lnDemerit)
 
 appendAllElements ::
   (Reader LineBreakingEnv :> es, Log.HexLog :> es) =>
-  ListElem.HList ->
+  Seq ListElem.HListElem ->
   Eff es BreakingState
-appendAllElements (ListElem.HList allEs) =
-  let finalisedHList = prepareHListForBreaking (ListElem.HList allEs)
+appendAllElements allEs =
+  let finalisedHList = prepareHListForBreaking allEs
       breakList = asChunkedList finalisedHList
    in execStateLocal
         initialBreakingState
@@ -270,7 +270,7 @@ appendAllElements (ListElem.HList allEs) =
 finaliseBrokenList ::
   (Reader LineBreakingEnv :> es) =>
   BreakingState ->
-  Eff es (Maybe (Seq HList))
+  Eff es (Maybe (Seq (Seq HListElem)))
 finaliseBrokenList finalState = do
   -- Finish off by 'breaking' at the end of the list.
   -- TODO: Do this properly.
@@ -288,12 +288,12 @@ finaliseBrokenList finalState = do
       pure $
         Just $
           bestSeq.unCompletedLineSequence <&> \completedLine ->
-            ListElem.HList $ completedLine.lineElements
+            completedLine.lineElements
 
 breakHListOptimally ::
   (Reader LineBreakingEnv :> es, Log.HexLog :> es) =>
-  ListElem.HList ->
-  Eff es (Maybe (Seq HList))
+  Seq ListElem.HListElem ->
+  Eff es (Maybe (Seq (Seq HListElem)))
 breakHListOptimally hList = do
   finalState <- appendAllElements hList
   finaliseBrokenList finalState

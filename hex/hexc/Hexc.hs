@@ -11,7 +11,7 @@ import Hex.Run.Lex qualified as Run.Lex
 import Hex.Run.Paginate qualified as Run.Paginate
 import Hex.Run.Parse qualified as Run.Parse
 import Hex.Run.Render qualified as Run.Render
-import Hex.Stage.Build.ListElem (fmtHListMultiLine, fmtVList)
+import Hex.Stage.Build.ListElem (fmtHListMultiLine, fmtVListElemSeq)
 import Hex.Stage.Render.Interface.DocInstruction qualified as Render.Doc
 import Hex.Stage.Render.Interface.SpecInstruction qualified as Render.Spec
 import Hexlude
@@ -160,7 +160,7 @@ main = do
       putText $ sformat fmtHListMultiLine paraList
     VListMode -> do
       vList <- run (\e s -> Run.runExtractorApp e s (pure <$> Run.Interpret.extractMainVList))
-      putText $ sformat fmtVList vList
+      putText $ sformat fmtVListElemSeq vList
     PageMode -> do
       pages <- run (\e s -> Run.runExtractorApp e s (pure <$> Run.Paginate.paginateAll))
       putText $ sformat Run.Paginate.fmtPages pages

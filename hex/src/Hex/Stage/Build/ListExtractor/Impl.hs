@@ -13,8 +13,7 @@ import Hex.Stage.Build.ListBuilder.Horizontal (runHListBuilder, runHexListBuilde
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
 import Hex.Stage.Build.ListBuilder.Vertical (runHexListBuilderVMode)
 import Hex.Stage.Build.ListBuilder.Vertical qualified as Build.V
-import Hex.Stage.Build.ListElem (HList (..))
-import Hex.Stage.Build.ListElem qualified as ListElem
+import Hex.Stage.Build.ListElem (HListElem, VListElem)
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface qualified as Eval
 import Hex.Stage.Interpret.AllMode qualified as AllMode
@@ -38,7 +37,7 @@ extractHBoxListImpl ::
     Error AllMode.InterpretError :> es,
     HexLog :> es
   ) =>
-  Eff es HList
+  Eff es (Seq HListElem)
 extractHBoxListImpl =
   execStateLocal mempty $
     runHListBuilder $
@@ -55,7 +54,7 @@ extractParagraphListImpl ::
     HexLog :> es
   ) =>
   ListExtractor.IndentFlag ->
-  Eff es (ListExtractor.EndHListReason, HList)
+  Eff es (ListExtractor.EndHListReason, Seq HListElem)
 extractParagraphListImpl indentFlag = do
   initList <-
     case indentFlag of
@@ -64,7 +63,7 @@ extractParagraphListImpl indentFlag = do
         pure $ singleton $ HSt.emptyHBoxAsHListElem parDims
       ListExtractor.DoNotIndent ->
         pure mempty
-  runStateLocal (HList initList) $
+  runStateLocal initList $
     runHListBuilder $
       runHexListBuilderHMode $
         buildHListImpl HSt.Mode.OuterModeVariant
@@ -112,9 +111,9 @@ extractMainVListImpl ::
     Error AllMode.InterpretError :> es,
     HexLog :> es
   ) =>
-  Eff es ListElem.VList
+  Eff es (Seq VListElem)
 extractMainVListImpl =
-  execStateLocal (ListElem.VList Empty) $
+  execStateLocal Empty $
     Build.V.runHexListBuilderVMode $
       buildVListImpl HSt.Mode.OuterModeVariant
 
@@ -127,7 +126,7 @@ extractVBoxListImpl ::
     Error AllMode.InterpretError :> es,
     HexLog :> es
   ) =>
-  Eff es ListElem.VList
+  Eff es (Seq VListElem)
 extractVBoxListImpl =
   execStateLocal mempty $
     runHexListBuilderVMode $

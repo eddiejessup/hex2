@@ -58,7 +58,7 @@ hBreakItemAsListElemsNoBreak = \case
   HVBreakItem b ->
     ListElem.HVListElem <$> vBreakItemAsListElemNoBreak b
   DiscretionaryBreak discrItem ->
-    ListElem.hBoxElemSeqAsHListElems discrItem.noBreakText
+    ListElem.hBoxElemAsHListElem <$> discrItem.noBreakText
   where
     vBreakItemAsListElemNoBreak :: VBreakItem -> Seq ListElem.VListElem
     vBreakItemAsListElemNoBreak = \case
@@ -75,7 +75,7 @@ hBreakItemAsListElemsPreBreak = \case
   HVBreakItem b ->
     ListElem.HVListElem <$> vBreakItemAsListElemPreBreak b
   DiscretionaryBreak discrItem ->
-    ListElem.hBoxElemSeqAsHListElems discrItem.preBreakText
+    ListElem.hBoxElemAsHListElem <$> discrItem.preBreakText
   where
     vBreakItemAsListElemPreBreak :: VBreakItem -> Seq ListElem.VListElem
     vBreakItemAsListElemPreBreak = \case
@@ -91,7 +91,7 @@ hBreakItemAsListElemsPostBreak = \case
   HVBreakItem _ ->
     mempty
   DiscretionaryBreak discrItem ->
-    ListElem.hBoxElemSeqAsHListElems discrItem.postBreakText
+    ListElem.hBoxElemAsHListElem <$> discrItem.postBreakText
 
 hBreakIsAcceptable ::
   Reader LineBreakingEnv :> es =>

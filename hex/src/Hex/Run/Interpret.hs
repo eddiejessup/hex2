@@ -3,7 +3,7 @@ module Hex.Run.Interpret where
 import Hex.Capability.Log.Interface (HexLog)
 import Hex.Common.HexIO.Interface (HexIO)
 import Hex.Common.HexState.Interface (EHexState)
-import Hex.Stage.Build.ListElem (HList (..), VList (..))
+import Hex.Stage.Build.ListElem (HListElem, VListElem)
 import Hex.Stage.Build.ListExtractor.Impl (extractMainVListImpl)
 import Hex.Stage.Build.ListExtractor.Interface (EndHListReason, ExtractList, IndentFlag (..), extractParagraphList)
 import Hex.Stage.Evaluate.Interface (HexEvaluate)
@@ -20,8 +20,10 @@ extractMainVList ::
     Error InterpretError :> es,
     HexLog :> es
   ) =>
-  Eff es VList
+  Eff es (Seq VListElem)
 extractMainVList = extractMainVListImpl
 
-extractParaHList :: ExtractList :> es => Eff es (EndHListReason, HList)
+extractParaHList ::
+  ExtractList :> es =>
+  Eff es (EndHListReason, Seq HListElem)
 extractParaHList = extractParagraphList Indent

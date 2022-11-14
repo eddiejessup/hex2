@@ -15,6 +15,7 @@ import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.Horizontal.Paragraph.Break.MultiPass qualified as Break
 import Hex.Stage.Build.Horizontal.Set qualified as List.H
 import Hex.Stage.Build.ListBuilder.Interface qualified as Build
+import Hex.Stage.Build.ListElem (HListElem)
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.ListExtractor.Interface qualified as ListExtractor
 import Hex.Stage.Evaluate.Interface.AST.Command qualified as Eval
@@ -118,7 +119,7 @@ handleCommandInVMode oldSrc modeVariant = \case
 
 extendVListWithParagraphStateT ::
   (HSt.EHexState :> es, Log.HexLog :> es, Build.HexListBuilder :> es) =>
-  ListElem.HList ->
+  (Seq HListElem) ->
   Eff es ()
 extendVListWithParagraphStateT paraHList = do
   lineBoxes <- setAndBreakHListToHBoxes paraHList
@@ -135,7 +136,7 @@ extendVListWithParagraphStateT paraHList = do
 
 setAndBreakHListToHBoxes ::
   (HSt.EHexState :> es, Log.HexLog :> es) =>
-  ListElem.HList ->
+  (Seq HListElem) ->
   Eff es (Seq (Box.Boxed (Seq BoxElem.HBoxElem)))
 setAndBreakHListToHBoxes hList = do
   lineHLists <- Break.breakHListMultiPass hList

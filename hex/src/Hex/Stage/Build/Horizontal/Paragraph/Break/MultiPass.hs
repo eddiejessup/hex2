@@ -14,7 +14,7 @@ import Hex.Stage.Build.AnyDirection.Breaking.Badness qualified as Bad
 import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.Horizontal.Paragraph.Break.Common (LineBreakingEnv (..), mkLineBreakingEnv)
 import Hex.Stage.Build.Horizontal.Paragraph.Break.Optimal qualified as Optimal
-import Hex.Stage.Build.ListElem (HList)
+import Hex.Stage.Build.ListElem (HListElem)
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 import Hexlude.NonEmptySeq qualified as Seq.NE
@@ -29,11 +29,11 @@ data MidWordState = MidWordState
   { wordFont :: Font.FontNumber,
     hyphenItem :: ListElem.DiscretionaryItem,
     wordLetters :: NonEmptySeq (Box.Boxed Code.CharCode),
-    suffixItems :: Seq ListElem.HListElem
+    suffixItems :: Seq HListElem
   }
   deriving stock (Generic)
 
-midWordLettersAsElems :: MidWordState -> Seq ListElem.HListElem
+midWordLettersAsElems :: MidWordState -> Seq HListElem
 midWordLettersAsElems st = boxCharsAsElemSeq st.wordFont (Seq.NE.toSeq st.wordLetters)
 
 data TrialWordEndOutcome
@@ -41,11 +41,11 @@ data TrialWordEndOutcome
   | HyphenateNow Bool -- seen glue?
   | AbandonHyphenation
 
-midWordStateAccumulatedItems :: MidWordState -> Seq ListElem.HListElem
+midWordStateAccumulatedItems :: MidWordState -> Seq HListElem
 midWordStateAccumulatedItems st =
   midWordLettersAsElems st <> st.suffixItems
 
-hyphStateAccumulatedItems :: HyphenationState -> Seq ListElem.HListElem
+hyphStateAccumulatedItems :: HyphenationState -> Seq HListElem
 hyphStateAccumulatedItems = \case
   SearchingForStartingLetter -> Empty
   SearchingForGlue -> Empty
@@ -54,7 +54,7 @@ hyphStateAccumulatedItems = \case
 boxCharAsElem ::
   Font.FontNumber ->
   Box.Boxed Code.CharCode ->
-  ListElem.HListElem
+  HListElem
 boxCharAsElem fNr boxChar =
   ListElem.HListHBaseElem $
     BoxElem.CharBoxHBaseElem $
@@ -68,15 +68,15 @@ boxCharsAsElemSeq ::
   Functor f =>
   Font.FontNumber ->
   f (Box.Boxed Code.CharCode) ->
-  f ListElem.HListElem
+  f HListElem
 boxCharsAsElemSeq fNr = fmap (boxCharAsElem fNr)
 
 hyphenateHList ::
   (HSt.EHexState :> es, Log.HexLog :> es) =>
-  ListElem.HList ->
-  Eff es ListElem.HList
+  Seq HListElem ->
+  Eff es (Seq HListElem)
 hyphenateHList hList = do
-  (hListElems, endState) <- runStateLocal SearchingForGlue (for hList.unHList handleHListElemInHyphenation)
+  (hListElems, endState) <- runStateLocal SearchingForGlue (for hList handleHListElemInHyphenation)
   finalYieldedItems <- case endState of
     SearchingForGlue -> pure mempty
     SearchingForStartingLetter -> pure mempty
@@ -84,12 +84,12 @@ hyphenateHList hList = do
       hyphenateWord midWordState
 
   let flattened = join (hListElems |> finalYieldedItems)
-  pure $ ListElem.HList flattened
+  pure flattened
 
 handleHListElemInHyphenation ::
   (HSt.EHexState :> es, State HyphenationState :> es, Log.HexLog :> es) =>
-  ListElem.HListElem ->
-  Eff es (Seq ListElem.HListElem)
+  HListElem ->
+  Eff es (Seq HListElem)
 handleHListElemInHyphenation x =
   get >>= \case
     SearchingForGlue -> do
@@ -253,7 +253,7 @@ handleHListElemInHyphenation x =
 hyphenateWord ::
   (HSt.EHexState :> es, Log.HexLog :> es) =>
   MidWordState ->
-  Eff es (Seq ListElem.HListElem)
+  Eff es (Seq HListElem)
 hyphenateWord midWordState = do
   leftHyphenMin <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LeftHyphenMin)
   rightHyphenMin <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.RightHyphenMin)
@@ -287,7 +287,7 @@ hyphenateWord midWordState = do
 abandonAndReset ::
   State HyphenationState :> es =>
   Bool ->
-  Eff es (Seq ListElem.HListElem)
+  Eff es (Seq HListElem)
 abandonAndReset seenGlue = do
   accumItems <- gets hyphStateAccumulatedItems
   reset seenGlue
@@ -299,8 +299,8 @@ reset seenGlue =
 
 breakHListMultiPass ::
   (Log.HexLog :> es, HSt.EHexState :> es) =>
-  ListElem.HList ->
-  Eff es (Seq HList)
+  Seq HListElem ->
+  Eff es (Seq (Seq HListElem))
 breakHListMultiPass rawHList = do
   hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
   preTolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.PreTolerance)

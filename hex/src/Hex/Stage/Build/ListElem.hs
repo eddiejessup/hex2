@@ -154,15 +154,14 @@ discretionaryItemPenalty hyphenPenalty explicitHyphenPenalty item = case item.pr
   Empty -> explicitHyphenPenalty
   _ -> hyphenPenalty
 
-hBoxElemSeqAsHListElems :: Seq BoxElem.HBoxElem -> Seq HListElem
-hBoxElemSeqAsHListElems boxElemSeq =
-  boxElemSeq <&> \case
-    BoxElem.HVBoxElem (BoxElem.VBoxBaseElem baseElem) ->
-      HVListElem $ VListBaseElem baseElem
-    BoxElem.HVBoxElem (BoxElem.VBoxSetGlueElem setGlue) ->
-      HVListElem $ ListGlue setGlue.glue
-    BoxElem.HBoxHBaseElem hBaseElem ->
-      HListHBaseElem hBaseElem
+hBoxElemAsHListElem :: BoxElem.HBoxElem -> HListElem
+hBoxElemAsHListElem = \case
+  BoxElem.HVBoxElem (BoxElem.VBoxBaseElem baseElem) ->
+    HVListElem $ VListBaseElem baseElem
+  BoxElem.HVBoxElem (BoxElem.VBoxSetGlueElem setGlue) ->
+    HVListElem $ ListGlue setGlue.glue
+  BoxElem.HBoxHBaseElem hBaseElem ->
+    HListHBaseElem hBaseElem
 
 fmtDiscretionaryItem :: Fmt DiscretionaryItem
 fmtDiscretionaryItem =
@@ -175,34 +174,27 @@ fmtDiscretionaryItem =
 
 -- Lists.
 
-newtype HList = HList {unHList :: Seq HListElem}
-  deriving stock (Show, Generic)
-  deriving newtype (Semigroup, Monoid)
-
-hListElemTraversal :: Traversal' HList HListElem
-hListElemTraversal = #unHList % traversed
-
-hListNaturalDepth :: HList -> Q.Length
+hListNaturalDepth :: (Seq HListElem) -> Q.Length
 hListNaturalDepth hList =
-  -- The empty HList has zero depth.
+  -- The empty (Seq HListElem) has zero depth.
   fromMaybe Q.zeroLength $
-    maximumOf (hListElemTraversal % to hListElemNaturalDepth) hList
+    maximumOf (traversed % to hListElemNaturalDepth) hList
 
-hListNaturalHeight :: HList -> Q.Length
+hListNaturalHeight :: (Seq HListElem) -> Q.Length
 hListNaturalHeight hList =
-  -- The empty HList has zero height.
+  -- The empty (Seq HListElem) has zero height.
   fromMaybe Q.zeroLength $
-    maximumOf (hListElemTraversal % to hListElemNaturalHeight) hList
+    maximumOf (traversed % to hListElemNaturalHeight) hList
 
-hListNaturalWidth :: HList -> Q.Length
+hListNaturalWidth :: (Seq HListElem) -> Q.Length
 hListNaturalWidth =
-  foldMapOf hListElemTraversal hListElemNaturalWidth
+  foldMapOf traversed hListElemNaturalWidth
 
-fmtHListOneLine :: Fmt HList
-fmtHListOneLine = F.prefixed "\\hlist" $ F.braced (fmtViewed #unHList fmtHListElemsOneLine)
+fmtHListOneLine :: Fmt (Seq HListElem)
+fmtHListOneLine = F.prefixed "\\hlist" $ F.braced fmtHListElemsOneLine
 
-fmtHListMultiLine :: Fmt HList
-fmtHListMultiLine = F.prefixed "\\hlist\n=======\n" (fmtViewed #unHList (F.unlined fmtHListElem))
+fmtHListMultiLine :: Fmt (Seq HListElem)
+fmtHListMultiLine = F.prefixed "\\hlist\n=======\n" (F.unlined fmtHListElem)
 
 fmtHListElemsOneLine :: Fmt (Seq HListElem)
 fmtHListElemsOneLine = F.commaSpaceSep fmtHListElem
@@ -214,38 +206,28 @@ fmtHListElem = F.later $ \case
   DiscretionaryItemElem discrItem ->
     bformat fmtDiscretionaryItem discrItem
 
-newtype VList = VList {unVList :: Seq VListElem}
-  deriving stock (Show, Generic)
-  deriving newtype (Semigroup, Monoid)
-
-vListElemTraversal :: Traversal' VList VListElem
-vListElemTraversal = #unVList % traversed
-
-vListNaturalWidth :: VList -> Q.Length
+vListNaturalWidth :: (Seq VListElem) -> Q.Length
 vListNaturalWidth vList =
-  -- The empty VList has zero width.
+  -- The empty (Seq VListElem) has zero width.
   fromMaybe Q.zeroLength $
-    maximumOf (vListElemTraversal % to vListElemNaturalWidth) vList
+    maximumOf (traversed % to vListElemNaturalWidth) vList
 
-vListNaturalHeight :: VList -> Q.Length
-vListNaturalHeight = foldMapOf vListElemTraversal vListElemNaturalHeight
+vListNaturalHeight :: (Seq VListElem) -> Q.Length
+vListNaturalHeight = foldMapOf traversed vListElemNaturalHeight
 
-vListNaturalDepth :: VList -> Q.Length
+vListNaturalDepth :: (Seq VListElem) -> Q.Length
 vListNaturalDepth vList =
   fromMaybe Q.zeroLength $
-    lastOf (vListElemTraversal % to vListElemNaturalDepth) vList
+    lastOf (traversed % to vListElemNaturalDepth) vList
 
-vListNetBiFlex :: VList -> Q.BiNetFlex
-vListNetBiFlex = foldOf (vListElemTraversal % vListElemBiFlex)
+vListNetBiFlex :: (Seq VListElem) -> Q.BiNetFlex
+vListNetBiFlex = foldOf (traversed % vListElemBiFlex)
   where
     vListElemBiFlex :: AffineFold VListElem Q.BiNetFlex
     vListElemBiFlex = _Typed @Q.Glue % to Q.asBiNetFlex
 
-vListContainsBoxes :: VList -> Bool
-vListContainsBoxes = anyOf vListElemTraversal vListElemIsBox
-
-fmtVList :: Fmt VList
-fmtVList = F.prefixed "\\vlist\n=====\n" $ fmtViewed #unVList fmtVListElemSeq
+vListContainsBoxes :: (Seq VListElem) -> Bool
+vListContainsBoxes = anyOf traversed vListElemIsBox
 
 fmtVListElemSeq :: F.Format r (Seq VListElem -> r)
 fmtVListElemSeq = F.intercalated "\n\n" fmtVListElem

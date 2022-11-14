@@ -119,8 +119,8 @@ handleCommandInHMode oldSrc modeVariant = \case
       HSt.fetchBoxRegisterValue fetchMode regLoc >>= \case
         Nothing -> pure ()
         Just b -> case b.boxedContents of
-          BoxElem.AxBoxElemsH _hboxElems ->
-            notImplemented "handleCommandInHMode: AddUnwrappedFetchedHBox, with hbox"
+          BoxElem.AxBoxElemsH hboxElems ->
+            Build.addUnboxedHListElements $ ListElem.hBoxElemAsHListElem <$> hboxElems
           BoxElem.AxBoxElemsV _vboxElems ->
             throwError AllMode.UnboxWrongBoxAxis
       pure ContinueHMode

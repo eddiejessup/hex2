@@ -13,12 +13,12 @@ import Hex.Common.HexState.Interface.Parameter qualified as HSt.Param
 import Hex.Common.Quantity qualified as Q
 import Hex.Stage.Build.BoxElem qualified as Box
 import Hex.Stage.Build.ListBuilder.Interface
-import Hex.Stage.Build.ListElem qualified as List
+import Hex.Stage.Build.ListElem (VListElem)
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hex.Stage.Build.Vertical.Page.Break qualified as V.Break
 import Hexlude
 
-addVListElementImpl :: (HSt.EHexState :> es, Log.HexLog :> es, State List.VList :> es) => List.VListElem -> Eff es ()
+addVListElementImpl :: (HSt.EHexState :> es, Log.HexLog :> es, State (Seq VListElem) :> es) => ListElem.VListElem -> Eff es ()
 addVListElementImpl e = do
   vList <- get
   newVList <- extendVList e vList
@@ -26,13 +26,13 @@ addVListElementImpl e = do
 
 extendVList ::
   (HSt.EHexState :> es, Log.HexLog :> es) =>
-  List.VListElem ->
-  List.VList ->
-  Eff es List.VList
-extendVList e vList@(List.VList accSeq) = case e of
+  ListElem.VListElem ->
+  Seq ListElem.VListElem ->
+  Eff es (Seq ListElem.VListElem)
+extendVList e accSeq = case e of
   -- TODO: topskip
-  List.VListBaseElem (Box.AxOrRuleBoxBaseElem b) -> do
-    -- Assume we are adding a non-rule box of height h to the vertical list.
+  ListElem.VListBaseElem (Box.AxOrRuleBoxBaseElem b) -> do
+    -- Assume we are adding a non-rule box of height h to the vertical listElem.
     -- Let \prevdepth = p, \lineskiplimit = l, \baselineskip = (b plus y minus z).
     -- Add interline glue, above the new box, of:
     -- If p ≤ −1000 pt:
@@ -71,21 +71,21 @@ extendVList e vList@(List.VList accSeq) = case e of
                 Log.infoLog $ "extendVList: proposedBaselineLength < skipLimit, so using LineSkip ie: " <> F.sformat Q.fmtGlue skip
                 pure skip
           Log.infoLog $ "extendVList: Adding interline glue: " <> F.sformat Q.fmtGlue glue
-          let glueElem = List.ListGlue glue
+          let glueElem = ListElem.ListGlue glue
           pure $ Empty |> glueElem |> e
     let boxDepth = b.boxedDims.boxDepth
     Log.infoLog $ "extendVList: \\sdimen(\\prevDepth) := " <> F.sformat Q.fmtLengthWithUnit boxDepth
     HSt.setSpecialLengthParameter HSt.Param.PrevDepth boxDepth
-    pure $ List.VList $ accSeq <> newElems
+    pure $ accSeq <> newElems
   _ -> do
-    if not (List.vListContainsBoxes vList) && (V.Break.vListElemIsDiscardable e)
+    if not (ListElem.vListContainsBoxes accSeq) && (V.Break.vListElemIsDiscardable e)
       then do
-        Log.infoLog $ "extendVList: Skipping adding element: " <> F.sformat List.fmtVListElem e <> ", to vertical list without boxes, length " <> show (Seq.length accSeq)
-        pure (List.VList (accSeq))
+        Log.infoLog $ "extendVList: Skipping adding element: " <> F.sformat ListElem.fmtVListElem e <> ", to vertical list without boxes, length " <> show (Seq.length accSeq)
+        pure accSeq
       else do
-        Log.infoLog $ "extendVList: Adding non-box element: " <> F.sformat List.fmtVListElem e
-        pure (List.VList (accSeq :|> e))
+        Log.infoLog $ "extendVList: Adding non-box element: " <> F.sformat ListElem.fmtVListElem e
+        pure (accSeq :|> e)
 
-runHexListBuilderVMode :: (EHexState :> es, HexLog :> es, State ListElem.VList :> es) => Eff (HexListBuilder : es) a -> Eff es a
+runHexListBuilderVMode :: (EHexState :> es, HexLog :> es, State (Seq VListElem) :> es) => Eff (HexListBuilder : es) a -> Eff es a
 runHexListBuilderVMode = interpret $ \_ -> \case
   AddVListElement e -> addVListElementImpl e
