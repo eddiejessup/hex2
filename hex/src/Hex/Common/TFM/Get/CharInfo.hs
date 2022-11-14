@@ -1,6 +1,6 @@
 module Hex.Common.TFM.Get.CharInfo where
 
-import Data.Serialize.Get qualified as Ser
+import Effectful.Serialize.Get qualified as Get
 import Hex.Common.TFM.Get.Types qualified as Internal
 import Hexlude
 
@@ -12,14 +12,15 @@ data CharInfo = CharInfo
     tag :: Internal.Tag,
     charRemainder :: Word8
   }
+  deriving stock (Show, Generic)
 
-getCharInfo :: Ser.Get CharInfo
+getCharInfo :: (Get.Get :> es) => Eff es CharInfo
 getCharInfo =
   do
-    widthIdx <- Ser.getWord8
-    heightDepthByte <- Ser.getWord8
-    italicTagByte <- Ser.getWord8
-    charRemainder <- Ser.getWord8
+    widthIdx <- Get.getWord8
+    heightDepthByte <- Get.getWord8
+    italicTagByte <- Get.getWord8
+    charRemainder <- Get.getWord8
     let tag = case italicTagByte .&. 0x3 of
           0 -> Internal.Plain
           1 -> Internal.LigKern

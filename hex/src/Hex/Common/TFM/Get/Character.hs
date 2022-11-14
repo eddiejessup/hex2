@@ -20,11 +20,11 @@ character ::
   Eff es Character
 character recipes widths heights depths italicCorrs charInfo =
   do
-    width <- note (TFMError "Bad width index") $ dimAtEith widths $ TFM.Get.CharInfo.widthIdx charInfo
-    height <- note (TFMError "Bad height index") $ dimAtEith heights $ TFM.Get.CharInfo.heightIdx charInfo
-    depth <- note (TFMError "Bad depth index") $ dimAtEith depths $ TFM.Get.CharInfo.depthIdx charInfo
+    width <- note IndexError $ dimAtEith widths $ TFM.Get.CharInfo.widthIdx charInfo
+    height <- note IndexError $ dimAtEith heights $ TFM.Get.CharInfo.heightIdx charInfo
+    depth <- note IndexError $ dimAtEith depths $ TFM.Get.CharInfo.depthIdx charInfo
     let dims = Box.BoxDims {boxWidth = width, boxHeight = height, boxDepth = depth}
-    italicCorrection <- note (TFMError "Bad italic correction index") $ dimAtEith italicCorrs $ TFM.Get.CharInfo.italicCorrectionIdx charInfo
+    italicCorrection <- note IndexError $ dimAtEith italicCorrs $ TFM.Get.CharInfo.italicCorrectionIdx charInfo
     let remainder = TFM.Get.CharInfo.charRemainder charInfo
     -- If the character is special, get its particular extra attributes.
     special <- case TFM.Get.CharInfo.tag charInfo of
@@ -32,7 +32,7 @@ character recipes widths heights depths italicCorrs charInfo =
       Internal.LigKern -> pure $ Just $ LigKernIndex remainder
       Internal.Chain -> pure $ Just $ NextLargerChar remainder
       Internal.Extensible -> do
-        recipe <- note (TFMError "Bad recipe index") $ atMay recipes (fromIntegral @Word8 @Int remainder)
+        recipe <- note IndexError $ atMay recipes (fromIntegral @Word8 @Int remainder)
         pure $ Just $ ExtensibleRecipeSpecial recipe
     pure
       Character

@@ -1,9 +1,10 @@
 module Hex.Common.TFM.Get.Header where
 
 import ASCII qualified
-import Data.Serialize.Get qualified as Ser
+import Effectful.Serialize.Get qualified as Get
 import Hex.Common.Quantity qualified as Q
 import Hex.Common.TFM.Get.Common qualified as TFM.Get.Common
+import Hex.Common.TFM.Types
 import Hexlude
 
 -- The length of the character coding scheme and font family, respectively.
@@ -18,7 +19,7 @@ data Header = Header
   { checksum :: Word32,
     designFontSize :: Q.Length,
     characterCodingScheme :: Maybe [ASCII.Char],
-    family :: Maybe [ASCII.Char],
+    fontFamily :: Maybe [ASCII.Char],
     sevenBitSafeFlag :: Maybe Word8,
     face :: Maybe Face
   }
@@ -55,38 +56,38 @@ parseFace n
       0 -> Roman
       _ -> Italic
 
-getHeader :: Ser.Get Header
-getHeader =
+getHeader :: (Error TFMError :> es, Get.Get :> es) => Eff es Bool -> Eff es Header
+getHeader atEndOfTable =
   do
     -- header[0 ... 1]: Required; checksum and design size.
-    checksum <- Ser.getWord32be
+    checksum <- Get.getWord32be
     designFontSize <- Q.pt <$> TFM.Get.Common.getFixWord
     -- header[2 ... 11]: Optional; character coding scheme.
     characterCodingScheme <-
-      Ser.isEmpty >>= \case
+      atEndOfTable >>= \case
         True -> pure Nothing
         False -> Just <$> TFM.Get.Common.getBCPL characterCodingSchemeLength
     -- header[12 ... 16]: Optional; font family.
-    family <-
-      Ser.isEmpty >>= \case
+    fontFamily <-
+      atEndOfTable >>= \case
         True -> pure Nothing
         False -> Just <$> TFM.Get.Common.getBCPL familyLength
     -- header[17]: Optional; seven-bit-safe-flag, and face code.
     (sevenBitSafeFlag, face) <-
-      Ser.isEmpty >>= \case
+      atEndOfTable >>= \case
         True -> pure (Nothing, Nothing)
         False -> do
-          sevenBitSafeFlag <- Ser.getWord8
-          _ <- Ser.getWord8
-          _ <- Ser.getWord8
-          face <- parseFace <$> Ser.getWord8
+          sevenBitSafeFlag <- Get.getWord8
+          _ <- Get.getWord8
+          _ <- Get.getWord8
+          face <- parseFace <$> Get.getWord8
           pure (Just sevenBitSafeFlag, face)
     pure
       Header
         { checksum,
           designFontSize,
           characterCodingScheme,
-          family,
+          fontFamily,
           sevenBitSafeFlag,
           face
         }

@@ -38,6 +38,7 @@ module Hexlude
     reinterpret,
     note,
     nothingToError,
+    whileM,
     module Effectful.Reader.Dynamic,
     module Effectful.Error.Dynamic,
     module Effectful.NonDet,
@@ -208,3 +209,14 @@ note err = maybe (throwError err) pure
 
 nothingToError :: Error e :> es => e -> Eff es (Maybe a) -> Eff es a
 nothingToError e prog = prog >>= note e
+
+whileM :: Monad m => m Bool -> m a -> m [a]
+whileM p f = go
+  where
+    go =
+      p >>= \case
+        True ->
+          pure []
+        False -> do
+          el <- f
+          (el :) <$> go

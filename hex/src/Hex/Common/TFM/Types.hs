@@ -5,7 +5,12 @@ import Hex.Common.Box qualified as Box
 import Hex.Common.Quantity qualified as Q
 import Hexlude
 
-newtype TFMError = TFMError Text
+data TFMError
+  = ParseError Text
+  | IndexError
+  | BadTableLengths
+  | SectionTooLong
+  | InvalidBCPL
   deriving stock (Show, Generic)
 
 fmtTfmError :: Fmt TFMError
@@ -22,7 +27,7 @@ data Font = Font
   { checksum :: Word32,
     designFontSize :: Q.Length,
     characterCodingScheme :: Maybe Text,
-    family :: Maybe Text,
+    fontFamily :: Maybe Text,
     params :: FontParams,
     ligKerns :: [LigKernInstr],
     characters :: IntMap Character
@@ -35,7 +40,7 @@ nullFont =
     { checksum = 0,
       designFontSize = Q.zeroLength,
       characterCodingScheme = Nothing,
-      family = Nothing,
+      fontFamily = Nothing,
       params = nullFontParams,
       ligKerns = [],
       characters = mempty
@@ -58,7 +63,7 @@ fmtFont =
   ("Checksum: " |%| F.accessed (.checksum) fmtChecksum |%| "\n")
     <> ("Design font-size: " |%| F.accessed (.designFontSize) Q.fmtLengthWithUnit |%| "\n")
     <> ("Character coding scheme: " |%| F.accessed (.characterCodingScheme) (F.maybed "None" F.stext) |%| "\n")
-    <> ("Family: " |%| fmtViewed (field @"family") (F.maybed "None" F.stext) |%| "\n")
+    <> ("Family: " |%| fmtViewed #fontFamily (F.maybed "None" F.stext) |%| "\n")
       |%| ("Params: [...]\n")
       |%| ("ligKerns: [...]\n")
       |%| ("characters: [...]\n")
@@ -135,9 +140,6 @@ data MathExtensionParams = MathExtensionParams
   }
   deriving stock (Show)
 
-newtype KernOp = KernOp (LengthDesignSize)
-  deriving stock (Show)
-
 data LigatureOp = LigatureOp
   { ligatureChar :: Word8,
     charsToPassOver :: Word8,
@@ -148,7 +150,7 @@ data LigatureOp = LigatureOp
 
 data LigKernOp
   = LigKernLigOp LigatureOp
-  | LigKernKernOp KernOp
+  | LigKernKernOp LengthDesignSize
   deriving stock (Show)
 
 data LigKernInstr = LigKernInstr

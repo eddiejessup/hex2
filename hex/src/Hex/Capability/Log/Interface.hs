@@ -2,7 +2,6 @@
 
 module Hex.Capability.Log.Interface where
 
-import Data.Text.Lazy.Builder qualified as Tx
 import Formatting qualified as F
 import Hexlude
 
@@ -18,16 +17,9 @@ readLogLevel = \case
   "fatal" -> Just Fatal
   _ -> Nothing
 
-showLevelEqualWidth :: LogLevel -> Text
-showLevelEqualWidth = \case
-  Debug -> "DEBUG"
-  Info -> "INFO "
-  Warn -> "WARN "
-  Error -> "ERROR"
-  Fatal -> "FATAL"
-
+-- >>> sformat fmtLevel Debug == "DEBUG"
 fmtLevel :: Fmt LogLevel
-fmtLevel = F.later (Tx.fromText . showLevelEqualWidth)
+fmtLevel = F.rfixed 5 ' ' (F.uppercased F.shown)
 
 -- | A source line-number
 newtype LineNr = LineNr {unLineNr :: Int}

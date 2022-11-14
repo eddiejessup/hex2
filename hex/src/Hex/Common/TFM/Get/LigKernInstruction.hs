@@ -8,13 +8,13 @@ import Hexlude
 minOpByteForKern :: Word8
 minOpByteForKern = 128
 
-ligKernInstruction :: Error TFMError :> es => [KernOp] -> LigKernCommand -> Eff es LigKernInstr
+ligKernInstruction :: Error TFMError :> es => [LengthDesignSize] -> LigKernCommand -> Eff es LigKernInstr
 ligKernInstruction kernOps LigKernCommand {skipByte, commandNextChar = nextChar, opByte, commandRemainder = remainder} = do
   operation <-
     if opByte >= minOpByteForKern
       then do
         let kernOpIdx = 256 * (fromIntegral opByte - fromIntegral minOpByteForKern) + fromIntegral remainder
-        kernOp <- note (TFMError $ "No kern at index " <> show kernOpIdx) $ atMay kernOps kernOpIdx
+        kernOp <- note IndexError $ atMay kernOps kernOpIdx
         pure $ LigKernKernOp kernOp
       else
         pure $

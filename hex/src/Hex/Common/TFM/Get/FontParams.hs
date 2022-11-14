@@ -1,50 +1,51 @@
 module Hex.Common.TFM.Get.FontParams where
 
 import ASCII qualified
-import Data.Serialize.Get qualified as Ser
+import Effectful.Serialize.Get qualified as Get
+import Hex.Common.TFM.Get.Common (getDesignSizeLength)
 import Hex.Common.TFM.Get.Common qualified as TFM.Get.Common
 import Hex.Common.TFM.Types
 import Hexlude
 
-readMathSymbolParams :: Ser.Get MathSymbolParams
+readMathSymbolParams :: (Get.Get :> es) => Eff es MathSymbolParams
 readMathSymbolParams =
   MathSymbolParams
-    <$> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
+    <$> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
 
-readMathExtensionParams :: Ser.Get MathExtensionParams
+readMathExtensionParams :: (Get.Get :> es) => Eff es MathExtensionParams
 readMathExtensionParams =
   MathExtensionParams
-    <$> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
+    <$> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
 
-getFontParams :: Maybe [ASCII.Char] -> Ser.Get FontParams
+getFontParams :: (Get.Get :> es) => Maybe [ASCII.Char] -> Eff es FontParams
 getFontParams scheme =
   FontParams
     <$> TFM.Get.Common.getFixWord
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
-    <*> (LengthDesignSize <$> TFM.Get.Common.getFixWord)
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
+    <*> getDesignSizeLength
     <*> case ASCII.charListToText <$> scheme of
       Just "TeX math symbols" ->
         Just . MathSymbolFontParams <$> readMathSymbolParams

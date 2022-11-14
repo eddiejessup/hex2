@@ -1,6 +1,6 @@
 module Hex.Common.TFM.Get.LigKernCommand where
 
-import Data.Serialize.Get qualified as Ser
+import Effectful.Serialize.Get qualified as Get
 import Hexlude
 
 data LigKernCommand = LigKernCommand
@@ -11,6 +11,6 @@ data LigKernCommand = LigKernCommand
   }
   deriving stock (Show)
 
-getLigKernCommand :: Ser.Get LigKernCommand
+getLigKernCommand :: (Get.Get :> es) => Eff es LigKernCommand
 getLigKernCommand =
-  LigKernCommand <$> Ser.getWord8 <*> Ser.getWord8 <*> Ser.getWord8 <*> Ser.getWord8
+  LigKernCommand <$> Get.getWord8 <*> Get.getWord8 <*> Get.getWord8 <*> Get.getWord8

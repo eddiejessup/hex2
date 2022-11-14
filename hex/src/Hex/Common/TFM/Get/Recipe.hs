@@ -1,9 +1,9 @@
 module Hex.Common.TFM.Get.Recipe where
 
-import Data.Serialize.Get qualified as Ser
+import Effectful.Serialize.Get qualified as Get
 import Hex.Common.TFM.Types
 import Hexlude
 
-getExtensibleRecipe :: Ser.Get Recipe
+getExtensibleRecipe :: (Get.Get :> es) => Eff es Recipe
 getExtensibleRecipe =
-  Recipe <$> Ser.getWord8 <*> Ser.getWord8 <*> Ser.getWord8 <*> Ser.getWord8
+  Recipe <$> Get.getWord8 <*> Get.getWord8 <*> Get.getWord8 <*> Get.getWord8

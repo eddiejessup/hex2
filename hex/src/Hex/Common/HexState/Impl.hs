@@ -169,7 +169,7 @@ getFontSpecialCharacterImpl fontSpecialChar fontNumber = do
       HSt.Font.SkewChar -> #skewChar
 
 readFontInfo ::
-  (Error TFM.TFMError :> es, State HexState :> es) =>
+  (Log.HexLog :> es, Error TFM.TFMError :> es, State HexState :> es) =>
   HexFilePath ->
   ByteString ->
   TFM.FontSpecification ->
@@ -182,7 +182,7 @@ readFontInfo fontPath fontBytes spec = do
   pure HSt.Font.FontInfo {fontMetrics, designScale, hyphenChar, skewChar, fontPath}
 
 loadFontImpl ::
-  (State HexState :> es, EHexEnv :> es, Error Err.HexStateError :> es, Error TFM.TFMError :> es) =>
+  (Log.HexLog :> es, State HexState :> es, EHexEnv :> es, Error Err.HexStateError :> es, Error TFM.TFMError :> es) =>
   HexFilePath ->
   TFM.FontSpecification ->
   Eff es Font.FontNumber
