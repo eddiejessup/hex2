@@ -15,6 +15,7 @@ import Hex.Common.HexState.Interface.Register qualified as HSt.Reg
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.HexState.Interface.Variable qualified as HSt.Var
 import Hex.Common.Quantity qualified as Q
+import Hex.Common.TFM.Types qualified as TFM
 import Hex.Stage.Evaluate.Impl.Common (EvaluationError (..))
 import Hex.Stage.Evaluate.Impl.Common qualified as Eval
 import Hex.Stage.Evaluate.Interface.AST.Quantity qualified as E
@@ -212,8 +213,12 @@ evalPhysicalUnitFrame = \case
 
 evalInternalUnit :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.InternalUnit -> Eff es Q.Length
 evalInternalUnit = \case
-  P.Em -> notImplemented "evalInternalUnit: Em"
-  P.Ex -> notImplemented "evalInternalUnit: Ex"
+  P.Em -> do
+    fNr <- HSt.currentFontNumber
+    HSt.getFontLengthParameter fNr TFM.QuadLengthParam
+  P.Ex -> do
+    fNr <- HSt.currentFontNumber
+    HSt.getFontLengthParameter fNr TFM.XHeightLengthParam
   P.InternalIntUnit internalInt ->
     Q.lengthFromInt <$> evalInternalInt internalInt
   P.InternalLengthUnit internalLength ->

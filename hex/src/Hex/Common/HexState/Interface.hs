@@ -54,25 +54,32 @@ data EHexState :: Effect where
   CurrentFontNumber :: EHexState m Font.FontNumber
   FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe (Box.Boxed (BoxElem.AxBoxElems)))
   -- End of scoped-value getters.
+  -- Scoped-value setter.
   SetScopedValue :: ScopedValue -> HSt.Grouped.ScopeFlag -> EHexState m ()
+  -- Non-scoped value getter and setters.
   GetSpecialIntParameter :: Param.SpecialIntParameter -> EHexState m Q.HexInt
   GetSpecialLengthParameter :: Param.SpecialLengthParameter -> EHexState m Q.Length
   SetSpecialIntParameter :: Param.SpecialIntParameter -> Q.HexInt -> EHexState m ()
   SetSpecialLengthParameter :: Param.SpecialLengthParameter -> Q.Length -> EHexState m ()
+  -- Fonts.
   LoadFont :: HexFilePath -> TFM.FontSpecification -> EHexState m Font.FontNumber
   GetAllFontDefinitions :: EHexState m [HSt.Font.FontDefinition]
   SetFontSpecialCharacter :: Font.FontSpecialChar -> Font.FontNumber -> Q.HexInt -> EHexState m ()
   GetFontSpecialCharacter :: Font.FontSpecialChar -> Font.FontNumber -> EHexState m Q.HexInt
+  GetFontLengthParameter :: Font.FontNumber -> TFM.FontLengthParam -> EHexState m Q.Length
   FontCharacter :: Font.FontNumber -> Code.CharCode -> EHexState m (Maybe HSt.Font.CharacterAttrs)
   SpaceGlue :: Font.FontNumber -> EHexState m Q.Glue
   ControlSpaceGlue :: Font.FontNumber -> EHexState m Q.Glue
+  -- Scoping.
   PopAfterAssignmentToken :: EHexState m (Maybe LT.LexToken)
   SetAfterAssignmentToken :: LT.LexToken -> EHexState m ()
   PushGroup :: Maybe Grouped.ScopedGroupType -> EHexState m ()
   PopGroup :: Grouped.ChangeGroupTrigger -> EHexState m HSt.Grouped.HexGroupType
+  -- Modes.
   EnterMode :: HSt.Mode.NonMainVMode -> EHexState m ()
   PeekMode :: EHexState m HSt.Mode.ModeWithVariant
   LeaveMode :: EHexState m ()
+  -- Hyphenation.
   SetHyphenationPatterns :: [HSt.Hyph.HyphenationPattern] -> EHexState m ()
   SetHyphenationExceptions :: Map HSt.Hyph.WordCodes HSt.Hyph.WordHyphenationPoints -> EHexState m ()
 

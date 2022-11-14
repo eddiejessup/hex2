@@ -76,6 +76,7 @@ runHexState = interpret $ \_ -> \case
   FontCharacter fNr chrCode -> fontCharacterImpl fNr chrCode
   SetFontSpecialCharacter fontSpecialChar fontNumber value -> setFontSpecialCharacterImpl fontSpecialChar fontNumber value
   GetFontSpecialCharacter fontSpecialChar fontNumber -> getFontSpecialCharacterImpl fontSpecialChar fontNumber
+  GetFontLengthParameter fontNumber lengthParameter -> getFontLengthParameterImpl fontNumber lengthParameter
   SetAfterAssignmentToken t -> assign @HexState #afterAssignmentToken (Just t)
   PopAfterAssignmentToken -> do
     v <- use @HexState #afterAssignmentToken
@@ -258,6 +259,15 @@ popGroupImpl exitTrigger = do
         Sc.Group.NonScopeGroup ->
           notImplemented $ "popGroup: NonScopeGroup"
 
+getFontLengthParameterImpl ::
+  State HexState :> es =>
+  Font.FontNumber ->
+  TFM.FontLengthParam ->
+  Eff es Q.Length
+getFontLengthParameterImpl fNr p = do
+  fontInfo <- fontInfoImpl fNr
+  pure $ HSt.Font.fontInfoLengthParam fontInfo p
+
 spaceGlueFromSpaceFactor ::
   State HexState :> es =>
   Font.FontNumber ->
@@ -276,13 +286,12 @@ spaceGlueFromSpaceFactor fNr sf = do
       if spaceSkip /= Q.zeroGlue
         then pure $ scaleSpaceFlex spaceSkip
         else do
-          fontInfo <- fontInfoImpl fNr
-          let baseSpacing = HSt.Font.fontLengthParamLength fontInfo (.spacing)
-              baseStretch = Q.FinitePureFlex $ HSt.Font.fontLengthParamLength fontInfo (.spaceStretch)
-              baseShrink = Q.FinitePureFlex $ HSt.Font.fontLengthParamLength fontInfo (.spaceShrink)
-              extraSpace = HSt.Font.fontLengthParamLength fontInfo (fromMaybe TFM.zeroLengthDesignSize . (.extraSpace))
+          baseSpacing <- getFontLengthParameterImpl fNr TFM.SpacingLengthParam
+          baseStretch <- Q.FinitePureFlex <$> getFontLengthParameterImpl fNr TFM.SpaceStretchLengthParam
+          baseShrink <- Q.FinitePureFlex <$> getFontLengthParameterImpl fNr TFM.SpaceShrinkLengthParam
+          extraSpace <- getFontLengthParameterImpl fNr TFM.ExtraSpaceLengthParam
 
-              adjustedSpacing =
+          let adjustedSpacing =
                 if sfAbove2k
                   then baseSpacing <> extraSpace
                   else baseSpacing

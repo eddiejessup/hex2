@@ -45,10 +45,10 @@ characterAttrs fontInfo charCode = do
         italicCorrection = toLen tfmChar.italicCorrection
       }
 
+fontInfoLengthParam :: FontInfo -> TFM.FontLengthParam -> Q.Length
+fontInfoLengthParam font param =
+  TFM.fontParam font.fontMetrics param font.designScale
+
 lengthFromFontDesignScale :: FontInfo -> TFM.LengthDesignSize -> Q.Length
 lengthFromFontDesignScale font lengthInDS =
   TFM.lengthFromDesignSize lengthInDS font.designScale
-
-fontLengthParamLength :: FontInfo -> (TFM.FontParams -> TFM.LengthDesignSize) -> Q.Length
-fontLengthParamLength font getParam =
-  lengthFromFontDesignScale font (getParam font.fontMetrics.params)

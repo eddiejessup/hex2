@@ -91,6 +91,9 @@ fmtCharacterCodingScheme = F.later $ \case
 lengthFromDesignSize :: LengthDesignSize -> Q.Length -> Q.Length
 lengthFromDesignSize (LengthDesignSize d) = Q.scaleLengthByRational d
 
+fontParam :: Font -> FontLengthParam -> Q.Length -> Q.Length
+fontParam font p = lengthFromDesignSize (getLengthParam font.params p)
+
 data FontSpecification
   = NaturalFont
   | FontAt Q.Length
@@ -123,6 +126,24 @@ data FontParams = FontParams
     extraParams :: Maybe ExtraFontParams
   }
   deriving stock (Show)
+
+data FontLengthParam
+  = SpacingLengthParam
+  | SpaceStretchLengthParam
+  | SpaceShrinkLengthParam
+  | XHeightLengthParam
+  | QuadLengthParam
+  | ExtraSpaceLengthParam
+  deriving stock (Show)
+
+getLengthParam :: FontParams -> FontLengthParam -> LengthDesignSize
+getLengthParam ps = \case
+  SpacingLengthParam -> ps.spacing
+  SpaceStretchLengthParam -> ps.spaceStretch
+  SpaceShrinkLengthParam -> ps.spaceShrink
+  XHeightLengthParam -> ps.xHeight
+  QuadLengthParam -> ps.quad
+  ExtraSpaceLengthParam -> fromMaybe zeroLengthDesignSize (ps.extraSpace)
 
 data ExtraFontParams
   = MathSymbolFontParams MathSymbolParams
