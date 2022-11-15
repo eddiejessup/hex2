@@ -7,6 +7,7 @@ import Effectful.Dispatch.Dynamic (localSeqUnlift)
 import Effectful.NonDet qualified as NonDet
 import Formatting qualified as F
 import Hex.Capability.Log.Interface (HexLog)
+import Hex.Capability.Log.Interface qualified as Log
 import Hex.Common.Codes qualified as Code
 import Hex.Common.HexIO.Interface qualified as HIO
 import Hex.Common.HexState.Interface qualified as HSt
@@ -122,6 +123,7 @@ expandResolvedTokenImpl = \case
     -- Expand the rest of the command into lex-tokens.
     expansionCommand <- runPrimTokenSource $ Par.headToParseExpansionCommand headTok
     eExpansionCommand <- Eval.evalExpansionCommand expansionCommand
+    Log.infoLog $ F.sformat ("Evaluated expansion command: " |%| E.fmtExpansionCommand) eExpansionCommand
     ExpandedToLexTokens <$> expandExpansionCommand eExpansionCommand
 
 expandLexTokenImpl ::
@@ -183,6 +185,7 @@ expandExpansionCommand = \case
     Expand.substituteArgsIntoMacroBody macroDefinition.replacementText macroArgumentList
   E.ApplyConditionHead conditionOutcome -> do
     Expand.applyConditionOutcome conditionOutcome
+    Log.debugLog "Reached end of condition block"
     pure mempty
   E.ApplyConditionBody conditionBodyTok -> do
     Expand.applyConditionBody conditionBodyTok

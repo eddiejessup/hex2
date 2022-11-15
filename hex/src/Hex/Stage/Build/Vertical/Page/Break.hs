@@ -92,7 +92,7 @@ currentPageLastElem currentPage = seqLastMay currentPage.items
 
 breakPageAtBest :: CurrentPage -> (Seq VListElem, Seq VListElem)
 breakPageAtBest currentPage =
-  let (pagePart, leftovers) = Seq.splitAt currentPage.bestPointAndCost.ix currentPage.items
+  let (pagePart, leftovers) = Seq.splitAt (succ currentPage.bestPointAndCost.ix) currentPage.items
    in (pagePart, leftovers)
 
 setPage :: Log.HexLog :> es => Q.Length -> Seq VListElem -> Eff es Page.Page
@@ -165,45 +165,43 @@ runPageBuilder desiredHeight vList =
       case toAddElemSeq of
         Empty ->
           Seq.singleton <$> (setPage desiredHeight curPageElems)
-        x :<| xs ->
-          let continueToNextElem newPage = go newPage xs
-
-              currentPageWithAddedElem = currentPage & #items %~ (|> x)
-           in if not (ListElem.vListContainsBoxes curPageElems)
-                then -- If the current vlist has no boxes, we discard a discardable item.
-                -- Otherwise, if a discardable item is a legitimate breakpoint, we compute
-                -- the cost c of breaking at this point.
-
-                  if vListElemIsDiscardable x
+        x :<| xs -> do
+          Log.debugLog $ F.sformat ("Handling element: " |%| ListElem.fmtVListElem) x
+          let continueToNextElem nextPage = go nextPage xs
+          if not (ListElem.vListContainsBoxes curPageElems) && vListElemIsDiscardable x
+            then -- If the current vlist has no boxes, we discard a discardable item.
+            do
+              Log.infoLog $
+                "Continuing, cos no boxes, and discardable elem: "
+                  <> F.sformat ListElem.fmtVListElem x
+              continueToNextElem currentPage
+            else -- Otherwise, if a discardable item is a legitimate breakpoint, we compute
+            -- the cost c of breaking at this point.
+            do
+              let currentPageWithAddedElem = currentPage & #items %~ (|> x)
+              case vListElemToBreakItem (currentPageLastElem currentPage, x, seqHeadMay xs) of
+                -- If we can't break here, just add it to the list and continue.
+                Nothing -> do
+                  Log.infoLog ("Continuing, non-break item: " <> F.sformat ListElem.fmtVListElem x)
+                  continueToNextElem currentPageWithAddedElem
+                Just breakItem -> do
+                  cost <- pageBreakCost currentPageWithAddedElem breakItem desiredHeight
+                  if costImpliesBreakHere cost
                     then do
-                      Log.infoLog $ "Continuing, cos no boxes, with discardable elem: " <> F.sformat ListElem.fmtVListElem x
-                      continueToNextElem currentPage
+                      Log.infoLog $ "Breaking at cost: " <> show cost <> " with current-page length: " <> show (Seq.length currentPage.items)
+                      let (newPageElems, leftoverListElems) = breakPageAtBest currentPage
+                      Log.infoLog $
+                        "Broken page length: "
+                          <> show (Seq.length newPageElems)
+                          <> ", leftover elems length: "
+                          <> show (Seq.length leftoverListElems)
+                          <> ", remaining length: "
+                          <> show (Seq.length toAddElemSeq)
+                      rest <- go newCurrentPage (leftoverListElems <> toAddElemSeq)
+                      this <- setPage desiredHeight newPageElems
+                      pure $ this <| rest
                     else do
-                      Log.infoLog $ "Continuing, cos no boxes, with non-discardable elem: " <> F.sformat ListElem.fmtVListElem x
-                      continueToNextElem currentPageWithAddedElem
-                else case vListElemToBreakItem (currentPageLastElem currentPage, x, seqHeadMay xs) of
-                  -- If we can't break here, just add it to the list and continue.
-                  Nothing -> do
-                    Log.infoLog ("Continuing, non-break item: " <> F.sformat ListElem.fmtVListElem x)
-                    continueToNextElem currentPageWithAddedElem
-                  Just breakItem -> do
-                    cost <- pageBreakCost currentPageWithAddedElem breakItem desiredHeight
-                    if costImpliesBreakHere cost
-                      then do
-                        Log.infoLog $ "Breaking at cost: " <> show cost <> " with current-page length: " <> show (Seq.length currentPage.items)
-                        let (newPageElems, leftoverListElems) = breakPageAtBest currentPage
-                        Log.infoLog $
-                          "Broken page length: "
-                            <> show (Seq.length newPageElems)
-                            <> ", leftover elems length: "
-                            <> show (Seq.length leftoverListElems)
-                            <> ", remaining length: "
-                            <> show (Seq.length toAddElemSeq)
-                        rest <- go newCurrentPage (leftoverListElems <> toAddElemSeq)
-                        this <- setPage desiredHeight newPageElems
-                        pure $ this <| rest
-                      else do
-                        -- If the resulting cost <= the smallest cost seen so far, remember
-                        -- the current breakpoint as the best so far.
-                        Log.infoLog $ "Got non-breakey cost: " <> show cost <> "compare to best: " <> show (currentPageBestCost currentPageWithAddedElem)
-                        continueToNextElem (updateWithCost cost currentPageWithAddedElem)
+                      -- If the resulting cost <= the smallest cost seen so far, remember
+                      -- the current breakpoint as the best so far.
+                      Log.infoLog $ "Got non-breakey cost: " <> show cost <> "compare to best: " <> show (currentPageBestCost currentPageWithAddedElem)
+                      continueToNextElem (updateWithCost cost currentPageWithAddedElem)

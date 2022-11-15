@@ -1,5 +1,6 @@
 module Hex.Stage.Evaluate.Interface.AST.ExpansionCommand where
 
+import Formatting qualified as F
 import Hex.Common.HexState.Interface.Mode qualified as HSt.Mode
 import Hex.Common.HexState.Interface.TokenList qualified as HSt.TL
 import Hex.Common.Quantity qualified as Q
@@ -31,6 +32,9 @@ data ExpansionCommand
   | RenderInternalQuantity Eval.InternalQuantity
   | ChangeCase VDirection HSt.TL.BalancedText
   deriving stock (Show, Eq, Generic)
+
+fmtExpansionCommand :: Fmt ExpansionCommand
+fmtExpansionCommand = F.shown
 
 data ConditionOutcome = IfConditionOutcome IfOutcome | CaseConditionOutcome Q.HexInt
   deriving stock (Show, Eq, Generic)

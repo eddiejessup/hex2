@@ -120,7 +120,8 @@ handleCommandInHMode oldSrc modeVariant = \case
         Nothing -> pure ()
         Just b -> case b.boxedContents of
           BoxElem.AxBoxElemsH hboxElems ->
-            Build.addUnboxedHListElements $ ListElem.hBoxElemAsHListElem <$> hboxElems
+            Build.addUnboxedHListElements $
+              ListElem.hBoxElemAsHListElem <$> hboxElems
           BoxElem.AxBoxElemsV _vboxElems ->
             throwError AllMode.UnboxWrongBoxAxis
       pure ContinueHMode

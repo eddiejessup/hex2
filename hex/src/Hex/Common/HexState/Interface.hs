@@ -169,18 +169,25 @@ resolveLexToken ::
   (Error ResolutionError :> es, EHexState :> es) =>
   LT.LexToken ->
   Eff es RT.ResolvedToken
-resolveLexToken = \case
-  LT.ControlSequenceLexToken cs -> do
-    resolveSymbolWithError (HSt.Res.ControlSequenceSymbol cs)
-  LT.CharCatLexToken (LT.LexCharCat c Code.Active) ->
-    resolveSymbolWithError $ HSt.Res.ActiveCharacterSymbol c
-  LT.CharCatLexToken lexCharCat ->
-    pure $ RT.PrimitiveToken $ PT.CharCatPair lexCharCat
-  where
-    resolveSymbolWithError cSym =
+resolveLexToken lt =
+  case lexTokenAsSymbol lt of
+    Left lexCharCat ->
+      pure $ RT.PrimitiveToken $ PT.CharCatPair lexCharCat
+    Right cSym ->
       resolveSymbol cSym >>= \case
         Nothing -> throwError $ UnknownSymbolError cSym
         Just rt -> pure rt
+
+lexTokenAsSymbol ::
+  LT.LexToken ->
+  Either LT.LexCharCat HSt.Res.ControlSymbol
+lexTokenAsSymbol = \case
+  LT.ControlSequenceLexToken cs -> do
+    Right $ HSt.Res.ControlSequenceSymbol cs
+  LT.CharCatLexToken (LT.LexCharCat c Code.Active) ->
+    Right $ HSt.Res.ActiveCharacterSymbol c
+  LT.CharCatLexToken lexCharCat ->
+    Left lexCharCat
 
 getHyphenCharCode ::
   (EHexState :> es) =>

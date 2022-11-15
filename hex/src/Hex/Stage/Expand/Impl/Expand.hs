@@ -77,7 +77,7 @@ applyConditionOutcome ::
   Eff es ()
 applyConditionOutcome = \case
   AST.IfConditionOutcome AST.SkipPreElseBlock ->
-    skipUntilElseOrEndif ElseOrEndif getPresentResolvedToken >>= \case
+    skipUntilCondBlock ElseOrEndif getMayResolvedToken >>= \case
       Nothing ->
         pure ()
       Just newState ->
@@ -95,7 +95,8 @@ pushConditionStateImpl ::
   State Expand.ConditionStates :> es =>
   Expand.ConditionState ->
   Eff es ()
-pushConditionStateImpl condState = modifying @Expand.ConditionStates conditionStatesLens (cons condState)
+pushConditionStateImpl condState =
+  modifying @Expand.ConditionStates conditionStatesLens (cons condState)
 
 peekConditionStateImpl ::
   State Expand.ConditionStates :> es =>
@@ -149,7 +150,7 @@ skipUpToCaseBlock tgtBlock getNextToken = go 0 1
 
 applyConditionBody ::
   forall es.
-  (Error ExpansionError :> es, Error HSt.ResolutionError :> es, HIO.HexIO :> es, HSt.EHexState :> es, State Expand.ConditionStates :> es) =>
+  (Error ExpansionError :> es, HIO.HexIO :> es, HSt.EHexState :> es, State Expand.ConditionStates :> es) =>
   ST.ConditionBodyTok ->
   Eff es ()
 applyConditionBody bodyToken = do
@@ -182,7 +183,7 @@ applyConditionBody bodyToken = do
     err = throwError $ Expand.UnexpectedConditionBodyToken bodyToken
 
     skipUntilEndOfCondition =
-      skipUntilElseOrEndif OnlyEndIf getPresentResolvedToken >>= \case
+      skipUntilCondBlock OnlyEndIf getMayResolvedToken >>= \case
         Just _ -> panic "Impossible!"
         Nothing -> pure ()
 
@@ -197,26 +198,33 @@ getPresentResolvedToken ::
 getPresentResolvedToken = do
   snd <$> nothingToError Expand.EndOfInputWhileSkipping HIO.getResolvedToken
 
-skipUntilElseOrEndif ::
+getMayResolvedToken ::
+  forall es.
+  (Error ExpansionError :> es, HIO.HexIO :> es, HSt.EHexState :> es) =>
+  Eff es (Maybe RT.ResolvedToken)
+getMayResolvedToken = do
+  rightToMaybe <$> runErrorNoCallStack @HSt.ResolutionError getPresentResolvedToken
+
+skipUntilCondBlock ::
   forall m.
   Monad m =>
   SkipStopCondition ->
-  m RT.ResolvedToken ->
+  m (Maybe RT.ResolvedToken) ->
   m (Maybe Expand.IfState)
-skipUntilElseOrEndif blockTarget getNextToken = do
+skipUntilCondBlock blockTarget getNextToken = do
   snd <$> Par.parseNestedExpr parseNext
   where
     parseNext depth =
       getNextToken <&> \case
         -- If we see an 'if', increment the condition depth.
-        RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _)) ->
+        Just (RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionHeadTok _))) ->
           (Nothing, GT)
         -- If we see an 'end-if', decrement the condition depth.
-        RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf)) ->
+        Just (RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.EndIf))) ->
           (Nothing, LT)
         -- If we see an 'else' and are at top condition depth, and our
         -- target block is an else block, we are done skipping tokens.
-        RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else))
+        Just (RT.ExpansionCommandHeadToken (ST.ConditionTok (ST.ConditionBodyTok ST.Else)))
           | depth == 1,
             ElseOrEndif <- blockTarget ->
               (Just Expand.InSelectedElseIfBlock, LT)
