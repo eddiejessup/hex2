@@ -75,10 +75,10 @@ getHeader :: (Log.HexLog :> es, Error TFMError :> es, Get.Get :> es) => Eff es B
 getHeader atEndOfTable =
   do
     -- header[0 ... 1]: Required; checksum and design size.
-    Log.debugLog $ "Parsing checksum"
+    Log.debugLog "Parsing checksum"
     checksum <- Get.getWord32be
     Log.debugLog $ "Parsed checksum: " <> show checksum
-    Log.debugLog $ "Parsing design size"
+    Log.debugLog "Parsing design size"
     designFontSize <- Q.pt <$> TFM.Get.Common.getFixWord
     Log.debugLog $ F.sformat ("Parsed design size: " |%| Q.fmtLengthWithUnit) designFontSize
     -- header[2 ... 11]: Optional; character coding scheme.
@@ -86,7 +86,7 @@ getHeader atEndOfTable =
       atEndOfTable >>= \case
         True -> pure Nothing
         False -> do
-          Log.debugLog $ "Parsing character coding scheme"
+          Log.debugLog "Parsing character coding scheme"
           scheme <- readCharacterCodingScheme <$> TFM.Get.Common.getBCPL characterCodingSchemeLength
           Log.debugLog $ F.sformat ("Parsed character coding scheme: " |%| fmtCharacterCodingScheme) scheme
           case scheme of

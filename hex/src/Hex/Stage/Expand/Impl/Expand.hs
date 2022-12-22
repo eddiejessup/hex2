@@ -160,7 +160,7 @@ applyConditionBody bodyToken = do
     Just condState -> pure condState
   case bodyToken of
     ST.EndIf ->
-      void $ popConditionStateImpl
+      void popConditionStateImpl
     ST.Else ->
       case condState of
         Expand.IfConditionState Expand.InSelectedPreElseIfBlock ->
@@ -270,4 +270,4 @@ renderInternalQuantity = \case
     tokensFromInt n = tokensFromText (show n.unHexInt)
 
     tokensFromText :: Text -> Seq LT.LexToken
-    tokensFromText t = Seq.fromList $ charCodeAsMadeToken <$> (Code.textAsCharCodes t)
+    tokensFromText t = Seq.fromList $ charCodeAsMadeToken <$> Code.textAsCharCodes t

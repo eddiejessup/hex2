@@ -26,13 +26,12 @@ evalBalancedTextToText ::
   Eff es Text
 evalBalancedTextToText bt = do
   -- For each primitive-token in the expanded-balanced-text.
-  msgAsciiChars <- forM bt.unBalancedText $ \lt ->
-    -- Get the lex-char-cat from the token, if it is the correct token type.
-    case lt of
-      -- If it is the wrong type, throw an error.
-      LT.ControlSequenceLexToken cs -> throwError $ InvalidTokenInBalancedText cs
-      -- Otherwise, convert the char-code to its equivalent ASCII-character.
-      LT.CharCatLexToken lexCharCat ->
-        pure $ Code.codeAsAsciiChar $ lexCharCat.lexCCChar
+  -- Get the lex-char-cat from the token, if it is the correct token type.
+  msgAsciiChars <- forM bt.unBalancedText $ \case
+    -- If it is the wrong type, throw an error.
+    LT.ControlSequenceLexToken cs -> throwError $ InvalidTokenInBalancedText cs
+    -- Otherwise, convert the char-code to its equivalent ASCII-character.
+    LT.CharCatLexToken lexCharCat ->
+      pure $ Code.codeAsAsciiChar $ lexCharCat.lexCCChar
   -- Build a text from the list of ASCII-characters.
   pure $ ASCII.charListToText $ toList msgAsciiChars

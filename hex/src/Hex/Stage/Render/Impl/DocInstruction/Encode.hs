@@ -84,7 +84,7 @@ pageToDocInstructions (Page.Page vBoxElems) = do
   pure $ [BeginNewPage] <> coreInstrs <> [EndPage]
 
 pagesToDocInstructions_ :: State (Maybe Font.FontNumber) :> es => [Page.Page] -> Eff es [DocInstruction]
-pagesToDocInstructions_ pages = foldMapM pageToDocInstructions pages
+pagesToDocInstructions_ = foldMapM pageToDocInstructions
 
 pagesToDocInstructions :: [Page.Page] -> ([DocInstruction], [Font.FontNumber])
 pagesToDocInstructions pages =

@@ -22,25 +22,20 @@ fmtFiniteBadnessVal :: Fmt FiniteBadnessVal
 fmtFiniteBadnessVal = "Bad{" |%| F.accessed (.unFiniteBadnessVal) Q.fmtHexIntSimple
 
 zeroFiniteBadness :: FiniteBadnessVal
-zeroFiniteBadness = minBound
+zeroFiniteBadness = FiniteBadnessVal Q.zeroInt
 
 maxFiniteBadness :: FiniteBadnessVal
-maxFiniteBadness = maxBound
+maxFiniteBadness = FiniteBadnessVal Q.tenKInt
 
 finiteBadness :: Rational -> FiniteBadnessVal
 finiteBadness r =
   min
-    maxBound
+    maxFiniteBadness
     ( FiniteBadnessVal $
         Q.HexInt $
           round $
             (Num.abs r ^ (3 :: Int)) Num.* 100
     )
-
-instance Bounded FiniteBadnessVal where
-  minBound = FiniteBadnessVal Q.zeroInt
-
-  maxBound = FiniteBadnessVal Q.tenKInt
 
 data Badness = FiniteBadness FiniteBadnessVal | InfiniteBadness
   deriving stock (Show, Generic)

@@ -47,7 +47,7 @@ extendVList e accSeq = case e of
     skipLimit <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.LineSkipLimit)
     skip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.LineSkip)
     newElems <-
-      if prevDepth <= (invert Q.oneKPt)
+      if prevDepth <= invert Q.oneKPt
         then do
           Log.infoLog $ "extendVList: Adding box element without interline glue because prevDepth is " <> F.sformat Q.fmtLengthWithUnit prevDepth
           pure $ Empty |> e
@@ -78,7 +78,7 @@ extendVList e accSeq = case e of
     HSt.setSpecialLengthParameter HSt.Param.PrevDepth boxDepth
     pure $ accSeq <> newElems
   _ -> do
-    if not (ListElem.vListContainsBoxes accSeq) && (V.Break.vListElemIsDiscardable e)
+    if not (ListElem.vListContainsBoxes accSeq) && V.Break.vListElemIsDiscardable e
       then do
         Log.infoLog $ "extendVList: Skipping adding element: " <> F.sformat ListElem.fmtVListElem e <> ", to vertical list without boxes, length " <> show (Seq.length accSeq)
         pure accSeq

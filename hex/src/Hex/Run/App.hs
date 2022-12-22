@@ -284,8 +284,7 @@ evalApp ::
   Eff es a
 evalApp extraSearchDirs logLevel zonedTime name bs app =
   HEnv.withHexEnv extraSearchDirs logLevel $ \appEnv -> do
-    a <- evalAppGivenEnv zonedTime name bs app appEnv
-    pure a
+    evalAppGivenEnv zonedTime name bs app appEnv
 
 type BasicApp a = HexEnv -> AppState -> Eff [FS.FileSystem, IOE] (Either AppError a)
 

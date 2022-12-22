@@ -27,7 +27,7 @@ evalExpansionCommand = \case
   P.RenderTokenAsTokens lexToken ->
     pure $ E.RenderTokenAsTokens lexToken
   P.RenderJobName ->
-    pure $ E.RenderJobName
+    pure E.RenderJobName
   P.RenderFontName fontRef ->
     pure $ E.RenderFontName fontRef
   P.RenderTokenMeaning lexToken ->
@@ -43,7 +43,7 @@ evalExpansionCommand = \case
   P.ReadFile filePath ->
     pure $ E.ReadFile filePath
   P.EndInputFile ->
-    pure $ E.EndInputFile
+    pure E.EndInputFile
   P.RenderInternalQuantity internalQuantity ->
     E.RenderInternalQuantity <$> Eval.evalInternalQuantity internalQuantity
   P.ChangeCase vDirection inhibText ->

@@ -15,10 +15,10 @@ newtype Length = Length {unLength :: HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
-  deriving (Scalable) via (HexInt)
+  deriving (Scalable) via HexInt
 
 lengthFromInt :: HexInt -> Length
-lengthFromInt n = Length n
+lengthFromInt = Length
 
 lengthAsInt :: Length -> HexInt
 lengthAsInt len = len.unLength
@@ -87,7 +87,7 @@ fromUnit n unit = scaleLengthByRational n (inScaledPoint unit)
 
 -- 1 point is 2^16 scaled points. (65,536 scaled points)
 pointLength :: Length
-pointLength = Length $ HexInt $ (2 ^ (16 :: Int))
+pointLength = Length $ HexInt (2 ^ (16 :: Int))
 
 -- Functions related to units used in the TeX world.
 -- A scaled point is defined as a fraction:

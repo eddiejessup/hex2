@@ -72,7 +72,7 @@ runHexState = interpret $ \_ -> \case
     sf <- getSpecialIntParameterImpl HSt.Param.SpaceFactor
     spaceGlueFromSpaceFactor fNr sf
   ControlSpaceGlue fNr ->
-    spaceGlueFromSpaceFactor fNr (Q.thousandInt)
+    spaceGlueFromSpaceFactor fNr Q.thousandInt
   FontCharacter fNr chrCode -> fontCharacterImpl fNr chrCode
   SetFontSpecialCharacter fontSpecialChar fontNumber value -> setFontSpecialCharacterImpl fontSpecialChar fontNumber value
   GetFontSpecialCharacter fontSpecialChar fontNumber -> getFontSpecialCharacterImpl fontSpecialChar fontNumber
@@ -84,7 +84,7 @@ runHexState = interpret $ \_ -> \case
     pure v
   PushGroup mayScopedGroupType -> do
     debugLog "pushGroup"
-    modifying @HexState (#groupScopes) (Sc.GroupScopes.pushGroup mayScopedGroupType)
+    modifying @HexState #groupScopes (Sc.GroupScopes.pushGroup mayScopedGroupType)
   PopGroup exitTrigger -> popGroupImpl exitTrigger
   EnterMode mode -> do
     modifying @HexState #modeStack (enterModeImpl mode)
@@ -129,7 +129,7 @@ setSpecialLengthParameterImpl p v = do
   assign (stateSpecialLengthParamLens p) v
   Log.debugLog $ F.sformat (HSt.Param.fmtSpecialLengthParameter |%| " := " |%| Q.fmtLengthWithUnit) p v
 
-setScopedPropertyImpl :: State HexState :> es => (Lens' Scope (Maybe a)) -> Maybe a -> HSt.Grouped.ScopeFlag -> Eff es ()
+setScopedPropertyImpl :: State HexState :> es => Lens' Scope (Maybe a) -> Maybe a -> HSt.Grouped.ScopeFlag -> Eff es ()
 setScopedPropertyImpl scopeValueLens a scopeFlag =
   modifying @HexState
     #groupScopes
@@ -242,8 +242,8 @@ popGroupImpl exitTrigger = do
     Just (poppedGroup, newGroupScopes) ->
       case poppedGroup of
         Sc.Group.ScopeGroup (Sc.Group.GroupScope _scope scopeGroupType) -> do
-          assign @HexState (#groupScopes) newGroupScopes
-          poppedGroupType <- case scopeGroupType of
+          assign @HexState #groupScopes newGroupScopes
+          case scopeGroupType of
             HSt.Grouped.LocalStructureScopeGroup enterTrigger
               | exitTrigger == enterTrigger ->
                   pure HSt.Grouped.LocalStructureGroupType
@@ -255,9 +255,8 @@ popGroupImpl exitTrigger = do
                   pure HSt.Grouped.ExplicitBoxGroupType
                 HSt.Grouped.ChangeGroupCSTrigger ->
                   throwError Err.UnmatchedExitGroupTrigger
-          pure poppedGroupType
         Sc.Group.NonScopeGroup ->
-          notImplemented $ "popGroup: NonScopeGroup"
+          notImplemented "popGroup: NonScopeGroup"
 
 getFontLengthParameterImpl ::
   State HexState :> es =>
@@ -277,7 +276,7 @@ spaceGlueFromSpaceFactor fNr sf = do
   -- TODO: Note that, if \spaceskip and \xspaceskip are defined in terms of em, they change with the font.
   let sfAbove2k = sf >= Q.HexInt 2000
   xSpaceSkip <- getParameterValueImpl (HSt.Param.GlueQuantParam HSt.Param.XSpaceSkip)
-  if (xSpaceSkip /= Q.zeroGlue && sfAbove2k)
+  if xSpaceSkip /= Q.zeroGlue && sfAbove2k
     then pure xSpaceSkip
     else do
       -- "If \spaceskip is non-zero, it is taken instead of the normal interword

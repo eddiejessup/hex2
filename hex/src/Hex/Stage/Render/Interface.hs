@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module Hex.Stage.Render.Interface where
 
 import Hex.Common.HexState.Interface.Font qualified as HSt.Font

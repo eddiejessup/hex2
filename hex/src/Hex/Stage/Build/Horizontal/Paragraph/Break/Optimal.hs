@@ -116,11 +116,11 @@ data CompletedLine = CompletedLine
 completeIncompleteLine :: HBreakItem -> Q.Glue -> Q.Glue -> IncompleteLine -> CompletedLine
 completeIncompleteLine br leftSkip rightSkip line =
   let completedLineElements =
-        ( (ListElem.HVListElem (ListElem.ListGlue leftSkip))
+        ( ListElem.HVListElem (ListElem.ListGlue leftSkip)
             <| line.lineElements
               <> H.Break.hBreakItemAsListElemsPreBreak br
         )
-          |> (ListElem.HVListElem (ListElem.ListGlue rightSkip))
+          |> ListElem.HVListElem (ListElem.ListGlue rightSkip)
    in CompletedLine completedLineElements line.lineStartPoint
 
 completeAndPruneUnacceptableLines ::

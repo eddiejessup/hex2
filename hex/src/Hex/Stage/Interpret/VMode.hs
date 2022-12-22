@@ -119,7 +119,7 @@ handleCommandInVMode oldSrc modeVariant = \case
 
 extendVListWithParagraphStateT ::
   (HSt.EHexState :> es, Log.HexLog :> es, Build.HexListBuilder :> es) =>
-  (Seq HListElem) ->
+  Seq HListElem ->
   Eff es ()
 extendVListWithParagraphStateT paraHList = do
   lineBoxes <- setAndBreakHListToHBoxes paraHList
@@ -136,7 +136,7 @@ extendVListWithParagraphStateT paraHList = do
 
 setAndBreakHListToHBoxes ::
   (HSt.EHexState :> es, Log.HexLog :> es) =>
-  (Seq HListElem) ->
+  Seq HListElem ->
   Eff es (Seq (Box.Boxed (Seq BoxElem.HBoxElem)))
 setAndBreakHListToHBoxes hList = do
   lineHLists <- Break.breakHListMultiPass hList

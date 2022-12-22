@@ -58,9 +58,8 @@ extractParagraphListImpl ::
 extractParagraphListImpl indentFlag = do
   initList <-
     case indentFlag of
-      ListExtractor.Indent -> do
-        parDims <- HSt.getParIndentBoxDims
-        pure $ singleton $ HSt.emptyHBoxAsHListElem parDims
+      ListExtractor.Indent ->
+        singleton . HSt.emptyHBoxAsHListElem <$> HSt.getParIndentBoxDims
       ListExtractor.DoNotIndent ->
         pure mempty
   runStateLocal initList $
@@ -145,9 +144,10 @@ buildVListImpl ::
   HSt.Mode.ModeVariant ->
   Eff es ()
 buildVListImpl modeVariant = do
-  case HSt.Mode.vModeFromVariant modeVariant of
-    Nothing -> pure ()
-    Just mode -> HSt.enterMode mode
+  -- If entering inner v-mode, enter that mode.
+  for_
+    (HSt.Mode.vModeFromVariant modeVariant)
+    HSt.enterMode
   go
   where
     go :: Eff es ()

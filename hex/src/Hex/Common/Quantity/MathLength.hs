@@ -10,7 +10,7 @@ newtype MathLength = MathLength {unMathLength :: HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
-  deriving (Scalable) via (HexInt)
+  deriving (Scalable) via HexInt
 
 -- Verified empirically, by observing that the smallest usable 'muskip' is
 -- ~2^-16 mu.

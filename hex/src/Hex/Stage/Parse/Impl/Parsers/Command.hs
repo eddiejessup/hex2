@@ -26,7 +26,7 @@ parseCommand :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff e
 parseCommand =
   anyPrim >>= \case
     PT.DebugShowState ->
-      pure $ AST.ModeIndependentCommand $ AST.DebugShowState
+      pure $ AST.ModeIndependentCommand AST.DebugShowState
     PT.ShowTokenTok ->
       AST.ModeDependentCommand . AST.ShowToken <$> anyLexInhibited
     PT.ShowBoxTok ->
@@ -80,12 +80,11 @@ parseCommand =
     PT.ImmediateTok -> do
       AST.ModeIndependentCommand
         <$> ( anyPrim
-                >>= ( choiceFlap
-                        [ fmap AST.ModifyFileStream . Par.headToParseOpenOutput AST.Immediate,
-                          fmap AST.ModifyFileStream . Par.headToParseCloseOutput AST.Immediate,
-                          fmap AST.WriteToStream . Par.headToParseWriteToStream AST.Immediate
-                        ]
-                    )
+                >>= choiceFlap
+                  [ fmap AST.ModifyFileStream . Par.headToParseOpenOutput AST.Immediate,
+                    fmap AST.ModifyFileStream . Par.headToParseCloseOutput AST.Immediate,
+                    fmap AST.WriteToStream . Par.headToParseWriteToStream AST.Immediate
+                  ]
             )
     PT.ModedCommand axis (PT.ShiftedBoxTok direction) -> do
       offsetLength <- Par.parseLength
@@ -105,7 +104,7 @@ parseCommand =
       chrTok <- PC.optional (anyPrim >>= headToParseCharCodeRef)
       pure $ AST.HModeCommand $ AST.AddAccentedCharacter nr assignments chrTok
     PT.DiscretionaryTextTok ->
-      (AST.HModeCommand . AST.AddDiscretionaryText)
+      AST.HModeCommand . AST.AddDiscretionaryText
         <$> ( AST.DiscretionaryText
                 <$> Par.parseExpandedGeneralText Par.ExpectingBeginGroup
                 <*> Par.parseExpandedGeneralText Par.ExpectingBeginGroup

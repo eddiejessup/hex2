@@ -108,8 +108,8 @@ ambleArgs mag =
   -- Define a fraction by which all dimensions should be multiplied to get
   -- lengths in units of 10^(-7) meters.
   AmbleArgs
-    { numerator = 254 * (10 ^ (5 :: Int)),
-      denominator = 7227 * (2 ^ (16 :: Int)),
+    { numerator = 254 * 10 ^ (5 :: Int),
+      denominator = 7227 * 2 ^ (16 :: Int),
       magnification = mag.unMagnification
     }
 
@@ -159,7 +159,7 @@ emitSpecInstruction specI = do
   -- Emit the spec-instruction.
   tell @[SpecInstruction] [specI]
   -- Update the current byte-pointer to reflect the instruction.
-  modifying @SpecInstructionWriterState #currentBytePointer (<> (BytePointer nBytesInt32))
+  modifying @SpecInstructionWriterState #currentBytePointer (<> BytePointer nBytesInt32)
 
 getPrevBeginPagePointer :: (State SpecInstructionWriterState :> es) => Eff es BytePointer
 getPrevBeginPagePointer = use @SpecInstructionWriterState $ #beginPagePointers % to (fromMaybe (BytePointer (-1)) . headMay)
@@ -186,9 +186,8 @@ interpretDocInstruction i = do
     PushStack -> do
       newStackDepth <- use @SpecInstructionWriterState (#stackDepth % to succ)
       assign @SpecInstructionWriterState #stackDepth newStackDepth
-      modifying @SpecInstructionWriterState (#maxStackDepth) (max newStackDepth)
-    SelectFont n -> do
-      assign @SpecInstructionWriterState #curFontNr (Just n)
+      modifying @SpecInstructionWriterState #maxStackDepth (max newStackDepth)
+    SelectFont n -> assign @SpecInstructionWriterState #curFontNr (Just n)
     _ ->
       pure ()
 
@@ -199,7 +198,7 @@ interpretDocInstruction i = do
   case i of
     BeginNewPage -> do
       -- Add a pointer for the new begin-page instruction.
-      modifying @SpecInstructionWriterState (#beginPagePointers) (currentBytePointer :)
+      modifying @SpecInstructionWriterState #beginPagePointers (currentBytePointer :)
 
       -- If a font is selected, add an instruction to select it again on the
       -- new page.
@@ -266,5 +265,7 @@ addAllInstructions mag fontDefinitions docInstrs = do
   -- Emit the post-post-amble instruction.
   emitSpecInstruction $ PostPostambleOp (postPostambleArgs postamblePointer)
   where
-    emitFontDefinitions = for_ fontDefinitions $ \def ->
-      DefineFontOp <$> getDefineFontOpArgs def >>= emitSpecInstruction
+    emitFontDefinitions =
+      for_
+        fontDefinitions
+        (getDefineFontOpArgs >=> (emitSpecInstruction . DefineFontOp))

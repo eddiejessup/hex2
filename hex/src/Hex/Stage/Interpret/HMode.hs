@@ -163,7 +163,7 @@ handleCommandInHMode oldSrc modeVariant = \case
       unless (lastCharSpaceFactorInt == Q.zeroInt) $ do
         currentSpaceFactorInt <- HSt.getSpecialIntParameter HSt.Param.SpaceFactor
         let newSpaceFactor =
-              if (lastCharSpaceFactorInt > Q.thousandInt && currentSpaceFactorInt < Q.thousandInt)
+              if lastCharSpaceFactorInt > Q.thousandInt && currentSpaceFactorInt < Q.thousandInt
                 then Q.thousandInt
                 else lastCharSpaceFactorInt
         HSt.setSpecialIntParameter HSt.Param.SpaceFactor newSpaceFactor

@@ -49,7 +49,7 @@ hListElemIsDiscardable = \case
 hBreakPenalty :: FiniteBadnessVal -> FiniteBadnessVal -> HBreakItem -> FiniteBadnessVal
 hBreakPenalty _ _ (HVBreakItem b) = V.vBreakPenalty b
 hBreakPenalty hyphenPenalty explicitHyphenPenalty (DiscretionaryBreak discrItem) =
-  (ListElem.discretionaryItemPenalty hyphenPenalty explicitHyphenPenalty discrItem)
+  ListElem.discretionaryItemPenalty hyphenPenalty explicitHyphenPenalty discrItem
 
 -- List elements in a break item, assuming we don't treat it as a break item,
 -- but just as part of a list.

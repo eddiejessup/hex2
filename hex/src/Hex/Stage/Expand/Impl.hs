@@ -241,10 +241,10 @@ expandExpansionCommand = \case
         LT.CharCatLexToken lexCharCat -> do
           changeCaseCode <- case vDirection of
             Upward -> do
-              ucCode <- HSt.getHexCode (Code.CUpperCaseCodeType) lexCharCat.lexCCChar
+              ucCode <- HSt.getHexCode Code.CUpperCaseCodeType lexCharCat.lexCCChar
               pure $ ucCode ^. typed @Code.ChangeCaseCode
             Downward -> do
-              lcCode <- HSt.getHexCode (Code.CLowerCaseCodeType) lexCharCat.lexCCChar
+              lcCode <- HSt.getHexCode Code.CLowerCaseCodeType lexCharCat.lexCCChar
               pure $ lcCode ^. typed @Code.ChangeCaseCode
           pure $ case changeCaseCode of
             Code.NoCaseChange ->
@@ -265,10 +265,8 @@ satisfyThenExpandingImpl ::
   ) =>
   ((LT.LexToken, PT.PrimitiveToken) -> Maybe a) ->
   Eff es a
-satisfyThenExpandingImpl f =
-  satisfyThenCommon
-    getPrimitiveTokenImpl
-    f
+satisfyThenExpandingImpl =
+  satisfyThenCommon getPrimitiveTokenImpl
 
 satisfyThenInhibitedImpl ::
   (HIO.HexIO :> es, Error ParsingError :> es) =>
@@ -277,7 +275,7 @@ satisfyThenInhibitedImpl ::
 satisfyThenInhibitedImpl f =
   -- Wrap and unwrap using the trivial tuple to make a common interface we can share with the 'expanding' version.
   satisfyThenCommon
-    (HIO.getNextLexToken <&> (fmap (,())))
+    (HIO.getNextLexToken <&> fmap (,()))
     (\(lt, ()) -> f lt)
 
 satisfyThenCommon ::

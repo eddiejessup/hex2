@@ -36,7 +36,7 @@ addHListElementImpl e = do
 extendHList ::
   Monad m =>
   ListElem.HListElem ->
-  (Seq ListElem.HListElem) ->
+  Seq ListElem.HListElem ->
   m (Seq ListElem.HListElem)
 extendHList e accSeq =
   pure $ accSeq :|> e

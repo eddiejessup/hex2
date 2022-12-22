@@ -107,8 +107,7 @@ handleModeIndependentCommand = \case
     pure DidNotSeeEndBox
   Eval.WriteToStream (Eval.StreamWriteCommand n writeText) -> do
     case writeText of
-      Eval.ImmediateWriteText txt -> do
-        writeToOutput (FileStream n) txt
+      Eval.ImmediateWriteText txt -> writeToOutput (FileStream n) txt
       Eval.DeferredWriteText _ ->
         notImplemented "Write to stream: DeferredWriteText"
     pure DidNotSeeEndBox
@@ -135,8 +134,7 @@ handleModeIndependentCommand = \case
     case body of
       Eval.DefineControlSequence cs tgt -> do
         maySymbolTarget <- case tgt of
-          Eval.MacroTarget macroDefinition -> do
-            pure $ Just $ RT.ExpansionCommandHeadToken $ ST.MacroTok macroDefinition
+          Eval.MacroTarget macroDefinition -> pure $ Just $ RT.ExpansionCommandHeadToken $ ST.MacroTok macroDefinition
           Eval.LetTarget lexTokenTargetValue ->
             case lexTokenTargetValue of
               -- If the target of the \let is a char-cat pair, then resolve the
@@ -153,12 +151,9 @@ handleModeIndependentCommand = \case
                   -- If the target symbol does exist, then create a new symbol
                   -- entry with the same contents as the target symbol.
                   Just symbol -> pure $ Just symbol
-          Eval.FutureLetTarget _futureLetDefinition -> do
-            notImplemented "Define control sequence: future let"
-          Eval.ShortDefineTarget shortDefTargetValue -> do
-            pure $ Just $ RT.PrimitiveToken $ PT.ShortDefTargetToken shortDefTargetValue
-          Eval.ReadTarget _readInt -> do
-            notImplemented "ReadTarget"
+          Eval.FutureLetTarget _futureLetDefinition -> notImplemented "Define control sequence: future let"
+          Eval.ShortDefineTarget shortDefTargetValue -> pure $ Just $ RT.PrimitiveToken $ PT.ShortDefTargetToken shortDefTargetValue
+          Eval.ReadTarget _readInt -> notImplemented "ReadTarget"
           Eval.FontTarget (Eval.FontFileSpec fontSpec fontPath) -> do
             newFontNr <- HSt.loadFont fontPath fontSpec
             pure $ Just $ RT.PrimitiveToken $ PT.FontRefToken newFontNr
@@ -218,8 +213,7 @@ handleModeIndependentCommand = \case
                 scaleQuantVariable var scaleDirection scaleVal scope
               Eval.MathGlueNumericVariable var ->
                 scaleQuantVariable var scaleDirection scaleVal scope
-      Eval.SelectFont fNr -> do
-        selectFontInternallyAndDVI fNr scope
+      Eval.SelectFont fNr -> selectFontInternallyAndDVI fNr scope
       Eval.SetFamilyMember familyMember fontNumber ->
         HSt.setScopedValue (HSt.FamilyMemberFontValue familyMember fontNumber) scope
       -- Start a new level of grouping. Enter inner mode.
@@ -229,17 +223,17 @@ handleModeIndependentCommand = \case
       Eval.SetFontSpecialChar (Eval.FontSpecialCharRef fontSpecialChar fontNr) charRef ->
         HSt.setFontSpecialCharacter fontSpecialChar fontNr charRef
       Eval.SetParShape _int _lengths ->
-        notImplemented $ "Assignment body: SetParShape"
+        notImplemented "Assignment body: SetParShape"
       Eval.SetFontDimension _fontDimensionRef _length ->
-        notImplemented $ "Assignment body: SetFontDimension"
+        notImplemented "Assignment body: SetFontDimension"
       Eval.SetHyphenation hyphenationExceptions ->
         HSt.setHyphenationExceptions hyphenationExceptions
       Eval.SetHyphenationPatterns hyphenationPatterns ->
         HSt.setHyphenationPatterns hyphenationPatterns
       Eval.SetBoxDimension _boxDimensionRef _length ->
-        notImplemented $ "Assignment body: SetBoxDimension"
+        notImplemented "Assignment body: SetBoxDimension"
       Eval.SetInteractionMode _interactionMode ->
-        notImplemented $ "Assignment body: SetInteractionMode"
+        notImplemented "Assignment body: SetInteractionMode"
     -- Now that we're done with an assignment, see whether any
     -- 'after-assignment' token was set.
     HSt.popAfterAssignmentToken >>= \case
@@ -307,7 +301,7 @@ handleModeIndependentCommand = \case
                         else invert offsetDownPage
                  in b
                       & #boxedDims % #boxHeight %~ (<> heightOffset)
-                      & #boxedDims % #boxDepth %~ (<> (invert heightOffset))
+                      & #boxedDims % #boxDepth %~ (<> invert heightOffset)
         when (bWithOffsetDims /= b) $
           Log.debugLog $
             F.sformat ("b before offset: " |%| Box.fmtBoxDimens |%| "; b after offset: " |%| Box.fmtBoxDimens) b.boxedDims bWithOffsetDims.boxedDims
@@ -330,16 +324,11 @@ handleModeIndependentCommand = \case
     notImplemented "handleModeIndependentCommand: AddToAfterGroupTokens"
   Eval.ModifyFileStream fileStreamModificationCommand -> do
     case (fileStreamModificationCommand.fileStreamType, fileStreamModificationCommand.fileStreamAction) of
-      (P.FileInput, P.Open path) -> do
-        HIO.openStreamFile path fileStreamModificationCommand.fileStreamNr HIO.InputFile
-      (P.FileOutput P.Immediate, P.Open path) -> do
-        HIO.openStreamFile path fileStreamModificationCommand.fileStreamNr HIO.OutputFile
-      (P.FileOutput P.Deferred, P.Open _path) -> do
-        notImplemented "handleModeIndependentCommand: Open output file, deferred"
-      (P.FileInput, P.Close) -> do
-        notImplemented "handleModeIndependentCommand: Close input file"
-      (P.FileOutput _writePolicy, P.Close) -> do
-        notImplemented "handleModeIndependentCommand: Close output file"
+      (P.FileInput, P.Open path) -> HIO.openStreamFile path fileStreamModificationCommand.fileStreamNr HIO.InputFile
+      (P.FileOutput P.Immediate, P.Open path) -> HIO.openStreamFile path fileStreamModificationCommand.fileStreamNr HIO.OutputFile
+      (P.FileOutput P.Deferred, P.Open _path) -> notImplemented "handleModeIndependentCommand: Open output file, deferred"
+      (P.FileInput, P.Close) -> notImplemented "handleModeIndependentCommand: Close input file"
+      (P.FileOutput _writePolicy, P.Close) -> notImplemented "handleModeIndependentCommand: Close output file"
     pure DidNotSeeEndBox
   Eval.DoSpecial _text ->
     notImplemented "handleModeIndependentCommand: DoSpecial"
@@ -381,12 +370,10 @@ handleModeIndependentCommand = \case
       Log.debugLog $ F.sformat ("Extracted explicit box: " |%| BoxElem.fmtBoxedAxBoxElemsOneLine) extractedBox
       pure extractedBox
 
-    selectFontInternallyAndDVI fNr scope = do
-      HSt.setScopedValue (HSt.FontValue fNr) scope
-
     popGroupWithElems exitTrigger = do
-      groupType <- HSt.popGroup exitTrigger
-      pure groupType
+      HSt.popGroup exitTrigger
+
+    selectFontInternallyAndDVI fNr = HSt.setScopedValue (HSt.FontValue fNr)
 
 lengthToSetAtFromSpec :: Eval.BoxSpecification -> Q.Length -> Q.Length
 lengthToSetAtFromSpec spec naturalLength = case spec of

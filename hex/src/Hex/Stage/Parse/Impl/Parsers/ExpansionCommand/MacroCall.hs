@@ -41,7 +41,7 @@ parseMacroArguments parameterSpec = do
               -- version.
               pure $ stripOuterBracePairIfPresent argText
         argsRest <- parseArguments rest
-        pure $ (AST.MacroArgument arg) <| argsRest
+        pure $ AST.MacroArgument arg <| argsRest
 
     -- Check if an argument has an outer '{}' pair that should be stripped, and
     -- do this if so.

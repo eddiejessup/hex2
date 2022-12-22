@@ -87,7 +87,7 @@ evalModeDepCmd = \case
   P.ShipOut box -> pure $ E.ShipOut box
   P.AddMark expandedBalancedText -> pure $ E.AddMark expandedBalancedText
   P.AddInsertion n -> E.AddInsertion <$> Eval.evalInt n
-  P.AddAdjustment -> pure $ E.AddAdjustment
+  P.AddAdjustment -> pure E.AddAdjustment
   P.AddSpace -> pure E.AddSpace
   P.StartParagraph indentFlag -> pure $ E.StartParagraph indentFlag
   P.EndParagraph -> pure E.EndParagraph
@@ -100,7 +100,7 @@ evalCharCodeRef = \case
 
 evalAssignment :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.Assignment -> Eff es E.Assignment
 evalAssignment P.Assignment {body, scope} =
-  E.Assignment <$> (evalAssignmentBody body) <*> pure scope
+  E.Assignment <$> evalAssignmentBody body <*> pure scope
 
 evalStreamWriteCommand :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.StreamWriteCommand -> Eff es E.StreamWriteCommand
 evalStreamWriteCommand (P.StreamWriteCommand n writeText) =
@@ -128,20 +128,20 @@ evalAssignmentBody = \case
     E.SetVariable <$> evalVariableAssignment variableAssignment
   P.ModifyVariable variableModification -> E.ModifyVariable <$> evalVariableModification variableModification
   P.AssignCode codeAssignment -> E.AssignCode <$> evalCodeAssignment codeAssignment
-  P.SelectFont _fontNumber -> pure $ E.SelectFont $ _fontNumber
+  P.SelectFont fontNumber -> pure $ E.SelectFont fontNumber
   P.SetFamilyMember familyMember fontRef -> E.SetFamilyMember <$> Eval.evalFamilyMember familyMember <*> Eval.evalFontRef fontRef
   P.SetParShape hexInt lengths -> pure $ E.SetParShape hexInt lengths
-  P.SetBoxRegister loc box -> E.SetBoxRegister <$> (Eval.evalExplicitRegisterLocation loc) <*> evalBox box
+  P.SetBoxRegister loc box -> E.SetBoxRegister <$> Eval.evalExplicitRegisterLocation loc <*> evalBox box
   P.SetFontDimension fontDimensionRef length -> pure $ E.SetFontDimension fontDimensionRef length
-  P.SetFontSpecialChar fontSpecialCharRef fontSpecialCharTgt -> E.SetFontSpecialChar <$> (evalFontSpecialCharRef fontSpecialCharRef) <*> Eval.evalInt fontSpecialCharTgt
+  P.SetFontSpecialChar fontSpecialCharRef fontSpecialCharTgt -> E.SetFontSpecialChar <$> evalFontSpecialCharRef fontSpecialCharRef <*> Eval.evalInt fontSpecialCharTgt
   P.SetHyphenation hyphExceptions -> E.SetHyphenation <$> evalHyphenationExceptions hyphExceptions
   P.SetHyphenationPatterns patterns -> E.SetHyphenationPatterns <$> evalHyphenationPatterns patterns
   P.SetBoxDimension boxDimensionRef length -> pure $ E.SetBoxDimension boxDimensionRef length
   P.SetInteractionMode interactionMode -> pure $ E.SetInteractionMode interactionMode
 
 evalHyphenationPatterns :: (Error Eval.EvaluationError :> es, EHexState :> es) => [HSt.Hyph.HyphenationPattern] -> Eff es [HSt.Hyph.HyphenationPattern]
-evalHyphenationPatterns patterns = do
-  validatedPatterns <- for patterns $ \(HSt.Hyph.HyphenationPattern preLast lastValue) -> do
+evalHyphenationPatterns patterns =
+  for patterns $ \(HSt.Hyph.HyphenationPattern preLast lastValue) -> do
     validatedPreLast <- for preLast $ \(value, letterCharCode) -> do
       validatedLetterCharCode <-
         -- Map a '.' into the zero char-code
@@ -152,7 +152,6 @@ evalHyphenationPatterns patterns = do
             toLowerCaseOrError letterCharCode
       pure (value, validatedLetterCharCode)
     pure $ HSt.Hyph.HyphenationPattern validatedPreLast lastValue
-  pure $ validatedPatterns
 
 evalHyphenationExceptions ::
   (Error Eval.EvaluationError :> es, EHexState :> es) =>

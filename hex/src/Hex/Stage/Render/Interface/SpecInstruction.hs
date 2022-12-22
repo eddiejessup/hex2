@@ -55,9 +55,9 @@ fmtBodySpecInstruction = F.later $ \case
   AddCharOp charOpArgs -> F.bformat F.text $ "Add char: " <> show charOpArgs
   AddRuleOp addRuleOpArgs -> F.bformat F.text $ "Add rule: " <> show addRuleOpArgs
   BeginPageOp beginPageOpArgs -> F.bformat F.text $ "Begin Page: " <> show beginPageOpArgs
-  EndPageOp -> F.bformat F.text $ "End Page"
-  PushOp -> F.bformat F.text $ "Push"
-  PopOp -> F.bformat F.text $ "Pop"
+  EndPageOp -> F.bformat F.text "End Page"
+  PushOp -> F.bformat F.text "Push"
+  PopOp -> F.bformat F.text "Pop"
   MoveOp Vertical signedNByteInt -> F.bformat F.text $ "Move down: " <> show signedNByteInt
   MoveOp Horizontal signedNByteInt -> F.bformat F.text $ "Move right: " <> show signedNByteInt
   SelectFontOp selectFontOpArgs -> F.bformat F.text $ "Select Font: " <> show selectFontOpArgs

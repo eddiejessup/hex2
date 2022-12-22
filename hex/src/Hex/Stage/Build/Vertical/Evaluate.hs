@@ -7,4 +7,4 @@ import Hexlude
 
 listFlexSpec :: Seq ListElem.VListElem -> Q.Length -> Eval.GlueFlexSpec
 listFlexSpec vList desiredWidth =
-  Eval.glueFlexSpec ((ListElem.vListNaturalHeight vList) ~~ desiredWidth) (ListElem.vListNetBiFlex vList)
+  Eval.glueFlexSpec (ListElem.vListNaturalHeight vList ~~ desiredWidth) (ListElem.vListNetBiFlex vList)

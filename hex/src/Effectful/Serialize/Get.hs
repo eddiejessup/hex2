@@ -83,7 +83,7 @@ getWord16beImpl = do
   s <- getBytesImpl 2
   pure $!
     (fromIntegral (s `B.unsafeIndex` 0) `shiftl_w16` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 1))
+      .|. fromIntegral (s `B.unsafeIndex` 1)
 
 getWord32beImpl :: (Error Text :> es, State GetState :> es) => Eff es Word32
 getWord32beImpl = do
@@ -92,14 +92,14 @@ getWord32beImpl = do
     (fromIntegral (s `B.unsafeIndex` 0) `shiftl_w32` 24)
       .|. (fromIntegral (s `B.unsafeIndex` 1) `shiftl_w32` 16)
       .|. (fromIntegral (s `B.unsafeIndex` 2) `shiftl_w32` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 3))
+      .|. fromIntegral (s `B.unsafeIndex` 3)
 
 getWord16leImpl :: (Error Text :> es, State GetState :> es) => Eff es Word16
 getWord16leImpl = do
   s <- getBytesImpl 2
   pure $!
     (fromIntegral (s `B.unsafeIndex` 1) `shiftl_w16` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 0))
+      .|. fromIntegral (s `B.unsafeIndex` 0)
 
 -- | Read a Word32 in little endian format
 getWord32leImpl :: (Error Text :> es, State GetState :> es) => Eff es Word32
@@ -109,7 +109,7 @@ getWord32leImpl = do
     (fromIntegral (s `B.unsafeIndex` 3) `shiftl_w32` 24)
       .|. (fromIntegral (s `B.unsafeIndex` 2) `shiftl_w32` 16)
       .|. (fromIntegral (s `B.unsafeIndex` 1) `shiftl_w32` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 0))
+      .|. fromIntegral (s `B.unsafeIndex` 0)
 
 -- | Read a Word64 in big endian format
 getWord64beImpl :: (Error Text :> es, State GetState :> es) => Eff es Word64
@@ -123,71 +123,71 @@ getWord64beImpl = do
       .|. (fromIntegral (s `B.unsafeIndex` 4) `shiftl_w64` 24)
       .|. (fromIntegral (s `B.unsafeIndex` 5) `shiftl_w64` 16)
       .|. (fromIntegral (s `B.unsafeIndex` 6) `shiftl_w64` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 7))
+      .|. fromIntegral (s `B.unsafeIndex` 7)
 
 -- | Read a Int16 in big endian format
 getInt16beImpl :: (Error Text :> es, State GetState :> es) => Eff es Int16
 getInt16beImpl = do
   s <- getBytesImpl 2
   pure $!
-    (fromIntegral (s `B.unsafeIndex` 0) `shiftL` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 1))
+    fromIntegral (s `B.unsafeIndex` 0) `shiftL` 8
+      .|. fromIntegral (s `B.unsafeIndex` 1)
 
 -- | Read a Int16 in little endian format
 getInt16leImpl :: (Error Text :> es, State GetState :> es) => Eff es Int16
 getInt16leImpl = do
   s <- getBytesImpl 2
   pure $!
-    (fromIntegral (s `B.unsafeIndex` 1) `shiftL` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 0))
+    fromIntegral (s `B.unsafeIndex` 1) `shiftL` 8
+      .|. fromIntegral (s `B.unsafeIndex` 0)
 
 -- | Read a Int32 in big endian format
 getInt32beImpl :: (Error Text :> es, State GetState :> es) => Eff es Int32
 getInt32beImpl = do
   s <- getBytesImpl 4
   pure $!
-    (fromIntegral (s `B.unsafeIndex` 0) `shiftL` 24)
-      .|. (fromIntegral (s `B.unsafeIndex` 1) `shiftL` 16)
-      .|. (fromIntegral (s `B.unsafeIndex` 2) `shiftL` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 3))
+    fromIntegral (s `B.unsafeIndex` 0) `shiftL` 24
+      .|. fromIntegral (s `B.unsafeIndex` 1) `shiftL` 16
+      .|. fromIntegral (s `B.unsafeIndex` 2) `shiftL` 8
+      .|. fromIntegral (s `B.unsafeIndex` 3)
 
 -- | Read a Int32 in little endian format
 getInt32leImpl :: (Error Text :> es, State GetState :> es) => Eff es Int32
 getInt32leImpl = do
   s <- getBytesImpl 4
   pure $!
-    (fromIntegral (s `B.unsafeIndex` 3) `shiftL` 24)
-      .|. (fromIntegral (s `B.unsafeIndex` 2) `shiftL` 16)
-      .|. (fromIntegral (s `B.unsafeIndex` 1) `shiftL` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 0))
+    fromIntegral (s `B.unsafeIndex` 3) `shiftL` 24
+      .|. fromIntegral (s `B.unsafeIndex` 2) `shiftL` 16
+      .|. fromIntegral (s `B.unsafeIndex` 1) `shiftL` 8
+      .|. fromIntegral (s `B.unsafeIndex` 0)
 
 -- | Read a Int64 in big endian format
 getInt64beImpl :: (Error Text :> es, State GetState :> es) => Eff es Int64
 getInt64beImpl = do
   s <- getBytesImpl 8
   pure $!
-    (fromIntegral (s `B.unsafeIndex` 0) `shiftL` 56)
-      .|. (fromIntegral (s `B.unsafeIndex` 1) `shiftL` 48)
-      .|. (fromIntegral (s `B.unsafeIndex` 2) `shiftL` 40)
-      .|. (fromIntegral (s `B.unsafeIndex` 3) `shiftL` 32)
-      .|. (fromIntegral (s `B.unsafeIndex` 4) `shiftL` 24)
-      .|. (fromIntegral (s `B.unsafeIndex` 5) `shiftL` 16)
-      .|. (fromIntegral (s `B.unsafeIndex` 6) `shiftL` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 7))
+    fromIntegral (s `B.unsafeIndex` 0) `shiftL` 56
+      .|. fromIntegral (s `B.unsafeIndex` 1) `shiftL` 48
+      .|. fromIntegral (s `B.unsafeIndex` 2) `shiftL` 40
+      .|. fromIntegral (s `B.unsafeIndex` 3) `shiftL` 32
+      .|. fromIntegral (s `B.unsafeIndex` 4) `shiftL` 24
+      .|. fromIntegral (s `B.unsafeIndex` 5) `shiftL` 16
+      .|. fromIntegral (s `B.unsafeIndex` 6) `shiftL` 8
+      .|. fromIntegral (s `B.unsafeIndex` 7)
 
 -- | Read a Int64 in little endian format
 getInt64leImpl :: (Error Text :> es, State GetState :> es) => Eff es Int64
 getInt64leImpl = do
   s <- getBytesImpl 8
   pure $!
-    (fromIntegral (s `B.unsafeIndex` 7) `shiftL` 56)
-      .|. (fromIntegral (s `B.unsafeIndex` 6) `shiftL` 48)
-      .|. (fromIntegral (s `B.unsafeIndex` 5) `shiftL` 40)
-      .|. (fromIntegral (s `B.unsafeIndex` 4) `shiftL` 32)
-      .|. (fromIntegral (s `B.unsafeIndex` 3) `shiftL` 24)
-      .|. (fromIntegral (s `B.unsafeIndex` 2) `shiftL` 16)
-      .|. (fromIntegral (s `B.unsafeIndex` 1) `shiftL` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 0))
+    fromIntegral (s `B.unsafeIndex` 7) `shiftL` 56
+      .|. fromIntegral (s `B.unsafeIndex` 6) `shiftL` 48
+      .|. fromIntegral (s `B.unsafeIndex` 5) `shiftL` 40
+      .|. fromIntegral (s `B.unsafeIndex` 4) `shiftL` 32
+      .|. fromIntegral (s `B.unsafeIndex` 3) `shiftL` 24
+      .|. fromIntegral (s `B.unsafeIndex` 2) `shiftL` 16
+      .|. fromIntegral (s `B.unsafeIndex` 1) `shiftL` 8
+      .|. fromIntegral (s `B.unsafeIndex` 0)
 
 -- | Read a Word64 in little endian format
 getWord64leImpl :: (Error Text :> es, State GetState :> es) => Eff es Word64
@@ -201,7 +201,7 @@ getWord64leImpl = do
       .|. (fromIntegral (s `B.unsafeIndex` 3) `shiftl_w64` 24)
       .|. (fromIntegral (s `B.unsafeIndex` 2) `shiftl_w64` 16)
       .|. (fromIntegral (s `B.unsafeIndex` 1) `shiftl_w64` 8)
-      .|. (fromIntegral (s `B.unsafeIndex` 0))
+      .|. fromIntegral (s `B.unsafeIndex` 0)
 
 -- | Pull @n@ bytes from the input, as a strict ByteString.
 getBytesImpl :: (Error Text :> es, State GetState :> es) => Int -> Eff es ByteString

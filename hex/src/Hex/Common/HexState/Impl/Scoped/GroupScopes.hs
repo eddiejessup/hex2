@@ -98,7 +98,7 @@ scopedMapValueLens mapLens c = mapLens % O.at' c
 -- | From a lens from a scope to a property, which might be empty, set that
 -- value. (Actually we could weaken 'Lens' to 'Setter', but that would require a
 -- bunch of `castOptic` calls.)
-setScopedProperty :: (Lens' Scope (Maybe a)) -> Maybe a -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
+setScopedProperty :: Lens' Scope (Maybe a) -> Maybe a -> HSt.Grouped.ScopeFlag -> GroupScopes -> GroupScopes
 setScopedProperty scopeValueLens newValue scopeFlag groupScopes =
   case scopeFlag of
     -- If doing a global assignment.

@@ -117,24 +117,24 @@ newLocalScope =
 fmtScope :: Fmt Scope
 fmtScope =
   ("Current font number: " |%| F.accessed (.currentFontNr) (F.maybed "None" Font.fmtFontNumber) |%| "\n")
-    <> (fmtMapWithHeading "Family-members" (.familyMemberFonts) Font.fmtFamilyMember Font.fmtFontNumber)
-    <> (fmtMapWithHeading "Symbols" (.symbolMap) Res.fmtControlSymbol RT.fmtResolvedToken)
-    <> (fmtMapWithHeading "Category codes" (.catCodes) Code.fmtCharCode Code.fmtCatCode)
-    <> (fmtMapWithHeading "Math codes" (.mathCodes) Code.fmtCharCode Code.fmtMathCode)
-    <> (fmtMapWithHeading "Lowercase codes" (.lowerCaseCodes) Code.fmtCharCode Code.fmtLowerCaseCode)
-    <> (fmtMapWithHeading "Uppercase codes" (.upperCaseCodes) Code.fmtCharCode Code.fmtUpperCaseCode)
-    <> (fmtMapWithHeading "Space-factor codes" (.spaceFactorCodes) Code.fmtCharCode Code.fmtSpaceFactorCode)
-    <> (fmtMapWithHeading "Delimiter codes" (.delimiterCodes) Code.fmtCharCode Code.fmtDelimiterCode)
-    <> (fmtMapWithHeading "Int parameters" (.intParameters) Param.fmtIntParameter Q.fmtHexInt)
-    <> (fmtMapWithHeading "Length parameters" (.lengthParameters) Param.fmtLengthParameter Q.fmtLengthWithUnit)
-    <> (fmtMapWithHeading "Glue parameters" (.glueParameters) Param.fmtGlueParameter Q.fmtGlue)
-    <> (fmtMapWithHeading "Math-glue parameters" (.mathGlueParameters) Param.fmtMathGlueParameter Q.fmtMathGlue)
-    <> (fmtMapWithHeading "Token-list parameters" (.tokenListParameters) Param.fmtTokenListParameter HSt.TL.fmtBalancedText)
-    <> (fmtMapWithHeading "Int registers" (.intRegister) fmtRegisterLocation Q.fmtHexInt)
-    <> (fmtMapWithHeading "Length registers" (.lengthRegister) fmtRegisterLocation Q.fmtLengthWithUnit)
-    <> (fmtMapWithHeading "Glue registers" (.glueRegister) fmtRegisterLocation Q.fmtGlue)
-    <> (fmtMapWithHeading "Math-glue registers" (.mathGlueRegister) fmtRegisterLocation Q.fmtMathGlue)
-    <> (fmtMapWithHeading "Box registers" (.boxRegister) fmtRegisterLocation BoxElem.fmtBoxedAxBoxElemsOneLine)
+    <> fmtMapWithHeading "Family-members" (.familyMemberFonts) Font.fmtFamilyMember Font.fmtFontNumber
+    <> fmtMapWithHeading "Symbols" (.symbolMap) Res.fmtControlSymbol RT.fmtResolvedToken
+    <> fmtMapWithHeading "Category codes" (.catCodes) Code.fmtCharCode Code.fmtCatCode
+    <> fmtMapWithHeading "Math codes" (.mathCodes) Code.fmtCharCode Code.fmtMathCode
+    <> fmtMapWithHeading "Lowercase codes" (.lowerCaseCodes) Code.fmtCharCode Code.fmtLowerCaseCode
+    <> fmtMapWithHeading "Uppercase codes" (.upperCaseCodes) Code.fmtCharCode Code.fmtUpperCaseCode
+    <> fmtMapWithHeading "Space-factor codes" (.spaceFactorCodes) Code.fmtCharCode Code.fmtSpaceFactorCode
+    <> fmtMapWithHeading "Delimiter codes" (.delimiterCodes) Code.fmtCharCode Code.fmtDelimiterCode
+    <> fmtMapWithHeading "Int parameters" (.intParameters) Param.fmtIntParameter Q.fmtHexInt
+    <> fmtMapWithHeading "Length parameters" (.lengthParameters) Param.fmtLengthParameter Q.fmtLengthWithUnit
+    <> fmtMapWithHeading "Glue parameters" (.glueParameters) Param.fmtGlueParameter Q.fmtGlue
+    <> fmtMapWithHeading "Math-glue parameters" (.mathGlueParameters) Param.fmtMathGlueParameter Q.fmtMathGlue
+    <> fmtMapWithHeading "Token-list parameters" (.tokenListParameters) Param.fmtTokenListParameter HSt.TL.fmtBalancedText
+    <> fmtMapWithHeading "Int registers" (.intRegister) fmtRegisterLocation Q.fmtHexInt
+    <> fmtMapWithHeading "Length registers" (.lengthRegister) fmtRegisterLocation Q.fmtLengthWithUnit
+    <> fmtMapWithHeading "Glue registers" (.glueRegister) fmtRegisterLocation Q.fmtGlue
+    <> fmtMapWithHeading "Math-glue registers" (.mathGlueRegister) fmtRegisterLocation Q.fmtMathGlue
+    <> fmtMapWithHeading "Box registers" (.boxRegister) fmtRegisterLocation BoxElem.fmtBoxedAxBoxElemsOneLine
 
 -- If we have two scopes, one nested inside another, we want to consider the
 -- effective scope seen in the inner scope.

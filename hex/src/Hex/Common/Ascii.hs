@@ -1,6 +1,6 @@
 module Hex.Common.Ascii where
 
-import ASCII qualified as ASCII
+import ASCII qualified
 import Data.Text.Lazy.Builder qualified as Tx
 import Formatting qualified as F
 import GHC.Num

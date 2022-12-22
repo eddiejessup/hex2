@@ -59,21 +59,21 @@ parseRationalConstant = do
 parseUnit :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AST.Unit
 parseUnit =
   PC.choice
-    [ (skipOptionalSpaces PT.Expanding) *> (AST.InternalUnit <$> parseInternalUnit),
+    [ skipOptionalSpaces PT.Expanding *> (AST.InternalUnit <$> parseInternalUnit),
       (AST.PhysicalUnit <$> parseFrame <*> parsePhysicalUnitLit) <* skipOneOptionalSpace PT.Expanding
     ]
   where
     -- 'try' because we
     parseInternalUnit =
       (parseInternalUnitLit <* skipOneOptionalSpace PT.Expanding)
-        <|> ( Par.tryParse $
-                anyPrim
-                  >>= choiceFlap
-                    [ fmap AST.InternalIntUnit <$> Par.headToParseInternalInt,
-                      fmap AST.InternalLengthUnit <$> Par.headToParseInternalLength,
-                      fmap AST.InternalGlueUnit <$> Par.headToParseInternalGlue
-                    ]
-            )
+        <|> Par.tryParse
+          ( anyPrim
+              >>= choiceFlap
+                [ fmap AST.InternalIntUnit <$> Par.headToParseInternalInt,
+                  fmap AST.InternalLengthUnit <$> Par.headToParseInternalLength,
+                  fmap AST.InternalGlueUnit <$> Par.headToParseInternalGlue
+                ]
+          )
 
     parseInternalUnitLit =
       PC.choice

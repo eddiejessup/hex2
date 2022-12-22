@@ -1,3 +1,4 @@
+{-# LANGUAGE NoImpredicativeTypes #-}
 {-# OPTIONS_GHC -Wno-deprecations #-}
 
 module Hexlude
@@ -198,7 +199,7 @@ indexedFrom i (a : as) = (i, a) : indexedFrom (i Num.+ 1) as
 indexedFrom _ _ = []
 
 indexed :: [a] -> [(Int, a)]
-indexed xs = indexedFrom 0 xs
+indexed = indexedFrom 0
 
 indexedNE :: NonEmpty a -> NonEmpty (Int, a)
 indexedNE (a :| as) =

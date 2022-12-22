@@ -140,7 +140,7 @@ pageBreakCost currentPage breakItem desiredHeight = do
       InfiniteCost
     Bad.FiniteBadness finiteB
       | q >= FiniteBadnessVal Q.tenKInt -> InfiniteCost
-      | p <= (FiniteBadnessVal (invert Q.tenKInt)) -> FiniteCost $ FiniteCostValue p
+      | p <= FiniteBadnessVal (invert Q.tenKInt) -> FiniteCost $ FiniteCostValue p
       | finiteB == Bad.maxFiniteBadness -> FiniteCost $ FiniteCostValue $ FiniteBadnessVal Q.hunKInt
       | otherwise -> FiniteCost $ FiniteCostValue (finiteB <> p <> q)
 
@@ -157,14 +157,13 @@ runPageBuilder ::
   Q.Length ->
   Seq VListElem ->
   Eff es (Seq Page.Page)
-runPageBuilder desiredHeight vList =
-  go newCurrentPage vList
+runPageBuilder desiredHeight = go newCurrentPage
   where
     go :: CurrentPage -> Seq VListElem -> Eff es (Seq Page.Page)
     go currentPage@(CurrentPage curPageElems _bestPointAndCost) toAddElemSeq =
       case toAddElemSeq of
         Empty ->
-          Seq.singleton <$> (setPage desiredHeight curPageElems)
+          Seq.singleton <$> setPage desiredHeight curPageElems
         x :<| xs -> do
           Log.debugLog $ F.sformat ("Handling element: " |%| ListElem.fmtVListElem) x
           let continueToNextElem nextPage = go nextPage xs

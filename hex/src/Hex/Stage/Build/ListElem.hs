@@ -142,7 +142,7 @@ data DiscretionaryTextPart
   | DiscretionaryTextBaseELem
   deriving stock (Show, Generic)
 
-discretionaryHyphenItem :: (Box.Boxed BoxElem.CharBoxContents) -> DiscretionaryItem
+discretionaryHyphenItem :: Box.Boxed BoxElem.CharBoxContents -> DiscretionaryItem
 discretionaryHyphenItem c =
   DiscretionaryItem
     (BoxElem.singletonHBoxElemSeq $ BoxElem.HBoxHBaseElem $ BoxElem.CharBoxHBaseElem c)
@@ -174,19 +174,19 @@ fmtDiscretionaryItem =
 
 -- Lists.
 
-hListNaturalDepth :: (Seq HListElem) -> Q.Length
+hListNaturalDepth :: Seq HListElem -> Q.Length
 hListNaturalDepth hList =
   -- The empty (Seq HListElem) has zero depth.
   fromMaybe Q.zeroLength $
     maximumOf (traversed % to hListElemNaturalDepth) hList
 
-hListNaturalHeight :: (Seq HListElem) -> Q.Length
+hListNaturalHeight :: Seq HListElem -> Q.Length
 hListNaturalHeight hList =
   -- The empty (Seq HListElem) has zero height.
   fromMaybe Q.zeroLength $
     maximumOf (traversed % to hListElemNaturalHeight) hList
 
-hListNaturalWidth :: (Seq HListElem) -> Q.Length
+hListNaturalWidth :: Seq HListElem -> Q.Length
 hListNaturalWidth =
   foldMapOf traversed hListElemNaturalWidth
 
@@ -206,27 +206,27 @@ fmtHListElem = F.later $ \case
   DiscretionaryItemElem discrItem ->
     bformat fmtDiscretionaryItem discrItem
 
-vListNaturalWidth :: (Seq VListElem) -> Q.Length
+vListNaturalWidth :: Seq VListElem -> Q.Length
 vListNaturalWidth vList =
   -- The empty (Seq VListElem) has zero width.
   fromMaybe Q.zeroLength $
     maximumOf (traversed % to vListElemNaturalWidth) vList
 
-vListNaturalHeight :: (Seq VListElem) -> Q.Length
+vListNaturalHeight :: Seq VListElem -> Q.Length
 vListNaturalHeight = foldMapOf traversed vListElemNaturalHeight
 
-vListNaturalDepth :: (Seq VListElem) -> Q.Length
+vListNaturalDepth :: Seq VListElem -> Q.Length
 vListNaturalDepth vList =
   fromMaybe Q.zeroLength $
     lastOf (traversed % to vListElemNaturalDepth) vList
 
-vListNetBiFlex :: (Seq VListElem) -> Q.BiNetFlex
+vListNetBiFlex :: Seq VListElem -> Q.BiNetFlex
 vListNetBiFlex = foldOf (traversed % vListElemBiFlex)
   where
     vListElemBiFlex :: AffineFold VListElem Q.BiNetFlex
     vListElemBiFlex = _Typed @Q.Glue % to Q.asBiNetFlex
 
-vListContainsBoxes :: (Seq VListElem) -> Bool
+vListContainsBoxes :: Seq VListElem -> Bool
 vListContainsBoxes = anyOf traversed vListElemIsBox
 
 fmtVListElemSeq :: F.Format r (Seq VListElem -> r)

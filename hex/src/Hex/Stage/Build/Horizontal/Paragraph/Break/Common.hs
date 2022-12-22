@@ -54,21 +54,19 @@ mkLineBreakingEnv
         rightSkip
       }
 
-prepareHListForBreaking :: (Seq ListElem.HListElem) -> (Seq ListElem.HListElem)
-prepareHListForBreaking Empty =
-  mempty
-prepareHListForBreaking elems@(elemInit :|> lastElem) =
-  let -- Remove the final item if it's glue.
-      trimmedElems = case lastElem of
-        ListElem.HVListElem (ListElem.ListGlue _) -> elemInit
-        _ -> elems
-   in -- Add extra bits to finish the list.
-      trimmedElems >< finishingElems
-  where
-    -- \penalty10k \hfil \penalty-10k.
-    finishingElems :: Seq HListElem
-    finishingElems =
-      Empty
-        :|> ListElem.HVListElem (ListElem.ListPenalty $ Bad.FiniteBadnessVal $ Q.HexInt Q.tenK)
-        :|> ListElem.HVListElem (ListElem.ListGlue (Q.filStretchGlue Q.bigFilLength))
-        :|> ListElem.HVListElem (ListElem.ListPenalty $ Bad.FiniteBadnessVal $ Q.HexInt $ -Q.tenK)
+prepareHListForBreaking :: Seq HListElem -> Seq HListElem
+prepareHListForBreaking = \case
+  Empty ->
+    mempty
+  elems ->
+    let -- Remove the final item if it's glue.
+        trimmedElems = case elems of
+          elemInit :|> ListElem.HVListElem (ListElem.ListGlue _) -> elemInit
+          _ -> elems
+     in -- Add extra bits to finish the list.
+        -- \penalty10k \hfil \penalty-10k.
+
+        trimmedElems
+          |> ListElem.HVListElem (ListElem.ListPenalty Bad.maxFiniteBadness)
+          |> ListElem.HVListElem (ListElem.ListGlue (Q.filStretchGlue Q.bigFilLength))
+          |> ListElem.HVListElem (ListElem.ListPenalty $ invert Bad.maxFiniteBadness)

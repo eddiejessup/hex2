@@ -42,8 +42,8 @@ evalIntToFourBitUnsigned ::
   (Error Eval.EvaluationError :> es, EHexState :> es) =>
   P.HexInt ->
   Eff es Q.FourBitInt
-evalIntToFourBitUnsigned n = do
-  Q.newFourBitInt <$> evalInt n >>= \case
+evalIntToFourBitUnsigned n =
+  evalInt n >>= \x -> case Q.newFourBitInt x of
     Nothing ->
       throwError ValueNotInRange
     Just fourN ->
@@ -80,7 +80,7 @@ evalCoercedInt = \case
   P.InternalLengthAsInt internalLength ->
     Q.lengthAsInt <$> evalInternalLength internalLength
   P.InternalGlueAsInt internalGlue ->
-    (Q.lengthAsInt . Q.glueAsLength) <$> evalInternalGlue internalGlue
+    Q.lengthAsInt . Q.glueAsLength <$> evalInternalGlue internalGlue
 
 evalInternalInt :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.InternalInt -> Eff es Q.HexInt
 evalInternalInt = \case
@@ -99,9 +99,7 @@ evalInternalInt = \case
 -- look up the actual value in the reference.
 evalCodeTableRefAsRef :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.CodeTableRef -> Eff es E.CodeTableRef
 evalCodeTableRefAsRef codeTableRef =
-  E.CodeTableRef
-    <$> pure codeTableRef.codeType
-    <*> evalCharCodeInt codeTableRef.codeIndex
+  E.CodeTableRef codeTableRef.codeType <$> evalCharCodeInt codeTableRef.codeIndex
 
 -- | Evaluate the code-table-ref, in the sense of looking up the referred value.
 evalCodeTableRefAsTarget :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.CodeTableRef -> Eff es Q.HexInt
@@ -151,8 +149,7 @@ evalFontSpecialCharRef = notImplemented "evalFontSpecialCharRef"
 -- | Convert a list of digits in some base, into the integer they represent in
 -- that base.
 digitsToInt :: Int -> [Int] -> Int
-digitsToInt base digs =
-  foldl' (\a b -> a Num.* base Num.+ b) 0 digs
+digitsToInt base = foldl' (\a b -> a Num.* base Num.+ b) 0
 
 evalLength :: (Error Eval.EvaluationError :> es, EHexState :> es) => P.Length -> Eff es Q.Length
 evalLength len =
@@ -189,7 +186,7 @@ evalDecimalFraction v =
           Ratio.% (10 ^ List.length v.fracDigits)
    in -- Convert the whole number to a rational, and add it to the fraction.
 
-      (fromIntegral @Integer @Rational wholeNr) Num.+ fraction
+      fromIntegral @Integer @Rational wholeNr Num.+ fraction
   where
     decDigitsToInt words =
       fromIntegral @Int @Integer $ digitsToInt 10 $ word8ToInt <$> words
@@ -316,11 +313,11 @@ evalCharCodeInt n =
 noteRange :: (Code.HexCode a, Error EvaluationError :> es) => Q.HexInt -> Eff es a
 noteRange x =
   note
-    (ValueNotInRange)
+    ValueNotInRange
     (Code.fromHexInt x)
 
 evalMathLength :: (Error EvaluationError :> es, EHexState :> es) => P.MathLength -> Eff es Q.MathLength
-evalMathLength mathLength = evalSignedValue (evalUnsignedMathLength) (mathLength.unMathLength)
+evalMathLength mathLength = evalSignedValue evalUnsignedMathLength (mathLength.unMathLength)
 
 evalUnsignedMathLength :: (Error EvaluationError :> es, EHexState :> es) => P.UnsignedMathLength -> Eff es Q.MathLength
 evalUnsignedMathLength = \case

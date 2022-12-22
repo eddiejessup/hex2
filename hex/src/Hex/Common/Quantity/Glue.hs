@@ -176,7 +176,7 @@ newtype InfLength = InfLength {unInfLength :: HexInt}
   deriving stock (Show, Generic)
   deriving newtype (Eq, Ord)
   deriving (Semigroup, Monoid, Group) via (Sum Int)
-  deriving (Scalable) via (HexInt)
+  deriving (Scalable) via HexInt
 
 zeroInfLength :: InfLength
 zeroInfLength = mempty

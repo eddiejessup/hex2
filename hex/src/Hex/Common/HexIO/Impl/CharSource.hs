@@ -96,7 +96,7 @@ fmtLineState = F.later $ \case
 
 -- Represents a line of input, with trailing spaces removed and \endlinechar
 -- appended.
-data HexLine = HexLine {unHexLine :: ByteString}
+newtype HexLine = HexLine {unHexLine :: ByteString}
   deriving stock (Show, Generic)
 
 -- Tex deletes any ⟨space⟩ characters (number 32) that occur at the right end of
@@ -107,7 +107,7 @@ data HexLine = HexLine {unHexLine :: ByteString}
 -- special effects by changing its catcode.
 mkHexLine :: Maybe Code.CharCode -> ByteString -> HexLine
 mkHexLine mayEndLineChar bs =
-  let spaceStripped = case BS.findIndexEnd ((/= 32)) bs of
+  let spaceStripped = case BS.findIndexEnd (/= 32) bs of
         Nothing -> ""
         Just i -> BS.take (succ i) bs
       withEndLine = case mayEndLineChar of

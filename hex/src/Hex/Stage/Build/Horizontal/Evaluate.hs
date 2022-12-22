@@ -50,4 +50,4 @@ hListNetBiFlex = foldOf (traversed % hListElemBiFlex)
 
 listFlexSpec :: Seq ListElem.HListElem -> Q.Length -> Eval.GlueFlexSpec
 listFlexSpec hList desiredWidth =
-  Eval.glueFlexSpec ((ListElem.hListNaturalWidth hList) ~~ desiredWidth) (hListNetBiFlex hList)
+  Eval.glueFlexSpec (ListElem.hListNaturalWidth hList ~~ desiredWidth) (hListNetBiFlex hList)

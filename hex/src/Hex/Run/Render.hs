@@ -18,9 +18,8 @@ import Hexlude
 renderToDocInstructions ::
   (Error InterpretError :> es, HexEvaluate :> es, HexIO :> es, CommandSource :> es, HSt.EHexState :> es, Log.HexLog :> es) =>
   Eff es [Render.Doc.DocInstruction]
-renderToDocInstructions = do
-  pages <- Paginate.paginateAll
-  pure $ fst $ Render.Doc.pagesToDocInstructions $ toList pages
+renderToDocInstructions =
+  fst . Render.Doc.pagesToDocInstructions . toList <$> Paginate.paginateAll
 
 renderToSpecInstructions ::
   (Error InterpretError :> es, HexEvaluate :> es, HexIO :> es, CommandSource :> es, HSt.EHexState :> es, Log.HexLog :> es) =>

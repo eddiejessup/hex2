@@ -1,3 +1,6 @@
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Redundant $" #-}
 module Hex.Stage.Parse.Impl.Parsers.ExpansionCommand where
 
 import Control.Monad.Combinators qualified as PC
@@ -33,7 +36,7 @@ headToParseExpansionCommand = \case
   ST.StringTok ->
     AST.RenderTokenAsTokens <$> anyLexInhibited
   ST.JobNameTok ->
-    pure $ AST.RenderJobName
+    pure AST.RenderJobName
   ST.FontNameTok ->
     AST.RenderFontName <$> (anyPrim >>= Par.headToParseFontRef)
   ST.MeaningTok ->
@@ -53,7 +56,7 @@ headToParseExpansionCommand = \case
   ST.TheTok ->
     AST.RenderInternalQuantity <$> (anyPrim >>= Par.headToParseInternalQuantity)
   ST.ChangeCaseTok vDirection ->
-    AST.ChangeCase vDirection <$> (Par.parseInhibitedGeneralText Par.ExpectingBeginGroup)
+    AST.ChangeCase vDirection <$> Par.parseInhibitedGeneralText Par.ExpectingBeginGroup
 
 parseControlSymbolBody :: (PrimTokenSource :> es, NonDet :> es) => Eff es LT.ControlSequence
 parseControlSymbolBody = do

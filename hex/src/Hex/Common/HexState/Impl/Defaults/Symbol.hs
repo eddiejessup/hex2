@@ -306,8 +306,8 @@ initialSymbolMap =
       -- Code types.
       (_cs "catcode", primTok $ CodeTypeTok Code.CatCodeType),
       (_cs "mathcode", primTok $ CodeTypeTok Code.MathCodeType),
-      (_cs "lccode", primTok $ CodeTypeTok $ Code.LowerCaseCodeType),
-      (_cs "uccode", primTok $ CodeTypeTok $ Code.UpperCaseCodeType),
+      (_cs "lccode", primTok $ CodeTypeTok Code.LowerCaseCodeType),
+      (_cs "uccode", primTok $ CodeTypeTok Code.UpperCaseCodeType),
       (_cs "sfcode", primTok $ CodeTypeTok Code.SpaceFactorCodeType),
       (_cs "delcode", primTok $ CodeTypeTok Code.DelimiterCodeType),
       -- Alias tokens.

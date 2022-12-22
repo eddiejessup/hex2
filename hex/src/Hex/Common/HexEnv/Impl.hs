@@ -55,7 +55,7 @@ findAndReadFileImpl ::
 findAndReadFileImpl findPolicy tgtFile = do
   findFilePathImpl findPolicy tgtFile >>= \case
     Nothing -> pure Nothing
-    Just absPath -> Just <$> (liftIO $ BS.readFile absPath)
+    Just absPath -> Just <$> liftIO (BS.readFile absPath)
 
 findAndOpenFileImpl ::
   (Reader HexEnv :> es, FS.FileSystem :> es) =>

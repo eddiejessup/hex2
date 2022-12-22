@@ -243,8 +243,7 @@ parseHyphenationPatterns = do
       let digLetPairListNE = case nonEmpty digLetPairList of
             Nothing -> panic "Impossible!"
             Just a -> a
-      lastDigit <- parseDigit
-      pure $ HSt.Hyph.HyphenationPattern digLetPairListNE lastDigit
+      HSt.Hyph.HyphenationPattern digLetPairListNE <$> parseDigit
 
 parseHyphenationExceptions ::
   (PrimTokenSource :> es, NonDet :> es) =>
@@ -260,7 +259,7 @@ parseHyphenationExceptions = do
       resList <- PC.some $
         satisfyCharCatThen PT.Expanding $
           \lexCharCat ->
-            if lexCharCat == LT.LexCharCat (Code.Chr_ '-') (Code.Other)
+            if lexCharCat == LT.LexCharCat (Code.Chr_ '-') Code.Other
               then Just Nothing
               else case lexCharCat.lexCCCat of
                 Code.Letter -> Just $ Just lexCharCat.lexCCChar

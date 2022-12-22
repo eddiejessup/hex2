@@ -63,9 +63,9 @@ getFontParams scheme _atEndOfTable = do
       Just <$> getDesignSizeLength
   extraParams <- case scheme of
     Just MathSymbolsScheme ->
-      Just <$> MathSymbolFontParams <$> readMathSymbolParams
+      Just . MathSymbolFontParams <$> readMathSymbolParams
     Just MathExtensionScheme ->
-      Just <$> MathExtensionFontParams <$> readMathExtensionParams
+      Just . MathExtensionFontParams <$> readMathExtensionParams
     _ ->
       pure Nothing
 

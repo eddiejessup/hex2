@@ -26,7 +26,7 @@ getLetterChars = go Empty
           pure acc
         -- See a letter: append to our accumulation, and recur.
         Just (Cat.RawCharCat char (Code.CoreCatCode Code.Letter)) -> do
-          void $ Cat.extractCharCatFromCurrentLine
+          void Cat.extractCharCatFromCurrentLine
           go (acc :|> char)
         -- See something else: return our accumulation, and return the
         -- rest-of-input *before the fetch* (note, cs, not csRest)
@@ -54,7 +54,7 @@ extractLexTokenFromSourceLine = go
                 Just (Cat.RawCharCat csChar1 ctrlSeqCat1) -> do
                   ctrlSeqChars <- case ctrlSeqCat1 of
                     Code.CoreCatCode Code.Letter -> do
-                      (ctrlWordCharsPostFirst) <- getLetterChars
+                      ctrlWordCharsPostFirst <- getLetterChars
                       pure (csChar1 :<| ctrlWordCharsPostFirst)
                     _ ->
                       pure (singleton csChar1)

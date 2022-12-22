@@ -218,7 +218,7 @@ data FamilyCharRef = FamilyCharRef {family :: Q.HexInt, position :: CharCode}
 familyCharRefAsInt :: FamilyCharRef -> Int
 familyCharRefAsInt
   (FamilyCharRef (Q.HexInt famN) pos) =
-    (famN `shiftL` 8) + (toHexInt pos).unHexInt
+    famN `shiftL` 8 + (toHexInt pos).unHexInt
 
 familyCharRefFromInt :: Int -> Maybe FamilyCharRef
 familyCharRefFromInt n
@@ -306,7 +306,7 @@ data ChangeCaseCode = NoCaseChange | ChangeToCode CharCode
 
 fmtChangeCaseCode :: Fmt ChangeCaseCode
 fmtChangeCaseCode = F.later $ \case
-  NoCaseChange -> F.bformat $ "No change"
+  NoCaseChange -> F.bformat "No change"
   ChangeToCode c -> "Change to " <> F.bformat fmtCharCode c
 
 changeCaseCodeImpliesThatCaseLetter :: CharCode -> ChangeCaseCode -> Bool

@@ -1,5 +1,8 @@
+{-# LANGUAGE NoImpredicativeTypes #-}
+
 module Hex.Stage.Build.BoxElem where
 
+import Data.Text.Lazy.Builder (Builder)
 import Formatting qualified as F
 import Hex.Common.Box qualified as Box
 import Hex.Common.Codes qualified as Codes
@@ -109,7 +112,7 @@ fmtVBoxElemOneLine = F.later $ \case
 -- \setGlue{}
 
 data BaseElem
-  = AxOrRuleBoxBaseElem (Box.Boxed (AxBoxOrRuleContents))
+  = AxOrRuleBoxBaseElem (Box.Boxed AxBoxOrRuleContents)
   | KernBaseElem Kern
   deriving stock (Show, Eq, Generic)
 
@@ -163,11 +166,11 @@ fmtAxBoxElemsOneLine = F.later $ \case
   AxBoxElemsH h -> bformat (fmtSeqOneLine fmtHBoxElem) h
   AxBoxElemsV v -> bformat (fmtSeqOneLine fmtVBoxElemOneLine) v
 
-fmtSeqLined :: Fmt a -> Fmt (Seq a)
-fmtSeqLined f = F.intercalated "\n" f
+fmtSeqLined :: Format Builder (a -> Builder) -> Format r (Seq a -> r)
+fmtSeqLined = F.intercalated "\n"
 
-fmtSeqOneLine :: Fmt a -> Fmt (Seq a)
-fmtSeqOneLine f = F.commaSpaceSep f
+fmtSeqOneLine :: Format Builder (a -> Builder) -> Format r (Seq a -> r)
+fmtSeqOneLine = F.commaSpaceSep
 
 singletonHBoxElemSeq :: HBoxElem -> Seq HBoxElem
 singletonHBoxElemSeq = pure

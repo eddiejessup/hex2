@@ -6,7 +6,7 @@ import Hex.Common.HexIO.Impl.CharSource qualified as CharSource
 import Hexlude
 
 -- The input to Tex is a sequence of “lines.”
-data CharSourceStack = CharSourceStack {unCharSourceStack :: NonEmpty CharSource.CharSource}
+newtype CharSourceStack = CharSourceStack {unCharSourceStack :: NonEmpty CharSource.CharSource}
   deriving stock (Show, Generic)
 
 newCharSourceStack :: Text -> Maybe Code.CharCode -> ByteString -> CharSourceStack
@@ -24,7 +24,7 @@ currentSourceLens = #unCharSourceStack % nonEmptyHeadLens
 nonEmptyHeadLens :: Lens' (NonEmpty a) a
 nonEmptyHeadLens =
   lens
-    (L.NE.head)
+    L.NE.head
     (\(_x :| xs) newX -> newX :| xs)
 
 currentSource :: CharSourceStack -> CharSource.CharSource

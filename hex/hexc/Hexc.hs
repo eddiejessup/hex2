@@ -77,7 +77,7 @@ data AppOptions = AppOptions
     logLevel :: Log.LogLevel
   }
 
-data DVIWriteOptions = DVIWriteOptions
+newtype DVIWriteOptions = DVIWriteOptions
   { dviOutputPath :: FilePath
   }
   deriving stock (Show)
@@ -134,7 +134,7 @@ main = do
         pure (cs, [], "cmd")
       FileInput inPathStr -> do
         cs <- BS.readFile inPathStr
-        pure (cs, [Path.takeDirectory inPathStr], (toS inPathStr))
+        pure (cs, [Path.takeDirectory inPathStr], toS inPathStr)
   let searchDirs = opts.searchDirs <> extraSearchDirs
   zonedTime <- Time.getZonedTime
 

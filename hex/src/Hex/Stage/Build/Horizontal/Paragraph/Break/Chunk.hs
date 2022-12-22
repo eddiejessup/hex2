@@ -30,13 +30,11 @@ toAdjacents xs = case foldl' f AtFirstElem xs of
                 (_ :|> (_, left, _)) -> Just left
            in acc :|> (maybeLeft, v, Just right)
 
-withBreaks :: Seq ListElem.HListElem -> Seq (HListElem, Maybe HBreakItem)
+withBreaks :: Foldable t => Fold (t ListElem.HListElem) (HListElem, Maybe HBreakItem)
 withBreaks =
-  seqOf
-    ( to toAdjacents
-        % folded
-        % to (\adj@(_, e, _) -> (e, hListElemToBreakItem adj))
-    )
+  to toAdjacents
+    % folded
+    % to (\adj@(_, e, _) -> (e, hListElemToBreakItem adj))
 
 fmtChunkedListItem :: Fmt ChunkedHListItem
 fmtChunkedListItem = F.later $ \case
@@ -44,7 +42,7 @@ fmtChunkedListItem = F.later $ \case
   ChunkedBreakItem b -> bformat ("Break: " |%| F.shown) b
 
 asChunkedList :: Seq ListElem.HListElem -> Seq ChunkedHListItem
-asChunkedList hList = foldl' f Empty (withBreaks hList)
+asChunkedList = foldlOf' withBreaks f Empty
   where
     f fState (x, mayBreak) = case mayBreak of
       Nothing -> case fState of

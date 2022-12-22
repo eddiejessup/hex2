@@ -13,7 +13,7 @@ setList hList desiredWidth =
    in (setListElems flexSpec hList, flexSpec)
 
 setListElems :: Eval.GlueFlexSpec -> Seq ListElem.HListElem -> Seq BoxElem.HBoxElem
-setListElems flexSpec hList = seqOf (traversed % afolding (setElem flexSpec)) hList
+setListElems flexSpec = seqOf (traversed % afolding (setElem flexSpec))
 
 setElem :: Eval.GlueFlexSpec -> ListElem.HListElem -> Maybe BoxElem.HBoxElem
 setElem flexSpec = \case

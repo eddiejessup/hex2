@@ -13,8 +13,7 @@ setList vList desiredHeight =
    in (setListElems flexSpec vList, flexSpec)
 
 setListElems :: Eval.GlueFlexSpec -> Seq List.VListElem -> Seq BoxElem.VBoxElem
-setListElems flexSpec vList =
-  seqOf (traversed % afolding (setElem flexSpec)) vList
+setListElems flexSpec = seqOf (traversed % afolding (setElem flexSpec))
 
 setElem :: Eval.GlueFlexSpec -> List.VListElem -> Maybe BoxElem.VBoxElem
 setElem flexSpec = \case

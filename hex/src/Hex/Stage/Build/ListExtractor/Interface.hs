@@ -18,6 +18,6 @@ data EndHListReason
 data ExtractList :: Effect where
   ExtractHBoxList :: ExtractList m (Seq HListElem)
   ExtractVBoxList :: ExtractList m (Seq VListElem)
-  ExtractParagraphList :: IndentFlag -> ExtractList m (EndHListReason, (Seq HListElem))
+  ExtractParagraphList :: IndentFlag -> ExtractList m (EndHListReason, Seq HListElem)
 
 makeEffect ''ExtractList

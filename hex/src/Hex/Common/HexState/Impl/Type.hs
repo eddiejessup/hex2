@@ -112,7 +112,7 @@ fmtModeStack = F.accessed peekModeImpl HSt.Mode.fmtModeWithVariant
 enterModeImpl :: HSt.Mode.NonMainVMode -> ModeStack -> ModeStack
 enterModeImpl mode stack = InNonMainVMode $ case stack of
   MainVMode -> L.NE.singleton mode
-  InNonMainVMode xs -> (L.NE.cons mode xs)
+  InNonMainVMode xs -> L.NE.cons mode xs
 
 leaveModeImpl :: ModeStack -> Maybe ModeStack
 leaveModeImpl (InNonMainVMode (_x :| xs)) =

@@ -28,7 +28,7 @@ import Hex.Stage.Build.BoxElem qualified as BoxElem
 import Hex.Stage.Build.ListElem qualified as ListElem
 import Hexlude
 
-data ResolutionError = UnknownSymbolError HSt.Res.ControlSymbol
+newtype ResolutionError = UnknownSymbolError HSt.Res.ControlSymbol
   deriving stock (Show, Generic)
 
 fmtResolutionError :: Fmt ResolutionError
@@ -43,7 +43,7 @@ data ScopedValue
   | SymbolValue HSt.Res.ControlSymbol ResolvedToken
   | FontValue Font.FontNumber
   | FamilyMemberFontValue Font.FamilyMember Font.FontNumber
-  | BoxRegisterValue Reg.RegisterLocation (Maybe (Box.Boxed (BoxElem.AxBoxElems)))
+  | BoxRegisterValue Reg.RegisterLocation (Maybe (Box.Boxed BoxElem.AxBoxElems))
 
 data EHexState :: Effect where
   -- Get scoped values.
@@ -52,7 +52,7 @@ data EHexState :: Effect where
   GetHexCode :: Code.CCodeType c -> Code.CharCode -> EHexState m (HSt.Code.CodeTableTarget c)
   ResolveSymbol :: HSt.Res.ControlSymbol -> EHexState m (Maybe ResolvedToken)
   CurrentFontNumber :: EHexState m Font.FontNumber
-  FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe (Box.Boxed (BoxElem.AxBoxElems)))
+  FetchBoxRegisterValue :: Reg.BoxFetchMode -> Reg.RegisterLocation -> EHexState m (Maybe (Box.Boxed BoxElem.AxBoxElems))
   -- End of scoped-value getters.
   -- Scoped-value setter.
   SetScopedValue :: ScopedValue -> HSt.Grouped.ScopeFlag -> EHexState m ()
@@ -133,7 +133,7 @@ advanceParameterValue ::
   HSt.Grouped.ScopeFlag ->
   Eff es ()
 advanceParameterValue p plusVal =
-  modifyParameterValue @q p (\v -> v <> plusVal)
+  modifyParameterValue @q p (<> plusVal)
 
 scaleParameterValue ::
   forall q es.
@@ -143,8 +143,7 @@ scaleParameterValue ::
   Q.HexInt ->
   HSt.Grouped.ScopeFlag ->
   Eff es ()
-scaleParameterValue p scaleDirection arg scopeFlag =
-  modifyParameterValue @q p (Q.scaleInDirection scaleDirection arg) scopeFlag
+scaleParameterValue p scaleDirection arg = modifyParameterValue @q p (Q.scaleInDirection scaleDirection arg)
 
 advanceRegisterValue ::
   (EHexState :> es, Semigroup (Var.QuantVariableTarget q)) =>
@@ -153,7 +152,7 @@ advanceRegisterValue ::
   HSt.Grouped.ScopeFlag ->
   Eff es ()
 advanceRegisterValue loc plusVal =
-  modifyRegisterValue loc (\v -> v <> plusVal)
+  modifyRegisterValue loc (<> plusVal)
 
 scaleRegisterValue ::
   (EHexState :> es, Q.Scalable (Var.QuantVariableTarget q)) =>
@@ -162,8 +161,7 @@ scaleRegisterValue ::
   Q.HexInt ->
   HSt.Grouped.ScopeFlag ->
   Eff es ()
-scaleRegisterValue qLoc scaleDirection arg scopeFlag =
-  modifyRegisterValue qLoc (Q.scaleInDirection scaleDirection arg) scopeFlag
+scaleRegisterValue qLoc scaleDirection arg = modifyRegisterValue qLoc (Q.scaleInDirection scaleDirection arg)
 
 resolveLexToken ::
   (Error ResolutionError :> es, EHexState :> es) =>
@@ -210,7 +208,7 @@ fontDiscretionaryHyphenItem ::
   (EHexState :> es) =>
   Font.FontNumber ->
   Eff es (Maybe ListElem.DiscretionaryItem)
-fontDiscretionaryHyphenItem fNr = do
+fontDiscretionaryHyphenItem fNr =
   getHyphenCharCode fNr >>= \case
     Nothing ->
       pure Nothing
@@ -223,7 +221,7 @@ charAsBox ::
   Font.FontNumber ->
   Code.CharCode ->
   Eff es (Maybe (Box.Boxed BoxElem.CharBoxContents))
-charAsBox fNr char = do
+charAsBox fNr char =
   fontCharacter fNr char >>= \case
     Nothing -> pure Nothing
     Just HSt.Font.CharacterAttrs {dims} ->

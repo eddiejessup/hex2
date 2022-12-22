@@ -263,7 +263,7 @@ hyphenateWord midWordState = do
   if n < hyphenMin.unHexInt
     then pure $ midWordStateAccumulatedItems midWordState
     else do
-      Log.infoLog $ "Hyphenation: Found word: " <> (Code.codesAsText $ toList $ midWordState.wordLetters <&> (.boxedContents))
+      Log.infoLog $ "Hyphenation: Found word: " <> Code.codesAsText (toList $ midWordState.wordLetters <&> (.boxedContents))
       let -- If leftHyphenMin is zero, then all indexes are valid.
           -- If leftHyphenMin is one, then index must be >= 1.
           -- etc.
@@ -301,63 +301,69 @@ breakHListMultiPass ::
   (Log.HexLog :> es, HSt.EHexState :> es) =>
   Seq HListElem ->
   Eff es (Seq (Seq HListElem))
-breakHListMultiPass rawHList = do
-  hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
-  preTolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.PreTolerance)
-  tolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
-  linePenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
-  emergencyStretch <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.EmergencyStretch)
-  hyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.HyphenPenalty)
-  exHyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.ExHyphenPenalty)
-  leftSkip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.LeftSkip)
-  rightSkip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.RightSkip)
+breakHListMultiPass = \case
+  -- Empty h-list -> One empty h-list
+  Empty ->
+    pure $ singleton Empty
+  rawHList -> do
+    hSize <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.HSize)
+    preTolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.PreTolerance)
+    tolerance <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.Tolerance)
+    linePenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.LinePenalty)
+    emergencyStretch <- HSt.getParameterValue (HSt.Param.LengthQuantParam HSt.Param.EmergencyStretch)
+    hyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.HyphenPenalty)
+    exHyphenPenalty <- HSt.getParameterValue (HSt.Param.IntQuantParam HSt.Param.ExHyphenPenalty)
+    leftSkip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.LeftSkip)
+    rightSkip <- HSt.getParameterValue (HSt.Param.GlueQuantParam HSt.Param.RightSkip)
 
-  let breakingEnv =
-        mkLineBreakingEnv
-          hSize
-          emergencyStretch
-          hyphenPenalty
-          exHyphenPenalty
-          preTolerance
-          linePenalty
-          leftSkip
-          rightSkip
+    Log.infoLog $
+      F.sformat
+        ("Breaking h-list with " |%| F.int |%| " elements")
+        (Seq.length rawHList)
 
-  passOneResult <- runReader breakingEnv $ do
-    activeTol <- know @LineBreakingEnv #tolerance
-    if (activeTol >= Bad.zeroFiniteBadness)
-      then breakIt rawHList
-      else pure Nothing
-  case passOneResult of
-    Just hLists -> pure hLists
-    Nothing -> do
-      Log.infoLog $
-        F.sformat
-          ( "Failed to break with pretolerance: "
-              |%| Q.fmtHexIntSimple
-              |%| ", hyphenating and retrying with tolerance: "
-              |%| Q.fmtHexIntSimple
-          )
-          preTolerance
-          tolerance
-      hListWithDiscretionaries <- hyphenateHList rawHList
-      let secondPassEnv =
-            mkLineBreakingEnv
-              hSize
-              emergencyStretch
-              hyphenPenalty
-              exHyphenPenalty
-              tolerance
-              linePenalty
-              leftSkip
-              rightSkip
+    let breakingEnv =
+          mkLineBreakingEnv
+            hSize
+            emergencyStretch
+            hyphenPenalty
+            exHyphenPenalty
+            preTolerance
+            linePenalty
+            leftSkip
+            rightSkip
 
-      runReader secondPassEnv (breakIt hListWithDiscretionaries) >>= \case
-        Just hLists -> pure hLists
-        Nothing ->
-          if emergencyStretch > Q.zeroLength
-            then notImplemented "Emergency stretch"
-            else notImplemented "breakHListMultiPass: Hyphenated pass fails"
-  where
-    breakIt hList =
-      Optimal.breakHListOptimally hList
+    passOneResult <- runReader breakingEnv $ do
+      activeTol <- know @LineBreakingEnv #tolerance
+      if activeTol >= Bad.zeroFiniteBadness
+        then Optimal.breakHListOptimally rawHList
+        else pure Nothing
+    case passOneResult of
+      Just hLists -> pure hLists
+      Nothing -> do
+        Log.infoLog $
+          F.sformat
+            ( "Failed to break with pretolerance: "
+                |%| Q.fmtHexIntSimple
+                |%| ", hyphenating and retrying with tolerance: "
+                |%| Q.fmtHexIntSimple
+            )
+            preTolerance
+            tolerance
+        hListWithDiscretionaries <- hyphenateHList rawHList
+        let secondPassEnv =
+              mkLineBreakingEnv
+                hSize
+                emergencyStretch
+                hyphenPenalty
+                exHyphenPenalty
+                tolerance
+                linePenalty
+                leftSkip
+                rightSkip
+
+        runReader secondPassEnv (Optimal.breakHListOptimally hListWithDiscretionaries) >>= \case
+          Just hLists -> pure hLists
+          Nothing ->
+            if emergencyStretch > Q.zeroLength
+              then notImplemented "Emergency stretch"
+              else notImplemented "breakHListMultiPass: Hyphenated pass fails"

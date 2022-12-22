@@ -36,12 +36,11 @@ parseInt :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AS
 parseInt = AST.HexInt <$> parseSigned (anyPrim >>= headToParseUnsignedInt)
 
 headToParseUnsignedInt :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => PrimitiveToken -> Eff es AST.UnsignedInt
-headToParseUnsignedInt headTok =
+headToParseUnsignedInt =
   choiceFlap
     [ fmap AST.NormalUnsignedInt <$> headToParseNormalInt,
       fmap AST.CoercedUnsignedInt <$> headToParseCoercedInt
     ]
-    headTok
 
 headToParseNormalInt :: forall es. (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => PrimitiveToken -> Eff es AST.NormalInt
 headToParseNormalInt headToken = do
@@ -225,7 +224,7 @@ headToParseInternalGlue =
 -- (Also, 'special' quantities are kept here too, because they are similar to
 -- variables.)
 
-parseExplicitRegisterLocation :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es (AST.ExplicitRegisterLocation)
+parseExplicitRegisterLocation :: (PrimTokenSource :> es, NonDet :> es, Log.HexLog :> es) => Eff es AST.ExplicitRegisterLocation
 parseExplicitRegisterLocation =
   AST.ExplicitRegisterLocation <$> parseInt
 

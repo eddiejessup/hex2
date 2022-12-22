@@ -56,8 +56,8 @@ parseBoxOrRule = do
   headTok <- anyPrim
   PC.choice
     [ AST.BoxOrRuleBox <$> headToParseBox headTok,
-      AST.BoxOrRuleRule Horizontal <$> (headToParseModedRule Horizontal headTok),
-      AST.BoxOrRuleRule Vertical <$> (headToParseModedRule Vertical headTok)
+      AST.BoxOrRuleRule Horizontal <$> headToParseModedRule Horizontal headTok,
+      AST.BoxOrRuleRule Vertical <$> headToParseModedRule Vertical headTok
     ]
 
 -- \hrule and such.

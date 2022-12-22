@@ -19,7 +19,7 @@ mkControlSequence :: [Code.CharCode] -> ControlSequence
 mkControlSequence csChars = ControlSequence $ BS.pack $ Code.unCharCode <$> csChars
 
 fmtControlSequence :: Fmt ControlSequence
-fmtControlSequence = "\\" |%| (F.accessed (Tx.decodeUtf8 . (.unControlSequence)) F.stext)
+fmtControlSequence = "\\" |%| F.accessed (Tx.decodeUtf8 . (.unControlSequence)) F.stext
 
 data LexCharCat = LexCharCat
   { lexCCChar :: Code.CharCode,
@@ -28,7 +28,7 @@ data LexCharCat = LexCharCat
   deriving stock (Show, Eq, Generic)
 
 lcc :: Char -> Code.CoreCatCode -> LexCharCat
-lcc c cat = LexCharCat (Code.Chr_ c) cat
+lcc c = LexCharCat (Code.Chr_ c)
 
 fmtLexCharCat :: Fmt LexCharCat
 fmtLexCharCat =

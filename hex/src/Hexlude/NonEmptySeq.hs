@@ -20,7 +20,7 @@ instance Functor NonEmptySeq where
 
 instance Traversable NonEmptySeq where
   traverse f (NonEmptySeq v vSeq) =
-    NonEmptySeq <$> f v <*> (traverse f vSeq)
+    NonEmptySeq <$> f v <*> traverse f vSeq
 
 (|>|) :: a -> Seq a -> NonEmptySeq a
 (|>|) = NonEmptySeq
