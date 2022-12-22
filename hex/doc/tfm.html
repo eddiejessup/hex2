@@ -1,0 +1,604 @@
+<body>
+  <h1>The TFM File Format</h1>
+  <h2>0. Foreword</h2>
+  <p>
+    The purpose of this page is to provide documentation for the
+    <code>TFM</code> file format. Much of the content of this page was taken
+    directly from the <code>tftopl.web</code> program, written by Donal Knuth
+    (this explains the several references to the <code>TFtoPL</code> program;
+    these can be ignored).
+  </p>
+
+  <h2>1. The <code>TFM</code> File Format</h2>
+  <p>
+    The idea behind <code>TFM</code> files is that typesetting routines like
+    <code>TeX</code> need a compact way to store the relevant information about
+    several dozen fonts, and computer centers need a compact way to store the
+    relevant information about several hundred fonts. <code>TFM</code> files are
+    compact, and most of the information they contain is highly relevant, so
+    they provide a solution to the problem.
+  </p>
+
+  <p>
+    The information in a <code>TFM</code> file appears in a sequence of 8-bit
+    bytes. Since the number of bytes is always a multiple of 4, we could also
+    regard the file as a sequence of 32-bit words; but <code>TeX</code> uses the
+    byte interpretation, and so does <code>TFtoPL</code>. Note that the bytes
+    are considered to be unsigned numbers.
+  </p>
+
+  <h2>2. File Header</h2>
+  <p>
+    The first 24 bytes (6 words) of a <code>TFM</code> file contain twelve
+    16-bit integers that give the lengths of the various subsequent portions of
+    the file. These twelve integers are, in order:
+    <center>
+      <table border="yes">
+        <tr>
+          <th colspan="2"><code>TFM</code> Length Data</th>
+        </tr>
+        <tr>
+          <th>Name</th>
+          <th>Description</th>
+        </tr>
+        <tr>
+          <td><code> lf </code></td>
+          <td>length of the entire file, in words</td>
+        </tr>
+        <tr>
+          <td><code> lh </code></td>
+          <td>length of the header data, in words</td>
+        </tr>
+        <tr>
+          <td><code> bc </code></td>
+          <td>smallest character code in the font</td>
+        </tr>
+        <tr>
+          <td><code> ec </code></td>
+          <td>largest character code in the font</td>
+        </tr>
+        <tr>
+          <td><code> nw </code></td>
+          <td>number of words in the width table</td>
+        </tr>
+        <tr>
+          <td><code> nh </code></td>
+          <td>number of words in the height table</td>
+        </tr>
+        <tr>
+          <td><code> nd </code></td>
+          <td>number of words in the depth table</td>
+        </tr>
+        <tr>
+          <td><code> ni </code></td>
+          <td>number of words in the italic correction table</td>
+        </tr>
+        <tr>
+          <td><code> nl </code></td>
+          <td>number of words in the lig/kern table</td>
+        </tr>
+        <tr>
+          <td><code> nk </code></td>
+          <td>number of words in the kern table</td>
+        </tr>
+        <tr>
+          <td><code> ne </code></td>
+          <td>number of words in the extensible character table</td>
+        </tr>
+        <tr>
+          <td><code> np </code></td>
+          <td>number of font parameter words</td>
+        </tr>
+      </table>
+    </center>
+  </p>
+
+  <p>They are all nonnegative and less than <code>2^15</code>. We must have</p>
+
+  <ul>
+    <li><code>bc-1 &lt;= ec &lt; =255</code></li>
+    <li><code>ne &lt;=256</code></li>
+    <li><code>lf=6+lh+(ec-bc+1)+nw+nh+nd+ni+nl+nk+ne+np</code></li>
+  </ul>
+
+  <p>
+    Note that a font may contain as many as 256 characters (if
+    <code>bc=0</code> and <code>ec=255</code>), and as few as 0 characters (if
+    <code>bc=ec+1</code>).
+  </p>
+
+  <p>
+    Incidentally, when two or more 8-bit bytes are combined to form an integer
+    of 16 or more bits, the most significant bytes appear first in the file.
+    This is called BigEndian order.
+  </p>
+
+  <h2>3. File Body</h2>
+
+  <p>
+    The rest of the <code>TFM</code> file may be regarded as a sequence of ten
+    data arrays having the informal specification
+  </p>
+
+  <table border="yes">
+    <tr>
+      <th colspan="3"><code>TFM</code> File Body Structure</th>
+    </tr>
+    <tr>
+      <th>Name</th>
+      <th>Range</th>
+      <th>Type</th>
+    </tr>
+    <tr>
+      <td>
+        <code> <a href="#header">header</a> </code>
+      </td>
+      <td><code> [0..lh-1] </code></td>
+      <td><code> stuff </code></td>
+    </tr>
+    <tr>
+      <td>
+        <code> <a href="#charinfo">char_info</a> </code>
+      </td>
+      <td><code> [bc..ec] </code></td>
+      <td><code> char_info_word </code></td>
+    </tr>
+    <tr>
+      <td><code> width </code></td>
+      <td><code> [0..nw-1] </code></td>
+      <td><code> fix_word </code></td>
+    </tr>
+    <tr>
+      <td><code> height </code></td>
+      <td><code> [0..nh-1] </code></td>
+      <td><code> fix_word </code></td>
+    </tr>
+    <tr>
+      <td><code> depth </code></td>
+      <td><code> [0..nd-1] </code></td>
+      <td><code> fix_word </code></td>
+    </tr>
+    <tr>
+      <td><code> italic </code></td>
+      <td><code> [0..ni-1] </code></td>
+      <td><code> fix_word </code></td>
+    </tr>
+    <tr>
+      <td>
+        <code> <a href="#ligkern">lig_kern</a> </code>
+      </td>
+      <td><code> [0..nl-1] </code></td>
+      <td><code> lig_kern_command </code></td>
+    </tr>
+    <tr>
+      <td><code> kern </code></td>
+      <td><code> [0..nk-1] </code></td>
+      <td><code> fix_word </code></td>
+    </tr>
+    <tr>
+      <td>
+        <code> <a href="#exten">exten</a> </code>
+      </td>
+      <td><code> [0..ne-1] </code></td>
+      <td><code> extensible_recipe </code></td>
+    </tr>
+    <tr>
+      <td>
+        <code> <a href="#param">param</a> </code>
+      </td>
+      <td><code> [1..np] </code></td>
+      <td><code> fix_word </code></td>
+    </tr>
+  </table>
+
+  <p>
+    The most important data type used here is a <code>fix_word</code>, which is
+    a 32-bit representation of a binary fraction. A <code>fix_word</code> is a
+    signed quantity, with the two's complement of the entire word used to
+    represent negation. Of the 32 bits in a <code>fix_word</code>, exactly 12
+    are to the left of the binary point; thus, the largest
+    <code>fix_word</code> value is <code>2048-2^{-20}</code>, and the smallest
+    is -2048. We will see below, however, that all but one of the
+    <code>fix_word</code> values will lie between -16 and +16.
+
+    <a name="header"
+      ><h3>3.1 The <code>header</code> Array</h3></a
+    >
+  </p>
+
+  <p>
+    The first data array is a block of header information, which contains
+    general facts about the font. The header must contain at least two words,
+    and for <code>TFM</code> files to be used with Xerox printing software it
+    must contain at least 18 words, allocated as described below. When different
+    kinds of devices need to be interfaced, it may be necessary to add further
+    words to the header block.
+  </p>
+
+  <ul>
+    <li>
+      <code>header[0]</code> is a 32-bit check sum that <code>TeX</code> will
+      copy into the <code>DVI</code> output file whenever it uses the font.
+      Later on when the <code>DVI</code> file is printed, possibly on another
+      computer, the actual font that gets used is supposed to have a check sum
+      that agrees with the one in the <code>TFM</code> file used by
+      <code>TeX</code>. In this way, users will be warned about potential
+      incompatibilities. (However, if the check sum is zero in either the font
+      file or the <code>TFM</code> file, no check is made.) The actual relation
+      between this check sum and the rest of the <code>TFM</code> file is not
+      important; the check sum is simply an identification number with the
+      property that incompatible fonts almost always have distinct check sums.
+    </li>
+
+    <li>
+      <code>header[1]</code> is a <code>fix_word</code> containing the design
+      size of the font, in units of <code>TeX</code> points (7227
+      <code>TeX</code> points = 254 cm). This number must be at least 1.0; it is
+      fairly arbitrary, but usually the design size is 10.0 for a ``10 point''
+      font, i.e., a font that was designed to look best at a 10-point size,
+      whatever that really means. When a <code>TeX</code> user asks for a font
+      at <code>delta</code> pt, the effect is to override the design size and
+      replace it by <code>delta</code>, and to multiply the <code>x</code> and
+      <code>y</code> coordinates of the points in the font image by a factor of
+      <code>delta</code> divided by the design size.
+      <i
+        >All other dimensions in the <code>TFM</code> file are
+        <code>fix_word</code> <code>kern-1pt</code> numbers in design-size
+        units.</i
+      >
+      Thus, for example, the value of <code>param[6]</code>, one
+      <code>em</code> or <code>\quad</code>, is often the
+      <code>fix_word</code> value <code>2^{20}=1.0</code>, since many fonts have
+      a design size equal to one em. The other dimensions must be less than 16
+      design-size units in absolute value; thus, <code>header[1]</code> and
+      <code>param[1]</code> are the only <code>fix_word</code> entries in the
+      whole <code>TFM</code> file whose first byte might be something besides 0
+      or 255.
+    </li>
+
+    <li>
+      <code>header[2..11]</code>, if present, contains 40 bytes that identify
+      the character coding scheme. The first byte, which must be between 0 and
+      39, is the number of subsequent ASCII bytes actually relevant in this
+      string, which is intended to specify what character-code-to-symbol
+      convention is present in the font. Examples are <code>ASCII</code> for
+      standard ASCII, <code>TeX text</code> for fonts like
+      <code>cmr10</code> and <code>cmti9</code>,
+      <code>TeX math extension</code> for <code>cmex10</code>,
+      <code>XEROX text</code> for Xerox fonts, <code>GRAPHIC</code> for
+      special-purpose non-alphabetic fonts, <code>UNSPECIFIED</code> for the
+      default case when there is no information. Parentheses should not appear
+      in this name. (Such a string is said to be in <code>BCPL</code> format.)
+    </li>
+
+    <li>
+      <code>header[12..16]</code>, if present, contains 20 bytes that name the
+      font family (e.g., <code>CMR</code> or <code>HELVETICA</code>), in
+      <code>BCPL</code> format. This field is also known as the ``font
+      identifier.''
+    </li>
+
+    <li>
+      <code>header[17]</code>, if present, contains a first byte called the
+      <code>seven_bit_safe_flag</code>, then two bytes that are ignored, and a
+      fourth byte called the <code>face</code>. If the value of the fourth byte
+      is less than 18, it has the following interpretation as a ``weight, slope,
+      and expansion'': Add 0 or 2 or 4 (for medium or bold or light) to 0 or 1
+      (for roman or italic) to 0 or 6 or 12 (for regular or condensed or
+      extended). For example, 13 is 0+1+12, so it represents medium italic
+      extended. A three-letter code (e.g., <code>MIE</code>) can be used for
+      such <code>face</code> data.
+    </li>
+
+    <li>
+      <code>header[18..whatever]</code> might also be present; the individual
+      words are simply called <code>header[18]</code>, <code>header[19]</code>,
+      etc., at the moment.
+    </li>
+  </ul>
+
+  <a name="charinfo"
+    ><h3>3.2 The <code>char_info</code> Array</h3></a
+  >
+  <p>
+    Next comes the <code>char_info</code> array, which contains one
+    <code>char_info_word</code> per character. Each
+    <code>char_info_word</code> contains six fields packed into four bytes as
+    follows.
+  </p>
+
+  <table border="yes">
+    <tr>
+      <th colspan="3"><code> char_info_word </code> Data Type</th>
+    </tr>
+    <tr>
+      <th>Byte no.</th>
+      <th>Name</th>
+      <th>Size</th>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td><code> width_index </code></td>
+      <td>8 bits</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><code> height_index </code> (times 16)</td>
+      <td>4 bits</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td><code> depth_index </code></td>
+      <td>4 bits</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><code> italic_index </code> (times 4)</td>
+      <td>6 bits</td>
+    </tr>
+    <tr>
+      <td></td>
+      <td><code> tag </code></td>
+      <td>2 bits</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><code> remainder </code></td>
+      <td>8 bits</td>
+    </tr>
+  </table>
+
+  <p>
+    The actual width of a character is <code>width[width_index]</code>, in
+    design-size units; this is a device for compressing information, since many
+    characters have the same width. Since it is quite common for many characters
+    to have the same height, depth, or italic correction, the
+    <code>TFM</code> format imposes a limit of 16 different heights, 16
+    different depths, and 64 different italic corrections.
+  </p>
+
+  <p>
+    Incidentally, the relation
+    <code>width[0]=height[0]=depth[0]=italic[0]=0</code> should always hold, so
+    that an index of zero implies a value of zero. The
+    <code>width_index</code> should never be zero unless the character does not
+    exist in the font, since a character is valid if and only if it lies between
+    <code>bc</code> and <code>ec</code> and has a nonzero
+    <code>width_index</code>.
+  </p>
+
+  <p>
+    The <code>tag</code> field in a <code>char_info_word</code> has four values
+    that explain how to interpret the <code>remainder</code> field.
+  </p>
+
+  <table border="yes">
+    <tr>
+      <th colspan="3">
+        The <code>tag</code> field in <code>char_info_word</code>
+      </th>
+    </tr>
+    <tr>
+      <th><code>tag</code> value</th>
+      <th>Name</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td>0</td>
+      <td><code> no_tag </code></td>
+      <td>means that <code>remainder</code> is unused.</td>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td><code> lig_tag </code></td>
+      <td>
+        means that this character has a ligature/kerning program starting <br />
+        at <code>lig_kern[remainder]</code>.
+      </td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><code> list_tag </code></td>
+      <td>
+        means that this character is part of a chain of characters of ascending
+        <br />
+        sizes, and not the largest in the chain. The
+        <code>remainder</code> field gives the <br />
+        character code of the next larger character.
+      </td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><code> ext_tag </code></td>
+      <td>
+        means that this character code represents an extensible character, i.e.,
+        <br />
+        a character that is built up of smaller pieces so that it can be made
+        arbitrarily <br />
+        large. The pieces are specified in <code>exten[remainder]</code>.
+      </td>
+    </tr>
+  </table>
+
+  <a name="ligkern"
+    ><h3>3.3 The <code>lig_kern</code> Array</h3></a
+  >
+  <p>
+    The <code>lig_kern</code> array contains instructions in a simple
+    programming language that explains what to do for special letter pairs. Each
+    word is a <code>lig_kern_command</code> of four bytes.
+  </p>
+
+  <table border="yes">
+    <tr>
+      <th colspan="3"><code>lig_kern_command</code> Data Type</th>
+    </tr>
+    <tr>
+      <th>Byte no.</th>
+      <th>Field Name</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td><code> skip_byte </code></td>
+      <td>
+        indicates that this is the final program step if the byte is 128 or
+        more, <br />
+        otherwise the next step is obtained by skipping this number of
+        intervening steps.
+      </td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td><code> next_char </code></td>
+      <td>
+        ``if <code>next_char</code> follows the current character, then perform
+        <br />
+        the operation and stop, otherwise continue.''
+      </td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td><code> op_byte </code></td>
+      <td>
+        indicates a ligature step if less than 128, a kern step otherwise.
+      </td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td><code> remainder </code></td>
+    </tr>
+  </table>
+
+  <p>
+    In a kern step, an additional space equal to
+    <code>kern[256*(op_byte-128)+remainder]</code> is inserted between the
+    current character and <code>next_char</code>. This amount is often negative,
+    so that the characters are brought closer together by kerning; but it might
+    be positive.
+  </p>
+
+  <p>
+    There are eight kinds of ligature steps, having <code>op_byte</code> codes
+    <code>4a+2b+c</code> where <code>0 &lt;= a &lt;= b+c </code> and
+    <code>0 &lt;= b,c &lt;= 1</code>. The character whose code is
+    <code>remainder</code> is inserted between the current character and
+    <code>next_char</code>; then the current character is deleted if
+    <code>b=0</code>, and <code>next_char</code> is deleted if <code>c=0</code>;
+    then we pass over <code>a</code> characters to reach the next current
+    character (which may have a ligature/kerning program of its own).
+  </p>
+
+  <p>
+    Notice that if <code>a=0</code> and <code>b=1</code>, the current character
+    is unchanged; if <code>a=b</code> and <code>c=1</code>, the current
+    character is changed but the next character is unchanged.
+    <code>TFtoPL</code> will check to see that infinite loops are avoided.
+  </p>
+
+  <p>
+    If the very first instruction of the <code>lig_kern</code> array has
+    <code>skip_byte=255</code>, the <code>next_char</code> byte is the so-called
+    right boundary character of this font; the value of
+    <code>next_char</code> need not lie between <code>bc</code> and
+    <code>ec</code>. If the very last instruction of the
+    <code>lig_kern</code> array has <code>skip_byte=255</code>, there is a
+    special ligature/kerning program for a left boundary character, beginning at
+    location <code>256*op_byte+remainder</code>. The interpretation is that
+    <code>TeX</code> puts implicit boundary characters before and after each
+    consecutive string of characters from the same font. These implicit
+    characters do not appear in the output, but they can affect ligatures and
+    kerning.
+  </p>
+
+  <p>
+    If the very first instruction of a character's <code>lig_kern</code> program
+    has <code>skip_byte &gt; 128</code>, the program actually begins in location
+    <code>256*op_byte+remainder</code>. This feature allows access to large
+    <code>lig_kern</code> arrays, because the first instruction must otherwise
+    appear in a location <code>&lt;=255</code>.
+  </p>
+
+  <p>
+    Any instruction with <code>skip_byte &gt; 128</code> in the
+    <code>lig_kern</code> array must have
+    <code>256*op_byte+remainder &lt; nl</code>. If such an instruction is
+    encountered during normal program execution, it denotes an unconditional
+    halt; no ligature command is performed.
+
+    <a name="exten"
+      ><h3>3.4 The <code>extensible_recipe</code> Array</h3></a
+    >
+  </p>
+
+  <p>
+    Extensible characters are specified by an <code>extensible_recipe</code>,
+    which consists of four bytes called <code>top</code>, <code>mid</code>,
+    <code>bot</code>, and <code>rep</code> (in this order). These bytes are the
+    character codes of individual pieces used to build up a large symbol. If
+    <code>top</code>, <code>mid</code>, or <code>bot</code>
+    are zero, they are not present in the built-up result. For example, an
+    extensible vertical line is like an extensible bracket, except that the top
+    and bottom pieces are missing.
+
+    <a name="param"
+      ><h3>3.5 The <code>param</code> Array</h3></a
+    >
+  </p>
+
+  <p>
+    The final portion of a <code>TFM</code> file is the
+    <code>param</code> array, which is another sequence of
+    <code>fix_word</code> values.
+  </p>
+
+  <ul>
+    <li>
+      <code>param[1]=slant</code> is the amount of italic slant, which is used
+      to help position accents. For example, <code>slant=.25</code> means that
+      when you go up one unit, you also go .25 units to the right. The
+      <code>slant</code> is a pure number; it's the only
+      <code>fix_word</code> other than the design size itself that is not scaled
+      by the design size.
+    </li>
+
+    <li>
+      <code>param[2]=space</code> is the normal spacing between words in text.
+      Note that character <code>" "</code> in the font need not have anything to
+      do with blank spaces.
+    </li>
+
+    <li>
+      <code>param[3]=space_stretch</code> is the amount of glue stretching
+      between words.
+    </li>
+
+    <li>
+      <code>param[4]=space_shrink</code> is the amount of glue shrinking between
+      words.
+    </li>
+
+    <li>
+      <code>param[5]=x_height</code> is the height of letters for which accents
+      don't have to be raised or lowered.
+    </li>
+
+    <li><code>param[6]=quad</code> is the size of one em in the font.</li>
+
+    <li>
+      <code>param[7]=extra_space</code> is the amount added to
+      <code>param[2]</code> at the ends of sentences.
+    </li>
+  </ul>
+
+  When the character coding scheme is <code>TeX math symbols</code>, the font is
+  supposed to have 15 additional parameters called <code>num1</code>,
+  <code>num2</code>, <code>num3</code>, <code>denom1</code>,
+  <code>denom2</code>, <code>sup1</code>, <code>sup2</code>, <code>sup3</code>,
+  <code>sub1</code>, <code>sub2</code>, <code>supdrop</code>,
+  <code>subdrop</code>, <code>delim1</code>, <code>delim2</code>, and
+  <code>axis_height</code>, respectively. When the character coding scheme is
+  <code>TeX math extension</code>, the font is supposed to have six additional
+  parameters called <code>default_rule_thickness</code> and
+  <code>big_op_spacing1</code> through <code>big_op_spacing5</code>.
+</body>
